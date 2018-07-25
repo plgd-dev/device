@@ -51,18 +51,66 @@ type OCFBinaryValueSetI interface {
 	Set(s []byte) (changed bool, err error)
 }
 
-type OCFArrayValueGetI interface {
-	Get() ([]interface{}, error)
+// 1D array
+type OCFBoolArrayValueGetI interface {
+	Get() ([]bool, error)
 }
 
-type OCFArrayValueSetI interface {
-	Set(s []interface{}) (changed bool, err error)
+type OCFBoolArrayValueSetI interface {
+	Set(s []bool) (changed bool, err error)
+}
+
+type OCFEnumArrayValueGetI interface {
+	Get() ([]string, error)
+}
+
+type OCFEnumArrayValueSetI interface {
+	Set(s []string) (changed bool, err error)
+}
+
+type OCFIntArrayValueGetI interface {
+	Get() (int, error)
+}
+
+type OCFIntArrayValueSetI interface {
+	Set(s []int) (changed bool, err error)
+}
+
+type OCFDoubleArrayValueGetI interface {
+	Get() ([]float64, error)
+}
+
+type OCFDoubleArrayValueSetI interface {
+	Set(s []float64) (changed bool, err error)
+}
+
+type OCFStringArrayValueGetI interface {
+	Get() ([]string, error)
+}
+
+type OCFStringArrayValueSetI interface {
+	Set(s []string) (changed bool, err error)
+}
+
+type OCFBinaryArrayValueGetI interface {
+	Get() ([][]byte, error)
+}
+
+type OCFBinaryArrayValueSetI interface {
+	Set(s [][]byte) (changed bool, err error)
+}
+
+// 2D array
+// TODO
+
+// 3D array
+// TODO
+
+type OCFMapValueI {
+	OCFValueI
+	Unset() error
 }
 
 type OCFMapValueGetI interface {
-	Get() (map[string]interface{}, error)
-}
-
-type OCFMapValueSetI interface {
-	Set(s map[string]interface{}) (changed bool, err error)
+	Get() (map[string]OCFMapValueI, error)
 }
