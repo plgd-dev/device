@@ -26,8 +26,10 @@ func (a *OCFAttribute) GetValue() (interface{}, error) {
 		return v.Get()
 	case OCFBinaryValueGetI:
 		return v.Get()
-	case OCFArrayValueGetI:
-		return v.Get()
+		/*
+			case OCFArrayValueGetI:
+				return v.Get()
+		*/
 	case OCFMapValueGetI:
 		return v.Get()
 	}
@@ -52,11 +54,12 @@ func (a *OCFAttribute) SetValue(s interface{}) (bool, error) {
 		return v.Set(s.(string))
 	case OCFBinaryValueSetI:
 		return v.Set(s.([]byte))
-	case OCFArrayValueSetI:
-		return v.Set(s.([]interface{}))
-	case OCFMapValueSetI:
-		return v.Set(s.(map[string]interface{}))
+		/*
+			case OCFArrayValueSetI:
+				return v.Set(s.([]interface{}))
+			case OCFMapValueSetI:
+				return v.Set(s.(map[string]interface{}))
+		*/
 	}
-
 	return false, ErrAccessDenied
 }
