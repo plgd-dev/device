@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 type OCFValueI interface {
 	//Set by type
@@ -6,116 +6,116 @@ type OCFValueI interface {
 }
 
 type OCFValueSetDefaultI interface {
-	SetDefault() error
+	SetDefault(transaction OCFTransactionI) error
 }
 
 type OCFBoolValueGetI interface {
-	Get() (bool, error)
+	Get(transaction OCFTransactionI) (bool, error)
 }
 
 type OCFBoolValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s bool) (changed bool, err error)
+	Set(transaction OCFTransactionI, s bool) error
 }
 
 type OCFEnumValueGetI interface {
-	Get() (string, error)
+	Get(transaction OCFTransactionI) (string, error)
 }
 
 type OCFEnumValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s string) (changed bool, err error)
+	Set(transaction OCFTransactionI, s string) error
 }
 
 type OCFIntValueGetI interface {
-	Get() (int, error)
+	Get(transaction OCFTransactionI) (int, error)
 }
 
 type OCFIntValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s int) (changed bool, err error)
+	Set(transaction OCFTransactionI, s int) error
 }
 
 type OCFDoubleValueGetI interface {
-	Get() (float64, error)
+	Get(transaction OCFTransactionI) (float64, error)
 }
 
 type OCFDoubleValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s float64) (changed bool, err error)
+	Set(transaction OCFTransactionI, s float64) error
 }
 
 type OCFStringValueGetI interface {
-	Get() (string, error)
+	Get(transaction OCFTransactionI) (string, error)
 }
 
 type OCFStringValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s string) (changed bool, err error)
+	Set(transaction OCFTransactionI, s string) error
 }
 
 type OCFBinaryValueGetI interface {
-	Get() ([]byte, error)
+	Get(transaction OCFTransactionI) ([]byte, error)
 }
 
 type OCFBinaryValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []byte) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []byte) error
 }
 
 // 1D array
 type OCFBoolArrayValueGetI interface {
-	Get() ([]bool, error)
+	Get(transaction OCFTransactionI) ([]bool, error)
 }
 
 type OCFBoolArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []bool) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []bool) error
 }
 
 type OCFEnumArrayValueGetI interface {
-	Get() ([]string, error)
+	Get(transaction OCFTransactionI) ([]string, error)
 }
 
 type OCFEnumArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []string) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []string) error
 }
 
 type OCFIntArrayValueGetI interface {
-	Get() (int, error)
+	Get(transaction OCFTransactionI) (int, error)
 }
 
 type OCFIntArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []int) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []int) error
 }
 
 type OCFDoubleArrayValueGetI interface {
-	Get() ([]float64, error)
+	Get(transaction OCFTransactionI) ([]float64, error)
 }
 
 type OCFDoubleArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []float64) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []float64) error
 }
 
 type OCFStringArrayValueGetI interface {
-	Get() ([]string, error)
+	Get(transaction OCFTransactionI) ([]string, error)
 }
 
 type OCFStringArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s []string) (changed bool, err error)
+	Set(transaction OCFTransactionI, s []string) error
 }
 
 type OCFBinaryArrayValueGetI interface {
-	Get() ([][]byte, error)
+	Get(transaction OCFTransactionI) ([][]byte, error)
 }
 
 type OCFBinaryArrayValueSetI interface {
 	OCFValueSetDefaultI
-	Set(s [][]byte) (changed bool, err error)
+	Set(transaction OCFTransactionI, s [][]byte) error
 }
 
 // 2D array
@@ -125,5 +125,5 @@ type OCFBinaryArrayValueSetI interface {
 // TODO
 
 type OCFMapValueGetI interface {
-	Get() (map[string]OCFValueI, error)
+	Get(transaction OCFTransactionI) (map[string]OCFValueI, error)
 }

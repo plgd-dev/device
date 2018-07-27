@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 type OCFResourceTypeI interface {
 	IdI

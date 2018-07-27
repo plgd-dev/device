@@ -1,9 +1,9 @@
-package main
+package ocfsdk
 
 type OCFAttributeI interface {
 	IdI
-	GetValue() (interface{}, error)
-	SetValue(s interface{}) (bool, error)
+	GetValue(transaction OCFTransactionI) (value interface{}, err error)
+	SetValue(transaction OCFTransactionI, value interface{}) error
 }
 
 type OCFAttribute struct {
@@ -12,48 +12,48 @@ type OCFAttribute struct {
 	Limit OCFLimitI
 }
 
-func (a *OCFAttribute) GetValue() (interface{}, error) {
+func (a *OCFAttribute) GetValue(transaction OCFTransactionI) (interface{}, error) {
 	switch v := a.Value.(type) {
 	case OCFBoolValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	case OCFEnumValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	case OCFIntValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	case OCFDoubleValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	case OCFStringValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	case OCFBinaryValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 		/*
 			case OCFArrayValueGetI:
 				return v.Get()
 		*/
 	case OCFMapValueGetI:
-		return v.Get()
+		return v.Get(transaction)
 	}
 
 	return nil, ErrAccessDenied
 }
 
-func (a *OCFAttribute) SetValue(s interface{}) (bool, error) {
-	if err := a.Limit.ValidateValue(s); err != nil {
-		return false, err
+func (a *OCFAttribute) SetValue(transaction OCFTransactionI, value interface{}) error {
+	if err := a.Limit.ValidateValue(value); err != nil {
+		return err
 	}
 	switch v := a.Value.(type) {
 	case OCFBoolValueSetI:
-		return v.Set(s.(bool))
+		return v.Set(transaction, value.(bool))
 	case OCFEnumValueSetI:
-		return v.Set(s.(string))
+		return v.Set(transaction, value.(string))
 	case OCFIntValueSetI:
-		return v.Set(s.(int))
+		return v.Set(transaction, value.(int))
 	case OCFDoubleValueSetI:
-		return v.Set(s.(float64))
+		return v.Set(transaction, value.(float64))
 	case OCFStringValueSetI:
-		return v.Set(s.(string))
+		return v.Set(transaction, value.(string))
 	case OCFBinaryValueSetI:
-		return v.Set(s.([]byte))
+		return v.Set(transaction, value.([]byte))
 		/*
 			case OCFArrayValueSetI:
 				return v.Set(s.([]interface{}))
@@ -61,5 +61,5 @@ func (a *OCFAttribute) SetValue(s interface{}) (bool, error) {
 				return v.Set(s.(map[string]interface{}))
 		*/
 	}
-	return false, ErrAccessDenied
+	return ErrAccessDenied
 }

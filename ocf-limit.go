@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 type OCFLimitI interface {
 	ValidateValue(interface{}) error
