@@ -19,17 +19,15 @@ type OCFResourceDeleteInterfaceI interface {
 }
 
 type OCFResourceInterfaceI interface {
-	IdI
+	OCFIdI
 }
 
 type OCFResourceInterface struct {
+	OCFId
 }
 
 type OCFResourceInterfaceBaseline struct {
-}
-
-func (ri *OCFResourceInterfaceBaseline) GetId() string {
-	return "oic.if.baseline"
+	OCFResourceInterface
 }
 
 func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error) {
@@ -39,13 +37,19 @@ func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, 
 	}
 
 	res := make(map[string]interface{})
-	res["if"] = req.GetResource().GetResourceInterfaces()
+	iface := make([]string, 0)
+	for _, r := range req.GetResource().GetResourceInterfaces() {
+		if r.GetId() != "" {
+			iface = append(iface, r.GetId())
+		}
+	}
+	res["if"] = iface
 
-	rt := make([]string, len(req.GetResource().GetResourceTypes()))
+	rt := make([]string, 0)
 	for _, r := range req.GetResource().GetResourceTypes() {
 		rt = append(rt, r.GetId())
 	}
-	res["ri"] = rt
+	res["rt"] = rt
 	errors := make(map[string]error)
 	for _, resourceType := range req.GetResource().GetResourceTypes() {
 		for _, attribute := range resourceType.GetAttributes() {

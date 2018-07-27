@@ -2,6 +2,14 @@ package ocfsdk
 
 import "testing"
 
+func testNewBoolValue(t *testing.T, get func(transaction OCFTransactionI) (bool, error), setDefault func(transaction OCFTransactionI) error, set func(transaction OCFTransactionI, s bool) error) OCFValueI {
+	v, err := NewBoolValue(get, setDefault, set)
+	if err != nil {
+		t.Fatal("cannot create new value: %v", err)
+	}
+	return v
+}
+
 func TestCreateBoolValue(t *testing.T) {
 	_, err := NewBoolValue(nil, nil, nil)
 	if err == nil {
