@@ -1,13 +1,13 @@
 package ocfsdk
 
 type OCFAttributeI interface {
-	IdI
+	OCFIdI
 	GetValue(transaction OCFTransactionI) (value interface{}, err error)
 	SetValue(transaction OCFTransactionI, value interface{}) error
 }
 
 type OCFAttribute struct {
-	Id    IdI
+	OCFId
 	Value OCFValueI
 	Limit OCFLimitI
 }
@@ -62,4 +62,12 @@ func (a *OCFAttribute) SetValue(transaction OCFTransactionI, value interface{}) 
 		*/
 	}
 	return ErrAccessDenied
+}
+
+func NewAttribute(id string, value OCFValueI, limit OCFLimitI) (OCFAttributeI, error) {
+
+	if len(id) == 0 || value == nil || limit == nil {
+		return nil, ErrInvalidParams
+	}
+	return &OCFAttribute{OCFId: OCFId{Id: id}, Value: value, Limit: limit}, nil
 }

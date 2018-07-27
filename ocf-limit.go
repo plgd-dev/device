@@ -9,7 +9,7 @@ type OCFBoolLimit struct {
 
 func (a *OCFBoolLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
-	case *bool:
+	case bool:
 		return nil
 	default:
 		return ErrInvalidType
@@ -22,7 +22,7 @@ type OCFEnumLimit struct {
 
 func (a *OCFEnumLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
-	case *string:
+	case string:
 		for _, v := range a.ValidValues {
 			if v == *val.(*string) {
 				return nil
@@ -40,7 +40,7 @@ type OCFIntLimit struct {
 
 func (a *OCFIntLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
-	case *int:
+	case int:
 		if a.Limit != nil {
 			return a.Limit(*val.(*int))
 		}
@@ -56,7 +56,7 @@ type OCFStringLimit struct {
 
 func (a *OCFStringLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
-	case *string:
+	case string:
 		if a.Limit != nil {
 			return a.Limit(val.(*string))
 		}
@@ -72,12 +72,12 @@ type OCFDoubleLimit struct {
 
 func (a *OCFDoubleLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
-	case *float32:
+	case float32:
 		if a.Limit != nil {
 			return a.Limit(*val.(*float64))
 		}
 		return nil
-	case *float64:
+	case float64:
 		if a.Limit != nil {
 			return a.Limit(*val.(*float64))
 		}

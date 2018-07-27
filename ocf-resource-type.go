@@ -1,19 +1,22 @@
 package ocfsdk
 
 type OCFResourceTypeI interface {
-	IdI
+	OCFIdI
 	GetAttributes() []OCFAttributeI
 }
 
 type OCFResourceType struct {
-	Id         IdI
+	OCFId
 	Attributes []OCFAttributeI
-}
-
-func (rt *OCFResourceType) GetId() string {
-	return rt.Id.GetId()
 }
 
 func (rt *OCFResourceType) GetAttributes() []OCFAttributeI {
 	return rt.Attributes
+}
+
+func NewResourceType(id string, attributes []OCFAttributeI) (OCFResourceTypeI, error) {
+	if len(id) == 0 || len(attributes) == 0 {
+		return nil, ErrInvalidParams
+	}
+	return &OCFResourceType{OCFId: OCFId{Id: id}, Attributes: attributes}, nil
 }
