@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 import "testing"
 
@@ -11,12 +11,12 @@ func TestCreateBoolValue(t *testing.T) {
 
 func TestBoolValueGet(t *testing.T) {
 	b := false
-	ob, err := NewBoolValue(func() (bool, error) { return b, nil }, nil, nil)
+	ob, err := NewBoolValue(func(OCFTransactionI) (bool, error) { return b, nil }, nil, nil)
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
 	if g, ok := ob.(OCFBoolValueGetI); ok {
-		if v, err := g.Get(); err != nil {
+		if v, err := g.Get(nil); err != nil {
 			t.Fatal("failed to get value", err)
 		} else if v != b {
 			t.Fatal("value is not same", err)
@@ -28,12 +28,12 @@ func TestBoolValueGet(t *testing.T) {
 
 func TestBoolValueSetDefault(t *testing.T) {
 	b := false
-	ob, err := NewBoolValue(nil, func() error { b = true; return nil }, nil)
+	ob, err := NewBoolValue(nil, func(OCFTransactionI) error { b = true; return nil }, nil)
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
 	if g, ok := ob.(OCFBoolValueSetI); ok {
-		if err := g.SetDefault(); err != nil {
+		if err := g.SetDefault(nil); err != nil {
 			t.Fatal("failed to get value", err)
 		} else if b != true {
 			t.Fatal("value is not same", err)
@@ -45,30 +45,19 @@ func TestBoolValueSetDefault(t *testing.T) {
 
 func TestBoolValueSet(t *testing.T) {
 	b := false
-	ob, err := NewBoolValue(nil, nil, func(s bool) (bool, error) { c := s != b; b = s; return c, nil })
+	ob, err := NewBoolValue(nil, nil, func(t OCFTransactionI, s bool) error { b = s; return nil })
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
 	if g, ok := ob.(OCFBoolValueSetI); ok {
-		if changed, err := g.Set(true); err != nil {
-			t.Fatal("failed to get value", err)
-		} else if !changed {
-			t.Fatal("value was not changed", err)
+		if err := g.Set(nil, true); err != nil {
+			t.Fatal("failed to set value", err)
 		}
-	}
-	if g, ok := ob.(OCFBoolValueSetI); ok {
-		if changed, err := g.Set(true); err != nil {
-			t.Fatal("failed to get value", err)
-		} else if changed {
-			t.Fatal("value was changed", err)
-		}
-	} else {
-		t.Fatal("not implement interface", err)
 	}
 }
 
 func TestMapValue(t *testing.T) {
-	v, err := NewBoolValue(func() (bool, error) { return true, nil }, nil, nil)
+	v, err := NewBoolValue(func(OCFTransactionI) (bool, error) { return true, nil }, nil, nil)
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
@@ -76,12 +65,12 @@ func TestMapValue(t *testing.T) {
 		"test": v,
 	}
 
-	m, err := NewMapValue(s)
+	m, err := NewMapValue(func(OCFTransactionI) (map[string]OCFValueI, error) { return s, nil })
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
 	if g, ok := m.(OCFMapValueGetI); ok {
-		s1, err := g.Get()
+		s1, err := g.Get(nil)
 		if err != nil {
 			t.Fatal("failed to get value", err)
 		}
@@ -92,7 +81,7 @@ func TestMapValue(t *testing.T) {
 				t.Fatal("invalid key", err)
 			}
 			if g, ok := val.(OCFBoolValueGetI); ok {
-				if v, err := g.Get(); err != nil {
+				if v, err := g.Get(nil); err != nil {
 					t.Fatal("failed to get value", err)
 				} else if v != true {
 					t.Fatal("value is not same", err)

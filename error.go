@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 // Error errors type of main
 type Error string

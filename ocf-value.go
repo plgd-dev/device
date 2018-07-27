@@ -1,12 +1,12 @@
-package main
+package ocfsdk
 
 type OCFBoolROValue struct {
-	get func() (bool, error)
+	get func(transaction OCFTransactionI) (bool, error)
 }
 
 type OCFBoolWOValue struct {
-	setDefault func() error
-	set        func(s bool) (changed bool, err error)
+	setDefault func(transaction OCFTransactionI) error
+	set        func(transaction OCFTransactionI, s bool) (err error)
 }
 
 type OCFBoolRWValue struct {
@@ -14,28 +14,28 @@ type OCFBoolRWValue struct {
 	OCFBoolWOValue
 }
 
-func (v *OCFBoolROValue) Get() (bool, error) {
+func (v *OCFBoolROValue) Get(transaction OCFTransactionI) (bool, error) {
 	if v.get != nil {
-		return v.get()
+		return v.get(transaction)
 	}
 	return false, ErrOperationNotSupported
 }
 
-func (v *OCFBoolWOValue) SetDefault() error {
+func (v *OCFBoolWOValue) SetDefault(transaction OCFTransactionI) error {
 	if v.setDefault != nil {
-		return v.setDefault()
+		return v.setDefault(transaction)
 	}
 	return ErrOperationNotSupported
 }
 
-func (v *OCFBoolWOValue) Set(s bool) (changed bool, err error) {
+func (v *OCFBoolWOValue) Set(transaction OCFTransactionI, s bool) (err error) {
 	if v.set != nil {
-		return v.set(s)
+		return v.set(transaction, s)
 	}
-	return false, ErrOperationNotSupported
+	return ErrOperationNotSupported
 }
 
-func NewBoolValue(get func() (bool, error), setDefault func() error, set func(s bool) (changed bool, err error)) (OCFValueI, error) {
+func NewBoolValue(get func(transaction OCFTransactionI) (bool, error), setDefault func(transaction OCFTransactionI) error, set func(transaction OCFTransactionI, s bool) error) (OCFValueI, error) {
 	if get == nil && setDefault == nil && set == nil {
 		return nil, ErrInvalidParams
 	}
@@ -49,13 +49,19 @@ func NewBoolValue(get func() (bool, error), setDefault func() error, set func(s 
 }
 
 type OCFMapValue struct {
-	m map[string]OCFValueI
+	get func(transaction OCFTransactionI) (map[string]OCFValueI, error)
 }
 
-func (v *OCFMapValue) Get() (map[string]OCFValueI, error) {
-	return v.m, nil
+func (v *OCFMapValue) Get(transaction OCFTransactionI) (map[string]OCFValueI, error) {
+	if v.get != nil {
+		return v.get(transaction)
+	}
+	return nil, ErrOperationNotSupported
 }
 
-func NewMapValue(m map[string]OCFValueI) (OCFValueI, error) {
-	return &OCFMapValue{m: m}, nil
+func NewMapValue(get func(transaction OCFTransactionI) (map[string]OCFValueI, error)) (OCFValueI, error) {
+	if get == nil {
+		return nil, ErrInvalidParams
+	}
+	return &OCFMapValue{get: get}, nil
 }

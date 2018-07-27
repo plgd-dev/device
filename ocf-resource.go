@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 import coap "github.com/ondrejtomcik/go-coap"
 
@@ -32,6 +32,7 @@ type OCFResourceI interface {
 	GetResourceTypes() []OCFResourceTypeI
 	GetResourceInterfaces() []OCFResourceInterfaceI
 	NotifyObservers()
+	OpenTransaction() (OCFTransactionI, error)
 }
 
 type OCFResource struct {
@@ -40,6 +41,7 @@ type OCFResource struct {
 	observeable        bool
 	resourceTypes      []OCFResourceTypeI
 	resourceInterfaces []OCFResourceInterfaceI
+	openTransaction    func() (OCFTransactionI, error)
 }
 
 func (r *OCFResource) IsDiscoverable() bool {
@@ -60,6 +62,13 @@ func (r *OCFResource) GetResourceTypes() []OCFResourceTypeI {
 
 func (r *OCFResource) GetResourceInterfaces() []OCFResourceInterfaceI {
 	return r.resourceInterfaces
+}
+
+func (r *OCFResource) OpenTransaction() (OCFTransactionI, error) {
+	if r.openTransaction != nil {
+		return r.openTransaction()
+	}
+	return nil, ErrOperationNotSupported
 }
 
 /*
@@ -91,22 +100,27 @@ func (r *OCFResource) Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, err
 func (r *OCFResource) Update(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error) {
 	for _, resourceInterface := range r.resourceInterfaces {
 		if resourceInterface.GetId() == req.GetInterfaceId() {
-			if ri, ok := resourceInterface.(OCFResourceUpdateInterfaceI); ok {
-				reqMap := req.GetPayload().(map[string]interface{})
-				errors := make([]error, 10)
-				changedAttributes := make([]OCFAttributeI, 10)
-				for _, value := range reqMap {
-					for _, resourceType := range req.GetResource().GetResourceTypes() {
-						for _, attribute := range resourceType.GetAttributes() {
-							if changed, err := attribute.SetValue(value); err != nil {
-								errors = append(errors, err)
-							} else if changed {
-								changedAttributes = append(changedAttributes, attribute)
+			if transaction, err := r.OpenTransaction(); err != nil {
+				if ri, ok := resourceInterface.(OCFResourceUpdateInterfaceI); ok {
+					reqMap := req.GetPayload().(map[string]interface{})
+					errors := make([]error, 10)
+					for key, value := range reqMap {
+						for _, resourceType := range req.GetResource().GetResourceTypes() {
+							for _, attribute := range resourceType.GetAttributes() {
+								if attribute.GetId() == key {
+									if err := attribute.SetValue(transaction, value); err != nil {
+										errors = append(errors, err)
+									}
+								}
 							}
 						}
 					}
+					if err := transaction.Commit(); err != nil {
+						errors = append(errors, err)
+					}
+					return ri.Update(req, errors)
 				}
-				return ri.Update(req, changedAttributes, errors)
+				transaction.Drop()
 			}
 		}
 	}

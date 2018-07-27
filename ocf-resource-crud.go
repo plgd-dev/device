@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 import coap "github.com/ondrejtomcik/go-coap"
 

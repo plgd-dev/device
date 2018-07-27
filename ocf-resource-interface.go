@@ -1,4 +1,4 @@
-package main
+package ocfsdk
 
 import coap "github.com/ondrejtomcik/go-coap"
 
@@ -11,7 +11,7 @@ type OCFResourceRetrieveInterfaceI interface {
 }
 
 type OCFResourceUpdateInterfaceI interface {
-	Update(req OCFRequestI, changedAttributes []OCFAttributeI, errors []error) (OCFPayloadI, coap.COAPCode, error)
+	Update(req OCFRequestI, errors []error) (OCFPayloadI, coap.COAPCode, error)
 }
 
 type OCFResourceDeleteInterfaceI interface {
@@ -33,6 +33,11 @@ func (ri *OCFResourceInterfaceBaseline) GetId() string {
 }
 
 func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error) {
+	transaction, err := req.GetResource().OpenTransaction()
+	if err != nil {
+		return nil, coap.InternalServerError, err
+	}
+
 	res := make(map[string]interface{})
 	res["if"] = req.GetResource().GetResourceInterfaces()
 
@@ -44,16 +49,17 @@ func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, 
 	errors := make(map[string]error)
 	for _, resourceType := range req.GetResource().GetResourceTypes() {
 		for _, attribute := range resourceType.GetAttributes() {
-			if value, err := attribute.GetValue(); err == nil {
+			if value, err := attribute.GetValue(transaction); err == nil {
 				res[attribute.GetId()] = value
 			} else {
 				errors[attribute.GetId()] = err
 			}
 		}
 	}
+	transaction.Drop()
 	return res, coap.Content, nil
 }
 
-func (ri *OCFResourceInterfaceBaseline) Update(req OCFRequestI, changedAttributes []OCFAttributeI, errors []error) (OCFPayloadI, coap.COAPCode, error) {
+func (ri *OCFResourceInterfaceBaseline) Update(req OCFRequestI, errors []error) (OCFPayloadI, coap.COAPCode, error) {
 	return nil, coap.Changed, nil
 }
