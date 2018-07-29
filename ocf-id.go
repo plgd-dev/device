@@ -1,9 +1,9 @@
 package ocfsdk
 
 type OCFId struct {
-	Id string
+	id string
 }
 
 func (i *OCFId) GetId() string {
-	return i.Id
+	return i.id
 }

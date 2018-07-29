@@ -10,13 +10,25 @@ type OCFRequestI interface {
 	GetPeerSession() interface{}
 }
 
+type OCFResourceTypeIteratorI interface {
+	Next() bool
+	Value() OCFResourceTypeI
+	Error() error
+}
+
+type OCFResourceInterfaceIteratorI interface {
+	Next() bool
+	Value() OCFResourceInterfaceI
+	Error() error
+}
+
 type OCFResourceI interface {
 	OCFIdI
 
 	IsDiscoverable() bool
 	IsObserveable() bool
-	GetResourceTypes() []OCFResourceTypeI
-	GetResourceInterfaces() []OCFResourceInterfaceI
+	NewResourceTypeIterator() OCFResourceTypeIteratorI
+	NewResourceInterfaceIterator() OCFResourceInterfaceIteratorI
 	NotifyObservers()
 	OpenTransaction() (OCFTransactionI, error)
 }

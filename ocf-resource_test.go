@@ -2,6 +2,7 @@ package ocfsdk
 
 import (
 	"bytes"
+	"fmt"
 	"testing"
 
 	"github.com/ugorji/go/codec"
@@ -104,6 +105,7 @@ func TestRetrieveResource(t *testing.T) {
 	}
 
 	if out != bw.String() {
+		fmt.Printf("'%v' != '%v' !!! \n", out, bw.String())
 		t.Fatal("encoded string is not same as pattern")
 	}
 

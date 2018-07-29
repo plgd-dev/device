@@ -25,3 +25,6 @@ const ErrOperationNotSupported = Error("Operation is not supported")
 
 // ErrInvalidParams invalid parameters
 const ErrInvalidParams = Error("Invalid params")
+
+// ErrInvalidIterator invalid iterator
+const ErrInvalidIterator = Error("Invalid iterator")
