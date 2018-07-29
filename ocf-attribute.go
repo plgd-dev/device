@@ -69,5 +69,5 @@ func NewAttribute(id string, value OCFValueI, limit OCFLimitI) (OCFAttributeI, e
 	if len(id) == 0 || value == nil || limit == nil {
 		return nil, ErrInvalidParams
 	}
-	return &OCFAttribute{OCFId: OCFId{Id: id}, Value: value, Limit: limit}, nil
+	return &OCFAttribute{OCFId: OCFId{id: id}, Value: value, Limit: limit}, nil
 }

@@ -2,6 +2,58 @@ package ocfsdk
 
 import coap "github.com/ondrejtomcik/go-coap"
 
+type OCFResourceTypeIterator struct {
+	currentIdx int
+	rt         []OCFResourceTypeI
+	err        error
+}
+
+func (i *OCFResourceTypeIterator) Next() bool {
+	i.currentIdx++
+	if i.currentIdx < len(i.rt) {
+		return true
+	}
+	return false
+}
+
+func (i *OCFResourceTypeIterator) Value() OCFResourceTypeI {
+	if i.currentIdx < len(i.rt) {
+		return i.rt[i.currentIdx]
+	}
+	i.err = ErrInvalidIterator
+	return nil
+}
+
+func (i *OCFResourceTypeIterator) Error() error {
+	return i.err
+}
+
+type OCFResourceInterfaceIterator struct {
+	currentIdx int
+	ri         []OCFResourceInterfaceI
+	err        error
+}
+
+func (i *OCFResourceInterfaceIterator) Next() bool {
+	i.currentIdx++
+	if i.currentIdx < len(i.ri) {
+		return true
+	}
+	return false
+}
+
+func (i *OCFResourceInterfaceIterator) Value() OCFResourceInterfaceI {
+	if i.currentIdx < len(i.ri) {
+		return i.ri[i.currentIdx]
+	}
+	i.err = ErrInvalidIterator
+	return nil
+}
+
+func (i *OCFResourceInterfaceIterator) Error() error {
+	return i.err
+}
+
 type OCFResource struct {
 	OCFId
 	discoverable       bool
@@ -19,12 +71,12 @@ func (r *OCFResource) IsObserveable() bool {
 	return r.observeable
 }
 
-func (r *OCFResource) GetResourceTypes() []OCFResourceTypeI {
-	return r.resourceTypes
+func (r *OCFResource) NewResourceTypeIterator() OCFResourceTypeIteratorI {
+	return &OCFResourceTypeIterator{currentIdx: 0, rt: r.resourceTypes}
 }
 
-func (r *OCFResource) GetResourceInterfaces() []OCFResourceInterfaceI {
-	return r.resourceInterfaces
+func (r *OCFResource) NewResourceInterfaceIterator() OCFResourceInterfaceIteratorI {
+	return &OCFResourceInterfaceIterator{currentIdx: 0, ri: r.resourceInterfaces}
 }
 
 func (r *OCFResource) OpenTransaction() (OCFTransactionI, error) {
@@ -73,8 +125,9 @@ func (r *OCFResource) Update(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error
 					reqMap := req.GetPayload().(map[string]interface{})
 					errors := make([]error, 10)
 					for key, value := range reqMap {
-						for _, resourceType := range req.GetResource().GetResourceTypes() {
-							for _, attribute := range resourceType.GetAttributes() {
+						for _, resourceType := range r.resourceTypes {
+							for it := resourceType.NewAttributeIterator(); it.Value() != nil; it.Next() {
+								attribute := it.Value()
 								if attribute.GetId() == key {
 									if err := attribute.SetValue(transaction, value); err != nil {
 										errors = append(errors, err)
@@ -133,10 +186,10 @@ func NewResource(id string, discoverable bool, observeable bool, resourceTypes [
 		}
 	}
 	if !haveDefaultIf {
-		resourceInterfaces = append(resourceInterfaces, &OCFResourceInterfaceBaseline{OCFResourceInterface: OCFResourceInterface{OCFId: OCFId{Id: ""}}})
+		resourceInterfaces = append(resourceInterfaces, &OCFResourceInterfaceBaseline{OCFResourceInterface: OCFResourceInterface{OCFId: OCFId{id: ""}}})
 	}
 	if !haveBaselineIf {
-		resourceInterfaces = append(resourceInterfaces, &OCFResourceInterfaceBaseline{OCFResourceInterface: OCFResourceInterface{OCFId: OCFId{Id: "oic.if.baseline"}}})
+		resourceInterfaces = append(resourceInterfaces, &OCFResourceInterfaceBaseline{OCFResourceInterface: OCFResourceInterface{OCFId: OCFId{id: "oic.if.baseline"}}})
 	}
 
 	//without transaction
@@ -144,5 +197,5 @@ func NewResource(id string, discoverable bool, observeable bool, resourceTypes [
 		openTransaction = func() (OCFTransactionI, error) { return &OCFDummyTransaction{}, nil }
 	}
 
-	return &OCFResource{OCFId: OCFId{Id: id}, discoverable: discoverable, observeable: observeable, resourceTypes: resourceTypes, resourceInterfaces: resourceInterfaces, openTransaction: openTransaction}, nil
+	return &OCFResource{OCFId: OCFId{id: id}, discoverable: discoverable, observeable: observeable, resourceTypes: resourceTypes, resourceInterfaces: resourceInterfaces, openTransaction: openTransaction}, nil
 }
