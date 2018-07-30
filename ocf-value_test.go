@@ -1,17 +1,27 @@
 package ocfsdk
 
-import "testing"
+import (
+	"testing"
+)
 
-func testNewBoolValue(t *testing.T, get func(transaction OCFTransactionI) (bool, error), setDefault func(transaction OCFTransactionI) error, set func(transaction OCFTransactionI, s bool) error) OCFValueI {
-	v, err := NewBoolValue(get, setDefault, set)
+func testNewBoolValue(t *testing.T, get func(transaction OCFTransactionI) (bool, error), set func(transaction OCFTransactionI, s bool) error) OCFValueI {
+	v, err := NewBoolValue(get, set)
 	if err != nil {
-		t.Fatal("cannot create new value: %v", err)
+		t.Fatal("cannot create new value", err)
 	}
 	return v
 }
 
-func TestCreateBoolValue(t *testing.T) {
-	_, err := NewBoolValue(nil, nil, nil)
+func testNewMapValue(t *testing.T, get func(transaction OCFTransactionI) (map[string]interface{}, error), set func(transaction OCFTransactionI, s map[string]interface{}) error) OCFValueI {
+	v, err := NewMapValue(get, set)
+	if err != nil {
+		t.Fatal("cannot create new value", err)
+	}
+	return v
+}
+
+func TestNonCreateBoolValue(t *testing.T) {
+	_, err := NewBoolValue(nil, nil)
 	if err == nil {
 		t.Fatal("expected error", err)
 	}
@@ -19,7 +29,7 @@ func TestCreateBoolValue(t *testing.T) {
 
 func TestBoolValueGet(t *testing.T) {
 	b := false
-	ob, err := NewBoolValue(func(OCFTransactionI) (bool, error) { return b, nil }, nil, nil)
+	ob, err := NewBoolValue(func(OCFTransactionI) (bool, error) { return b, nil }, nil)
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
@@ -34,49 +44,33 @@ func TestBoolValueGet(t *testing.T) {
 	}
 }
 
-func TestBoolValueSetDefault(t *testing.T) {
-	b := false
-	ob, err := NewBoolValue(nil, func(OCFTransactionI) error { b = true; return nil }, nil)
-	if err != nil {
-		t.Fatal("cannot create value", err)
-	}
-	if g, ok := ob.(OCFBoolValueSetI); ok {
-		if err := g.SetDefault(nil); err != nil {
-			t.Fatal("failed to get value", err)
-		} else if b != true {
-			t.Fatal("value is not same", err)
-		}
-	} else {
-		t.Fatal("not implement interface", err)
-	}
-}
-
 func TestBoolValueSet(t *testing.T) {
 	b := false
-	ob, err := NewBoolValue(nil, nil, func(t OCFTransactionI, s bool) error { b = s; return nil })
+	ob, err := NewBoolValue(nil, func(t OCFTransactionI, s bool) error { b = s; return nil })
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
 	if g, ok := ob.(OCFBoolValueSetI); ok {
 		if err := g.Set(nil, true); err != nil {
 			t.Fatal("failed to set value", err)
+		} else if b != true {
+			t.Fatal("value is not same", err)
 		}
 	}
 }
 
-func TestMapValue(t *testing.T) {
-	v, err := NewBoolValue(func(OCFTransactionI) (bool, error) { return true, nil }, nil, nil)
-	if err != nil {
-		t.Fatal("cannot create value", err)
+func TestNonCreateMapValue(t *testing.T) {
+	_, err := NewMapValue(nil, nil)
+	if err == nil {
+		t.Fatal("expected error", err)
 	}
-	s := map[string]OCFValueI{
-		"test": v,
-	}
+}
 
-	m, err := NewMapValue(func(OCFTransactionI) (map[string]OCFValueI, error) { return s, nil })
-	if err != nil {
-		t.Fatal("cannot create value", err)
+func TestMapValueGet(t *testing.T) {
+	v := map[string]interface{}{
+		"test": true,
 	}
+	m := testNewMapValue(t, func(OCFTransactionI) (map[string]interface{}, error) { return v, nil }, nil)
 	if g, ok := m.(OCFMapValueGetI); ok {
 		s1, err := g.Get(nil)
 		if err != nil {
@@ -88,10 +82,8 @@ func TestMapValue(t *testing.T) {
 			if key != "test" {
 				t.Fatal("invalid key", err)
 			}
-			if g, ok := val.(OCFBoolValueGetI); ok {
-				if v, err := g.Get(nil); err != nil {
-					t.Fatal("failed to get value", err)
-				} else if v != true {
+			if g, ok := val.(bool); ok {
+				if g != true {
 					t.Fatal("value is not same", err)
 				}
 			} else {
@@ -102,6 +94,40 @@ func TestMapValue(t *testing.T) {
 			t.Fatal("empty map", err)
 		}
 	} else {
-		t.Fatal("not implement interface", err)
+		t.Fatal("not implement interface")
+	}
+}
+
+func TestMapValueSet(t *testing.T) {
+	v := map[string]interface{}{
+		"test": false,
+	}
+	m := testNewMapValue(t, nil, func(t OCFTransactionI, s map[string]interface{}) error { v = s; return nil })
+	if g, ok := m.(OCFMapValueSetI); ok {
+		err := g.Set(nil, map[string]interface{}{
+			"test1": 123,
+		})
+		if err != nil {
+			t.Fatal("failed to get value", err)
+		}
+		used := false
+		for key, val := range v {
+			used = true
+			if key != "test1" {
+				t.Fatal("invalid key", err)
+			}
+			if g, ok := val.(int); ok {
+				if g != 123 {
+					t.Fatal("value is not same", err)
+				}
+			} else {
+				t.Fatal("not implement interface", err)
+			}
+		}
+		if !used {
+			t.Fatal("empty map", err)
+		}
+	} else {
+		t.Fatal("not implement interface")
 	}
 }

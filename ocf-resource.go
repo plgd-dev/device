@@ -120,7 +120,7 @@ func (r *OCFResource) Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, err
 func (r *OCFResource) Update(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error) {
 	for _, resourceInterface := range r.resourceInterfaces {
 		if resourceInterface.GetId() == req.GetInterfaceId() {
-			if transaction, err := r.OpenTransaction(); err != nil {
+			if transaction, err := r.OpenTransaction(); err == nil {
 				if ri, ok := resourceInterface.(OCFResourceUpdateInterfaceI); ok {
 					reqMap := req.GetPayload().(map[string]interface{})
 					errors := make([]error, 10)
