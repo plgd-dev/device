@@ -33,8 +33,9 @@ func testNewAttribute(t *testing.T, id string, value OCFValueI, limit OCFLimitI)
 }
 
 type testRequest struct {
-	iface string
-	res   OCFResourceI
+	iface   string
+	res     OCFResourceI
+	payload interface{}
 }
 
 func (t *testRequest) GetResource() OCFResourceI {
@@ -42,7 +43,7 @@ func (t *testRequest) GetResource() OCFResourceI {
 }
 
 func (t *testRequest) GetPayload() OCFPayloadI {
-	return nil
+	return t.payload
 }
 
 func (t *testRequest) GetInterfaceId() string {
@@ -70,8 +71,8 @@ func TestCreateResource(t *testing.T) {
 	_, err = NewResource("test", false, false, []OCFResourceTypeI{
 		testNewResourceType(t, "x.test",
 			[]OCFAttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil, nil), &OCFBoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil, nil), &OCFBoolLimit{}),
+				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil), &OCFBoolLimit{}),
+				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil), &OCFBoolLimit{}),
 			})}, nil, nil)
 	if err != nil {
 		t.Fatal("unexpected error", err)
@@ -84,8 +85,8 @@ func TestRetrieveResource(t *testing.T) {
 	r := testNewResource(t, "test", false, false, []OCFResourceTypeI{
 		testNewResourceType(t, "x.test",
 			[]OCFAttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil, nil), &OCFBoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil, nil), &OCFBoolLimit{}),
+				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil), &OCFBoolLimit{}),
+				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil), &OCFBoolLimit{}),
 			})}, nil, nil)
 	payload, _, err := r.(OCFResourceRetrieveI).Retrieve(&testRequest{iface: "", res: r})
 	if err != nil {
@@ -108,5 +109,26 @@ func TestRetrieveResource(t *testing.T) {
 		fmt.Printf("'%v' != '%v' !!! \n", out, bw.String())
 		t.Fatal("encoded string is not same as pattern")
 	}
+}
 
+func TestUpdateResource(t *testing.T) {
+	type dataType struct {
+		A bool
+		B bool
+	}
+	data := &dataType{A: true, B: false}
+
+	r := testNewResource(t, "test", false, false, []OCFResourceTypeI{
+		testNewResourceType(t, "x.test",
+			[]OCFAttributeI{
+				testNewAttribute(t, "A", testNewBoolValue(t, nil, func(t OCFTransactionI, s bool) error { data.A = s; return nil }), &OCFBoolLimit{}),
+				testNewAttribute(t, "B", testNewBoolValue(t, nil, func(t OCFTransactionI, s bool) error { data.B = s; return nil }), &OCFBoolLimit{}),
+			})}, nil, nil)
+	_, _, err := r.(OCFResourceUpdateI).Update(&testRequest{iface: "", res: r, payload: map[string]interface{}{"A": false, "B": true}})
+	if err != nil {
+		t.Fatal("unexpected error", err)
+	}
+	if data.A != false || data.B != true {
+		t.Fatal("unexpected values set")
+	}
 }

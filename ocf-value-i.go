@@ -10,7 +10,6 @@ type OCFValueGetI interface {
 }
 
 type OCFValueSetI interface {
-	SetDefault(transaction OCFTransactionI) error
 	SetValue(transaction OCFTransactionI, s interface{}) error
 }
 
@@ -135,31 +134,28 @@ type OCFBinaryArrayValueSetI interface {
 	Set(transaction OCFTransactionI, s [][]byte) error
 }
 
+type OCFMapArrayValueGetI interface {
+	OCFValueGetI
+	Get(transaction OCFTransactionI) ([]map[string]interface{}, error)
+}
+
+type OCFMapArrayValueSetI interface {
+	OCFValueSetI
+	Set(transaction OCFTransactionI, value []map[string]interface{}) error
+}
+
 // 2D array
 // TODO
 
 // 3D array
 // TODO
 
-type OCFMapValueIteratorI interface {
-	Next() bool
-	Value() OCFValueI
-	Key() string
-	Error() error
-}
-
-type OCFMapValueI interface {
-	NewMapValueIterator() OCFMapValueIteratorI
-}
-
 type OCFMapValueGetI interface {
-	OCFMapValueI
 	OCFValueGetI
 	Get(transaction OCFTransactionI) (map[string]interface{}, error)
 }
 
 type OCFMapValueSetI interface {
-	OCFMapValueI
 	OCFValueSetI
-	Set(transaction OCFTransactionI, s map[string]interface{}) error
+	Set(transaction OCFTransactionI, value map[string]interface{}) error
 }
