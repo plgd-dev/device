@@ -1,6 +1,6 @@
 package ocfsdk
 
-import coap "github.com/ondrejtomcik/go-coap"
+import coap "github.com/go-ocf/go-coap"
 
 type ResourceTypeIterator struct {
 	currentIdx int
