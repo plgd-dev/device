@@ -2,35 +2,35 @@ package ocfsdk
 
 import coap "github.com/ondrejtomcik/go-coap"
 
-type OCFResourceCreateInterfaceI interface {
-	Create(req OCFRequestI, newResource OCFResourceI) (OCFPayloadI, coap.COAPCode, error)
+type ResourceCreateInterfaceI interface {
+	Create(req RequestI, newResource ResourceI) (PayloadI, coap.COAPCode, error)
 }
 
-type OCFResourceRetrieveInterfaceI interface {
-	Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error)
+type ResourceRetrieveInterfaceI interface {
+	Retrieve(req RequestI) (PayloadI, coap.COAPCode, error)
 }
 
-type OCFResourceUpdateInterfaceI interface {
-	Update(req OCFRequestI, errors []error) (OCFPayloadI, coap.COAPCode, error)
+type ResourceUpdateInterfaceI interface {
+	Update(req RequestI, errors []error) (PayloadI, coap.COAPCode, error)
 }
 
-type OCFResourceDeleteInterfaceI interface {
-	Delete(req OCFRequestI, deletedResource OCFResourceI) (OCFPayloadI, coap.COAPCode, error)
+type ResourceDeleteInterfaceI interface {
+	Delete(req RequestI, deletedResource ResourceI) (PayloadI, coap.COAPCode, error)
 }
 
-type OCFResourceInterfaceI interface {
-	OCFIdI
+type ResourceInterfaceI interface {
+	IdI
 }
 
-type OCFResourceInterface struct {
-	OCFId
+type ResourceInterface struct {
+	Id
 }
 
-type OCFResourceInterfaceBaseline struct {
-	OCFResourceInterface
+type ResourceInterfaceBaseline struct {
+	ResourceInterface
 }
 
-func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, coap.COAPCode, error) {
+func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI) (PayloadI, coap.COAPCode, error) {
 	transaction, err := req.GetResource().OpenTransaction()
 	if err != nil {
 		return nil, coap.InternalServerError, err
@@ -64,6 +64,6 @@ func (ri *OCFResourceInterfaceBaseline) Retrieve(req OCFRequestI) (OCFPayloadI, 
 	return res, coap.Content, nil
 }
 
-func (ri *OCFResourceInterfaceBaseline) Update(req OCFRequestI, errors []error) (OCFPayloadI, coap.COAPCode, error) {
+func (ri *ResourceInterfaceBaseline) Update(req RequestI, errors []error) (PayloadI, coap.COAPCode, error) {
 	return nil, coap.Changed, nil
 }

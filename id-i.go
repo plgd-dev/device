@@ -1,5 +1,5 @@
 package ocfsdk
 
-type OCFIdI interface {
+type IdI interface {
 	GetId() string
 }
