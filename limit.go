@@ -1,13 +1,13 @@
 package ocfsdk
 
-type OCFLimitI interface {
+type LimitI interface {
 	ValidateValue(interface{}) error
 }
 
-type OCFBoolLimit struct {
+type BoolLimit struct {
 }
 
-func (a *OCFBoolLimit) ValidateValue(val interface{}) error {
+func (a *BoolLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case bool:
 		return nil
@@ -16,11 +16,11 @@ func (a *OCFBoolLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFEnumLimit struct {
+type EnumLimit struct {
 	ValidValues []string
 }
 
-func (a *OCFEnumLimit) ValidateValue(val interface{}) error {
+func (a *EnumLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case string:
 		for _, v := range a.ValidValues {
@@ -34,11 +34,11 @@ func (a *OCFEnumLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFIntLimit struct {
+type IntLimit struct {
 	Limit func(val int) error
 }
 
-func (a *OCFIntLimit) ValidateValue(val interface{}) error {
+func (a *IntLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case int:
 		if a.Limit != nil {
@@ -50,11 +50,11 @@ func (a *OCFIntLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFStringLimit struct {
+type StringLimit struct {
 	Limit func(val *string) error
 }
 
-func (a *OCFStringLimit) ValidateValue(val interface{}) error {
+func (a *StringLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case string:
 		if a.Limit != nil {
@@ -66,11 +66,11 @@ func (a *OCFStringLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFDoubleLimit struct {
+type DoubleLimit struct {
 	Limit func(val float64) error
 }
 
-func (a *OCFDoubleLimit) ValidateValue(val interface{}) error {
+func (a *DoubleLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case float32:
 		if a.Limit != nil {
@@ -87,11 +87,11 @@ func (a *OCFDoubleLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFByteLimit struct {
+type ByteLimit struct {
 	Limit func(val []byte) error
 }
 
-func (a *OCFByteLimit) ValidateValue(val interface{}) error {
+func (a *ByteLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case []byte:
 		if a.Limit != nil {
@@ -103,11 +103,11 @@ func (a *OCFByteLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFMapLimit struct {
-	MapLimit map[string]OCFLimitI
+type MapLimit struct {
+	MapLimit map[string]LimitI
 }
 
-func (a *OCFMapLimit) ValidateValue(val interface{}) error {
+func (a *MapLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case map[string]interface{}:
 		m := val.(map[string]interface{})
@@ -126,11 +126,11 @@ func (a *OCFMapLimit) ValidateValue(val interface{}) error {
 	}
 }
 
-type OCFArrayLimit struct {
-	Limit OCFLimitI
+type ArrayLimit struct {
+	Limit LimitI
 }
 
-func (a *OCFArrayLimit) ValidateValue(val interface{}) error {
+func (a *ArrayLimit) ValidateValue(val interface{}) error {
 	switch val.(type) {
 	case []interface{}:
 		m := val.([]interface{})

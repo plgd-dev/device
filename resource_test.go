@@ -8,7 +8,7 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-func testNewResource(t *testing.T, id string, discoverable bool, observeable bool, resourceTypes []OCFResourceTypeI, resourceInterfaces []OCFResourceInterfaceI, openTransaction func() (OCFTransactionI, error)) OCFResourceI {
+func testNewResource(t *testing.T, id string, discoverable bool, observeable bool, resourceTypes []ResourceTypeI, resourceInterfaces []ResourceInterfaceI, openTransaction func() (TransactionI, error)) ResourceI {
 	r, err := NewResource(id, discoverable, observeable, resourceTypes, resourceInterfaces, openTransaction)
 	if err != nil {
 		t.Fatal("cannot create new resource", err)
@@ -16,7 +16,7 @@ func testNewResource(t *testing.T, id string, discoverable bool, observeable boo
 	return r
 }
 
-func testNewResourceType(t *testing.T, id string, attributes []OCFAttributeI) OCFResourceTypeI {
+func testNewResourceType(t *testing.T, id string, attributes []AttributeI) ResourceTypeI {
 	r, err := NewResourceType(id, attributes)
 	if err != nil {
 		t.Fatal("cannot create new resource type", err)
@@ -24,7 +24,7 @@ func testNewResourceType(t *testing.T, id string, attributes []OCFAttributeI) OC
 	return r
 }
 
-func testNewAttribute(t *testing.T, id string, value OCFValueI, limit OCFLimitI) OCFAttributeI {
+func testNewAttribute(t *testing.T, id string, value ValueI, limit LimitI) AttributeI {
 	a, err := NewAttribute(id, value, limit)
 	if err != nil {
 		t.Fatal("cannot create new attribute", err)
@@ -34,15 +34,15 @@ func testNewAttribute(t *testing.T, id string, value OCFValueI, limit OCFLimitI)
 
 type testRequest struct {
 	iface   string
-	res     OCFResourceI
+	res     ResourceI
 	payload interface{}
 }
 
-func (t *testRequest) GetResource() OCFResourceI {
+func (t *testRequest) GetResource() ResourceI {
 	return t.res
 }
 
-func (t *testRequest) GetPayload() OCFPayloadI {
+func (t *testRequest) GetPayload() PayloadI {
 	return t.payload
 }
 
@@ -68,11 +68,11 @@ func TestCreateResource(t *testing.T) {
 		t.Fatal("expected error")
 	}
 
-	_, err = NewResource("test", false, false, []OCFResourceTypeI{
+	_, err = NewResource("test", false, false, []ResourceTypeI{
 		testNewResourceType(t, "x.test",
-			[]OCFAttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil), &OCFBoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil), &OCFBoolLimit{}),
+			[]AttributeI{
+				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(TransactionI) (bool, error) { return true, nil }, nil), &BoolLimit{}),
+				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(TransactionI) (bool, error) { return false, nil }, nil), &BoolLimit{}),
 			})}, nil, nil)
 	if err != nil {
 		t.Fatal("unexpected error", err)
@@ -82,13 +82,13 @@ func TestCreateResource(t *testing.T) {
 func TestRetrieveResource(t *testing.T) {
 	out := `{"alwaysFalse":false,"alwaysTrue":true,"if":["oic.if.baseline"],"rt":["x.test"]}`
 
-	r := testNewResource(t, "test", false, false, []OCFResourceTypeI{
+	r := testNewResource(t, "test", false, false, []ResourceTypeI{
 		testNewResourceType(t, "x.test",
-			[]OCFAttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return true, nil }, nil), &OCFBoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(OCFTransactionI) (bool, error) { return false, nil }, nil), &OCFBoolLimit{}),
+			[]AttributeI{
+				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(TransactionI) (bool, error) { return true, nil }, nil), &BoolLimit{}),
+				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(TransactionI) (bool, error) { return false, nil }, nil), &BoolLimit{}),
 			})}, nil, nil)
-	payload, _, err := r.(OCFResourceRetrieveI).Retrieve(&testRequest{iface: "", res: r})
+	payload, _, err := r.(ResourceRetrieveI).Retrieve(&testRequest{iface: "", res: r})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -116,15 +116,15 @@ func TestUpdateResource(t *testing.T) {
 		A bool
 		B bool
 	}
-	data := &dataType{A: true, B: false}
+	data := dataType{A: true, B: false}
 
-	r := testNewResource(t, "test", false, false, []OCFResourceTypeI{
+	r := testNewResource(t, "test", false, false, []ResourceTypeI{
 		testNewResourceType(t, "x.test",
-			[]OCFAttributeI{
-				testNewAttribute(t, "A", testNewBoolValue(t, nil, func(t OCFTransactionI, s bool) error { data.A = s; return nil }), &OCFBoolLimit{}),
-				testNewAttribute(t, "B", testNewBoolValue(t, nil, func(t OCFTransactionI, s bool) error { data.B = s; return nil }), &OCFBoolLimit{}),
+			[]AttributeI{
+				testNewAttribute(t, "A", testNewBoolValue(t, nil, func(t TransactionI, s bool) error { data.A = s; return nil }), &BoolLimit{}),
+				testNewAttribute(t, "B", testNewBoolValue(t, nil, func(t TransactionI, s bool) error { data.B = s; return nil }), &BoolLimit{}),
 			})}, nil, nil)
-	_, _, err := r.(OCFResourceUpdateI).Update(&testRequest{iface: "", res: r, payload: map[string]interface{}{"A": false, "B": true}})
+	_, _, err := r.(ResourceUpdateI).Update(&testRequest{iface: "", res: r, payload: map[string]interface{}{"A": false, "B": true}})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
