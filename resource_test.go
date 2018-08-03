@@ -8,8 +8,8 @@ import (
 	"github.com/ugorji/go/codec"
 )
 
-func testNewResource(t *testing.T, id string, discoverable bool, observeable bool, resourceTypes []ResourceTypeI, resourceInterfaces []ResourceInterfaceI, openTransaction func() (TransactionI, error)) ResourceI {
-	r, err := NewResource(id, discoverable, observeable, resourceTypes, resourceInterfaces, openTransaction)
+func testNewResource(t *testing.T, params *ResourceParams) ResourceI {
+	r, err := NewResource(params)
 	if err != nil {
 		t.Fatal("cannot create new resource", err)
 	}
@@ -36,6 +36,7 @@ type testRequest struct {
 	iface   string
 	res     ResourceI
 	payload interface{}
+	device  DeviceI
 }
 
 func (t *testRequest) GetResource() ResourceI {
@@ -58,22 +59,36 @@ func (t *testRequest) GetPeerSession() interface{} {
 	return nil
 }
 
-func TestCreateResource(t *testing.T) {
-	_, err := NewResource("", false, false, nil, nil, nil)
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	_, err = NewResource("test", false, false, nil, nil, nil)
-	if err == nil {
-		t.Fatal("expected error")
-	}
+func (t *testRequest) GetDevice() DeviceI {
+	return t.device
+}
 
-	_, err = NewResource("test", false, false, []ResourceTypeI{
-		testNewResourceType(t, "x.test",
-			[]AttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(TransactionI) (bool, error) { return true, nil }, nil), &BoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(TransactionI) (bool, error) { return false, nil }, nil), &BoolLimit{}),
-			})}, nil, nil)
+func TestCreateResource(t *testing.T) {
+	params := ResourceParams{
+		Id: "",
+	}
+	_, err := NewResource(&params)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	params.Id = "test"
+	_, err = NewResource(&params)
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	params.ResourceInterfaces = []ResourceInterfaceI{}
+	params.ResourceTypes = []ResourceTypeI{testNewResourceType(t, "x.test",
+		[]AttributeI{
+			testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (interface{}, error) { return true, nil }, nil), &BoolLimit{}),
+			testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (interface{}, error) { return false, nil }, nil), &BoolLimit{}),
+		})}
+
+	_, err = NewResource(&params)
+	if err == nil {
+		t.Fatal("expected error", err)
+	}
+	params.ResourceOperations = NewResourceOperationRetrieve(nil)
+	_, err = NewResource(&params)
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -81,14 +96,19 @@ func TestCreateResource(t *testing.T) {
 
 func TestRetrieveResource(t *testing.T) {
 	out := `{"alwaysFalse":false,"alwaysTrue":true,"if":["oic.if.baseline"],"rt":["x.test"]}`
+	params := ResourceParams{
+		Id: "test",
+		ResourceTypes: []ResourceTypeI{
+			testNewResourceType(t, "x.test",
+				[]AttributeI{
+					testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (interface{}, error) { return true, nil }, nil), &BoolLimit{}),
+					testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (interface{}, error) { return false, nil }, nil), &BoolLimit{}),
+				})},
+		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+	}
 
-	r := testNewResource(t, "test", false, false, []ResourceTypeI{
-		testNewResourceType(t, "x.test",
-			[]AttributeI{
-				testNewAttribute(t, "alwaysTrue", testNewBoolValue(t, func(TransactionI) (bool, error) { return true, nil }, nil), &BoolLimit{}),
-				testNewAttribute(t, "alwaysFalse", testNewBoolValue(t, func(TransactionI) (bool, error) { return false, nil }, nil), &BoolLimit{}),
-			})}, nil, nil)
-	payload, _, err := r.(ResourceRetrieveI).Retrieve(&testRequest{iface: "", res: r})
+	r := testNewResource(t, &params)
+	payload, _, err := r.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{res: r})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -117,14 +137,19 @@ func TestUpdateResource(t *testing.T) {
 		B bool
 	}
 	data := dataType{A: true, B: false}
+	params := ResourceParams{
+		Id: "test",
+		ResourceTypes: []ResourceTypeI{
+			testNewResourceType(t, "x.test",
+				[]AttributeI{
+					testNewAttribute(t, "A", testNewValue(t, nil, func(t TransactionI, s interface{}) error { data.A = s.(bool); return nil }), &BoolLimit{}),
+					testNewAttribute(t, "B", testNewValue(t, nil, func(t TransactionI, s interface{}) error { data.B = s.(bool); return nil }), &BoolLimit{}),
+				})},
+		ResourceOperations: NewResourceOperationUpdate(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+	}
 
-	r := testNewResource(t, "test", false, false, []ResourceTypeI{
-		testNewResourceType(t, "x.test",
-			[]AttributeI{
-				testNewAttribute(t, "A", testNewBoolValue(t, nil, func(t TransactionI, s bool) error { data.A = s; return nil }), &BoolLimit{}),
-				testNewAttribute(t, "B", testNewBoolValue(t, nil, func(t TransactionI, s bool) error { data.B = s; return nil }), &BoolLimit{}),
-			})}, nil, nil)
-	_, _, err := r.(ResourceUpdateI).Update(&testRequest{iface: "", res: r, payload: map[string]interface{}{"A": false, "B": true}})
+	r := testNewResource(t, &params)
+	_, _, err := r.GetResourceOperations().(ResourceOperationUpdateI).Update(&testRequest{res: r, payload: map[string]interface{}{"A": false, "B": true}})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}

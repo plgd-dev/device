@@ -2,24 +2,14 @@ package ocfsdk
 
 type PayloadI interface{}
 
-type RequestI interface {
-	GetResource() ResourceI
-	GetPayload() PayloadI
-	GetInterfaceId() string
-	GetQueryParameters() []string
-	GetPeerSession() interface{}
-}
-
 type ResourceTypeIteratorI interface {
-	Next() bool
+	MapIteratorI
 	Value() ResourceTypeI
-	Error() error
 }
 
 type ResourceInterfaceIteratorI interface {
-	Next() bool
+	MapIteratorI
 	Value() ResourceInterfaceI
-	Error() error
 }
 
 type ResourceI interface {
@@ -29,6 +19,7 @@ type ResourceI interface {
 	IsObserveable() bool
 	NewResourceTypeIterator() ResourceTypeIteratorI
 	NewResourceInterfaceIterator() ResourceInterfaceIteratorI
-	NotifyObservers()
-	OpenTransaction() (TransactionI, error)
+	GetResourceType(name string) (ResourceTypeI, error)
+	GetResourceInterface(name string) (ResourceInterfaceI, error)
+	GetResourceOperations() ResourceOperationI
 }
