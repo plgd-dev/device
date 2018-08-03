@@ -14,7 +14,7 @@ type Attribute struct {
 
 func (a *Attribute) GetValue(transaction TransactionI) (interface{}, error) {
 	if v, ok := a.Value.(ValueGetI); ok {
-		return v.GetValue(transaction)
+		return v.Get(transaction)
 	}
 
 	return nil, ErrAccessDenied
@@ -25,7 +25,7 @@ func (a *Attribute) SetValue(transaction TransactionI, value interface{}) error 
 		return err
 	}
 	if v, ok := a.Value.(ValueSetI); ok {
-		return v.SetValue(transaction, value)
+		return v.Set(transaction, value)
 	}
 
 	return ErrAccessDenied

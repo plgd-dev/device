@@ -17,7 +17,7 @@ const ErrInvalidKeyOfMap = Error("Invalid key of map")
 // ErrAccessDenied cannot access to object
 const ErrAccessDenied = Error("Access denied")
 
-// ErrInvalidInterface interfaec is not valid
+// ErrInvalidInterface interface is not valid
 const ErrInvalidInterface = Error("Invalid interface")
 
 // ErrOperationNotSupported operation is not supported
@@ -28,3 +28,9 @@ const ErrInvalidParams = Error("Invalid params")
 
 // ErrInvalidIterator invalid iterator
 const ErrInvalidIterator = Error("Invalid iterator")
+
+// ErrExist object already exist
+const ErrExist = Error("object already exist")
+
+// ErrNotExist objest doesn't exist
+const ErrNotExist = Error("object doesn't exist")

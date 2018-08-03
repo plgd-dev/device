@@ -7,7 +7,7 @@ type ResourceCreateInterfaceI interface {
 }
 
 type ResourceRetrieveInterfaceI interface {
-	Retrieve(req RequestI) (PayloadI, coap.COAPCode, error)
+	Retrieve(req RequestI, trans TransactionI) (PayloadI, coap.COAPCode, error)
 }
 
 type ResourceUpdateInterfaceI interface {
@@ -30,12 +30,7 @@ type ResourceInterfaceBaseline struct {
 	ResourceInterface
 }
 
-func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI) (PayloadI, coap.COAPCode, error) {
-	transaction, err := req.GetResource().OpenTransaction()
-	if err != nil {
-		return nil, coap.InternalServerError, err
-	}
-
+func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI, transaction TransactionI) (PayloadI, coap.COAPCode, error) {
 	res := make(map[string]interface{})
 	iface := make([]string, 0)
 	for it := req.GetResource().NewResourceInterfaceIterator(); it.Value() != nil; it.Next() {
@@ -60,7 +55,6 @@ func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI) (PayloadI, coap.COAP
 			}
 		}
 	}
-	transaction.Drop()
 	return res, coap.Content, nil
 }
 
