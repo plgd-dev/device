@@ -1,11 +1,7 @@
 package ocfsdk
 
-import (
-	"reflect"
-)
-
 type ResourceTypeIterator struct {
-	MapIterator
+	MapIteratorMiddleware
 }
 
 func (i *ResourceTypeIterator) Value() ResourceTypeI {
@@ -17,7 +13,7 @@ func (i *ResourceTypeIterator) Value() ResourceTypeI {
 }
 
 type ResourceInterfaceIterator struct {
-	MapIterator
+	MapIteratorMiddleware
 }
 
 func (i *ResourceInterfaceIterator) Value() ResourceInterfaceI {
@@ -56,11 +52,11 @@ func (r *Resource) IsObserveable() bool {
 }
 
 func (r *Resource) NewResourceTypeIterator() ResourceTypeIteratorI {
-	return &ResourceTypeIterator{MapIterator{data: r.resourceTypes, keys: reflect.ValueOf(r.resourceTypes).MapKeys(), currentIdx: 0, err: nil}}
+	return &ResourceTypeIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceTypes)}}
 }
 
 func (r *Resource) NewResourceInterfaceIterator() ResourceInterfaceIteratorI {
-	return &ResourceInterfaceIterator{MapIterator{data: r.resourceInterfaces, keys: reflect.ValueOf(r.resourceInterfaces).MapKeys(), currentIdx: 0, err: nil}}
+	return &ResourceInterfaceIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceInterfaces)}}
 }
 
 func (r *Resource) GetResourceType(id string) (ResourceTypeI, error) {
