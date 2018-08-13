@@ -1,14 +1,12 @@
 package ocfsdk
 
-import "reflect"
-
 type AttributeIteratorI interface {
 	MapIteratorI
 	Value() AttributeI
 }
 
 type AttributeIterator struct {
-	MapIterator
+	MapIteratorMiddleware
 }
 
 func (i *AttributeIterator) Value() AttributeI {
@@ -31,7 +29,7 @@ type ResourceType struct {
 }
 
 func (rt *ResourceType) NewAttributeIterator() AttributeIteratorI {
-	return &AttributeIterator{MapIterator{data: rt.attributes, keys: reflect.ValueOf(rt.attributes).MapKeys(), currentIdx: 0, err: nil}}
+	return &AttributeIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(rt.attributes)}}
 }
 
 func (rt *ResourceType) GetAttribute(id string) (AttributeI, error) {

@@ -1,14 +1,13 @@
 package ocfsdk
 
 import (
-	"reflect"
 	"sync"
 
 	uuid "github.com/nu7hatch/gouuid"
 )
 
 type ResourceIterator struct {
-	MapIterator
+	MapIteratorMiddleware
 }
 
 func (i *ResourceIterator) Value() ResourceI {
@@ -33,7 +32,12 @@ func (d *Device) AddResource(r ResourceI) error {
 	if d.resources[r.GetId()] != nil {
 		return ErrExist
 	}
-	d.resources[r.GetId()] = r
+	newResources := make(map[interface{}]interface{})
+	for key, val := range d.resources {
+		newResources[key] = val
+	}
+	newResources[r.GetId()] = r
+	d.resources = newResources
 	return nil
 }
 
@@ -46,12 +50,18 @@ func (d *Device) DeleteResource(r ResourceI) error {
 	if d.resources[r.GetId()] == nil {
 		return ErrNotExist
 	}
-	delete(d.resources, r.GetId())
+	newResources := make(map[interface{}]interface{})
+	for key, val := range d.resources {
+		if key != r.GetId() {
+			newResources[key] = val
+		}
+	}
+	d.resources = newResources
 	return nil
 }
 
 func (d *Device) NewResourceIterator() ResourceIteratorI {
-	return &ResourceIterator{MapIterator{data: d.resources, keys: reflect.ValueOf(d.resources).MapKeys(), currentIdx: 0, err: nil}}
+	return &ResourceIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(d.resources)}}
 }
 
 func (d *Device) GetResource(id string) (ResourceI, error) {
