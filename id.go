@@ -1,9 +1,9 @@
 package ocfsdk
 
-type Id struct {
+type id struct {
 	id string
 }
 
-func (i *Id) GetId() string {
+func (i *id) GetID() string {
 	return i.id
 }

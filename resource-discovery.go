@@ -5,27 +5,27 @@ import (
 )
 
 const (
-	DISCOVERY_URI           = "/oic/res"
-	DISCOVERY_RESOURCE_TYPE = "oic.wk.res"
+	discoveryURI          = "/oic/res"
+	discoveryResourceType = "oic.wk.res"
 )
 
-type ResourceDiscoveryInterface struct {
-	ResourceInterface
+type resourceDiscoveryInterface struct {
+	resourceInterface
 }
 
-func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction TransactionI) (PayloadI, error) {
+func (ri *resourceDiscoveryInterface) Retrieve(req RequestI, transaction TransactionI) (PayloadI, error) {
 	discovery := make([]interface{}, 0)
-	di, err := req.GetDevice().GetDeviceId()
+	di, err := req.GetDevice().GetDeviceID()
 	if err != nil {
 		return nil, err
 	}
 	for resIt := req.GetDevice().NewResourceIterator(); resIt.Value() != nil; resIt.Next() {
 		res := make(map[string]interface{})
 
-		res["href"] = resIt.Value().GetId()
-		if resIt.Value().GetId() == DISCOVERY_URI {
+		res["href"] = resIt.Value().GetID()
+		if resIt.Value().GetID() == discoveryURI {
 			res["rel"] = "self"
-			res["anchor"] = fmt.Sprintf("ocf://%s%s", di, DISCOVERY_URI)
+			res["anchor"] = fmt.Sprintf("ocf://%s%s", di, discoveryURI)
 		} else {
 			res["anchor"] = fmt.Sprintf("ocf://%s", di)
 		}
@@ -46,24 +46,24 @@ func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction Transac
 
 		iface := make([]string, 0)
 		for it := resIt.Value().NewResourceInterfaceIterator(); it.Value() != nil; it.Next() {
-			if it.Value().GetId() != "" {
-				iface = append(iface, it.Value().GetId())
+			if it.Value().GetID() != "" {
+				iface = append(iface, it.Value().GetID())
 			}
 		}
 		res["if"] = iface
 
 		rt := make([]string, 0)
 		for it := resIt.Value().NewResourceTypeIterator(); it.Value() != nil; it.Next() {
-			rt = append(rt, it.Value().GetId())
+			rt = append(rt, it.Value().GetID())
 		}
 		res["rt"] = rt
 		errors := make(map[string]error)
 		for it := req.GetResource().NewResourceTypeIterator(); it.Value() != nil; it.Next() {
 			for itA := it.Value().NewAttributeIterator(); itA.Value() != nil; itA.Next() {
 				if value, err := itA.Value().GetValue(transaction); err == nil {
-					res[itA.Value().GetId()] = value
+					res[itA.Value().GetID()] = value
 				} else {
-					errors[itA.Value().GetId()] = err
+					errors[itA.Value().GetID()] = err
 				}
 			}
 		}
@@ -73,26 +73,27 @@ func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction Transac
 }
 
 func newResourceDiscoveryInterface(name string) ResourceInterfaceI {
-	return &ResourceDiscoveryInterface{ResourceInterface: ResourceInterface{Id: Id{id: name}}}
+	return &resourceDiscoveryInterface{resourceInterface: resourceInterface{id: id{id: name}}}
 }
 
-type ResourceDiscovery struct {
+type resourceDiscovery struct {
 	ResourceMiddleware
 }
 
-func NewResourceDiscovery() (ResourceI, error) {
+//NewResourceDiscovery creates a resource discovery
+func NewResourceDiscovery() (ResourceDiscoveryI, error) {
 
-	rt, err := NewResourceType(DISCOVERY_RESOURCE_TYPE, []AttributeI{})
+	rt, err := NewResourceType(discoveryResourceType, []AttributeI{})
 	if err != nil {
 		return nil, err
 	}
 
 	resourceParams := &ResourceParams{
-		Id:                 DISCOVERY_URI,
+		id:                 discoveryURI,
 		Discoverable:       true,
 		Observeable:        true,
 		ResourceTypes:      []ResourceTypeI{rt},
-		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &transactionDummy{}, nil }),
 		ResourceInterfaces: []ResourceInterfaceI{newResourceDiscoveryInterface(""), newResourceDiscoveryInterface("oic.if.ll")},
 	}
 
@@ -101,5 +102,5 @@ func NewResourceDiscovery() (ResourceI, error) {
 		return nil, err
 	}
 
-	return &ResourceDevice{ResourceMiddleware: ResourceMiddleware{resource: resMid}}, nil
+	return &resourceDiscovery{ResourceMiddleware: ResourceMiddleware{resource: resMid}}, nil
 }

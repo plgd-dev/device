@@ -5,32 +5,33 @@ import (
 )
 
 const (
-	DEVICE_URI                            = "/oic/d"
-	DEVICE_RESOURCE_TYPE                  = "oic.wk.d"
-	DEVICE_ATTRIBUTE_NAME                 = "n"
-	DEVICE_ATTRIBUTE_SPEC_VERSION         = "icv"
-	DEVICE_ATTRIBUTE_ID                   = "di"
-	DEVICE_ATTRIBUTE_DATA_MODEL_VERSION   = "dmv"
-	DEVICE_ATTRIBUTE_PROTOCOL_INDEPENDENT = "piid"
-	DEVICE_ATTRIBUTE_MANUFACTURER_NAME    = "dmn"
-	DEVICE_ATTRIBUTE_MODEL_NUMBER         = "dmno"
+	deviceURI                                      = "/oic/d"
+	deviceResourceType                             = "oic.wk.d"
+	deviceResourceTypeAttributeName                = "n"
+	deviceResourceTypeAttributeSpecVersion         = "icv"
+	deviceResourceTypeAttributeID                  = "di"
+	deviceResourceTypeAttributeDataModelVersion    = "dmv"
+	deviceResourceTypeAttributeProtocolIndependent = "piid"
+	deviceResourceTypeAttributeManufacturerName    = "dmn"
+	deviceResourceTypeAttributeModelNumber         = "dmno"
 )
 
+//ResourceDeviceParams parameters to initialize resource device
 type ResourceDeviceParams struct {
-	DeviceName            string
-	SpecVersion           string
-	DeviceId              *uuid.UUID
-	DataModelVersion      string
-	ProtocolIndependentID *uuid.UUID
-	ManufacturerName      []string
-	ModelNumber           string
+	DeviceName            string     // human friendly name defined by the vendor
+	SpecVersion           string     // spec version of the core specification this device is implemented to
+	DeviceID              *uuid.UUID // unique identifier for Device
+	DataModelVersion      string     // spec version of the Resource Specification to which this device datamodel is implemented
+	ProtocolIndependentID *uuid.UUID // a unique and immutable Device identifier
+	ManufacturerName      []string   // name of manufacturer of the Device, in one or more languages
+	ModelNumber           string     // model number as designated by manufacturer
 }
 
-type ResourceDevice struct {
+type resourceDevice struct {
 	ResourceMiddleware
 }
 
-func (d *ResourceDevice) getAttributeValue(rtName, attrName string) (interface{}, error) {
+func (d *resourceDevice) getAttributeValue(rtName, attrName string) (interface{}, error) {
 	rt, err := d.GetResourceType(rtName)
 	if err != nil {
 		return nil, err
@@ -47,8 +48,8 @@ func (d *ResourceDevice) getAttributeValue(rtName, attrName string) (interface{}
 }
 
 //Mandatory
-func (d *ResourceDevice) GetDeviceName() (string, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_NAME)
+func (d *resourceDevice) GetDeviceName() (string, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeName)
 	if err != nil {
 		return "", err
 	}
@@ -58,8 +59,8 @@ func (d *ResourceDevice) GetDeviceName() (string, error) {
 	return "", ErrOperationNotSupported
 }
 
-func (d *ResourceDevice) GetSpecVersion() (string, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_SPEC_VERSION)
+func (d *resourceDevice) GetSpecVersion() (string, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeSpecVersion)
 	if err != nil {
 		return "", err
 	}
@@ -69,8 +70,8 @@ func (d *ResourceDevice) GetSpecVersion() (string, error) {
 	return "", ErrOperationNotSupported
 }
 
-func (d *ResourceDevice) GetDeviceId() (*uuid.UUID, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_ID)
+func (d *resourceDevice) GetDeviceID() (*uuid.UUID, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeID)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +81,8 @@ func (d *ResourceDevice) GetDeviceId() (*uuid.UUID, error) {
 	return nil, ErrOperationNotSupported
 }
 
-func (d *ResourceDevice) GetDataModelVersion() (string, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_DATA_MODEL_VERSION)
+func (d *resourceDevice) GetDataModelVersion() (string, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeDataModelVersion)
 	if err != nil {
 		return "", err
 	}
@@ -91,8 +92,8 @@ func (d *ResourceDevice) GetDataModelVersion() (string, error) {
 	return "", ErrOperationNotSupported
 }
 
-func (d *ResourceDevice) GetProtocolIndependentID() (*uuid.UUID, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_PROTOCOL_INDEPENDENT)
+func (d *resourceDevice) GetProtocolIndependentID() (*uuid.UUID, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeProtocolIndependent)
 	if err != nil {
 		return nil, err
 	}
@@ -103,8 +104,8 @@ func (d *ResourceDevice) GetProtocolIndependentID() (*uuid.UUID, error) {
 }
 
 //Optional
-func (d *ResourceDevice) GetManufacturerName() ([]string, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_MANUFACTURER_NAME)
+func (d *resourceDevice) GetManufacturerName() ([]string, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeManufacturerName)
 	if err != nil {
 		return nil, err
 	}
@@ -118,8 +119,8 @@ func (d *ResourceDevice) GetManufacturerName() ([]string, error) {
 	return nil, ErrOperationNotSupported
 }
 
-func (d *ResourceDevice) GetModelNumber() (string, error) {
-	val, err := d.getAttributeValue(DEVICE_RESOURCE_TYPE, DEVICE_ATTRIBUTE_MODEL_NUMBER)
+func (d *resourceDevice) GetModelNumber() (string, error) {
+	val, err := d.getAttributeValue(deviceResourceType, deviceResourceTypeAttributeModelNumber)
 	if err != nil {
 		return "", err
 	}
@@ -129,62 +130,63 @@ func (d *ResourceDevice) GetModelNumber() (string, error) {
 	return "", ErrOperationNotSupported
 }
 
+//NewResourceDevice creates a resource device by params
 func NewResourceDevice(params *ResourceDeviceParams) (ResourceDeviceI, error) {
-	if params.DeviceId == nil || params.ProtocolIndependentID == nil ||
+	if params.DeviceID == nil || params.ProtocolIndependentID == nil ||
 		len(params.DeviceName) == 0 ||
 		len(params.SpecVersion) == 0 ||
 		len(params.DataModelVersion) == 0 {
 		return nil, ErrInvalidParams
 	}
 
-	nVal, err := NewValue(func(TransactionI) (interface{}, error) { return params.DeviceName, nil }, nil)
+	nVal, err := NewValue(func(TransactionI) (PayloadI, error) { return params.DeviceName, nil }, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	n, err := NewAttribute(DEVICE_ATTRIBUTE_NAME, nVal, &StringLimit{})
+	n, err := NewAttribute(deviceResourceTypeAttributeName, nVal, &StringValidator{})
 	if err != nil {
 		return nil, err
 	}
 
-	icvVal, err := NewValue(func(TransactionI) (interface{}, error) { return params.SpecVersion, nil }, nil)
+	icvVal, err := NewValue(func(TransactionI) (PayloadI, error) { return params.SpecVersion, nil }, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	icv, err := NewAttribute(DEVICE_ATTRIBUTE_SPEC_VERSION, icvVal, &StringLimit{})
+	icv, err := NewAttribute(deviceResourceTypeAttributeSpecVersion, icvVal, &StringValidator{})
 	if err != nil {
 		return nil, err
 	}
 
-	diUUID := params.DeviceId.String()
-	diVal, err := NewValue(func(TransactionI) (interface{}, error) { return diUUID, nil }, nil)
+	diUUID := params.DeviceID.String()
+	diVal, err := NewValue(func(TransactionI) (PayloadI, error) { return diUUID, nil }, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	di, err := NewAttribute(DEVICE_ATTRIBUTE_ID, diVal, &StringLimit{})
+	di, err := NewAttribute(deviceResourceTypeAttributeID, diVal, &StringValidator{})
 	if err != nil {
 		return nil, err
 	}
 
-	dmvVal, err := NewValue(func(TransactionI) (interface{}, error) { return params.DataModelVersion, nil }, nil)
+	dmvVal, err := NewValue(func(TransactionI) (PayloadI, error) { return params.DataModelVersion, nil }, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	dmv, err := NewAttribute(DEVICE_ATTRIBUTE_DATA_MODEL_VERSION, dmvVal, &StringLimit{})
+	dmv, err := NewAttribute(deviceResourceTypeAttributeDataModelVersion, dmvVal, &StringValidator{})
 	if err != nil {
 		return nil, err
 	}
 
 	piidUUID := params.ProtocolIndependentID.String()
-	piidVal, err := NewValue(func(TransactionI) (interface{}, error) { return piidUUID, nil }, nil)
+	piidVal, err := NewValue(func(TransactionI) (PayloadI, error) { return piidUUID, nil }, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	piid, err := NewAttribute(DEVICE_ATTRIBUTE_PROTOCOL_INDEPENDENT, piidVal, &StringLimit{})
+	piid, err := NewAttribute(deviceResourceTypeAttributeProtocolIndependent, piidVal, &StringValidator{})
 	if err != nil {
 		return nil, err
 	}
@@ -198,12 +200,12 @@ func NewResourceDevice(params *ResourceDeviceParams) (ResourceDeviceI, error) {
 	}
 
 	if len(params.ModelNumber) > 0 {
-		dmnoVal, err := NewValue(func(TransactionI) (interface{}, error) { return params.ModelNumber, nil }, nil)
+		dmnoVal, err := NewValue(func(TransactionI) (PayloadI, error) { return params.ModelNumber, nil }, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		dmno, err := NewAttribute(DEVICE_ATTRIBUTE_MODEL_NUMBER, dmnoVal, &StringLimit{})
+		dmno, err := NewAttribute(deviceResourceTypeAttributeModelNumber, dmnoVal, &StringValidator{})
 		if err != nil {
 			return nil, err
 		}
@@ -211,29 +213,29 @@ func NewResourceDevice(params *ResourceDeviceParams) (ResourceDeviceI, error) {
 	}
 
 	if len(params.ManufacturerName) > 0 {
-		dmnVal, err := NewValue(func(TransactionI) (interface{}, error) { return params.ManufacturerName, nil }, nil)
+		dmnVal, err := NewValue(func(TransactionI) (PayloadI, error) { return params.ManufacturerName, nil }, nil)
 		if err != nil {
 			return nil, err
 		}
 
-		dmn, err := NewAttribute(DEVICE_ATTRIBUTE_MANUFACTURER_NAME, dmnVal, &StringLimit{})
+		dmn, err := NewAttribute(deviceResourceTypeAttributeManufacturerName, dmnVal, &StringValidator{})
 		if err != nil {
 			return nil, err
 		}
 		attributes = append(attributes, dmn)
 	}
 
-	rt, err := NewResourceType(DEVICE_RESOURCE_TYPE, attributes)
+	rt, err := NewResourceType(deviceResourceType, attributes)
 	if err != nil {
 		return nil, err
 	}
 
 	resourceParams := &ResourceParams{
-		Id:                 DEVICE_URI,
+		id:                 deviceURI,
 		Discoverable:       true,
 		Observeable:        true,
 		ResourceTypes:      []ResourceTypeI{rt},
-		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &transactionDummy{}, nil }),
 	}
 
 	resMid, err := NewResource(resourceParams)
@@ -241,5 +243,5 @@ func NewResourceDevice(params *ResourceDeviceParams) (ResourceDeviceI, error) {
 		return nil, err
 	}
 
-	return &ResourceDevice{ResourceMiddleware: ResourceMiddleware{resource: resMid}}, nil
+	return &resourceDevice{ResourceMiddleware: ResourceMiddleware{resource: resMid}}, nil
 }

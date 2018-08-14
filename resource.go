@@ -1,40 +1,41 @@
 package ocfsdk
 
-type ResourceTypeIterator struct {
+type resourceTypeIterator struct {
 	MapIteratorMiddleware
 }
 
-func (i *ResourceTypeIterator) Value() ResourceTypeI {
-	v := i.value()
+func (i *resourceTypeIterator) Value() ResourceTypeI {
+	v := i.ValueInterface()
 	if v != nil {
 		return v.(ResourceTypeI)
 	}
 	return nil
 }
 
-type ResourceInterfaceIterator struct {
+type resourceInterfaceIterator struct {
 	MapIteratorMiddleware
 }
 
-func (i *ResourceInterfaceIterator) Value() ResourceInterfaceI {
-	v := i.value()
+func (i *resourceInterfaceIterator) Value() ResourceInterfaceI {
+	v := i.ValueInterface()
 	if v != nil {
 		return v.(ResourceInterfaceI)
 	}
 	return nil
 }
 
+//ResourceParams parameters to initialize a resource
 type ResourceParams struct {
-	Id                 string
-	Discoverable       bool
-	Observeable        bool
-	ResourceTypes      []ResourceTypeI
-	ResourceInterfaces []ResourceInterfaceI
-	ResourceOperations ResourceOperationI
+	id                 string
+	Discoverable       bool                 // true if resource are discoverable
+	Observeable        bool                 // true if resource are observeable
+	ResourceTypes      []ResourceTypeI      // list of resource types
+	ResourceInterfaces []ResourceInterfaceI // list of interfaces types
+	ResourceOperations ResourceOperationI   // actions that are supported by device
 }
 
-type Resource struct {
-	Id
+type resource struct {
+	id
 	discoverable bool
 	observeable  bool
 
@@ -43,42 +44,43 @@ type Resource struct {
 	resourceOperations ResourceOperationI
 }
 
-func (r *Resource) IsDiscoverable() bool {
+func (r *resource) IsDiscoverable() bool {
 	return r.discoverable
 }
 
-func (r *Resource) IsObserveable() bool {
+func (r *resource) IsObserveable() bool {
 	return r.observeable
 }
 
-func (r *Resource) NewResourceTypeIterator() ResourceTypeIteratorI {
-	return &ResourceTypeIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceTypes)}}
+func (r *resource) NewResourceTypeIterator() ResourceTypeIteratorI {
+	return &resourceTypeIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceTypes)}}
 }
 
-func (r *Resource) NewResourceInterfaceIterator() ResourceInterfaceIteratorI {
-	return &ResourceInterfaceIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceInterfaces)}}
+func (r *resource) NewResourceInterfaceIterator() ResourceInterfaceIteratorI {
+	return &resourceInterfaceIterator{MapIteratorMiddleware: MapIteratorMiddleware{i: NewMapIterator(r.resourceInterfaces)}}
 }
 
-func (r *Resource) GetResourceType(id string) (ResourceTypeI, error) {
+func (r *resource) GetResourceType(id string) (ResourceTypeI, error) {
 	if v, ok := r.resourceTypes[id].(ResourceTypeI); ok {
 		return v, nil
 	}
 	return nil, ErrNotExist
 }
 
-func (r *Resource) GetResourceInterface(id string) (ResourceInterfaceI, error) {
+func (r *resource) GetResourceInterface(id string) (ResourceInterfaceI, error) {
 	if v, ok := r.resourceInterfaces[id].(ResourceInterfaceI); ok {
 		return v, nil
 	}
 	return nil, ErrNotExist
 }
 
-func (r *Resource) GetResourceOperations() ResourceOperationI {
+func (r *resource) GetResourceOperations() ResourceOperationI {
 	return r.resourceOperations
 }
 
+//NewResource creates a resource by the params
 func NewResource(params *ResourceParams) (ResourceI, error) {
-	if len(params.Id) == 0 || len(params.ResourceTypes) == 0 || params.ResourceOperations == nil {
+	if len(params.id) == 0 || len(params.ResourceTypes) == 0 || params.ResourceOperations == nil {
 		return nil, ErrInvalidParams
 	}
 
@@ -91,10 +93,10 @@ func NewResource(params *ResourceParams) (ResourceI, error) {
 	haveBaselineIf := false
 
 	for _, i := range resourceInterfaces {
-		if i.GetId() == "" {
+		if i.GetID() == "" {
 			haveDefaultIf = true
 		}
-		if i.GetId() == "oic.if.baseline" {
+		if i.GetID() == "oic.if.baseline" {
 			haveBaselineIf = true
 		}
 		if haveDefaultIf && haveBaselineIf {
@@ -102,30 +104,30 @@ func NewResource(params *ResourceParams) (ResourceI, error) {
 		}
 	}
 	if !haveDefaultIf {
-		resourceInterfaces = append(resourceInterfaces, &ResourceInterfaceBaseline{ResourceInterface: ResourceInterface{Id: Id{id: ""}}})
+		resourceInterfaces = append(resourceInterfaces, NewResourceInterfaceBaseline(""))
 	}
 	if !haveBaselineIf {
-		resourceInterfaces = append(resourceInterfaces, &ResourceInterfaceBaseline{ResourceInterface: ResourceInterface{Id: Id{id: "oic.if.baseline"}}})
+		resourceInterfaces = append(resourceInterfaces, NewResourceInterfaceBaseline("oic.if.baseline"))
 	}
 
 	rt := make(map[interface{}]interface{})
 	for _, val := range params.ResourceTypes {
-		if rt[val.GetId()] != nil {
+		if rt[val.GetID()] != nil {
 			return nil, ErrInvalidParams
 		}
-		rt[val.GetId()] = val
+		rt[val.GetID()] = val
 	}
 
 	ifaces := make(map[interface{}]interface{})
 	for _, val := range resourceInterfaces {
-		if ifaces[val.GetId()] != nil {
+		if ifaces[val.GetID()] != nil {
 			return nil, ErrInvalidParams
 		}
-		ifaces[val.GetId()] = val
+		ifaces[val.GetID()] = val
 	}
 
-	return &Resource{
-		Id:                 Id{id: params.Id},
+	return &resource{
+		id:                 id{id: params.id},
 		discoverable:       params.Discoverable,
 		observeable:        params.Observeable,
 		resourceTypes:      rt,

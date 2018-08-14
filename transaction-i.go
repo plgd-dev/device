@@ -1,17 +1,7 @@
 package ocfsdk
 
+//TransactionI defines interface for transaction over resource
 type TransactionI interface {
-	Commit() error
-	Drop() error
-}
-
-type DummyTransaction struct {
-}
-
-func (t *DummyTransaction) Commit() error {
-	return nil
-}
-
-func (t *DummyTransaction) Drop() error {
-	return nil
+	Commit() error //Commit used by update operation to store values to resource
+	Close() error  //Close used by update/retrieve operation to clean values in transaction
 }

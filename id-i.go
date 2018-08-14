@@ -1,5 +1,7 @@
 package ocfsdk
 
-type IdI interface {
-	GetId() string
+//IDI interface for returns id of object
+type IDI interface {
+	//GetID returns id of object
+	GetID() string
 }

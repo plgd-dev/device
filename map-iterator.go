@@ -5,14 +5,14 @@ import (
 	"sort"
 )
 
-type MapIterator struct {
+type mapIterator struct {
 	data       map[interface{}]interface{}
 	keys       []reflect.Value
 	currentIdx int
 	err        error
 }
 
-func (i *MapIterator) Next() bool {
+func (i *mapIterator) Next() bool {
 	i.currentIdx++
 	if i.currentIdx < len(i.keys) {
 		return true
@@ -20,7 +20,7 @@ func (i *MapIterator) Next() bool {
 	return false
 }
 
-func (i *MapIterator) value() interface{} {
+func (i *mapIterator) ValueInterface() interface{} {
 	if i.currentIdx < len(i.keys) {
 		return i.data[i.keys[i.currentIdx].Interface()]
 	}
@@ -28,47 +28,32 @@ func (i *MapIterator) value() interface{} {
 	return nil
 }
 
-func (i *MapIterator) Error() error {
+func (i *mapIterator) Err() error {
 	return i.err
 }
 
-type MapSort struct {
+type mapSort struct {
 	keys []reflect.Value
 }
 
-func (m *MapSort) Len() int {
+func (m *mapSort) Len() int {
 	return len(m.keys)
 }
 
-func (m *MapSort) Less(i, j int) bool {
+func (m *mapSort) Less(i, j int) bool {
 	//TODO for more types
 	return m.keys[i].Interface().(string) < m.keys[j].Interface().(string)
 }
 
-func (m *MapSort) Swap(i, j int) {
+func (m *mapSort) Swap(i, j int) {
 	tmp := m.keys[i]
 	m.keys[i] = m.keys[j]
 	m.keys[j] = tmp
 }
 
+//NewMapIterator creates iterator over map sorted by keys
 func NewMapIterator(data map[interface{}]interface{}) MapIteratorI {
-	k := &MapSort{keys: reflect.ValueOf(data).MapKeys()}
+	k := &mapSort{keys: reflect.ValueOf(data).MapKeys()}
 	sort.Sort(k)
-	return &MapIterator{data: data, keys: k.keys, currentIdx: 0, err: nil}
-}
-
-type MapIteratorMiddleware struct {
-	i MapIteratorI
-}
-
-func (m *MapIteratorMiddleware) Next() bool {
-	return m.i.Next()
-}
-
-func (m *MapIteratorMiddleware) value() interface{} {
-	return m.i.value()
-}
-
-func (m *MapIteratorMiddleware) Error() error {
-	return m.Error()
+	return &mapIterator{data: data, keys: k.keys, currentIdx: 0, err: nil}
 }

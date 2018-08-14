@@ -1,40 +1,35 @@
 package ocfsdk
 
-type AttributeI interface {
-	IdI
-	GetValue(transaction TransactionI) (value interface{}, err error)
-	SetValue(transaction TransactionI, value interface{}) error
+type attribute struct {
+	id
+	value ValueI
+	limit ValidatorI
 }
 
-type Attribute struct {
-	Id
-	Value ValueI
-	Limit LimitI
-}
-
-func (a *Attribute) GetValue(transaction TransactionI) (interface{}, error) {
-	if v, ok := a.Value.(ValueGetI); ok {
+func (a *attribute) GetValue(transaction TransactionI) (PayloadI, error) {
+	if v, ok := a.value.(ValueGetI); ok {
 		return v.Get(transaction)
 	}
 
 	return nil, ErrAccessDenied
 }
 
-func (a *Attribute) SetValue(transaction TransactionI, value interface{}) error {
-	if err := a.Limit.ValidateValue(value); err != nil {
+func (a *attribute) SetValue(transaction TransactionI, value PayloadI) error {
+	if err := a.limit.ValidateValue(value); err != nil {
 		return err
 	}
-	if v, ok := a.Value.(ValueSetI); ok {
+	if v, ok := a.value.(ValueSetI); ok {
 		return v.Set(transaction, value)
 	}
 
 	return ErrAccessDenied
 }
 
-func NewAttribute(id string, value ValueI, limit LimitI) (AttributeI, error) {
+//NewAttribute creates attribute with name,value and limit
+func NewAttribute(name string, value ValueI, limit ValidatorI) (AttributeI, error) {
 
-	if len(id) == 0 || value == nil || limit == nil {
+	if len(name) == 0 || value == nil || limit == nil {
 		return nil, ErrInvalidParams
 	}
-	return &Attribute{Id: Id{id: id}, Value: value, Limit: limit}, nil
+	return &attribute{id: id{id: name}, value: value, limit: limit}, nil
 }
