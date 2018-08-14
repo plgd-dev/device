@@ -1,22 +1,20 @@
 package ocfsdk
 
-import coap "github.com/go-ocf/go-coap"
-
 type ResourceOperationI interface {
 }
 
 type ResourceOperationCreateI interface {
-	Create(req RequestI) (PayloadI, coap.COAPCode, error)
+	Create(req RequestI) (PayloadI, error)
 }
 
 type ResourceOperationRetrieveI interface {
-	Retrieve(req RequestI) (PayloadI, coap.COAPCode, error)
+	Retrieve(req RequestI) (PayloadI, error)
 }
 
 type ResourceOperationUpdateI interface {
-	Update(req RequestI) (PayloadI, coap.COAPCode, error)
+	Update(req RequestI) (PayloadI, error)
 }
 
 type ResourceOperationDeleteI interface {
-	Delete(req RequestI) (PayloadI, coap.COAPCode, error)
+	Delete(req RequestI) (PayloadI, error)
 }
