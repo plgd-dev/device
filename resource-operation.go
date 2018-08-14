@@ -1,17 +1,18 @@
 package ocfsdk
 
+//ResourceOperationCreateFunc handler for create resource
 type ResourceOperationCreateFunc func(RequestI) (ResourceI, error)
 
-type ResourceOperationCreate struct {
+type resourceOperationCreate struct {
 	create ResourceOperationCreateFunc
 }
 
-func (rc *ResourceOperationCreate) Create(req RequestI) (PayloadI, error) {
+func (rc *resourceOperationCreate) Create(req RequestI) (PayloadI, error) {
 	if rc.create == nil {
 		return nil, ErrOperationNotSupported
 	}
 	for it := req.GetResource().NewResourceInterfaceIterator(); it.Value() != nil; it.Next() {
-		if it.Value().GetId() == req.GetInterfaceId() {
+		if it.Value().GetID() == req.GetInterfaceID() {
 			if ri, ok := it.Value().(ResourceCreateInterfaceI); ok {
 				newResource, err := rc.create(req)
 				if err != nil {
@@ -24,40 +25,44 @@ func (rc *ResourceOperationCreate) Create(req RequestI) (PayloadI, error) {
 	return nil, ErrInvalidInterface
 }
 
+//OpenTransactionFunc handler for open transaction over resource
 type OpenTransactionFunc func() (TransactionI, error)
 
-type ResourceOperationRetrieve struct {
+type resourceOperationRetrieve struct {
 	openTransaction OpenTransactionFunc
 }
 
-func (r *ResourceOperationRetrieve) Retrieve(req RequestI) (PayloadI, error) {
-	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
+func (r *resourceOperationRetrieve) Retrieve(req RequestI) (PayloadI, error) {
+	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceID()); err == nil {
 		if rir, ok := ri.(ResourceRetrieveInterfaceI); ok {
-			var t TransactionI
+			var transaction TransactionI
 			if r.openTransaction != nil {
-				if t, err = r.openTransaction(); err != nil {
+				if transaction, err = r.openTransaction(); err != nil {
 					return nil, err
 				}
 			}
 			defer func() {
-				if t != nil {
-					t.Drop()
+				if transaction != nil {
+					transaction.Close()
 				}
 			}()
-			return rir.Retrieve(req, t)
+			return rir.Retrieve(req, transaction)
 		}
 	}
 	return nil, ErrInvalidInterface
 }
 
-type ResourceOperationUpdate struct {
+type resourceOperationUpdate struct {
 	openTransaction OpenTransactionFunc
 }
 
-func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, error) {
-	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
+func (r *resourceOperationUpdate) Update(req RequestI) (PayloadI, error) {
+	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceID()); err == nil {
 		if riu, ok := ri.(ResourceUpdateInterfaceI); ok {
 			if transaction, err := r.openTransaction(); err == nil {
+				defer func() {
+					transaction.Close()
+				}()
 				reqMap := req.GetPayload().(map[string]interface{})
 				errors := make([]error, 0)
 				for key, value := range reqMap {
@@ -72,7 +77,7 @@ func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, error) {
 				if err := transaction.Commit(); err != nil {
 					errors = append(errors, err)
 				}
-				return riu.Update(req, errors)
+				return riu.Update(req, transaction)
 			}
 		}
 	}
@@ -80,17 +85,18 @@ func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, error) {
 	return nil, ErrInvalidInterface
 }
 
+//ResourceOperationDeleteFunc handler for delete resource
 type ResourceOperationDeleteFunc func(RequestI) (deletedResource ResourceI, err error)
 
-type ResourceOperationDelete struct {
+type resourceOperationDelete struct {
 	delete ResourceOperationDeleteFunc
 }
 
-func (r *ResourceOperationDelete) Delete(req RequestI) (PayloadI, error) {
+func (r *resourceOperationDelete) Delete(req RequestI) (PayloadI, error) {
 	if r.delete == nil {
 		return nil, ErrOperationNotSupported
 	}
-	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
+	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceID()); err == nil {
 		if rid, ok := ri.(ResourceDeleteInterfaceI); ok {
 			dr, err := r.delete(req)
 			if err != nil {
@@ -102,48 +108,53 @@ func (r *ResourceOperationDelete) Delete(req RequestI) (PayloadI, error) {
 	return nil, ErrInvalidInterface
 }
 
+//NewResourceOperationCreateDelete creates a resource operation that supports create, delete actions
 func NewResourceOperationCreateDelete(create ResourceOperationCreateFunc, delete ResourceOperationDeleteFunc) ResourceOperationI {
 	type ResourceOperationCreateDelete struct {
-		ResourceOperationCreate
-		ResourceOperationDelete
+		resourceOperationCreate
+		resourceOperationDelete
 	}
 
 	return &ResourceOperationCreateDelete{
-		ResourceOperationCreate: ResourceOperationCreate{create},
-		ResourceOperationDelete: ResourceOperationDelete{delete},
+		resourceOperationCreate: resourceOperationCreate{create},
+		resourceOperationDelete: resourceOperationDelete{delete},
 	}
 }
 
+//NewResourceOperationRetrieve creates a resource operation that support retrieve action
 func NewResourceOperationRetrieve(openTransaction OpenTransactionFunc) ResourceOperationI {
-	return &ResourceOperationRetrieve{openTransaction}
+	return &resourceOperationRetrieve{openTransaction}
 }
 
+//NewResourceOperationUpdate creates a resource operation that support update action
 func NewResourceOperationUpdate(openTransaction OpenTransactionFunc) ResourceOperationI {
-	return &ResourceOperationUpdate{openTransaction}
+	return &resourceOperationUpdate{openTransaction}
 }
 
+//NewResourceOperationRetrieveUpdate creates a resource operation that support retrieve, update actions
 func NewResourceOperationRetrieveUpdate(openTransaction OpenTransactionFunc) ResourceOperationI {
 	type ResourceOperationRetrieveUpdate struct {
-		ResourceOperationRetrieve
-		ResourceOperationUpdate
+		resourceOperationRetrieve
+		resourceOperationUpdate
 	}
 	return &ResourceOperationRetrieveUpdate{
-		ResourceOperationRetrieve: ResourceOperationRetrieve{openTransaction},
-		ResourceOperationUpdate:   ResourceOperationUpdate{openTransaction},
+		resourceOperationRetrieve: resourceOperationRetrieve{openTransaction},
+		resourceOperationUpdate:   resourceOperationUpdate{openTransaction},
 	}
 }
 
+//NewResourceOperationCRUD creates a resource operation that support create, retrieve, update, delete actions
 func NewResourceOperationCRUD(create ResourceOperationCreateFunc, openTransaction OpenTransactionFunc, delete ResourceOperationDeleteFunc) ResourceOperationI {
 	type ResourceOperationCRUD struct {
-		ResourceOperationCreate
-		ResourceOperationRetrieve
-		ResourceOperationUpdate
-		ResourceOperationDelete
+		resourceOperationCreate
+		resourceOperationRetrieve
+		resourceOperationUpdate
+		resourceOperationDelete
 	}
 	return &ResourceOperationCRUD{
-		ResourceOperationCreate:   ResourceOperationCreate{create},
-		ResourceOperationRetrieve: ResourceOperationRetrieve{openTransaction},
-		ResourceOperationUpdate:   ResourceOperationUpdate{openTransaction},
-		ResourceOperationDelete:   ResourceOperationDelete{delete},
+		resourceOperationCreate:   resourceOperationCreate{create},
+		resourceOperationRetrieve: resourceOperationRetrieve{openTransaction},
+		resourceOperationUpdate:   resourceOperationUpdate{openTransaction},
+		resourceOperationDelete:   resourceOperationDelete{delete},
 	}
 }

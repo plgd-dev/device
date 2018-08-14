@@ -18,7 +18,7 @@ func TestNonCreateResourceDevice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("cannot create uuid")
 	}
-	params.DeviceId = di
+	params.DeviceID = di
 	if _, err := NewResourceDevice(params); err == nil {
 		t.Fatal("expected error")
 	}
@@ -50,7 +50,7 @@ func createResourceDeviceParams(t *testing.T) *ResourceDeviceParams {
 		t.Fatal("cannot create uuid", err)
 	}
 	params := &ResourceDeviceParams{
-		DeviceId:              di,
+		DeviceID:              di,
 		ProtocolIndependentID: piid,
 		DeviceName:            "DeviceName",
 		SpecVersion:           "SpecVersion",
@@ -79,8 +79,8 @@ func TestCreateResourceDevice(t *testing.T) {
 	if str, err := dr.GetModelNumber(); str != params.ModelNumber || err != nil {
 		t.Fatalf("invalid value %v != %v: %v", str, params.ModelNumber, err)
 	}
-	if str, err := dr.GetDeviceId(); str.String() != params.DeviceId.String() || err != nil {
-		t.Fatalf("invalid value %v != %v: %v", str.String(), params.DeviceId.String(), err)
+	if str, err := dr.GetDeviceID(); str.String() != params.DeviceID.String() || err != nil {
+		t.Fatalf("invalid value %v != %v: %v", str.String(), params.DeviceID.String(), err)
 	}
 	if str, err := dr.GetProtocolIndependentID(); str.String() != params.ProtocolIndependentID.String() || err != nil {
 		t.Fatalf("invalid value %v != %v: %v", str.String(), params.ProtocolIndependentID.String(), err)

@@ -11,8 +11,8 @@ const ErrInvalidType = Error("Invalid type")
 // ErrInvalidEnumValue value doesn't belongs to enum
 const ErrInvalidEnumValue = Error("Invalid enum value")
 
-// ErrInvalidKeyOfMap value contains map with unknown key
-const ErrInvalidKeyOfMap = Error("Invalid key of map")
+// ErrUnprovidedKeyOfMap value contains map with unknown key
+const ErrUnprovidedKeyOfMap = Error("Invalid key of map")
 
 // ErrAccessDenied cannot access to object
 const ErrAccessDenied = Error("Access denied")

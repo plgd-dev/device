@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func testNewValue(t *testing.T, get func(transaction TransactionI) (interface{}, error), set func(transaction TransactionI, s interface{}) error) ValueI {
+func testNewValue(t *testing.T, get func(transaction TransactionI) (PayloadI, error), set func(transaction TransactionI, s PayloadI) error) ValueI {
 	v, err := NewValue(get, set)
 	if err != nil {
 		t.Fatal("cannot create new value", err)
@@ -21,7 +21,7 @@ func TestNonCreateValue(t *testing.T) {
 
 func TestBoolValueGet(t *testing.T) {
 	b := false
-	ob, err := NewValue(func(TransactionI) (interface{}, error) { return b, nil }, nil)
+	ob, err := NewValue(func(TransactionI) (PayloadI, error) { return b, nil }, nil)
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
@@ -38,7 +38,7 @@ func TestBoolValueGet(t *testing.T) {
 
 func TestBoolValueSet(t *testing.T) {
 	b := false
-	ob, err := NewValue(nil, func(t TransactionI, s interface{}) error { b = s.(bool); return nil })
+	ob, err := NewValue(nil, func(t TransactionI, s PayloadI) error { b = s.(bool); return nil })
 	if err != nil {
 		t.Fatal("cannot create value", err)
 	}
@@ -55,7 +55,7 @@ func TestMapValueGet(t *testing.T) {
 	v := map[string]interface{}{
 		"test": true,
 	}
-	m := testNewValue(t, func(TransactionI) (interface{}, error) { return v, nil }, nil)
+	m := testNewValue(t, func(TransactionI) (PayloadI, error) { return v, nil }, nil)
 	if g, ok := m.(ValueGetI); ok {
 		s1, err := g.Get(nil)
 		if err != nil {
@@ -87,7 +87,7 @@ func TestMapValueSet(t *testing.T) {
 	v := map[string]interface{}{
 		"test": false,
 	}
-	m := testNewValue(t, nil, func(t TransactionI, s interface{}) error { v = s.(map[string]interface{}); return nil })
+	m := testNewValue(t, nil, func(t TransactionI, s PayloadI) error { v = s.(map[string]interface{}); return nil })
 	if g, ok := m.(ValueSetI); ok {
 		err := g.Set(nil, map[string]interface{}{
 			"test1": 123,

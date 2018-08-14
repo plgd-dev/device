@@ -24,7 +24,7 @@ func testNewResourceType(t *testing.T, id string, attributes []AttributeI) Resou
 	return r
 }
 
-func testNewAttribute(t *testing.T, id string, value ValueI, limit LimitI) AttributeI {
+func testNewAttribute(t *testing.T, id string, value ValueI, limit ValidatorI) AttributeI {
 	a, err := NewAttribute(id, value, limit)
 	if err != nil {
 		t.Fatal("cannot create new attribute", err)
@@ -47,15 +47,11 @@ func (t *testRequest) GetPayload() PayloadI {
 	return t.payload
 }
 
-func (t *testRequest) GetInterfaceId() string {
+func (t *testRequest) GetInterfaceID() string {
 	return t.iface
 }
 
 func (t *testRequest) GetQueryParameters() []string {
-	return nil
-}
-
-func (t *testRequest) GetPeerSession() interface{} {
 	return nil
 }
 
@@ -65,13 +61,13 @@ func (t *testRequest) GetDevice() DeviceI {
 
 func TestCreateResource(t *testing.T) {
 	params := ResourceParams{
-		Id: "",
+		id: "",
 	}
 	_, err := NewResource(&params)
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	params.Id = "test"
+	params.id = "test"
 	_, err = NewResource(&params)
 	if err == nil {
 		t.Fatal("expected error")
@@ -79,8 +75,8 @@ func TestCreateResource(t *testing.T) {
 	params.ResourceInterfaces = []ResourceInterfaceI{}
 	params.ResourceTypes = []ResourceTypeI{testNewResourceType(t, "x.test",
 		[]AttributeI{
-			testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (interface{}, error) { return true, nil }, nil), &BoolLimit{}),
-			testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (interface{}, error) { return false, nil }, nil), &BoolLimit{}),
+			testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (PayloadI, error) { return true, nil }, nil), &BoolValidator{}),
+			testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (PayloadI, error) { return false, nil }, nil), &BoolValidator{}),
 		})}
 
 	_, err = NewResource(&params)
@@ -97,14 +93,14 @@ func TestCreateResource(t *testing.T) {
 func TestRetrieveResource(t *testing.T) {
 	out := `{"alwaysFalse":false,"alwaysTrue":true,"if":["oic.if.baseline"],"rt":["x.test"]}`
 	params := ResourceParams{
-		Id: "test",
+		id: "test",
 		ResourceTypes: []ResourceTypeI{
 			testNewResourceType(t, "x.test",
 				[]AttributeI{
-					testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (interface{}, error) { return true, nil }, nil), &BoolLimit{}),
-					testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (interface{}, error) { return false, nil }, nil), &BoolLimit{}),
+					testNewAttribute(t, "alwaysTrue", testNewValue(t, func(TransactionI) (PayloadI, error) { return true, nil }, nil), &BoolValidator{}),
+					testNewAttribute(t, "alwaysFalse", testNewValue(t, func(TransactionI) (PayloadI, error) { return false, nil }, nil), &BoolValidator{}),
 				})},
-		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+		ResourceOperations: NewResourceOperationRetrieve(func() (TransactionI, error) { return &transactionDummy{}, nil }),
 	}
 
 	r := testNewResource(t, &params)
@@ -138,14 +134,14 @@ func TestUpdateResource(t *testing.T) {
 	}
 	data := dataType{A: true, B: false}
 	params := ResourceParams{
-		Id: "test",
+		id: "test",
 		ResourceTypes: []ResourceTypeI{
 			testNewResourceType(t, "x.test",
 				[]AttributeI{
-					testNewAttribute(t, "A", testNewValue(t, nil, func(t TransactionI, s interface{}) error { data.A = s.(bool); return nil }), &BoolLimit{}),
-					testNewAttribute(t, "B", testNewValue(t, nil, func(t TransactionI, s interface{}) error { data.B = s.(bool); return nil }), &BoolLimit{}),
+					testNewAttribute(t, "A", testNewValue(t, nil, func(t TransactionI, s PayloadI) error { data.A = s.(bool); return nil }), &BoolValidator{}),
+					testNewAttribute(t, "B", testNewValue(t, nil, func(t TransactionI, s PayloadI) error { data.B = s.(bool); return nil }), &BoolValidator{}),
 				})},
-		ResourceOperations: NewResourceOperationUpdate(func() (TransactionI, error) { return &DummyTransaction{}, nil }),
+		ResourceOperations: NewResourceOperationUpdate(func() (TransactionI, error) { return &transactionDummy{}, nil }),
 	}
 
 	r := testNewResource(t, &params)
