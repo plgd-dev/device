@@ -108,7 +108,7 @@ func TestRetrieveResource(t *testing.T) {
 	}
 
 	r := testNewResource(t, &params)
-	payload, _, err := r.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{res: r})
+	payload, err := r.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{res: r})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
@@ -149,7 +149,7 @@ func TestUpdateResource(t *testing.T) {
 	}
 
 	r := testNewResource(t, &params)
-	_, _, err := r.GetResourceOperations().(ResourceOperationUpdateI).Update(&testRequest{res: r, payload: map[string]interface{}{"A": false, "B": true}})
+	_, err := r.GetResourceOperations().(ResourceOperationUpdateI).Update(&testRequest{res: r, payload: map[string]interface{}{"A": false, "B": true}})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}

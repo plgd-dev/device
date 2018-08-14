@@ -2,8 +2,6 @@ package ocfsdk
 
 import (
 	"fmt"
-
-	coap "github.com/go-ocf/go-coap"
 )
 
 const (
@@ -15,11 +13,11 @@ type ResourceDiscoveryInterface struct {
 	ResourceInterface
 }
 
-func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction TransactionI) (PayloadI, coap.COAPCode, error) {
+func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction TransactionI) (PayloadI, error) {
 	discovery := make([]interface{}, 0)
 	di, err := req.GetDevice().GetDeviceId()
 	if err != nil {
-		return nil, coap.InternalServerError, err
+		return nil, err
 	}
 	for resIt := req.GetDevice().NewResourceIterator(); resIt.Value() != nil; resIt.Next() {
 		res := make(map[string]interface{})
@@ -71,7 +69,7 @@ func (ri *ResourceDiscoveryInterface) Retrieve(req RequestI, transaction Transac
 		}
 		discovery = append(discovery, res)
 	}
-	return discovery, coap.Content, nil
+	return discovery, nil
 }
 
 func newResourceDiscoveryInterface(name string) ResourceInterfaceI {

@@ -1,21 +1,19 @@
 package ocfsdk
 
-import coap "github.com/go-ocf/go-coap"
-
 type ResourceCreateInterfaceI interface {
-	Create(req RequestI, newResource ResourceI) (PayloadI, coap.COAPCode, error)
+	Create(req RequestI, newResource ResourceI) (PayloadI, error)
 }
 
 type ResourceRetrieveInterfaceI interface {
-	Retrieve(req RequestI, trans TransactionI) (PayloadI, coap.COAPCode, error)
+	Retrieve(req RequestI, trans TransactionI) (PayloadI, error)
 }
 
 type ResourceUpdateInterfaceI interface {
-	Update(req RequestI, errors []error) (PayloadI, coap.COAPCode, error)
+	Update(req RequestI, errors []error) (PayloadI, error)
 }
 
 type ResourceDeleteInterfaceI interface {
-	Delete(req RequestI, deletedResource ResourceI) (PayloadI, coap.COAPCode, error)
+	Delete(req RequestI, deletedResource ResourceI) (PayloadI, error)
 }
 
 type ResourceInterfaceI interface {
@@ -30,7 +28,7 @@ type ResourceInterfaceBaseline struct {
 	ResourceInterface
 }
 
-func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI, transaction TransactionI) (PayloadI, coap.COAPCode, error) {
+func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI, transaction TransactionI) (PayloadI, error) {
 	res := make(map[string]interface{})
 	iface := make([]string, 0)
 	for it := req.GetResource().NewResourceInterfaceIterator(); it.Value() != nil; it.Next() {
@@ -55,9 +53,9 @@ func (ri *ResourceInterfaceBaseline) Retrieve(req RequestI, transaction Transact
 			}
 		}
 	}
-	return res, coap.Content, nil
+	return res, nil
 }
 
-func (ri *ResourceInterfaceBaseline) Update(req RequestI, errors []error) (PayloadI, coap.COAPCode, error) {
-	return nil, coap.Changed, nil
+func (ri *ResourceInterfaceBaseline) Update(req RequestI, errors []error) (PayloadI, error) {
+	return nil, nil
 }

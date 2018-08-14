@@ -102,7 +102,7 @@ func TestRetrieveResourceDevice(t *testing.T) {
 	if err != nil {
 		t.Fatal("cannot create resource device", err)
 	}
-	payload, _, err := r.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{iface: "", res: r})
+	payload, err := r.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{iface: "", res: r})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}

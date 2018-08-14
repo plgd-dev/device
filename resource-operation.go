@@ -1,29 +1,27 @@
 package ocfsdk
 
-import coap "github.com/go-ocf/go-coap"
-
 type ResourceOperationCreateFunc func(RequestI) (ResourceI, error)
 
 type ResourceOperationCreate struct {
 	create ResourceOperationCreateFunc
 }
 
-func (rc *ResourceOperationCreate) Create(req RequestI) (PayloadI, coap.COAPCode, error) {
+func (rc *ResourceOperationCreate) Create(req RequestI) (PayloadI, error) {
 	if rc.create == nil {
-		return nil, coap.NotImplemented, ErrOperationNotSupported
+		return nil, ErrOperationNotSupported
 	}
 	for it := req.GetResource().NewResourceInterfaceIterator(); it.Value() != nil; it.Next() {
 		if it.Value().GetId() == req.GetInterfaceId() {
 			if ri, ok := it.Value().(ResourceCreateInterfaceI); ok {
 				newResource, err := rc.create(req)
 				if err != nil {
-					return nil, coap.InternalServerError, err
+					return nil, err
 				}
 				return ri.Create(req, newResource)
 			}
 		}
 	}
-	return nil, coap.NotImplemented, ErrInvalidInterface
+	return nil, ErrInvalidInterface
 }
 
 type OpenTransactionFunc func() (TransactionI, error)
@@ -32,13 +30,13 @@ type ResourceOperationRetrieve struct {
 	openTransaction OpenTransactionFunc
 }
 
-func (r *ResourceOperationRetrieve) Retrieve(req RequestI) (PayloadI, coap.COAPCode, error) {
+func (r *ResourceOperationRetrieve) Retrieve(req RequestI) (PayloadI, error) {
 	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
 		if rir, ok := ri.(ResourceRetrieveInterfaceI); ok {
 			var t TransactionI
 			if r.openTransaction != nil {
 				if t, err = r.openTransaction(); err != nil {
-					return nil, coap.InternalServerError, err
+					return nil, err
 				}
 			}
 			defer func() {
@@ -49,14 +47,14 @@ func (r *ResourceOperationRetrieve) Retrieve(req RequestI) (PayloadI, coap.COAPC
 			return rir.Retrieve(req, t)
 		}
 	}
-	return nil, coap.NotImplemented, ErrInvalidInterface
+	return nil, ErrInvalidInterface
 }
 
 type ResourceOperationUpdate struct {
 	openTransaction OpenTransactionFunc
 }
 
-func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, coap.COAPCode, error) {
+func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, error) {
 	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
 		if riu, ok := ri.(ResourceUpdateInterfaceI); ok {
 			if transaction, err := r.openTransaction(); err == nil {
@@ -79,7 +77,7 @@ func (r *ResourceOperationUpdate) Update(req RequestI) (PayloadI, coap.COAPCode,
 		}
 	}
 
-	return nil, coap.NotImplemented, ErrInvalidInterface
+	return nil, ErrInvalidInterface
 }
 
 type ResourceOperationDeleteFunc func(RequestI) (deletedResource ResourceI, err error)
@@ -88,20 +86,20 @@ type ResourceOperationDelete struct {
 	delete ResourceOperationDeleteFunc
 }
 
-func (r *ResourceOperationDelete) Delete(req RequestI) (PayloadI, coap.COAPCode, error) {
+func (r *ResourceOperationDelete) Delete(req RequestI) (PayloadI, error) {
 	if r.delete == nil {
-		return nil, coap.NotImplemented, ErrOperationNotSupported
+		return nil, ErrOperationNotSupported
 	}
 	if ri, err := req.GetResource().GetResourceInterface(req.GetInterfaceId()); err == nil {
 		if rid, ok := ri.(ResourceDeleteInterfaceI); ok {
 			dr, err := r.delete(req)
 			if err != nil {
-				return nil, coap.InternalServerError, err
+				return nil, err
 			}
 			return rid.Delete(req, dr)
 		}
 	}
-	return nil, coap.NotImplemented, ErrInvalidInterface
+	return nil, ErrInvalidInterface
 }
 
 func NewResourceOperationCreateDelete(create ResourceOperationCreateFunc, delete ResourceOperationDeleteFunc) ResourceOperationI {

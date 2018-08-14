@@ -24,7 +24,7 @@ func TestRetrieveResourceDiscovery(t *testing.T) {
 		t.Fatal("cannot create device", err)
 	}
 
-	payload, _, err := d.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{res: d, device: device})
+	payload, err := d.GetResourceOperations().(ResourceOperationRetrieveI).Retrieve(&testRequest{res: d, device: device})
 	if err != nil {
 		t.Fatal("unexpected error", err)
 	}
