@@ -3,7 +3,7 @@ package local
 import (
 	"context"
 
-	coap "github.com/go-ocf/sdk/kit/coap"
+	coap "github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"

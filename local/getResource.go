@@ -4,7 +4,7 @@ import (
 	"context"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/sdk/kit/coap"
+	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/resource"
 )
 

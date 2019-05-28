@@ -6,8 +6,9 @@ import (
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/sdk/kit/coap"
-	"github.com/go-ocf/sdk/kit/net"
+	"github.com/go-ocf/kit/codec/coap"
+	"github.com/go-ocf/kit/net"
+	"github.com/go-ocf/kit/sync"
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -15,7 +16,7 @@ import (
 // Client caches resource links and maintains a pool of connections to devices.
 type Client struct {
 	linkCache *link.Cache
-	pool      *coap.Pool
+	pool      *sync.Pool
 	codec     Codec
 	getAddr   GetAddr
 }
@@ -105,9 +106,9 @@ func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.Cl
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint of device %s: %v", deviceID, err)
 	}
-	conn, err := c.pool.GetOrCreate(ctx, addr)
+	conn, err := c.pool.GetOrCreate(ctx, addr.String())
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to %s: %v", addr.String(), err)
 	}
-	return conn, nil
+	return conn.(*gocoap.ClientConn), nil
 }

@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"sort"
 
-	"github.com/go-ocf/sdk/kit"
-	"github.com/go-ocf/sdk/kit/net"
+	"github.com/go-ocf/kit/net"
+	"github.com/go-ocf/kit/strings"
 )
 
 // DeviceLinks lists device's resource types
@@ -61,9 +61,9 @@ func (b BitMask) Has(flag BitMask) bool { return b&flag != 0 }
 
 // GetResourceHrefs resolves URIs for a resource type.
 func (d *DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
-	rt := make(kit.StringSet, len(resourceTypes))
+	rt := make(strings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make(kit.StringSet, len(d.Links))
+	links := make(strings.Set, len(d.Links))
 	for _, r := range d.Links {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links.Add(r.Href)
@@ -74,7 +74,7 @@ func (d *DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 
 // GetResourceLinks resolves URIs for a resource type.
 func (d *DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
-	rt := make(kit.StringSet, len(resourceTypes))
+	rt := make(strings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
 	links := make([]ResourceLink, 0, len(d.Links))
 	for _, r := range d.Links {

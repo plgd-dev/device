@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	coap "github.com/go-ocf/sdk/kit/coap"
-	"github.com/go-ocf/sdk/kit/net"
+	coap "github.com/go-ocf/kit/codec/coap"
+	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"

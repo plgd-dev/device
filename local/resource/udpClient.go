@@ -4,8 +4,8 @@ import (
 	"context"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/sdk/kit/coap"
-	"github.com/go-ocf/sdk/kit/net"
+	"github.com/go-ocf/kit/net"
+	"github.com/go-ocf/kit/sync"
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -13,12 +13,13 @@ import (
 // UDPClientFactory maintains the shared link cache and connection pool.
 type UDPClientFactory struct {
 	linkCache *link.Cache
-	pool      *coap.Pool
+	pool      *sync.Pool
 }
 
 // NewUDPClientFactory creates the client factory.
 func NewUDPClientFactory(linkCache *link.Cache) *UDPClientFactory {
-	udpPool := coap.NewPool(createUDPConnection)
+	udpPool := sync.NewPool()
+	udpPool.SetFactory(createUDPConnection(udpPool))
 	return &UDPClientFactory{linkCache: linkCache, pool: udpPool}
 }
 
@@ -34,7 +35,7 @@ func (f *UDPClientFactory) NewClient(
 	if err != nil {
 		return nil, err
 	}
-	f.pool.Put(addr, c)
+	f.pool.Put(addr.String(), c)
 	return f.NewClientFromCache(codec)
 }
 
@@ -54,13 +55,10 @@ func getUDPAddr(r *schema.ResourceLink) (net.Addr, error) {
 	return r.GetUDPAddr()
 }
 
-func createUDPConnection(ctx context.Context, p *coap.Pool, a net.Addr) error {
-	closeSession := func(error) { p.Delete(a) }
-	client := gocoap.Client{Net: "udp", NotifySessionEndFunc: closeSession}
-	c, err := client.DialWithContext(ctx, a.String())
-	if err != nil {
-		return err
+func createUDPConnection(p *sync.Pool) sync.PoolFunc {
+	return func(ctx context.Context, addr string) (interface{}, error) {
+		closeSession := func(error) { p.Delete(addr) }
+		client := gocoap.Client{Net: "udp", NotifySessionEndFunc: closeSession}
+		return client.DialWithContext(ctx, addr)
 	}
-	p.Put(a, c)
-	return nil
 }
