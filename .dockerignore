@@ -1,0 +1,11 @@
+# go CLI
+*.test
+coverage.txt
+
+# IDE
+.vscode/
+debug
+
+# Dep's guards against upstream overwrites
+# https://golang.github.io/dep/docs/FAQ.html#should-i-commit-my-vendor-directory
+vendor/
