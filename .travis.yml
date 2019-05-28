@@ -1,23 +1,25 @@
-language: go
+language: minimal
 
-go:
- - 1.10.x
+services:
+  - docker
 
-before_script:
-  # Add an IPv6 config - see the corresponding Travis issue
-  # https://github.com/travis-ci/travis-ci/issues/8361
-  - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
-      sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6';
-    fi
+install:                                                                 
+  - docker build . --network=host -t sdk:build
 
-script:
- - GOOS=linux go build
- - GOOS=darwin go build
- - GOOS=freebsd go build
-# - GOOS=windows go build
+jobs:
+  include:
+    - stage: test
+      if: type == pull_request
+      script: 
+        - docker run --network=host sdk:build go test ./...
 
- - go test -v -coverprofile=coverage.txt -covermode=atomic
- - go test -v -race
-
-after_success:
- - bash <(curl -s https://codecov.io/bash)
+    - stage: test_and_cover
+      if: type != pull_request
+      script: 
+        - >
+            docker run
+            --mount type=bind,source="$(pwd)",target=/shared
+            --network=host
+            sdk:build
+            go test ./... -covermode=atomic -coverprofile=/shared/coverage.txt
+        - bash <(curl -s https://codecov.io/bash)
