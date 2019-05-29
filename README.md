@@ -5,4 +5,6 @@
 
 # SDK
 
-
+The **local SDK** enables interacting with devices in a local network:
+- Listing devices 
+- Retrieving and updating resources 
