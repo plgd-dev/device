@@ -116,14 +116,16 @@ func runDiscovery(
 }
 
 func handleResponse(ctx context.Context, handler DiscoveryHandler) func(req *gocoap.Request) {
-	codec := coap.CBORCodec{}
 	return func(req *gocoap.Request) {
 		if req.Msg.Code() != gocoap.Content {
 			handler.Error(fmt.Errorf("request failed: %s", coap.Dump(req.Msg)))
 			return
 		}
+
 		var devices []schema.DeviceLinks
-		if err := codec.Decode(req.Msg, &devices); err != nil {
+		var codec DiscoveryResourceCodec
+		err := codec.Decode(req.Msg, &devices)
+		if err != nil {
 			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(req.Msg)))
 			return
 		}

@@ -6,6 +6,7 @@ import (
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/resource"
+	"github.com/go-ocf/sdk/schema"
 )
 
 // coapContentFormat values can be found here
@@ -33,6 +34,19 @@ func (c *Client) GetResourceCBOR(
 ) error {
 	codec := coap.CBORCodec{}
 	err := c.getResource(ctx, deviceID, href, interfaceFilter, codec, response)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) GetResourceDiscovery(
+	ctx context.Context,
+	deviceID string,
+	response *[]schema.DeviceLinks,
+) error {
+	codec := resource.DiscoveryResourceCodec{}
+	err := c.getResource(ctx, deviceID, "/oic/res", "", codec, response)
 	if err != nil {
 		return err
 	}

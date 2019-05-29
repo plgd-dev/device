@@ -2,10 +2,11 @@ package schema
 
 import (
 	"fmt"
+	"net"
 	"net/url"
 	"sort"
 
-	"github.com/go-ocf/kit/net"
+	kitNet "github.com/go-ocf/kit/net"
 	"github.com/go-ocf/kit/strings"
 )
 
@@ -13,8 +14,9 @@ import (
 // along with links for retrieving resource details:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/oic.wk.res.raml
 type DeviceLinks struct {
-	ID    string         `codec:"di"`
-	Links []ResourceLink `codec:"links"`
+	ID     string         `codec:"di"`
+	Links  []ResourceLink `codec:"links"`
+	Anchor string
 }
 
 // ResourceLink provides a link for retrieving details for its resource types:
@@ -25,6 +27,7 @@ type ResourceLink struct {
 	Interfaces    []string   `codec:"if"`
 	Policy        Policy     `codec:"p"`
 	Endpoints     []Endpoint `codec:"eps"`
+	Anchor        string     `codec:"anchor"`
 }
 
 // Policy is defined on the line 1822 of the Core specification:
@@ -60,7 +63,7 @@ const (
 func (b BitMask) Has(flag BitMask) bool { return b&flag != 0 }
 
 // GetResourceHrefs resolves URIs for a resource type.
-func (d *DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
+func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 	rt := make(strings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
 	links := make(strings.Set, len(d.Links))
@@ -73,7 +76,7 @@ func (d *DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 }
 
 // GetResourceLinks resolves URIs for a resource type.
-func (d *DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
+func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
 	rt := make(strings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
 	links := make([]ResourceLink, 0, len(d.Links))
@@ -87,7 +90,7 @@ func (d *DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
 
 // GetEndpoints returns endpoints for a resource type.
 // The endpoints are returned in order of priority.
-func (d *DeviceLinks) GetEndpoints(resourceTypes ...string) []Endpoint {
+func (d DeviceLinks) GetEndpoints(resourceTypes ...string) []Endpoint {
 	for _, l := range d.GetResourceLinks(resourceTypes...) {
 		return l.GetEndpoints()
 	}
@@ -95,16 +98,17 @@ func (d *DeviceLinks) GetEndpoints(resourceTypes ...string) []Endpoint {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (d *DeviceLinks) PatchEndpoint(addr net.Addr) DeviceLinks {
+func (d DeviceLinks) PatchEndpoint(addr kitNet.Addr) DeviceLinks {
 	links := make([]ResourceLink, 0, len(d.Links))
 	for _, r := range d.Links {
 		links = append(links, r.PatchEndpoint(addr))
 	}
-	return DeviceLinks{ID: d.ID, Links: links}
+	d.Links = links
+	return d
 }
 
 // GetEndpoints returns endpoints in order of priority.
-func (r *ResourceLink) GetEndpoints() []Endpoint {
+func (r ResourceLink) GetEndpoints() []Endpoint {
 	eps := make([]Endpoint, len(r.Endpoints))
 	copy(eps, r.Endpoints)
 	sort.Slice(eps, func(i, j int) bool { return eps[i].Priority < eps[j].Priority })
@@ -112,7 +116,7 @@ func (r *ResourceLink) GetEndpoints() []Endpoint {
 }
 
 // HasType checks the resource type.
-func (r *ResourceLink) HasType(resourceType string) bool {
+func (r ResourceLink) HasType(resourceType string) bool {
 	for _, rt := range r.ResourceTypes {
 		if rt == resourceType {
 			return true
@@ -122,19 +126,44 @@ func (r *ResourceLink) HasType(resourceType string) bool {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (r *ResourceLink) PatchEndpoint(addr net.Addr) ResourceLink {
+func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 	if len(r.Endpoints) > 0 {
-		return *r
+		return r
 	}
-	link := *r
-	link.Endpoints = []Endpoint{
-		udpEndpoint(addr),
-		tcpEndpoint(addr.SetPort(r.Policy.TCPPort)),
+	r.Endpoints = []Endpoint{udpEndpoint(addr)}
+	if r.Policy.TCPPort != 0 {
+		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
 	}
-	return link
+	return r
 }
 
-func (r *ResourceLink) getEndpoint(scheme string) (_ net.Addr, err error) {
+// PatchEndpoint adds Endpoint information where missing.
+func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
+	if len(r.Endpoints) > 0 {
+		// we need to remove link-local interfaces, because we cannot determine interface
+		// which need to be used in Dial
+		endpoints := make([]Endpoint, 0, 8)
+		for _, endpoint := range r.Endpoints {
+			url, err := url.Parse(endpoint.URI)
+			if err != nil {
+				continue
+			}
+			ip := net.ParseIP(url.Hostname())
+			if ip == nil {
+				continue
+			}
+			if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+				continue
+			}
+			endpoints = append(endpoints, endpoint)
+		}
+		r.Endpoints = endpoints
+		return r.patchEndpoint(addr)
+	}
+	return r.patchEndpoint(addr)
+}
+
+func (r ResourceLink) getEndpoint(scheme string) (_ kitNet.Addr, err error) {
 	var u *url.URL
 	for _, ep := range r.Endpoints {
 		u, err = url.ParseRequestURI(ep.URI)
@@ -142,7 +171,7 @@ func (r *ResourceLink) getEndpoint(scheme string) (_ net.Addr, err error) {
 			return
 		}
 		if u.Scheme == scheme {
-			return net.ParseURL(u)
+			return kitNet.ParseURL(u)
 		}
 	}
 	err = fmt.Errorf("no %s endpoint", scheme)
@@ -150,12 +179,12 @@ func (r *ResourceLink) getEndpoint(scheme string) (_ net.Addr, err error) {
 }
 
 // GetTCPAddr parses and finds a TCP endpoint address.
-func (r *ResourceLink) GetTCPAddr() (_ net.Addr, err error) {
+func (r ResourceLink) GetTCPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(tcpScheme)
 }
 
 // GetUDPAddr parses and finds a UDP endpoint address.
-func (r *ResourceLink) GetUDPAddr() (_ net.Addr, err error) {
+func (r ResourceLink) GetUDPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(udpScheme)
 }
 
@@ -164,12 +193,12 @@ const (
 	udpScheme = "coap"
 )
 
-func udpEndpoint(addr net.Addr) Endpoint {
+func udpEndpoint(addr kitNet.Addr) Endpoint {
 	u := url.URL{Scheme: udpScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
-func tcpEndpoint(addr net.Addr) Endpoint {
+func tcpEndpoint(addr kitNet.Addr) Endpoint {
 	u := url.URL{Scheme: tcpScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }

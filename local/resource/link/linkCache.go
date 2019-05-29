@@ -3,72 +3,135 @@ package link
 import (
 	"context"
 	"fmt"
-	"time"
+	"sort"
+	"sync"
 
 	"github.com/go-ocf/sdk/schema"
-	cache "github.com/patrickmn/go-cache"
 )
 
 // Cache caches resource links.
 type Cache struct {
-	cache   *cache.Cache
+	cache map[string]schema.ResourceLink
+	lock  sync.Mutex
+
 	create  CacheCreateFunc
 	refresh CacheRefreshFunc
 }
 
 // CacheCreateFunc is triggered on a miss by GetOrCreate to fill the missing item in the cache.
-type CacheCreateFunc func(ctx context.Context, c *Cache, deviceID, href string) error
+type CacheCreateFunc func(ctx context.Context, deviceID, href string) (schema.ResourceLink, error)
 
 // CacheRefreshFunc is triggered on a miss by Scan to refresh the entire cache.
-type CacheRefreshFunc func(ctx context.Context, c *Cache) error
+type CacheRefreshFunc func(ctx context.Context) (*Cache, error)
 
-// NewCache creates a cache with expiration.
-func NewCache(expiration time.Duration, create CacheCreateFunc, refresh CacheRefreshFunc) *Cache {
-	c := cache.New(expiration, expiration)
-	return &Cache{cache: c, create: create, refresh: refresh}
+// NewCache creates a cache.
+func NewCache(create CacheCreateFunc, refresh CacheRefreshFunc) *Cache {
+	return &Cache{
+		cache:   make(map[string]schema.ResourceLink),
+		create:  create,
+		refresh: refresh,
+	}
+}
+
+func mergeEndpoints(dest []schema.Endpoint, src []schema.Endpoint) []schema.Endpoint {
+	eps := make([]schema.Endpoint, 0, len(dest)+len(src))
+	eps = append(eps, dest...)
+	eps = append(eps, src...)
+	sort.SliceStable(eps, func(i, j int) bool { return eps[i].URI < eps[j].URI })
+	sort.SliceStable(eps, func(i, j int) bool { return eps[i].Priority < eps[j].Priority })
+	out := make([]schema.Endpoint, 0, len(eps))
+	var last string
+	for _, e := range eps {
+		if last != e.URI {
+			out = append(out, e)
+		}
+		last = e.URI
+	}
+	return out
+}
+
+func (c *Cache) updateLocked(deviceID string, links ...schema.ResourceLink) {
+	for _, link := range links {
+		h := Href{DeviceID: deviceID, Href: link.Href}
+		cacheLink, ok := c.cache[h.String()]
+		if ok {
+			link.Endpoints = mergeEndpoints(cacheLink.Endpoints, link.Endpoints)
+		}
+		c.cache[h.String()] = link
+	}
 }
 
 // Put caches resource links keyed by the Device ID and Href.
-func (c *Cache) Put(deviceID string, links ...schema.ResourceLink) {
-	for _, link := range links {
-		h := Href{DeviceID: deviceID, Href: link.Href}
-		c.cache.Set(h.String(), link, cache.DefaultExpiration)
-	}
+func (c *Cache) Update(deviceID string, links ...schema.ResourceLink) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.updateLocked(deviceID, links...)
 }
 
 // Delete returns the cached item or false otherwise.
 func (c *Cache) Delete(deviceID, href string) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	h := Href{DeviceID: deviceID, Href: href}
-	c.cache.Delete(h.String())
+	delete(c.cache, h.String())
+}
+
+func (c *Cache) getLocked(deviceID, href string) (_ schema.ResourceLink, _ bool) {
+	h := Href{DeviceID: deviceID, Href: href}
+	if v, ok := c.cache[h.String()]; ok {
+		return v, true
+	}
+	return
 }
 
 // Get returns the cached item or false otherwise.
 func (c *Cache) Get(deviceID, href string) (_ schema.ResourceLink, _ bool) {
-	h := Href{DeviceID: deviceID, Href: href}
-	if v, ok := c.cache.Get(h.String()); ok {
-		return v.(schema.ResourceLink), true
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.getLocked(deviceID, href)
+}
+
+func (c *Cache) GetOrCreate(ctx context.Context, deviceID, href string) (_ schema.ResourceLink, err error) {
+	switch {
+	case href == "/oic/res":
+		r, err := c.getOrCreate(ctx, deviceID, "/oic/d")
+		if err != nil {
+			return r, err
+		}
+		r.Href = "/oic/res"
+		return r, nil
+	default:
+		return c.getOrCreate(ctx, deviceID, href)
 	}
-	return
 }
 
 // GetOrCreate returns the cached item or calls create otherwise.
-func (c *Cache) GetOrCreate(ctx context.Context, deviceID, href string) (_ schema.ResourceLink, err error) {
+func (c *Cache) getOrCreate(ctx context.Context, deviceID, href string) (_ schema.ResourceLink, err error) {
 	if c.create == nil {
 		err = fmt.Errorf("link cache create not initialized")
 		return
 	}
-	if r, ok := c.Get(deviceID, href); ok {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	if r, ok := c.getLocked(deviceID, href); ok {
 		return r, nil
 	}
-	err = c.create(ctx, c, deviceID, href)
+	v, err := c.create(ctx, deviceID, href)
 	if err != nil {
 		return
 	}
-	if r, ok := c.Get(deviceID, href); ok {
-		return r, nil
+	c.updateLocked(deviceID, v)
+	return v, nil
+}
+
+func (c *Cache) Items() map[string]schema.ResourceLink {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	r := make(map[string]schema.ResourceLink)
+	for k, v := range c.cache {
+		r[k] = v
 	}
-	err = fmt.Errorf("no resource info for device %s", deviceID)
-	return
+	return r
 }
 
 // CacheMatchFunc returns true to stop the Scan iteration.
@@ -81,9 +144,8 @@ func (c *Cache) Scan(ctx context.Context, match CacheMatchFunc) error {
 		return fmt.Errorf("link cache refresh not initialized")
 	}
 	for i := 1; ; i++ {
-		for k, v := range c.cache.Items() {
+		for k, link := range c.Items() {
 			di := MustParseHref(k).DeviceID
-			link := v.Object.(schema.ResourceLink)
 			if match(di, link) {
 				return nil
 			}
@@ -91,10 +153,13 @@ func (c *Cache) Scan(ctx context.Context, match CacheMatchFunc) error {
 		if i == 2 {
 			break
 		}
-		err := c.refresh(ctx, c)
+		newCache, err := c.refresh(ctx)
 		if err != nil {
 			return err
 		}
+		c.lock.Lock()
+		c.cache = newCache.cache
+		c.lock.Unlock()
 	}
 	return fmt.Errorf("no resource info matched")
 }

@@ -11,7 +11,7 @@ var testCfg = ocf.Config{
 	Protocol: "tcp",
 	Resource: resource.Config{
 		ResourceHrefExpiration: time.Hour,
-		DiscoveryTimeout:       time.Second,
+		DiscoveryTimeout:       time.Second * 3,
 		DiscoveryDelay:         100 * time.Millisecond,
 
 		Errors: func(error) {},

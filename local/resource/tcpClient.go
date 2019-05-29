@@ -30,7 +30,7 @@ func (f *TCPClientFactory) NewClient(
 	links schema.DeviceLinks,
 	codec Codec,
 ) (*Client, error) {
-	f.linkCache.Put(links.ID, links.Links...)
+	f.linkCache.Update(links.ID, links.Links...)
 	return f.NewClientFromCache(codec)
 }
 

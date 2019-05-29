@@ -5,12 +5,14 @@ services:
 
 install:                                                                 
   - docker build . --network=host -t sdk:build
+  - docker build . -f Dockerfile.device-simulator --network=host -t sdk:device-simulator
+  - docker run -d --network=host sdk:device-simulator /device-simulator
 
 jobs:
   include:
     - stage: test
       if: type == pull_request
-      script: 
+      script:
         - docker run --network=host sdk:build go test ./...
 
     - stage: test_and_cover
