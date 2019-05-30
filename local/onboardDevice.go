@@ -17,7 +17,7 @@ func (c *Client) onboardOffboardDevice(
 	}
 
 	var devices []schema.DeviceLinks
-	err := c.GetResourceDiscovery(ctx, deviceID, &devices)
+	err := c.GetDiscoveryResource(ctx, deviceID, &devices)
 	if err != nil {
 		return errFunc(err)
 	}

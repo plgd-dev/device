@@ -2,6 +2,8 @@ package local
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"sync"
 
@@ -13,15 +15,19 @@ import (
 
 // Client an OCF local client.
 type Client struct {
-	factory      ResourceClientFactory
-	conn         []*gocoap.MulticastClientConn
-	observations *sync.Map
+	factory       ResourceClientFactory
+	conn          []*gocoap.MulticastClientConn
+	observations  *sync.Map
+	Certificate   tls.Certificate
+	CertificateId string
+	ca            []x509.Certificate
 }
 
 // Config for the OCF local client.
 type Config struct {
 	Protocol string
 	Resource resource.Config
+	CAChain  string // PEM chain format
 }
 
 // NewClientFromConfig constructs a new OCF client.

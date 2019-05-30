@@ -34,6 +34,7 @@ type ResourceLink struct {
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 type Policy struct {
 	BitMask BitMask `codec:"bm"`
+	UDPPort uint16  `codec:"port"`
 	TCPPort uint16  `codec:"x.org.iotivity.tcp"`
 
 	// Secured is true if the resource is only available via an encrypted connection.
@@ -103,6 +104,9 @@ func (d DeviceLinks) PatchEndpoint(addr kitNet.Addr) DeviceLinks {
 	for _, r := range d.Links {
 		links = append(links, r.PatchEndpoint(addr))
 	}
+	if d.ID == "00000000-cafe-baba-0000-000000000000" {
+		fmt.Println(links)
+	}
 	d.Links = links
 	return d
 }
@@ -132,7 +136,11 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 	}
 	r.Endpoints = []Endpoint{udpEndpoint(addr)}
 	if r.Policy.TCPPort != 0 {
-		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
+		if r.Policy.Secured {
+			r.Endpoints = append(r.Endpoints, tcpSecureEndpoint(addr.SetPort(r.Policy.TCPPort)))
+		} else {
+			r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
+		}
 	}
 	return r
 }
@@ -174,7 +182,7 @@ func (r ResourceLink) getEndpoint(scheme string) (_ kitNet.Addr, err error) {
 			return kitNet.ParseURL(u)
 		}
 	}
-	err = fmt.Errorf("no %s endpoint", scheme)
+	err = fmt.Errorf("no %s endpoint for %v", scheme, r)
 	return
 }
 
@@ -183,14 +191,20 @@ func (r ResourceLink) GetTCPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(tcpScheme)
 }
 
+// GetTCPSecureAddr parses and finds a TCP secure endpoint address.
+func (r ResourceLink) GetTCPSecureAddr() (_ kitNet.Addr, err error) {
+	return r.getEndpoint(tcpSecScheme)
+}
+
 // GetUDPAddr parses and finds a UDP endpoint address.
 func (r ResourceLink) GetUDPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(udpScheme)
 }
 
 const (
-	tcpScheme = "coap+tcp"
-	udpScheme = "coap"
+	tcpSecScheme = "coaps+tcp"
+	tcpScheme    = "coap+tcp"
+	udpScheme    = "coap"
 )
 
 func udpEndpoint(addr kitNet.Addr) Endpoint {
@@ -200,5 +214,10 @@ func udpEndpoint(addr kitNet.Addr) Endpoint {
 
 func tcpEndpoint(addr kitNet.Addr) Endpoint {
 	u := url.URL{Scheme: tcpScheme, Host: addr.String()}
+	return Endpoint{URI: u.String()}
+}
+
+func tcpSecureEndpoint(addr kitNet.Addr) Endpoint {
+	u := url.URL{Scheme: tcpSecScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }

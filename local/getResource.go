@@ -40,7 +40,7 @@ func (c *Client) GetResourceCBOR(
 	return nil
 }
 
-func (c *Client) GetResourceDiscovery(
+func (c *Client) GetDiscoveryResource(
 	ctx context.Context,
 	deviceID string,
 	response *[]schema.DeviceLinks,

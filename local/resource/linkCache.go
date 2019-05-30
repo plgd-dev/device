@@ -50,9 +50,12 @@ func refreshResourceLink(f refreshFunc) link.CacheCreateFunc {
 		if err != nil {
 			return res, err
 		}
+		if v == nil {
+			return res, fmt.Errorf("cannot create resource link %v%v: not found - empty cache", deviceID, href)
+		}
 		res, ok := v.Get(deviceID, href)
 		if !ok {
-			return res, fmt.Errorf("cannot refresh resource link %v%v: not found", deviceID, href)
+			return res, fmt.Errorf("cannot create resource link %v%v: not found", deviceID, href)
 		}
 		return res, nil
 	}
@@ -67,10 +70,11 @@ func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refres
 		mtx.Lock()
 		defer mtx.Unlock()
 		// Skip subsequent calls
-		if time.Since(lastRefreshTime) <= cfg.DiscoveryDelay {
-			return nil, nil
-		}
-
+		/*
+			if time.Since(lastRefreshTime) <= cfg.DiscoveryDelay {
+				return nil, nil
+			}
+		*/
 		timeout, cancel := context.WithTimeout(ctx, cfg.DiscoveryTimeout)
 		defer cancel()
 		c := link.NewCache(nil, nil)
@@ -81,11 +85,13 @@ func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refres
 		}
 
 		// When canceled, do not skip subsequent calls
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		default:
-		}
+		/*
+			select {
+			case <-ctx.Done():
+				return c, nil
+			default:
+			}
+		*/
 
 		lastRefreshTime = time.Now()
 		return c, nil

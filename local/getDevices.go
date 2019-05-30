@@ -41,7 +41,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, client *gocoap.ClientConn
 		h.handler.Error(err)
 		return
 	}
-	h.handler.Handle(ctx, device.NewClient(c, links))
+	h.handler.Handle(ctx, device.NewClient(c, links, schema.Doxm{}))
 }
 
 func (h *discoveryHandler) Error(err error) {
