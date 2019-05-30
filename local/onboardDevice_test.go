@@ -81,9 +81,6 @@ func TestClient_OnboardDevice(t *testing.T) {
 		},
 	}
 
-	testCfg.Protocol = "tcp"
-	testCfg.Resource.DiscoveryTimeout = time.Second * 3
-
 	c, err := ocf.NewClientFromConfig(testCfg, nil)
 	require := require.New(t)
 	require.NoError(err)
