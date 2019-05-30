@@ -18,6 +18,7 @@ type ManufacturerName struct {
 }
 
 // GetManufacturerName finds the manufacturer name in English.
+// https://tools.ietf.org/html/rfc5646#section-2.2.1
 func (d Device) GetManufacturerName() string {
 	for _, n := range d.ManufacturerName {
 		if n.Language == "en" {
