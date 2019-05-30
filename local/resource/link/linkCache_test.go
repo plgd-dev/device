@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
@@ -13,8 +12,8 @@ import (
 )
 
 func TestCached(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, nil, nil)
-	c.Put(testDeviceID, testLink)
+	c := link.NewCache(nil, nil)
+	c.Update(testDeviceID, testLink)
 
 	l, ok := c.Get(testDeviceID, testHref)
 	require.True(t, ok)
@@ -22,24 +21,15 @@ func TestCached(t *testing.T) {
 }
 
 func TestUncached(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, nil, nil)
-
-	_, ok := c.Get(testDeviceID, testHref)
-	require.False(t, ok)
-}
-
-func TestExpired(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, nil, nil)
-	c.Put(testDeviceID, testLink)
-	time.Sleep(20 * time.Millisecond)
+	c := link.NewCache(nil, nil)
 
 	_, ok := c.Get(testDeviceID, testHref)
 	require.False(t, ok)
 }
 
 func TestDeleted(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, nil, nil)
-	c.Put(testDeviceID, testLink)
+	c := link.NewCache(nil, nil)
+	c.Update(testDeviceID, testLink)
 	c.Delete(testDeviceID, testHref)
 
 	_, ok := c.Get(testDeviceID, testHref)
@@ -47,13 +37,14 @@ func TestDeleted(t *testing.T) {
 }
 
 func TestCreated(t *testing.T) {
-	create := func(ctx context.Context, c *link.Cache, deviceID, href string) error {
+	create := func(ctx context.Context, deviceID, href string) (schema.ResourceLink, error) {
 		assert.Equal(t, testDeviceID, deviceID)
 		assert.Equal(t, testHref, href)
-		c.Put(testDeviceID, testLink)
-		return nil
+		return schema.ResourceLink{
+			Href: href,
+		}, nil
 	}
-	c := link.NewCache(10*time.Millisecond, create, nil)
+	c := link.NewCache(create, nil)
 
 	l, err := c.GetOrCreate(context.Background(), testDeviceID, testHref)
 	require.NoError(t, err)
@@ -61,8 +52,8 @@ func TestCreated(t *testing.T) {
 }
 
 func TestCreationNotNeeded(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, failingCreate, nil)
-	c.Put(testDeviceID, testLink)
+	c := link.NewCache(failingCreate, nil)
+	c.Update(testDeviceID, testLink)
 
 	l, err := c.GetOrCreate(context.Background(), testDeviceID, testHref)
 	require.NoError(t, err)
@@ -70,17 +61,7 @@ func TestCreationNotNeeded(t *testing.T) {
 }
 
 func TestCreationFailure(t *testing.T) {
-	c := link.NewCache(10*time.Millisecond, failingCreate, nil)
-
-	_, err := c.GetOrCreate(context.Background(), testDeviceID, testHref)
-	assert.Error(t, err)
-}
-
-func TestMissAfterCreate(t *testing.T) {
-	create := func(ctx context.Context, c *link.Cache, deviceID, href string) error {
-		return nil
-	}
-	c := link.NewCache(10*time.Millisecond, create, nil)
+	c := link.NewCache(failingCreate, nil)
 
 	_, err := c.GetOrCreate(context.Background(), testDeviceID, testHref)
 	assert.Error(t, err)
@@ -92,6 +73,6 @@ var (
 	testLink     = schema.ResourceLink{Href: testHref}
 )
 
-func failingCreate(ctx context.Context, c *link.Cache, deviceID, href string) error {
-	return fmt.Errorf("unexpected create")
+func failingCreate(ctx context.Context, deviceID, href string) (res schema.ResourceLink, _ error) {
+	return res, fmt.Errorf("unexpected create")
 }

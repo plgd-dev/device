@@ -73,9 +73,9 @@ func (it *QueryResourceIterator) Next(ctx context.Context, v interface{}) bool {
 	return true
 }
 
-// DeviceID
-func (c *Client) DeviceID() {
-	return
+// DeviceID returns id of device
+func (c *Client) DeviceID() string {
+	return c.links.ID
 }
 
 // GetResourceLinks returns all resource links.
