@@ -81,7 +81,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 		},
 	}
 
-	testCfg.Protocol = "udp"
+	testCfg.Protocol = "tcp"
 	testCfg.Resource.DiscoveryTimeout = time.Second * 3
 
 	c, err := ocf.NewClientFromConfig(testCfg, nil)
@@ -99,7 +99,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			for deviceId, _ := range deviceIds {
-				timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+				timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 				err := c.OnboardDevice(timeout, deviceId, tt.args.authorizationProvider, tt.args.authorizationCode, tt.args.url)
 				cancel()
 				if tt.wantErr {
