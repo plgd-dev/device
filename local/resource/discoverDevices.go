@@ -103,7 +103,10 @@ func runDiscovery(
 
 			waiter, err := conn.PublishMsgWithContext(ctx, req, handler)
 			if err != nil {
-				errors <- fmt.Errorf("device discovery multicast request failed: %v", err)
+				select {
+				case errors <- fmt.Errorf("device discovery multicast request failed: %v", err):
+				case <-ctx.Done():
+				}
 				return
 			}
 			defer waiter.Cancel()

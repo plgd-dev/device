@@ -74,6 +74,7 @@ func (c DiscoveryResourceCodec) Decode(msg gocoap.Message, v interface{}) error 
 		if err := codec.Decode(msg, devices); err != nil {
 			return fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(msg))
 		}
+		return nil
 	case gocoap.AppOcfCbor:
 		return decodeDiscoveryOcfCbor(msg, devices)
 	}
