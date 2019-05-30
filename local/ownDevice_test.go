@@ -10,6 +10,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//docker rm -f devsim; docker run -d -t --network=host --name devsim dockerhub.kistler.com/kiconnect/kiconnect-device-simulator:2.2.7-secure-dbg --name devsim --di '00000000-cafe-baba-0000-000000000000'
+
 func TestClient_ownDevice(t *testing.T) {
 	type args struct {
 		deviceID string
