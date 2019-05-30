@@ -10,4 +10,5 @@ COPY Gopkg.toml Gopkg.lock ./
 RUN dep ensure -v --vendor-only
 COPY . .
 
+RUN OCF_INSECURE=true go generate ./vendor/github.com/go-ocf/kit/security/
 RUN go build ./...
