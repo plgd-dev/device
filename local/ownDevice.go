@@ -3,57 +3,16 @@ package local
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/schema"
 )
 
-type ownershipDeviceHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
-
-	client *device.Client
-	lock   sync.Mutex
-	err    error
-}
-
-func newOwnershipDeviceHandler(deviceID string, cancel context.CancelFunc) *ownershipDeviceHandler {
-	return &ownershipDeviceHandler{deviceID: deviceID, cancel: cancel}
-}
-
-func (h *ownershipDeviceHandler) Handle(ctx context.Context, client *device.Client) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if client.DeviceID() == h.deviceID {
-		h.client = client
-		h.cancel()
-	}
-}
-
-func (h *ownershipDeviceHandler) Error(err error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.err = err
-}
-
-func (h *ownershipDeviceHandler) Err() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.err
-}
-
-func (h *ownershipDeviceHandler) Client() *device.Client {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.client
-}
-
 func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, discoveryTimeout time.Duration, owned bool) (*device.Client, error) {
 	ctxOwn, cancel := context.WithTimeout(ctx, discoveryTimeout)
 	defer cancel()
-	h := newOwnershipDeviceHandler(deviceID, cancel)
+	h := newDeviceHandler(deviceID, cancel)
 
 	err := c.GetDeviceOwnership(ctxOwn, false, h)
 	client := h.Client()
@@ -75,15 +34,12 @@ func (c *Client) getDeviceLinks(ctx context.Context,
 	ctxGet, cancel := context.WithTimeout(ctx, discoveryTimeout)
 	defer cancel()
 
-	var devices []schema.DeviceLinks
-	err := c.GetDiscoveryResource(ctxGet, deviceID, &devices)
+	var device schema.DeviceLinks
+	err := c.GetResourceCBOR(ctxGet, deviceID, "/oic/res", "", &device)
 	if err != nil {
 		return res, err
 	}
-	if len(devices) != 1 {
-		return res, fmt.Errorf("not found")
-	}
-	return devices[0], nil
+	return device, nil
 }
 
 // OwnDevice set ownership of device

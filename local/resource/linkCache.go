@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -63,12 +64,21 @@ func refreshResourceLink(f refreshFunc) link.CacheCreateFunc {
 
 func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refreshFunc {
 	var mtx sync.Mutex
-	var lastRefreshTime time.Time
+	var lastCacheNum uint64
+	var lastCache *link.Cache
 
 	return func(ctx context.Context) (*link.Cache, error) {
+		loadBeforeLock := atomic.LoadUint64(&lastCacheNum)
+
 		// Delay duplicate calls
 		mtx.Lock()
 		defer mtx.Unlock()
+		loadAfterLock := atomic.LoadUint64(&lastCacheNum)
+		if loadBeforeLock != loadAfterLock {
+			return lastCache, nil
+		}
+		atomic.AddUint64(&lastCacheNum, 1)
+
 		// Skip subsequent calls
 		/*
 			if time.Since(lastRefreshTime) <= cfg.DiscoveryDelay {
@@ -93,7 +103,7 @@ func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refres
 			}
 		*/
 
-		lastRefreshTime = time.Now()
+		lastCache = c
 		return c, nil
 	}
 }

@@ -28,7 +28,6 @@ func NewUDPClientFactory(linkCache *link.Cache) *UDPClientFactory {
 func (f *UDPClientFactory) NewClient(
 	c *gocoap.ClientConn,
 	links schema.DeviceLinks,
-	codec Codec,
 ) (*Client, error) {
 	f.linkCache.Update(links.ID, links.Links...)
 	addr, err := net.Parse(c.RemoteAddr())
@@ -36,16 +35,15 @@ func (f *UDPClientFactory) NewClient(
 		return nil, err
 	}
 	f.pool.Put(addr.String(), c)
-	return f.NewClientFromCache(codec)
+	return f.NewClientFromCache()
 }
 
 // NewClientFromCache creates the client
 // that uses the shared link cache and connection pool.
-func (f *UDPClientFactory) NewClientFromCache(codec Codec) (*Client, error) {
+func (f *UDPClientFactory) NewClientFromCache() (*Client, error) {
 	c := Client{
 		linkCache: f.linkCache,
 		pool:      f.pool,
-		codec:     codec,
 		getAddr:   getUDPAddr,
 	}
 	return &c, nil

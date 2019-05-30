@@ -28,19 +28,17 @@ func NewTCPClientFactory(linkCache *link.Cache) *TCPClientFactory {
 func (f *TCPClientFactory) NewClient(
 	c *gocoap.ClientConn,
 	links schema.DeviceLinks,
-	codec Codec,
 ) (*Client, error) {
 	f.linkCache.Update(links.ID, links.Links...)
-	return f.NewClientFromCache(codec)
+	return f.NewClientFromCache()
 }
 
 // NewClientFromCache creates the client
 // that uses the shared link cache and connection pool.
-func (f *TCPClientFactory) NewClientFromCache(codec Codec) (*Client, error) {
+func (f *TCPClientFactory) NewClientFromCache() (*Client, error) {
 	c := Client{
 		linkCache: f.linkCache,
 		pool:      f.pool,
-		codec:     codec,
 		getAddr:   getTCPAddr,
 	}
 	return &c, nil

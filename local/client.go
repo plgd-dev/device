@@ -60,14 +60,14 @@ func NewResourceClientFactory(protocol string, linkCache *link.Cache) ResourceCl
 }
 
 type resourceClient interface {
-	Get(ctx context.Context, deviceID, href string, responseBody interface{}, options ...func(gocoap.Message)) error
-	Post(ctx context.Context, deviceID, href string, requestBody interface{}, responseBody interface{}, options ...func(gocoap.Message)) error
 	Observe(ctx context.Context, deviceID, href string, handler resource.ObservationHandler, options ...func(gocoap.Message)) (*gocoap.Observation, error)
+	Get(ctx context.Context, deviceID, href string, codec resource.Codec, responseBody interface{}, options ...func(gocoap.Message)) error
+	Post(ctx context.Context, deviceID, href string, codec resource.Codec, requestBody interface{}, responseBody interface{}, options ...func(gocoap.Message)) error
 }
 
 type ResourceClientFactory interface {
-	NewClient(c *gocoap.ClientConn, links schema.DeviceLinks, codec resource.Codec) (resourceClient, error)
-	NewClientFromCache(codec resource.Codec) (resourceClient, error)
+	NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error)
+	NewClientFromCache() (resourceClient, error)
 }
 
 // tcpClientFactory converts the return type from *TCPClient to resourceClient.
@@ -75,12 +75,12 @@ type tcpClientFactory struct {
 	f *resource.TCPClientFactory
 }
 
-func (w *tcpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks, codec resource.Codec) (resourceClient, error) {
-	return w.f.NewClient(c, links, codec)
+func (w *tcpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
+	return w.f.NewClient(c, links)
 }
 
-func (w *tcpClientFactory) NewClientFromCache(codec resource.Codec) (resourceClient, error) {
-	return w.f.NewClientFromCache(codec)
+func (w *tcpClientFactory) NewClientFromCache() (resourceClient, error) {
+	return w.f.NewClientFromCache()
 }
 
 // udpClientFactory converts the return type from *UDPClient to resourceClient.
@@ -88,10 +88,10 @@ type udpClientFactory struct {
 	f *resource.UDPClientFactory
 }
 
-func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks, codec resource.Codec) (resourceClient, error) {
-	return w.f.NewClient(c, links, codec)
+func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
+	return w.f.NewClient(c, links)
 }
 
-func (w *udpClientFactory) NewClientFromCache(codec resource.Codec) (resourceClient, error) {
-	return w.f.NewClientFromCache(codec)
+func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
+	return w.f.NewClientFromCache()
 }

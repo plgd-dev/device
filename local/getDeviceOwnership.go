@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 
-	coap "github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
@@ -27,7 +26,7 @@ func (c *Client) newDiscoverDeviceOwnershipHandler(h DeviceHandler) *discoverDev
 
 func (h *discoverDeviceOwnershipHandler) Handle(ctx context.Context, client *gocoap.ClientConn, ownership schema.Doxm) {
 	links := schema.DeviceLinks{ID: ownership.DeviceId}
-	c, err := h.factory.NewClient(client, links, coap.CBORCodec{})
+	c, err := h.factory.NewClient(client, links)
 	if err != nil {
 		h.handler.Error(err)
 		return

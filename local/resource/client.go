@@ -17,8 +17,8 @@ import (
 type Client struct {
 	linkCache *link.Cache
 	pool      *sync.Pool
-	codec     Codec
-	getAddr   GetAddr
+	//codec     Codec
+	getAddr GetAddr
 }
 
 type GetAddr = func(*schema.ResourceLink) (net.Addr, error)
@@ -34,6 +34,7 @@ type Codec interface {
 func (c *Client) Get(
 	ctx context.Context,
 	deviceID, href string,
+	codec Codec,
 	responseBody interface{},
 	options ...func(gocoap.Message),
 ) error {
@@ -55,7 +56,7 @@ func (c *Client) Get(
 	if resp.Code() != gocoap.Content {
 		return fmt.Errorf("request failed: %s", coap.Dump(resp))
 	}
-	if err := c.codec.Decode(resp, responseBody); err != nil {
+	if err := codec.Decode(resp, responseBody); err != nil {
 		return fmt.Errorf("could not decode the query %s: %v", href, err)
 	}
 	return nil
@@ -65,6 +66,7 @@ func (c *Client) Get(
 func (c *Client) Post(
 	ctx context.Context,
 	deviceID, href string,
+	codec Codec,
 	requestBody interface{},
 	responseBody interface{},
 	options ...func(gocoap.Message),
@@ -73,11 +75,11 @@ func (c *Client) Post(
 	if err != nil {
 		return err
 	}
-	body, err := c.codec.Encode(requestBody)
+	body, err := codec.Encode(requestBody)
 	if err != nil {
 		return fmt.Errorf("could not encode the query %s: %v", href, err)
 	}
-	req, err := conn.NewPostRequest(href, c.codec.ContentFormat(), bytes.NewReader(body))
+	req, err := conn.NewPostRequest(href, codec.ContentFormat(), bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("could create request %s: %v", href, err)
 	}
@@ -91,7 +93,7 @@ func (c *Client) Post(
 	if resp.Code() != gocoap.Changed && resp.Code() != gocoap.Valid {
 		return fmt.Errorf("request failed: %s", coap.Dump(resp))
 	}
-	if err := c.codec.Decode(resp, responseBody); err != nil {
+	if err := codec.Decode(resp, responseBody); err != nil {
 		return fmt.Errorf("could not decode the query %s: %v", href, err)
 	}
 	return nil

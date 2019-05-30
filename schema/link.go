@@ -33,9 +33,10 @@ type ResourceLink struct {
 // Policy is defined on the line 1822 of the Core specification:
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 type Policy struct {
-	BitMask BitMask `codec:"bm"`
-	UDPPort uint16  `codec:"port"`
-	TCPPort uint16  `codec:"x.org.iotivity.tcp"`
+	BitMask    BitMask `codec:"bm"`
+	UDPPort    uint16  `codec:"port"`
+	TCPPort    uint16  `codec:"x.org.iotivity.tcp"`
+	TCPTLSPort uint16  `codec:"x.org.iotivity.tls"`
 
 	// Secured is true if the resource is only available via an encrypted connection.
 	Secured bool `codec:"sec"`
@@ -134,13 +135,19 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 	if len(r.Endpoints) > 0 {
 		return r
 	}
-	r.Endpoints = []Endpoint{udpEndpoint(addr)}
-	if r.Policy.TCPPort != 0 {
+	r.Endpoints = []Endpoint{ /*udpEndpoint(addr)*/ }
+	if r.Policy.UDPPort != 0 && addr.GetPort() != r.Policy.UDPPort {
 		if r.Policy.Secured {
-			r.Endpoints = append(r.Endpoints, tcpSecureEndpoint(addr.SetPort(r.Policy.TCPPort)))
+			r.Endpoints = append(r.Endpoints, udpTlsEndpoint(addr.SetPort(r.Policy.UDPPort)))
 		} else {
-			r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
+			r.Endpoints = append(r.Endpoints, udpEndpoint(addr.SetPort(r.Policy.UDPPort)))
 		}
+	}
+	if r.Policy.TCPPort != 0 {
+		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
+	}
+	if r.Policy.TCPTLSPort != 0 {
+		r.Endpoints = append(r.Endpoints, tcpTlsEndpoint(addr.SetPort(r.Policy.TCPTLSPort)))
 	}
 	return r
 }
@@ -191,9 +198,9 @@ func (r ResourceLink) GetTCPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(tcpScheme)
 }
 
-// GetTCPSecureAddr parses and finds a TCP secure endpoint address.
-func (r ResourceLink) GetTCPSecureAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(tcpSecScheme)
+// GetTCPTLSAddr parses and finds a TCP secure endpoint address.
+func (r ResourceLink) GetTCPTLSAddr() (_ kitNet.Addr, err error) {
+	return r.getEndpoint(tcpTlsScheme)
 }
 
 // GetUDPAddr parses and finds a UDP endpoint address.
@@ -201,14 +208,25 @@ func (r ResourceLink) GetUDPAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(udpScheme)
 }
 
+// GetUDPTLSAddr parses and finds a UDP endpoint address.
+func (r ResourceLink) GetUDPTLSAddr() (_ kitNet.Addr, err error) {
+	return r.getEndpoint(udpTlsScheme)
+}
+
 const (
-	tcpSecScheme = "coaps+tcp"
+	tcpTlsScheme = "coaps+tcp"
 	tcpScheme    = "coap+tcp"
 	udpScheme    = "coap"
+	udpTlsScheme = "coaps"
 )
 
 func udpEndpoint(addr kitNet.Addr) Endpoint {
 	u := url.URL{Scheme: udpScheme, Host: addr.String()}
+	return Endpoint{URI: u.String()}
+}
+
+func udpTlsEndpoint(addr kitNet.Addr) Endpoint {
+	u := url.URL{Scheme: udpTlsScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
@@ -217,7 +235,7 @@ func tcpEndpoint(addr kitNet.Addr) Endpoint {
 	return Endpoint{URI: u.String()}
 }
 
-func tcpSecureEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: tcpSecScheme, Host: addr.String()}
+func tcpTlsEndpoint(addr kitNet.Addr) Endpoint {
+	u := url.URL{Scheme: tcpTlsScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }

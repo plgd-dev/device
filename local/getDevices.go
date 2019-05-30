@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 
-	coap "github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
@@ -36,7 +35,7 @@ type discoveryHandler struct {
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, client *gocoap.ClientConn, links schema.DeviceLinks) {
-	c, err := h.factory.NewClient(client, links, coap.CBORCodec{})
+	c, err := h.factory.NewClient(client, links)
 	if err != nil {
 		h.handler.Error(err)
 		return

@@ -56,12 +56,12 @@ func (c *Client) updateResource(
 		})
 	}
 
-	client, err := c.factory.NewClientFromCache(codec)
+	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return err
 	}
 
-	err = client.Post(ctx, deviceID, href, request, response, options...)
+	err = client.Post(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err
 	}
