@@ -18,16 +18,12 @@ type Doxm struct {
 	ResourceTypes                 []string `codec:"rt"`
 }
 
-type DoxmSelectOwnerTransferMethod struct {
-	SelectOwnerTransferMethod OwnerTransferMethod `codec:"oxmsel"`
-}
-
 type DoxmUpdate struct {
-	ResourceOwner             string `codec:"rowneruuid"`
-	DeviceOwner               string `codec:"devowneruuid"`
-	DeviceId                  string `codec:"deviceuuid"`
-	Owned                     bool   `codec:"owned"`
-	SelectOwnerTransferMethod int    `codec:"oxmsel"`
+	ResourceOwner             string `codec:"rowneruuid,omitempty"`
+	DeviceOwner               string `codec:"devowneruuid,omitempty"`
+	DeviceId                  string `codec:"deviceuuid,omitempty"`
+	Owned                     bool   `codec:"owned,omitempty"`
+	SelectOwnerTransferMethod OwnerTransferMethod `codec:"oxmsel,omitempty"`
 }
 
 type OwnerTransferMethod int

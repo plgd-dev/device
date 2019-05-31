@@ -113,11 +113,69 @@ func mfgCertDial(addr string, cert tls.Certificate, ca []*x509.Certificate) (*go
 	return gocoap.DialWithTLS("tcp", addr, &tlsConfig)
 }
 
+type OTMClient interface {
+	Type() schema.OwnerTransferMethod
+	Dial(addr string) (*CoapClient, error)
+}
+
+type ManufacturerOTMClient struct {
+	manufacturerCertificate tls.Certificate
+	manufacturerCA          []*x509.Certificate
+}
+
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA []*x509.Certificate) *ManufacturerOTMClient {
+	return &ManufacturerOTMClient{
+		manufacturerCertificate: manufacturerCertificate,
+		manufacturerCA:          manufacturerCA,
+	}
+}
+
+func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
+	return schema.ManufacturerCertificate
+}
+
+func (otmc *ManufacturerOTMClient) Dial(addr string) (*CoapClient, error) {
+	caPool := x509.NewCertPool()
+	for _, c := range otmc.manufacturerCA {
+		caPool.AddCert(c)
+	}
+
+	tlsConfig := tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{otmc.manufacturerCertificate},
+		//RootCAs:            caPool,
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			for _, rawCert := range rawCerts {
+				cert, err := x509.ParseCertificate(rawCert)
+				if err != nil {
+					return err
+				}
+
+				_, err = cert.Verify(x509.VerifyOptions{
+					//Intermediates: intermediates,
+					Roots:       caPool,
+					CurrentTime: time.Now(),
+					KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+				})
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
+	coapConn, err := gocoap.DialWithTLS("tcp", addr, &tlsConfig)
+	if err != nil {
+		return nil, err
+	}
+	return NewCoapClient(coapConn), nil
+}
+
 // OwnDevice set ownership of device
 func (c *Client) OwnDevice(
 	ctx context.Context,
 	deviceID string,
-	otm schema.OwnerTransferMethod,
+	otmClient OTMClient,
 	discoveryTimeout time.Duration,
 ) error {
 	const errMsg = "cannot own device %v: %v"
@@ -133,17 +191,17 @@ func (c *Client) OwnDevice(
 
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
-		if s == otm {
+		if s == otmClient.Type() {
 			supportOtm = true
 		}
 		break
 	}
 	if !supportOtm {
-		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otm, ownership.SupportedOwnerTransferMethods))
+		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
-	req := schema.DoxmSelectOwnerTransferMethod{
-		SelectOwnerTransferMethod: otm,
+	req := schema.DoxmUpdate{
+		SelectOwnerTransferMethod: otmClient.Type(),
 	}
 
 	/*doxm doesn't send any content for select OTM*/
@@ -168,20 +226,18 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("secure endpoints not found"))
 	}
 
-	cert, err := c.GetManufacurerCertificate()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-	ca, err := c.GetManufacturerCertificateAuthorities()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-
-	tlsClientConn, err := mfgCertDial(tcpTLSAddr.String(), cert, ca)
+	tlsClient, err := otmClient.Dial(tcpTLSAddr.String())
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
 	}
-	fmt.Printf("tlsClientConn %p\n", tlsClientConn)
+
+	var provisionState schema.ProvisionState
+	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/pstat", "", &provisionState)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get provision state %v", err))
+	}
+
+	fmt.Printf("provisionState %+v\n", provisionState)
 
 	return nil
 }

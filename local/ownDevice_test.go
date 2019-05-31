@@ -5,16 +5,14 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 	"testing"
 	"time"
 
 	ocf "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
 )
 
-//docker rm -f devsim; docker run -d -t --network=host --name devsim dockerhub.kistler.com/kiconnect/kiconnect-device-simulator:2.2.7-secure-dbg --name devsim --di '00000000-cafe-baba-0000-000000000000'
+//docker rm -f devsim; docker run -t -d --network=host --entrypoint /usr/bin/kicdevsim -v `pwd`/data:/data --name devsim dockerhub.kistler.com/kiconnect/kiconnect-device-simulator:2.2.7-secure-dbg --svrdb /data/oic_svr_db.dat
 
 func TestClient_ownDevice(t *testing.T) {
 	type args struct {
@@ -33,19 +31,17 @@ func TestClient_ownDevice(t *testing.T) {
 		},
 	}
 
-	ownTestCfg := testCfg
-	ownTestCfg.TLSConfig.GetManufacurerCertificate = func() (tls.Certificate, error) {
-		return tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
-	}
-	ownTestCfg.TLSConfig.GetManufacturerCertificateAuthorities = func() ([]*x509.Certificate, error) {
-		derBlock, _ := pem.Decode(CARootPemBlock)
-		if derBlock == nil {
-			return nil, fmt.Errorf("CARootPemBlock is not in pem format")
-		}
-		return x509.ParseCertificates(derBlock.Bytes)
-	}
 
-	c, err := ocf.NewClientFromConfig(ownTestCfg, nil)
+	cert, err := tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
+	require.NoError(t, err)
+	derBlock, _ := pem.Decode(CARootPemBlock)
+	require.NotEmpty(t,derBlock)
+	ca, err := x509.ParseCertificates(derBlock.Bytes)
+	require.NoError(t, err)
+
+	otm := ocf.NewManufacturerOTMClient(cert,ca)
+
+	c, err := ocf.NewClientFromConfig(testCfg, nil)
 	require := require.New(t)
 	require.NoError(err)
 
@@ -62,7 +58,7 @@ func TestClient_ownDevice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			err := c.OwnDevice(timeout, tt.args.deviceID, schema.ManufacturerCertificate, 10*time.Second)
+			err := c.OwnDevice(timeout, tt.args.deviceID, otm, 10*time.Second)
 			cancel()
 			if tt.wantErr {
 				require.Error(err)
