@@ -49,7 +49,7 @@ func (f *UDPClientFactory) NewClientFromCache() (*Client, error) {
 	return &c, nil
 }
 
-func getUDPAddr(r *schema.ResourceLink) (net.Addr, error) {
+func getUDPAddr(r schema.ResourceLink) (net.Addr, error) {
 	return r.GetUDPAddr()
 }
 

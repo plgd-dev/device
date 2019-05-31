@@ -16,20 +16,36 @@ type DiscoverDeviceOwnershipHandler interface {
 	Error(err error)
 }
 
+// DiscoverOwnershipStatus type of discover ownership status.
+type DiscoverOwnershipStatus int
+
+const (
+	// DiscoverAllDevices discovers owned and unowned devices.
+	DiscoverAllDevices = DiscoverOwnershipStatus(0)
+	// DiscoverOwnedDevices discovers owned devices,
+	DiscoverOwnedDevices = DiscoverOwnershipStatus(1)
+	// DiscoverUnownedDevices discovers unowned devices,
+	DiscoverUnownedDevices = DiscoverOwnershipStatus(2)
+)
+
 // DiscoverDeviceOwnership discovers devices using a CoAP multicast request via UDP.
 // It waits for device responses until the context is canceled.
-// Device resources can be queried in DiscoveryHandler.
-// An empty typeFilter queries all resource types.
 // Note: len(typeFilter) > 1 does not work with Iotivity 1.3 which responds with BadRequest.
 func DiscoverDeviceOwnership(
 	ctx context.Context,
 	conn []*gocoap.MulticastClientConn,
-	owned bool,
+	status DiscoverOwnershipStatus,
 	handler DiscoverDeviceOwnershipHandler,
 ) error {
-	query := "Owned=FALSE"
-	if owned {
+	query := ""
+	switch status {
+	case DiscoverAllDevices:
+	case DiscoverOwnedDevices:
 		query = "Owned=TRUE"
+	case DiscoverUnownedDevices:
+		query = "Owned=FALSE"
+	default:
+		return fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status)
 	}
 
 	return Discover(ctx, conn, "/oic/sec/doxm", []string{query}, handleDiscoverOwnershipResponse(ctx, handler))

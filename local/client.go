@@ -15,19 +15,38 @@ import (
 
 // Client an OCF local client.
 type Client struct {
-	factory       ResourceClientFactory
-	conn          []*gocoap.MulticastClientConn
 	observations  *sync.Map
 	Certificate   tls.Certificate
 	CertificateId string
 	ca            []x509.Certificate
+	factory       ResourceClientFactory
+	conn          []*gocoap.MulticastClientConn
+
+	tlsConfig TLSConfig
+
+	lock sync.Mutex
+}
+
+// GetCertificateFunc returns certificate for connection
+type GetCertificateFunc func() (tls.Certificate, error)
+
+// GetCertificateAuthoritiesFunc returns certificate authorities to verify peers
+type GetCertificateAuthoritiesFunc func() ([]*x509.Certificate, error)
+
+type TLSConfig struct {
+	// Used by own device
+	GetManufacurerCertificate             GetCertificateFunc
+	GetManufacturerCertificateAuthorities GetCertificateAuthoritiesFunc
+	// User for communication with owned devices and cloud
+	GetCertificate            GetCertificateFunc
+	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
 // Config for the OCF local client.
 type Config struct {
-	Protocol string
-	Resource resource.Config
-	CAChain  string // PEM chain format
+	Protocol  string
+	Resource  resource.Config
+	TLSConfig TLSConfig
 }
 
 // NewClientFromConfig constructs a new OCF client.
@@ -41,11 +60,11 @@ func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
 	// Only TCP is supported at the moment.
 	f := NewResourceClientFactory(cfg.Protocol, linkCache)
 
-	return NewClient(f, conn), nil
+	return NewClient(cfg.TLSConfig, f, conn), nil
 }
 
-func NewClient(f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
-	return &Client{factory: f, conn: conn, observations: &sync.Map{}}
+func NewClient(TLSConfig TLSConfig, f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
+	return &Client{tlsConfig: TLSConfig, factory: f, conn: conn, observations: &sync.Map{}}
 }
 
 func NewResourceClientFactory(protocol string, linkCache *link.Cache) ResourceClientFactory {
@@ -94,4 +113,32 @@ func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLi
 
 func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
 	return w.f.NewClientFromCache()
+}
+
+func (c *Client) GetManufacurerCertificate() (res tls.Certificate, _ error) {
+	if c.tlsConfig.GetManufacurerCertificate != nil {
+		return c.tlsConfig.GetManufacurerCertificate()
+	}
+	return res, fmt.Errorf("Config.GetManufacurerCertificate is not set")
+}
+
+func (c *Client) GetManufacturerCertificateAuthorities() (res []*x509.Certificate, _ error) {
+	if c.tlsConfig.GetManufacturerCertificateAuthorities != nil {
+		return c.tlsConfig.GetManufacturerCertificateAuthorities()
+	}
+	return res, fmt.Errorf("Config.GetManufacturerCertificateAuthorities is not set")
+}
+
+func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
+	if c.tlsConfig.GetCertificate != nil {
+		return c.tlsConfig.GetCertificate()
+	}
+	return res, fmt.Errorf("Config.GetCertificate is not set")
+}
+
+func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) {
+	if c.tlsConfig.GetManufacturerCertificateAuthorities != nil {
+		return c.tlsConfig.GetManufacturerCertificateAuthorities()
+	}
+	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }

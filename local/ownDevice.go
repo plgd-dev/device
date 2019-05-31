@@ -2,19 +2,72 @@ package local
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"sync"
 	"time"
 
-	"github.com/go-ocf/sdk/local/device"
+	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
 
-func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, discoveryTimeout time.Duration, owned bool) (*device.Client, error) {
+type deviceOwnershipClient struct {
+	*CoapClient
+	ownership schema.Doxm
+}
+
+func (c *deviceOwnershipClient) GetOwnership() schema.Doxm {
+	return c.ownership
+}
+
+type deviceOwnershipHandler struct {
+	deviceID string
+	cancel   context.CancelFunc
+
+	client *deviceOwnershipClient
+	lock   sync.Mutex
+	err    error
+}
+
+func newDeviceOwnershipHandler(deviceID string, cancel context.CancelFunc) *deviceOwnershipHandler {
+	return &deviceOwnershipHandler{deviceID: deviceID, cancel: cancel}
+}
+
+func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, ownership schema.Doxm) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if ownership.DeviceId == h.deviceID {
+		h.client = &deviceOwnershipClient{CoapClient: NewCoapClient(clientConn), ownership: ownership}
+		h.cancel()
+	}
+}
+
+func (h *deviceOwnershipHandler) Error(err error) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	h.err = err
+}
+
+func (h *deviceOwnershipHandler) Err() error {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	return h.err
+}
+
+func (h *deviceOwnershipHandler) Client() *deviceOwnershipClient {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	return h.client
+}
+
+func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, discoveryTimeout time.Duration, status resource.DiscoverOwnershipStatus) (*deviceOwnershipClient, error) {
 	ctxOwn, cancel := context.WithTimeout(ctx, discoveryTimeout)
 	defer cancel()
-	h := newDeviceHandler(deviceID, cancel)
+	h := newDeviceOwnershipHandler(deviceID, cancel)
 
-	err := c.GetDeviceOwnership(ctxOwn, false, h)
+	err := c.GetDeviceOwnership(ctxOwn, status, h)
 	client := h.Client()
 
 	if client != nil {
@@ -27,19 +80,37 @@ func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, disco
 	return nil, h.Err()
 }
 
-func (c *Client) getDeviceLinks(ctx context.Context,
-	deviceID string,
-	discoveryTimeout time.Duration,
-) (res schema.DeviceLinks, _ error) {
-	ctxGet, cancel := context.WithTimeout(ctx, discoveryTimeout)
-	defer cancel()
-
-	var device schema.DeviceLinks
-	err := c.GetResourceCBOR(ctxGet, deviceID, "/oic/res", "", &device)
-	if err != nil {
-		return res, err
+func mfgCertDial(addr string, cert tls.Certificate, ca []*x509.Certificate) (*gocoap.ClientConn, error) {
+	caPool := x509.NewCertPool()
+	for _, c := range ca {
+		caPool.AddCert(c)
 	}
-	return device, nil
+
+	tlsConfig := tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{cert},
+		//RootCAs:            caPool,
+		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+			for _, rawCert := range rawCerts {
+				cert, err := x509.ParseCertificate(rawCert)
+				if err != nil {
+					return err
+				}
+
+				_, err = cert.Verify(x509.VerifyOptions{
+					//Intermediates: intermediates,
+					Roots:       caPool,
+					CurrentTime: time.Now(),
+					KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
+				})
+				if err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	}
+	return gocoap.DialWithTLS("tcp", addr, &tlsConfig)
 }
 
 // OwnDevice set ownership of device
@@ -51,50 +122,66 @@ func (c *Client) OwnDevice(
 ) error {
 	const errMsg = "cannot own device %v: %v"
 
-	client, err := c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, false)
+	client, err := c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, resource.DiscoverAllDevices)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
-	if client == nil {
-		client, err = c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, true)
-		if err != nil {
-			return fmt.Errorf(errMsg, deviceID, err)
-		}
-		if client != nil {
-			return nil
-		}
-		return fmt.Errorf(errMsg, deviceID, "not found")
+	ownership := client.GetOwnership()
+	if ownership.Owned {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device already owned by %v", ownership.DeviceOwner))
 	}
-	ownership := client.GetOwnerShip()
+
 	var supportOtm bool
-	for _, s := range ownership.GetSupportedOwnerTransferMethods() {
+	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otm {
 			supportOtm = true
 		}
 		break
 	}
 	if !supportOtm {
-		fmt.Println(fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otm, ownership.GetSupportedOwnerTransferMethods())))
+		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otm, ownership.SupportedOwnerTransferMethods))
 	}
-
-	_, err = c.getDeviceLinks(ctx, deviceID, discoveryTimeout)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("cannot get resource links %v:", err))
-	}
-
-	//fmt.Println(deviceLinks)
 
 	req := schema.DoxmSelectOwnerTransferMethod{
-		SelectOwnerTransferMethod: 0,
+		SelectOwnerTransferMethod: otm,
 	}
-	var resp schema.Doxm
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/doxm", "", req, &resp)
+	/*doxm doesn't send any content for select OTM*/
+	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", "", req, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	//fmt.Println(resp)
+	deviceLink, err := client.GetDeviceLinks(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	var resourceLink schema.ResourceLink
+	for _, link := range deviceLink.Links {
+		if link.HasType("oic.r.doxm") {
+			resourceLink = link
+			break
+		}
+	}
+	tcpTLSAddr, err := resourceLink.GetTCPTLSAddr()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("secure endpoints not found"))
+	}
+
+	cert, err := c.GetManufacurerCertificate()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	ca, err := c.GetManufacturerCertificateAuthorities()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+
+	tlsClientConn, err := mfgCertDial(tcpTLSAddr.String(), cert, ca)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
+	}
+	fmt.Printf("tlsClientConn %p\n", tlsClientConn)
 
 	return nil
 }

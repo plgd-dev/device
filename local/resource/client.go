@@ -21,7 +21,7 @@ type Client struct {
 	getAddr GetAddr
 }
 
-type GetAddr = func(*schema.ResourceLink) (net.Addr, error)
+type GetAddr = func(schema.ResourceLink) (net.Addr, error)
 
 // Codec encodes/decodes according to the CoAP content format/media type.
 type Codec interface {
@@ -30,18 +30,14 @@ type Codec interface {
 	Decode(m gocoap.Message, v interface{}) error
 }
 
-// Get makes a GET CoAP request over a connection from the client's pool.
-func (c *Client) Get(
+func COAPGet(
 	ctx context.Context,
-	deviceID, href string,
+	conn *gocoap.ClientConn,
+	href string,
 	codec Codec,
 	responseBody interface{},
 	options ...func(gocoap.Message),
 ) error {
-	conn, err := c.getConn(ctx, deviceID, href)
-	if err != nil {
-		return err
-	}
 	req, err := conn.NewGetRequest(href)
 	if err != nil {
 		return fmt.Errorf("could create request %s: %v", href, err)
@@ -62,12 +58,11 @@ func (c *Client) Get(
 	return nil
 }
 
-// Post makes a POST CoAP request over a connection from the client's pool.
-func (c *Client) Post(
+// Get makes a GET CoAP request over a connection from the client's pool.
+func (c *Client) Get(
 	ctx context.Context,
 	deviceID, href string,
 	codec Codec,
-	requestBody interface{},
 	responseBody interface{},
 	options ...func(gocoap.Message),
 ) error {
@@ -75,6 +70,18 @@ func (c *Client) Post(
 	if err != nil {
 		return err
 	}
+	return COAPGet(ctx, conn, href, codec, responseBody, options...)
+}
+
+func COAPPost(
+	ctx context.Context,
+	conn *gocoap.ClientConn,
+	href string,
+	codec Codec,
+	requestBody interface{},
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
 	body, err := codec.Encode(requestBody)
 	if err != nil {
 		return fmt.Errorf("could not encode the query %s: %v", href, err)
@@ -152,12 +159,28 @@ func (c *Client) decode(m gocoap.Message) DecodeFunc {
 	}
 }
 
+// Post makes a POST CoAP request over a connection from the client's pool.
+func (c *Client) Post(
+	ctx context.Context,
+	deviceID, href string,
+	codec Codec,
+	requestBody interface{},
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
+	conn, err := c.getConn(ctx, deviceID, href)
+	if err != nil {
+		return err
+	}
+	return COAPPost(ctx, conn, href, codec, requestBody, responseBody, options...)
+}
+
 func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.ClientConn, error) {
 	r, err := c.linkCache.GetOrCreate(ctx, deviceID, href)
 	if err != nil {
 		return nil, fmt.Errorf("no response from device %s: %v", deviceID, err)
 	}
-	addr, err := c.getAddr(&r)
+	addr, err := c.getAddr(r)
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint of device %s: %v", deviceID, err)
 	}

@@ -44,7 +44,7 @@ func (f *TCPClientFactory) NewClientFromCache() (*Client, error) {
 	return &c, nil
 }
 
-func getTCPAddr(r *schema.ResourceLink) (net.Addr, error) {
+func getTCPAddr(r schema.ResourceLink) (net.Addr, error) {
 	return r.GetTCPAddr()
 }
 

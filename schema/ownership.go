@@ -6,20 +6,20 @@ import "fmt"
 
 type Doxm struct {
 	ResourceOwner                 string   `codec:"rowneruuid"`
-	SupportedOwnerTransferMethods []int    `codec:"oxms"`
+	SupportedOwnerTransferMethods []OwnerTransferMethod    `codec:"oxms"`
 	DeviceOwner                   string   `codec:"devowneruuid"`
 	DeviceId                      string   `codec:"deviceuuid"`
 	Owned                         bool     `codec:"owned"`
 	Name                          string   `codec:"n"`
 	InstanceId                    string   `codec:"id"`
 	SupportedCredentialTypes      int      `codec:"sct"`
-	SelectedOwnerTransferMethod   int      `codec:"oxmsel"`
+	SelectedOwnerTransferMethod   OwnerTransferMethod      `codec:"oxmsel"`
 	Interfaces                    []string `codec:"if"`
 	ResourceTypes                 []string `codec:"rt"`
 }
 
 type DoxmSelectOwnerTransferMethod struct {
-	SelectOwnerTransferMethod int `codec:"oxmsel"`
+	SelectOwnerTransferMethod OwnerTransferMethod `codec:"oxmsel"`
 }
 
 type DoxmUpdate struct {
@@ -52,12 +52,4 @@ func (o OwnerTransferMethod) String() string {
 	default:
 		return fmt.Sprintf("unknown %d", o)
 	}
-}
-
-func (d Doxm) GetSupportedOwnerTransferMethods() []OwnerTransferMethod {
-	r := make([]OwnerTransferMethod, 0, len(d.SupportedOwnerTransferMethods))
-	for _, m := range d.SupportedOwnerTransferMethods {
-		r = append(r, OwnerTransferMethod(m))
-	}
-	return r
 }

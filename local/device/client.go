@@ -10,15 +10,14 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-func NewClient(client resourceClient, links schema.DeviceLinks, ownership schema.Doxm) *Client {
-	return &Client{client: client, links: links, ownership: ownership}
+func NewClient(client resourceClient, links schema.DeviceLinks) *Client {
+	return &Client{client: client, links: links}
 }
 
 // Client uses an open connection to a device in order to query its details.
 type Client struct {
-	links     schema.DeviceLinks
-	client    resourceClient
-	ownership schema.Doxm
+	links  schema.DeviceLinks
+	client resourceClient
 }
 
 type resourceClient interface {
@@ -95,8 +94,4 @@ func (c *Client) GetEndpoints(resourceType string) []schema.Endpoint {
 // GetDeviceLinks returns device links.
 func (c *Client) GetDeviceLinks() schema.DeviceLinks {
 	return c.links
-}
-
-func (c *Client) GetOwnerShip() schema.Doxm {
-	return c.ownership
 }
