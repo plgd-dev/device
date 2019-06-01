@@ -1,6 +1,7 @@
 package local
 
 import (
+	"encoding/pem"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -80,42 +81,11 @@ func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, disco
 	return nil, h.Err()
 }
 
-func mfgCertDial(addr string, cert tls.Certificate, ca []*x509.Certificate) (*gocoap.ClientConn, error) {
-	caPool := x509.NewCertPool()
-	for _, c := range ca {
-		caPool.AddCert(c)
-	}
-
-	tlsConfig := tls.Config{
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
-		//RootCAs:            caPool,
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			for _, rawCert := range rawCerts {
-				cert, err := x509.ParseCertificate(rawCert)
-				if err != nil {
-					return err
-				}
-
-				_, err = cert.Verify(x509.VerifyOptions{
-					//Intermediates: intermediates,
-					Roots:       caPool,
-					CurrentTime: time.Now(),
-					KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-				})
-				if err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	}
-	return gocoap.DialWithTLS("tcp", addr, &tlsConfig)
-}
-
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
-	Dial(addr string) (*CoapClient, error)
+	Dial(ctx context.Context, addr string) (*CoapClient, error)
+	// SignCSR
+	SignCSR(encoding schema.CSREncoding, csr []byte) (signedEncoding schema.CSREncoding, signedCsr []byte, err error)
 }
 
 type ManufacturerOTMClient struct {
@@ -134,7 +104,7 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 	return schema.ManufacturerCertificate
 }
 
-func (otmc *ManufacturerOTMClient) Dial(addr string) (*CoapClient, error) {
+func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*CoapClient, error) {
 	caPool := x509.NewCertPool()
 	for _, c := range otmc.manufacturerCA {
 		caPool.AddCert(c)
@@ -171,6 +141,42 @@ func (otmc *ManufacturerOTMClient) Dial(addr string) (*CoapClient, error) {
 	return NewCoapClient(coapConn), nil
 }
 
+func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CSREncoding, csr []byte) (signedEncoding schema.CSREncoding, signedCsr []byte, err error){
+	der := csr
+	if encoding == schema.CSREncoding_PEM {
+		derBlock, _ := pem.Decode(csr)
+		if derBlock == nil {
+			err = fmt.Errorf("invalid encoding for csr")
+			return 
+		}
+		der = derBlock.Bytes
+	}
+
+	certificateRequest, err :=x509.ParseCertificateRequest(der)
+	if err != nil {
+		return
+	}
+
+	err = certificateRequest.CheckSignature()
+	if err != nil {
+		return
+	}
+
+	template := x509.Certificate{
+		Subject:            certificateRequest.Subject,
+		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
+		PublicKey:          certificateRequest.PublicKey,
+		SignatureAlgorithm: certificateRequest.SignatureAlgorithm,
+		DNSNames:           certificateRequest.DNSNames,
+		IPAddresses:        certificateRequest.IPAddresses,
+		Extensions: certificateRequest.Extensions,
+	}
+
+	fmt.Printf("template for sign %+v\n", template)
+
+	return 
+}
+
 // OwnDevice set ownership of device
 func (c *Client) OwnDevice(
 	ctx context.Context,
@@ -200,12 +206,12 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
-	req := schema.DoxmUpdate{
+	selectOTM := schema.DoxmUpdate{
 		SelectOwnerTransferMethod: otmClient.Type(),
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", "", req, nil)
+	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", "", selectOTM, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
@@ -226,18 +232,75 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("secure endpoints not found"))
 	}
 
-	tlsClient, err := otmClient.Dial(tcpTLSAddr.String())
+	tlsClient, err := otmClient.Dial(ctx, tcpTLSAddr.String())
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
 	}
 
-	var provisionState schema.ProvisionState
+	var provisionState schema.ProvisionStatusResponse
 	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/pstat", "", &provisionState)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get provision state %v", err))
 	}
 
-	fmt.Printf("provisionState %+v\n", provisionState)
+	if provisionState.DeviceOnboardingState.Pending {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
+	}
+
+	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != schema.OperationalState_RFOTM {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, schema.OperationalState_RFOTM))
+	}
+
+	if !provisionState.SupportedOperationalModes.Has(schema.OperationalMode_CLIENT_DIRECTED) {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, schema.OperationalMode_CLIENT_DIRECTED))
+	}
+
+	updateProvisionState := schema.ProvisionStatusUpdateRequest{
+		CurrentOperationalMode: schema.OperationalMode_CLIENT_DIRECTED,
+	}
+	/*pstat doesn't send any content for select OperationalMode*/
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/pstat", "", updateProvisionState, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state %v", err))
+	}
+
+	sdkId, err := c.GetSdkId()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+	}
+
+	setDeviceOwner := schema.DoxmUpdate{
+		DeviceOwner: sdkId,
+	}
+
+	/*doxm doesn't send any content for select OTM*/
+	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", "", setDeviceOwner, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+	}
+
+	/*verify ownership*/
+	var verifyOwner schema.Doxm
+	err = client.GetResourceCBOR(ctx, "/oic/sec/doxm", "", &verifyOwner)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	if verifyOwner.DeviceOwner != sdkId {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is owned by %v, not by %v", verifyOwner.DeviceOwner, sdkId))
+	}
+
+	/*setup credentials - PostOwnerCredential*/
+	var csr schema.CertificateSigningRequestResponse
+	err = client.GetResourceCBOR(ctx, "/oic/sec/csr", "", &csr)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get csr for setup device owner credentials: %v", err))
+	}
+	_, _, err = otmClient.SignCSR(csr.Encoding, csr.CertificateSigningRequest)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err))
+	}
+
+	fmt.Printf("csr %+v\n", csr)
 
 	return nil
 }

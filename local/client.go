@@ -4,13 +4,16 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/asn1"
 	"fmt"
+	"strings"
 	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/gofrs/uuid"
 )
 
 // Client an OCF local client.
@@ -141,4 +144,66 @@ func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) 
 		return c.tlsConfig.GetManufacturerCertificateAuthorities()
 	}
 	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
+}
+
+var ekuOcfId = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
+
+func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
+	// verify EKU manually
+	ekuHasClient := false
+	for _, eku := range cert.ExtKeyUsage {
+		if eku == x509.ExtKeyUsageClientAuth {
+			ekuHasClient = true
+			break
+		}
+	}
+	if !ekuHasClient {
+		return "", fmt.Errorf("not contains ExtKeyUsageClientAuth")
+	}
+	ekuHasOcfId := false
+	for _, eku := range cert.UnknownExtKeyUsage {
+		if eku.Equal(ekuOcfId) {
+			ekuHasOcfId = true
+			break
+		}
+	}
+	if !ekuHasOcfId {
+		return "", fmt.Errorf("not contains ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
+	}
+	cn := strings.Split(cert.Subject.CommonName, ":")
+	if len(cn) != 2 {
+		return "", fmt.Errorf("invalid subject common name: %v", cert.Subject.CommonName)
+	}
+	if strings.ToLower(cn[0]) != "uuid" {
+		return "", fmt.Errorf("invalid subject common name %v: 'uuid' - not found", cert.Subject.CommonName)
+	}
+	deviceId, err := uuid.FromString(cn[1])
+	if err != nil {
+		return "", fmt.Errorf("invalid subject common name %v: %v", cert.Subject.CommonName, err)
+	}
+	return deviceId.String(), nil
+}
+
+func (c *Client) GetSdkId() (string, error) {
+	cert, err := c.GetCertificate()
+	if err != nil {
+		return "", fmt.Errorf("cannot get sdk id: %v", err)
+	}
+
+	var errors []error
+
+	for _, c := range cert.Certificate {
+		x509cert, err := x509.ParseCertificate(c)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		deviceId, err := getDeviceIdFromCertificate(x509cert)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		return deviceId, nil
+	}
+	return "", fmt.Errorf("cannot get sdk id: %v", errors)
 }

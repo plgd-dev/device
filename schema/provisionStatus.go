@@ -12,7 +12,7 @@ type DeviceOnboardingState struct {
 	CurrentOrPendingOperationalState OperationalState `codec:"s"`
 }
 
-type ProvisionState struct {
+type ProvisionStatusResponse struct {
 	ResourceOwner              string                 `codec:"rowneruuid"`
 	Interfaces                 []string               `codec:"if"`
 	ResourceTypes              []string               `codec:"rt"`
@@ -26,7 +26,7 @@ type ProvisionState struct {
 	DeviceOnboardingState      DeviceOnboardingState  `codec:"dos"`
 }
 
-type ProvisionUpdate struct {
+type ProvisionStatusUpdateRequest struct {
 	ResourceOwner              string                 `codec:"rowneruuid,omitempty"`
 	CurrentOperationalMode     OperationalMode        `codec:"om,omitempty"`
 	TargetProvisioningMode     ProvisioningMode       `codec:"tm,omitempty`

@@ -39,9 +39,14 @@ func TestClient_ownDevice(t *testing.T) {
 	ca, err := x509.ParseCertificates(derBlock.Bytes)
 	require.NoError(t, err)
 
+	testOwnCfg := testCfg
+	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
+		return cert, nil
+	}
+
 	otm := ocf.NewManufacturerOTMClient(cert,ca)
 
-	c, err := ocf.NewClientFromConfig(testCfg, nil)
+	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
 	require := require.New(t)
 	require.NoError(err)
 
