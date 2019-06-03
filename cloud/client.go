@@ -26,8 +26,8 @@ type Client struct {
 	gateway pb.GrpcGatewayClient
 }
 
-func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
-	it := c.GetDevices(ctx, deviceIDs, resourceTypes...)
+func (c *Client) GetDevicesViaCallback(ctx context.Context, token string, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
+	it := c.GetDevices(ctx, token, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.Device
 	for it.Next(&v) {
@@ -36,8 +36,8 @@ func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceT
 	return it.Err
 }
 
-func (c *Client) GetResourceLinksViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
-	it := c.GetResourceLinks(ctx, deviceIDs, resourceTypes...)
+func (c *Client) GetResourceLinksViaCallback(ctx context.Context, token string, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
+	it := c.GetResourceLinks(ctx, token, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceLink
 	for it.Next(&v) {
@@ -57,6 +57,7 @@ func MakeTypeCallback(resourceType string, callback func(pb.ResourceValue)) Type
 
 func (c *Client) RetrieveResourcesByType(
 	ctx context.Context,
+	token string,
 	deviceIDs []string,
 	typeCallbacks ...TypeCallback,
 ) error {
@@ -67,12 +68,10 @@ func (c *Client) RetrieveResourcesByType(
 		resourceTypes = append(resourceTypes, c.Type)
 	}
 
-	it := c.RetrieveResources(ctx, deviceIDs, resourceTypes...)
+	it := c.RetrieveResources(ctx, token, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceValue
 	for it.Next(&v) {
-		// TODO validate v.GetContent().GetContentType()
-
 		for _, rt := range resourceTypes {
 			if strings.SliceContains(v.Types, rt) {
 				tc[rt](v)
@@ -83,17 +82,20 @@ func (c *Client) RetrieveResourcesByType(
 	return it.Err
 }
 
-func (c *Client) GetDevices(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
+func (c *Client) GetDevices(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
+	auth := pb.AuthorizationContext{AccessToken: token}
+	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.GetDevices(ctx, &r))
 }
 
-func (c *Client) GetResourceLinks(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
+func (c *Client) GetResourceLinks(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
+	auth := pb.AuthorizationContext{AccessToken: token}
+	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
-func (c *Client) RetrieveResources(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	r := pb.RetrieveResourcesValuesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
+func (c *Client) RetrieveResources(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
+	auth := pb.AuthorizationContext{AccessToken: token}
+	r := pb.RetrieveResourcesValuesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
 }
