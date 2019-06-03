@@ -4,37 +4,35 @@ import (
 	"fmt"
 )
 
-
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
 
 type Credential struct {
-	Id string `codec:"credid"`
-	Type CredentialType `codec:"credtype"`
-	Update CredentialUsage `codec:"credusage"`
-}
-
-type CredentialResponse struct {
-	ResourceOwner                 string   `codec:"rowneruuid"`
-	Interfaces                    []string `codec:"if"`
-	ResourceTypes                 []string `codec:"rt"`
-	Name                          string   `codec:"n"`
-
+	ID                      int                       `codec:"credid"`
+	Type                    CredentialType            `codec:"credtype"`
+	Usage                   CredentialUsage           `codec:"credusage"`
+	SupportedRefreshMethods []CredentialRefreshMethod `codec:"crms,omitempty"`
+	OptionalData            CredentialOptionalData    `codec:"optionaldata,omitempty"`
+	Period                  string                    `codec:"period,omitempty"`
+	PrivateData             CredentialPrivateData     `codec:"privatedata,omitempty"`
+	PublicData              CredentialPublicData      `codec:"publicdata,omitempty"`
+	RoleId                  CredentialRoleId          `codec:"roleid,omitempty"`
+	Subject                 string                    `codec:"subjectuuid"`
 }
 
 type CredentialType uint8
 
 const (
-	CredentialType_EMPTY               CredentialType = 0
-	CredentialType_SYMMETRIC_PAIR_WISE CredentialType =  1 << iota
-	CredentialType_SYMMETRIC_GROUP
-	CredentialType_ASYMMETRIC_SIGNING
-	CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE
-	CredentialType_PIN_OR_PASSWORD
-	CredentialType_ASYMMETRIC_ENCRYPTION_KEY
+	CredentialType_EMPTY                               CredentialType = 0
+	CredentialType_SYMMETRIC_PAIR_WISE                 CredentialType = 1
+	CredentialType_SYMMETRIC_GROUP                     CredentialType = 2
+	CredentialType_ASYMMETRIC_SIGNING                  CredentialType = 4
+	CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE CredentialType = 8
+	CredentialType_PIN_OR_PASSWORD                     CredentialType = 16
+	CredentialType_ASYMMETRIC_ENCRYPTION_KEY           CredentialType = 32
 )
 
 func (c CredentialType) String() string {
-	switch (c) {
+	switch c {
 	case CredentialType_EMPTY:
 		return "EMPTY"
 	case CredentialType_SYMMETRIC_PAIR_WISE:
@@ -57,26 +55,88 @@ func (c CredentialType) String() string {
 type CredentialUsage string
 
 const (
-	CredentialUsage_TRUST_CA CredentialUsage = "oic.sec.cred.trustca"
-	CredentialUsage_CERT CredentialUsage = "oic.sec.cred.cert"
-	CredentialUsage_ROLE_CERT CredentialUsage = "oic.sec.cred.rolecert"
+	CredentialUsage_TRUST_CA     CredentialUsage = "oic.sec.cred.trustca"
+	CredentialUsage_CERT         CredentialUsage = "oic.sec.cred.cert"
+	CredentialUsage_ROLE_CERT    CredentialUsage = "oic.sec.cred.rolecert"
 	CredentialUsage_MFG_TRUST_CA CredentialUsage = "oic.sec.cred.mfgtrustca"
-	CredentialUsage_MFG_CERT CredentialUsage ="oic.sec.cred.mfgcert"
+	CredentialUsage_MFG_CERT     CredentialUsage = "oic.sec.cred.mfgcert"
 )
 
-func (c CredentialUsage) String() string {
-	switch (c) {
-	case CredentialUsage_TRUST_CA:
-		return "TRUST_CA"
-	case CredentialUsage_CERT:
-		return "CERT"
-	case CredentialUsage_ROLE_CERT:
-		return "ROLE_CERT"
-	case CredentialUsage_MFG_TRUST_CA:
-		return "MFG_TRUST_CA"
-	case CredentialUsage_MFG_CERT:
-		return "MFG_CERT"
-	default:
-		return fmt.Sprintf("unknown(%v)", string(c))
-	}
+type CredentialRefreshMethod string
+
+const (
+	CredentialRefreshMethod_PROVISION_SERVICE                     CredentialRefreshMethod = "oic.sec.crm.pro"
+	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL_AND_RANDOM_PIN CredentialRefreshMethod = "oic.sec.crm.psk"
+	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL                CredentialRefreshMethod = "oic.sec.crm.rdp"
+	CredentialRefreshMethod_KEY_DISTRIBUTION_SERVICE              CredentialRefreshMethod = "oic.sec.crm.skdc"
+	CredentialRefreshMethod_PKCS10_REQUEST_TO_CA                  CredentialRefreshMethod = "oic.sec.crm.pk10"
+)
+
+type CredentialOptionalData struct {
+	Data      string                         `codec:"data"`
+	Encoding  CredentialOptionalDataEncoding `codec:"encoding"`
+	IsRevoked bool                           `codec:"revstat"`
+}
+
+type CredentialOptionalDataEncoding string
+
+const (
+	CredentialOptionalDataEncoding_JWT    CredentialOptionalDataEncoding = "oic.sec.encoding.jwt"
+	CredentialOptionalDataEncoding_CWT    CredentialOptionalDataEncoding = "oic.sec.encoding.cwt"
+	CredentialOptionalDataEncoding_BASE64 CredentialOptionalDataEncoding = "oic.sec.encoding.base64"
+	CredentialOptionalDataEncoding_PEM    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(CertificateEncoding_PEM)
+	CredentialOptionalDataEncoding_DER    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(CertificateEncoding_DER)
+	CredentialOptionalDataEncoding_RAW    CredentialOptionalDataEncoding = "oic.sec.encoding.raw"
+)
+
+type CredentialPrivateData struct {
+	Data     string                        `codec:"data"`
+	Encoding CredentialPrivateDataEncoding `codec:"encoding"`
+	Handle   int                           `codec:"handle,omitempty"`
+}
+
+type CredentialPrivateDataEncoding string
+
+const (
+	CredentialPrivateDataEncoding_JWT    CredentialPrivateDataEncoding = "oic.sec.encoding.jwt"
+	CredentialPrivateDataEncoding_CWT    CredentialPrivateDataEncoding = "oic.sec.encoding.cwt"
+	CredentialPrivateDataEncoding_BASE64 CredentialPrivateDataEncoding = "oic.sec.encoding.base64"
+	CredentialPrivateDataEncoding_URI    CredentialPrivateDataEncoding = "oic.sec.encoding.uri"
+	CredentialPrivateDataEncoding_HANDLE CredentialPrivateDataEncoding = "oic.sec.encoding.handle"
+	CredentialPrivateDataEncoding_RAW    CredentialPrivateDataEncoding = "oic.sec.encoding.raw"
+)
+
+type CredentialPublicData struct {
+	Data     string                       `codec:"data"`
+	Encoding CredentialPublicDataEncoding `codec:"encoding"`
+}
+
+type CredentialPublicDataEncoding string
+
+const (
+	CredentialPublicDataEncoding_JWT    CredentialPublicDataEncoding = "oic.sec.encoding.jwt"
+	CredentialPublicDataEncoding_CWT    CredentialPublicDataEncoding = "oic.sec.encoding.cwt"
+	CredentialPublicDataEncoding_BASE64 CredentialPublicDataEncoding = "oic.sec.encoding.base64"
+	CredentialPublicDataEncoding_URI    CredentialPublicDataEncoding = "oic.sec.encoding.uri"
+	CredentialPublicDataEncoding_PEM    CredentialPublicDataEncoding = CredentialPublicDataEncoding(CertificateEncoding_PEM)
+	CredentialPublicDataEncoding_DER    CredentialPublicDataEncoding = CredentialPublicDataEncoding(CertificateEncoding_DER)
+	CredentialPublicDataEncoding_RAW    CredentialPublicDataEncoding = "oic.sec.encoding.raw"
+)
+
+type CredentialRoleId struct {
+	Authority string "authority"
+	Role      string "role"
+}
+
+type CredentialResponse struct {
+	ResourceOwner string       `codec:"rowneruuid"`
+	Interfaces    []string     `codec:"if"`
+	ResourceTypes []string     `codec:"rt"`
+	Name          string       `codec:"n"`
+	Credentials   []Credential `codec:"creds"`
+}
+
+type CredentialUpdateRequest struct {
+	ResourceOwner string       `codec:"rowneruuid"`
+	Credentials   []Credential `codec:"creds"`
 }

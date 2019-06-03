@@ -8,7 +8,7 @@ import (
 //https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
 
 type DeviceOnboardingState struct {
-	Pending                          bool             `codec:"p"`
+	Pending                          bool             `codec:"p,omitempty"`
 	CurrentOrPendingOperationalState OperationalState `codec:"s"`
 }
 

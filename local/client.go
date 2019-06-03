@@ -37,9 +37,6 @@ type GetCertificateFunc func() (tls.Certificate, error)
 type GetCertificateAuthoritiesFunc func() ([]*x509.Certificate, error)
 
 type TLSConfig struct {
-	// Used by own device
-	GetManufacurerCertificate             GetCertificateFunc
-	GetManufacturerCertificateAuthorities GetCertificateAuthoritiesFunc
 	// User for communication with owned devices and cloud
 	GetCertificate            GetCertificateFunc
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
@@ -118,20 +115,6 @@ func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
 	return w.f.NewClientFromCache()
 }
 
-func (c *Client) GetManufacurerCertificate() (res tls.Certificate, _ error) {
-	if c.tlsConfig.GetManufacurerCertificate != nil {
-		return c.tlsConfig.GetManufacurerCertificate()
-	}
-	return res, fmt.Errorf("Config.GetManufacurerCertificate is not set")
-}
-
-func (c *Client) GetManufacturerCertificateAuthorities() (res []*x509.Certificate, _ error) {
-	if c.tlsConfig.GetManufacturerCertificateAuthorities != nil {
-		return c.tlsConfig.GetManufacturerCertificateAuthorities()
-	}
-	return res, fmt.Errorf("Config.GetManufacturerCertificateAuthorities is not set")
-}
-
 func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
 	if c.tlsConfig.GetCertificate != nil {
 		return c.tlsConfig.GetCertificate()
@@ -140,8 +123,8 @@ func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
 }
 
 func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) {
-	if c.tlsConfig.GetManufacturerCertificateAuthorities != nil {
-		return c.tlsConfig.GetManufacturerCertificateAuthorities()
+	if c.tlsConfig.GetCertificateAuthorities != nil {
+		return c.tlsConfig.GetCertificateAuthorities()
 	}
 	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }

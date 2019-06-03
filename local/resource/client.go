@@ -190,3 +190,31 @@ func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.Cl
 	}
 	return conn.(*gocoap.ClientConn), nil
 }
+
+func COAPDelete(
+	ctx context.Context,
+	conn *gocoap.ClientConn,
+	href string,
+	codec Codec,
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
+	req, err := conn.NewDeleteRequest(href)
+	if err != nil {
+		return fmt.Errorf("could create request %s: %v", href, err)
+	}
+	for _, option := range options {
+		option(req)
+	}
+	resp, err := conn.ExchangeWithContext(ctx, req)
+	if err != nil {
+		return fmt.Errorf("could not query %s: %v", href, err)
+	}
+	if resp.Code() != gocoap.Deleted {
+		return fmt.Errorf("request failed: %s", coap.Dump(resp))
+	}
+	if err := codec.Decode(resp, responseBody); err != nil {
+		return fmt.Errorf("could not decode the query %s: %v", href, err)
+	}
+	return nil
+}

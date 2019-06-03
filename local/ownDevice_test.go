@@ -48,6 +48,9 @@ func TestClient_ownDevice(t *testing.T) {
 	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
 		return cert, nil
 	}
+	testOwnCfg.TLSConfig.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
+		return []*x509.Certificate{ca}, nil
+	}
 
 	otm := ocf.NewManufacturerOTMClient(cert, ca, caKey, time.Hour*86400)
 
