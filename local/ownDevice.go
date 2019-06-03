@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
-	"encoding/base64"
+	//"encoding/base64"
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -165,10 +165,12 @@ func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CertificateEncoding, 
 	return
 }
 
-func encodeToBase64(encoding schema.CertificateEncoding, data []byte) string {
+func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
 	switch encoding {
 	case schema.CertificateEncoding_DER:
-		return base64.StdEncoding.EncodeToString(data)
+		d := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
+		d = append(d, []byte{0}...)
+		return string(d)
 	}
 	return string(data)
 }
@@ -314,28 +316,27 @@ func (c *Client) OwnDevice(
 			if err != nil {
 				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err))
 			}
+		case cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING && cred.Usage == schema.CredentialUsage_CERT && cred.Subject == deviceID:
+			setDeviceCredential := schema.CredentialUpdateRequest{
+				ResourceOwner: sdkId,
+				Credentials: []schema.Credential{
+					schema.Credential{
+						Subject: deviceID,
+						Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+						Usage:   schema.CredentialUsage_CERT,
+						PublicData: schema.CredentialPublicData{
+							Data:     encodeToPem(signedEncodingCsr, signedCsr),
+							Encoding: schema.CredentialPublicDataEncoding_PEM,
+						},
+					},
+				},
+			}
+			err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setDeviceCredential, nil)
+			if err != nil {
+				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device credentials: %v", err))
+			}
 		}
 	}
-
-	setDeviceCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: sdkId,
-		Credentials: []schema.Credential{
-			schema.Credential{
-				Subject: deviceID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_CERT,
-				PublicData: schema.CredentialPublicData{
-					Data:     encodeToBase64(signedEncodingCsr, signedCsr),
-					Encoding: schema.CredentialPublicDataEncoding(signedEncodingCsr),
-				},
-			},
-		},
-	}
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setDeviceCredential, nil)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device credentials: %v", err))
-	}
-
 
 	cas, err := c.GetCertificateAuthorities()
 	if err != nil {
@@ -351,8 +352,8 @@ func (c *Client) OwnDevice(
 					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 					Usage:   schema.CredentialUsage_TRUST_CA,
 					PublicData: schema.CredentialPublicData{
-						Data:     encodeToBase64(schema.CertificateEncoding_DER, ca.Raw),
-						Encoding: schema.CredentialPublicDataEncoding_DER,
+						Data:     encodeToPem(schema.CertificateEncoding_DER, ca.Raw),
+						Encoding: schema.CredentialPublicDataEncoding_PEM,
 					},
 				},
 			},
