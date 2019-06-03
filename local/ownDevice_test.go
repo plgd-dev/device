@@ -36,15 +36,20 @@ func TestClient_ownDevice(t *testing.T) {
 	require.NoError(t, err)
 	derBlock, _ := pem.Decode(CARootPemBlock)
 	require.NotEmpty(t,derBlock)
-	ca, err := x509.ParseCertificates(derBlock.Bytes)
+	ca, err := x509.ParseCertificate(derBlock.Bytes)
 	require.NoError(t, err)
+	derBlockKey, _ := pem.Decode(CARootKeyPemBlock)
+	require.NotEmpty(t,derBlockKey)
+	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
+	require.NoError(t, err)
+
 
 	testOwnCfg := testCfg
 	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
 		return cert, nil
 	}
 
-	otm := ocf.NewManufacturerOTMClient(cert,ca)
+	otm := ocf.NewManufacturerOTMClient(cert, ca, caKey, time.Hour*86400)
 
 	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
 	require := require.New(t)

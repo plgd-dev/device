@@ -1,13 +1,17 @@
 package local
 
 import (
-	"encoding/pem"
+	"encoding/asn1"
 	"context"
+	"crypto/ecdsa"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/pem"
+	"crypto/rand"
 	"fmt"
 	"sync"
 	"time"
+	"math/big"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/sdk/local/resource"
@@ -85,18 +89,22 @@ type OTMClient interface {
 	Type() schema.OwnerTransferMethod
 	Dial(ctx context.Context, addr string) (*CoapClient, error)
 	// SignCSR
-	SignCSR(encoding schema.CSREncoding, csr []byte) (signedEncoding schema.CSREncoding, signedCsr []byte, err error)
+	SignCSR(encoding schema.CertificateEncoding, csr []byte) (signedEncoding schema.CertificateEncoding, signedCsr []byte, err error)
 }
 
 type ManufacturerOTMClient struct {
 	manufacturerCertificate tls.Certificate
-	manufacturerCA          []*x509.Certificate
+	manufacturerCA          *x509.Certificate
+	manufacturerCAKey       *ecdsa.PrivateKey
+	signedCertificateValidFor time.Duration
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA []*x509.Certificate) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, manufacturerCAKey *ecdsa.PrivateKey, signedCertificateValidFor time.Duration) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
+		manufacturerCAKey:       manufacturerCAKey,
+		signedCertificateValidFor: signedCertificateValidFor,
 	}
 }
 
@@ -106,9 +114,7 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*CoapClient, error) {
 	caPool := x509.NewCertPool()
-	for _, c := range otmc.manufacturerCA {
-		caPool.AddCert(c)
-	}
+	caPool.AddCert(otmc.manufacturerCA)
 
 	tlsConfig := tls.Config{
 		InsecureSkipVerify: true,
@@ -141,18 +147,18 @@ func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*Coap
 	return NewCoapClient(coapConn), nil
 }
 
-func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CSREncoding, csr []byte) (signedEncoding schema.CSREncoding, signedCsr []byte, err error){
+func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CertificateEncoding, csr []byte) (signedEncoding schema.CertificateEncoding, signedCsr []byte, err error) {
 	der := csr
-	if encoding == schema.CSREncoding_PEM {
+	if encoding == schema.CertificateEncoding_PEM {
 		derBlock, _ := pem.Decode(csr)
 		if derBlock == nil {
 			err = fmt.Errorf("invalid encoding for csr")
-			return 
+			return
 		}
 		der = derBlock.Bytes
 	}
 
-	certificateRequest, err :=x509.ParseCertificateRequest(der)
+	certificateRequest, err := x509.ParseCertificateRequest(der)
 	if err != nil {
 		return
 	}
@@ -162,19 +168,31 @@ func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CSREncoding, csr []by
 		return
 	}
 
+	notBefore := time.Now()
+	notAfter := notBefore.Add(otmc.signedCertificateValidFor)
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+
 	template := x509.Certificate{
+		SerialNumber: serialNumber,
+		NotBefore: notBefore,
+		NotAfter: notAfter,
 		Subject:            certificateRequest.Subject,
 		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
 		PublicKey:          certificateRequest.PublicKey,
 		SignatureAlgorithm: certificateRequest.SignatureAlgorithm,
 		DNSNames:           certificateRequest.DNSNames,
 		IPAddresses:        certificateRequest.IPAddresses,
-		Extensions: certificateRequest.Extensions,
+		Extensions:         certificateRequest.Extensions,
+		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+		UnknownExtKeyUsage: []asn1.ObjectIdentifier{ekuOcfId},
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
-	fmt.Printf("template for sign %+v\n", template)
 
-	return 
+	signedEncoding = schema.CertificateEncoding_DER
+    signedCsr, err = x509.CreateCertificate(rand.Reader, &template, otmc.manufacturerCA, certificateRequest.PublicKey, otmc.manufacturerCAKey)
+	return
 }
 
 // OwnDevice set ownership of device
@@ -295,12 +313,14 @@ func (c *Client) OwnDevice(
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get csr for setup device owner credentials: %v", err))
 	}
-	_, _, err = otmClient.SignCSR(csr.Encoding, csr.CertificateSigningRequest)
+	signedEncodingCsr, signedCsr, err := otmClient.SignCSR(csr.Encoding, csr.CertificateSigningRequest)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err))
 	}
 
-	fmt.Printf("csr %+v\n", csr)
-
+/*
+	err = client.UpdateResourceCBOR(ctx, "/oic/sec/cred", "", &csr)
+*/
+	fmt.Printf("csr %v %v\n", signedEncodingCsr, signedCsr)
 	return nil
 }

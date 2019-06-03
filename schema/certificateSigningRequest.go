@@ -7,22 +7,22 @@ type CertificateSigningRequestResponse struct {
 	ResourceTypes             []string    `codec:"rt"`
 	Name                      string      `codec:"n"`
 	InstanceId                string      `codec:"id"`
-	Encoding                  CSREncoding `codec:"encoding"`
+	Encoding                  CertificateEncoding `codec:"encoding"`
 	CertificateSigningRequest []byte      `codec:"csr"`
 }
 
-type CSREncoding string
+type CertificateEncoding string
 
 const (
-	CSREncoding_PEM CSREncoding = "oic.sec.encoding.pem"
-	CSREncoding_DER CSREncoding = "oic.sec.encoding.der"
+	CertificateEncoding_PEM CertificateEncoding = "oic.sec.encoding.pem"
+	CertificateEncoding_DER CertificateEncoding = "oic.sec.encoding.der"
 )
 
-func (s CSREncoding) String() string {
+func (s CertificateEncoding) String() string {
 	switch s {
-	case CSREncoding_PEM:
+	case CertificateEncoding_PEM:
 		return "PEM"
-	case CSREncoding_DER:
+	case CertificateEncoding_DER:
 		return "DER"
 	default:
 		return fmt.Sprintf("unknown %v", string(s))
