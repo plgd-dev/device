@@ -57,7 +57,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 				fmt.Println(coap.Dump(req.Msg))
 			}
 
-			addr, err := net.Parse(req.Client.RemoteAddr())
+			addr, err := net.Parse("coap://", req.Client.RemoteAddr())
 			if err != nil {
 				handler.Error(fmt.Errorf("invalid address of device %s: %v", device.ID, err))
 				continue

@@ -3,6 +3,8 @@ package resource
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -12,6 +14,18 @@ import (
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
 )
+
+// GetCertificateFunc returns certificate for connection
+type GetCertificateFunc func() (tls.Certificate, error)
+
+// GetCertificateAuthoritiesFunc returns certificate authorities to verify peers
+type GetCertificateAuthoritiesFunc func() ([]*x509.Certificate, error)
+
+type TLSConfig struct {
+	// User for communication with owned devices and cloud
+	GetCertificate            GetCertificateFunc
+	GetCertificateAuthorities GetCertificateAuthoritiesFunc
+}
 
 // Client caches resource links and maintains a pool of connections to devices.
 type Client struct {
@@ -184,7 +198,7 @@ func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.Cl
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint of device %s: %v", deviceID, err)
 	}
-	conn, err := c.pool.GetOrCreate(ctx, addr.String())
+	conn, err := c.pool.GetOrCreate(ctx, addr.URL())
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to %s: %v", addr.String(), err)
 	}

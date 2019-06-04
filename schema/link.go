@@ -195,47 +195,47 @@ func (r ResourceLink) getEndpoint(scheme string) (_ kitNet.Addr, err error) {
 
 // GetTCPAddr parses and finds a TCP endpoint address.
 func (r ResourceLink) GetTCPAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(tcpScheme)
+	return r.getEndpoint(TCPScheme)
 }
 
-// GetTCPTLSAddr parses and finds a TCP secure endpoint address.
-func (r ResourceLink) GetTCPTLSAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(tcpTlsScheme)
+// GetTCPSecureAddr parses and finds a TCP secure endpoint address.
+func (r ResourceLink) GetTCPSecureAddr() (_ kitNet.Addr, err error) {
+	return r.getEndpoint(TCPSecureScheme)
 }
 
 // GetUDPAddr parses and finds a UDP endpoint address.
 func (r ResourceLink) GetUDPAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(udpScheme)
+	return r.getEndpoint(UDPScheme)
 }
 
-// GetUDPTLSAddr parses and finds a UDP endpoint address.
-func (r ResourceLink) GetUDPTLSAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(udpTlsScheme)
+// GetUDPSecureAddr parses and finds a UDP endpoint address.
+func (r ResourceLink) GetUDPSecureAddr() (_ kitNet.Addr, err error) {
+	return r.getEndpoint(UDPSecureScheme)
 }
 
 const (
-	tcpTlsScheme = "coaps+tcp"
-	tcpScheme    = "coap+tcp"
-	udpScheme    = "coap"
-	udpTlsScheme = "coaps"
+	TCPSecureScheme = "coaps+tcp"
+	TCPScheme       = "coap+tcp"
+	UDPScheme       = "coap"
+	UDPSecureScheme = "coaps"
 )
 
 func udpEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: udpScheme, Host: addr.String()}
+	u := url.URL{Scheme: UDPScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func udpTlsEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: udpTlsScheme, Host: addr.String()}
+	u := url.URL{Scheme: UDPSecureScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func tcpEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: tcpScheme, Host: addr.String()}
+	u := url.URL{Scheme: TCPScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func tcpTlsEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: tcpTlsScheme, Host: addr.String()}
+	u := url.URL{Scheme: TCPSecureScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }

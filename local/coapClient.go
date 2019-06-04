@@ -202,7 +202,7 @@ func (c *CoapClient) GetDeviceLinks(ctx context.Context, deviceID string) (devic
 
 	links := make([]schema.ResourceLink, 0, len(device.Links))
 	for _, link := range device.Links {
-		addr, err := net.Parse(c.clientConn.RemoteAddr())
+		addr, err := net.Parse(schema.UDPScheme, c.clientConn.RemoteAddr())
 		if err != nil {
 			return device, fmt.Errorf("invalid address of device %s: %v", device.ID, err)
 		}

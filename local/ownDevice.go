@@ -26,7 +26,7 @@ func (c *deviceOwnershipClient) GetOwnership() schema.Doxm {
 	return c.ownership
 }
 
-func (c *deviceOwnershipClient) GetTcpTlsAddress(ctx context.Context, deviceID string) (string, error) {
+func (c *deviceOwnershipClient) GetTcpSecureAddress(ctx context.Context, deviceID string) (string, error) {
 	deviceLink, err := c.GetDeviceLinks(ctx, deviceID)
 	if err != nil {
 		return "", err
@@ -38,7 +38,7 @@ func (c *deviceOwnershipClient) GetTcpTlsAddress(ctx context.Context, deviceID s
 			break
 		}
 	}
-	tcpTLSAddr, err := resourceLink.GetTCPTLSAddr()
+	tcpTLSAddr, err := resourceLink.GetTCPSecureAddr()
 	if err != nil {
 		return "", err
 	}
@@ -243,7 +243,7 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	tlsAddr, err := client.GetTcpTlsAddress(ctx, deviceID)
+	tlsAddr, err := client.GetTcpSecureAddress(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp tls address: %v", err))
 	}

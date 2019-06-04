@@ -30,7 +30,7 @@ func (f *UDPClientFactory) NewClient(
 	links schema.DeviceLinks,
 ) (*Client, error) {
 	f.linkCache.Update(links.ID, links.Links...)
-	addr, err := net.Parse(c.RemoteAddr())
+	addr, err := net.Parse(schema.UDPScheme, c.RemoteAddr())
 	if err != nil {
 		return nil, err
 	}

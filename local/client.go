@@ -24,28 +24,16 @@ type Client struct {
 	factory       ResourceClientFactory
 	conn          []*gocoap.MulticastClientConn
 
-	tlsConfig TLSConfig
+	tlsConfig resource.TLSConfig
 
 	lock sync.Mutex
-}
-
-// GetCertificateFunc returns certificate for connection
-type GetCertificateFunc func() (tls.Certificate, error)
-
-// GetCertificateAuthoritiesFunc returns certificate authorities to verify peers
-type GetCertificateAuthoritiesFunc func() ([]*x509.Certificate, error)
-
-type TLSConfig struct {
-	// User for communication with owned devices and cloud
-	GetCertificate            GetCertificateFunc
-	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
 // Config for the OCF local client.
 type Config struct {
 	Protocol  string
 	Resource  resource.Config
-	TLSConfig TLSConfig
+	TLSConfig resource.TLSConfig
 }
 
 // NewClientFromConfig constructs a new OCF client.
@@ -57,23 +45,23 @@ func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
 	}
 
 	// Only TCP is supported at the moment.
-	f := NewResourceClientFactory(cfg.Protocol, linkCache)
+	f := NewResourceClientFactory(cfg, linkCache)
 
 	return NewClient(cfg.TLSConfig, f, conn), nil
 }
 
-func NewClient(TLSConfig TLSConfig, f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
+func NewClient(TLSConfig resource.TLSConfig, f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
 	return &Client{tlsConfig: TLSConfig, factory: f, conn: conn, observations: &sync.Map{}}
 }
 
-func NewResourceClientFactory(protocol string, linkCache *link.Cache) ResourceClientFactory {
-	switch protocol {
+func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientFactory {
+	switch cfg.Protocol {
 	case "tcp":
-		return &tcpClientFactory{f: resource.NewTCPClientFactory(linkCache)}
+		return &tcpClientFactory{f: resource.NewTCPClientFactory(cfg.TLSConfig, linkCache)}
 	case "udp":
 		return &udpClientFactory{f: resource.NewUDPClientFactory(linkCache)}
 	default:
-		panic(fmt.Errorf("unsupported resource client protocol %s", protocol))
+		panic(fmt.Errorf("unsupported resource client protocol %s", cfg.Protocol))
 	}
 }
 
