@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:022d2b67e55e099ae3b022de2f3ca0ea2c6a3ee1c2fee0f3bf3ccee94098d404"
+  digest = "1:9e6b61207bc668d1a55f5089298f260675694512d230362d6b1a28cad18b5978"
   name = "github.com/go-ocf/go-coap"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5af7e00b373551c0ccc087eeb13870ba40909e79"
+  revision = "37b6b19297850791aa4675060ce208a40d7e38ad"
 
 [[projects]]
   branch = "master"
@@ -23,11 +23,11 @@
   name = "github.com/go-ocf/grpc-gateway"
   packages = ["pb"]
   pruneopts = "UT"
-  revision = "dd84b2f3761e22e0fa373bd477e57834a32a0514"
+  revision = "b3e1821a18274ff0f74bd8b217f3dc8a25cfb37b"
 
 [[projects]]
   branch = "master"
-  digest = "1:1bf3a475ea048ff9e38f4a5998ae498aa547b294c25ad81077e61a78fd4df276"
+  digest = "1:1c75f3a003ef1e4a6a8eb2bc53ffed72819110f84cb020a8a01c0659a04499e9"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -39,7 +39,7 @@
     "sync",
   ]
   pruneopts = "UT"
-  revision = "f1021a248b809eac1fd387f6f89982d509cc793b"
+  revision = "6340447ca2ab4f40c493abc3397fc96a3ef37665"
 
 [[projects]]
   digest = "1:4652941215f23c7ad6546bab86964c72248a1134baa53f0df618661344ba5cac"
@@ -68,12 +68,12 @@
   version = "v1.3.1"
 
 [[projects]]
-  digest = "1:808cdddf087fb64baeae67b8dfaee2069034d9704923a3cb8bd96a995421a625"
-  name = "github.com/patrickmn/go-cache"
+  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
+  name = "github.com/google/uuid"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a3647f8e31d79543b2d0f0ae2fe5c379d72cedc0"
-  version = "v2.1.0"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -104,7 +104,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9f61e3727cd665a908e21f2910e0d994d5889a203fe74f7a232c49322d4ac142"
+  digest = "1:f495a764651b84a3a81b165452a3fb8123007a6bde58d16e8cfd69b113720b78"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -120,18 +120,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "f3200d17e092c607f615320ecaad13d87ad9a2b3"
+  revision = "60506f45cf65977eb3a9c6e30f995f54a721c271"
 
 [[projects]]
   branch = "master"
-  digest = "1:107a534dfc1cd42e4f9fc48f335a9af498c99dd43118f925be74c153d1c9a7e2"
+  digest = "1:e456eadc3fc18795bdaf836c3a8f25d678cfdd52a5164cf1d3a64ffe23b8df1a"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "adf421d2caf4ffcf74142ff5fb9ee323b21a819e"
+  revision = "4c4f7f33c9ed00de01c4c741d2177abfcfe19307"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -164,7 +164,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "c2c4e71fbf6989c3e46a18d65cb88c288f8a3a55"
+  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
 
 [[projects]]
   digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
@@ -219,7 +219,7 @@
     "github.com/go-ocf/kit/security",
     "github.com/go-ocf/kit/strings",
     "github.com/go-ocf/kit/sync",
-    "github.com/patrickmn/go-cache",
+    "github.com/google/uuid",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "google.golang.org/grpc/codes",

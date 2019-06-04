@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/sdk/local/resource"
@@ -12,8 +13,9 @@ import (
 
 // Client an OCF local client.
 type Client struct {
-	factory ResourceClientFactory
-	conn    []*gocoap.MulticastClientConn
+	factory      ResourceClientFactory
+	conn         []*gocoap.MulticastClientConn
+	observations *sync.Map
 }
 
 // Config for the OCF local client.
@@ -37,7 +39,7 @@ func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
 }
 
 func NewClient(f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
-	return &Client{factory: f, conn: conn}
+	return &Client{factory: f, conn: conn, observations: &sync.Map{}}
 }
 
 func NewResourceClientFactory(protocol string, linkCache *link.Cache) ResourceClientFactory {
@@ -54,6 +56,7 @@ func NewResourceClientFactory(protocol string, linkCache *link.Cache) ResourceCl
 type resourceClient interface {
 	Get(ctx context.Context, deviceID, href string, responseBody interface{}, options ...func(gocoap.Message)) error
 	Post(ctx context.Context, deviceID, href string, requestBody interface{}, responseBody interface{}, options ...func(gocoap.Message)) error
+	Observe(ctx context.Context, deviceID, href string, handler resource.ObservationHandler, options ...func(gocoap.Message)) (*gocoap.Observation, error)
 }
 
 type ResourceClientFactory interface {

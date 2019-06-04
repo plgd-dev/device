@@ -97,6 +97,59 @@ func (c *Client) Post(
 	return nil
 }
 
+// DecodeFunc can be used to pass in the data type that should be decoded.
+type DecodeFunc func(interface{}) error
+
+// ObservationHandler receives notifications from the observation request.
+type ObservationHandler interface {
+	Handle(ctx context.Context, client *gocoap.ClientConn, body DecodeFunc)
+	Error(err error)
+}
+
+// Observe makes a CoAP observation request over a connection from the client's pool.
+// It stores the observation context and returns an id.
+func (c *Client) Observe(
+	ctx context.Context,
+	deviceID, href string,
+	handler ObservationHandler,
+	options ...func(gocoap.Message),
+) (*gocoap.Observation, error) {
+	r, err := c.linkCache.GetOrCreate(ctx, deviceID, href)
+	if err != nil {
+		return nil, fmt.Errorf("no response from device %s: %v", deviceID, err)
+	}
+	if !r.Policy.BitMask.Has(schema.Observable) {
+		return nil, fmt.Errorf("non-observable resource %s", href)
+	}
+	conn, err := c.getConn(ctx, deviceID, href)
+	if err != nil {
+		return nil, err
+	}
+	obs, err := conn.ObserveWithContext(ctx, href, c.observationHandler(handler), options...)
+	if err != nil {
+		return nil, fmt.Errorf("could not observe %s: %v", href, err)
+	}
+	return obs, nil
+}
+
+func (c *Client) observationHandler(handler ObservationHandler) func(*gocoap.Request) {
+	return func(req *gocoap.Request) {
+		handler.Handle(req.Ctx, req.Client, c.decode(req.Msg))
+	}
+}
+
+func (c *Client) decode(m gocoap.Message) DecodeFunc {
+	return func(body interface{}) error {
+		if m.Code() != gocoap.Content {
+			return fmt.Errorf("observation failed: %s", coap.Dump(m))
+		}
+		if err := c.codec.Decode(m, body); err != nil {
+			return fmt.Errorf("could not decode observation: %v", err)
+		}
+		return nil
+	}
+}
+
 func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.ClientConn, error) {
 	r, err := c.linkCache.GetOrCreate(ctx, deviceID, href)
 	if err != nil {
