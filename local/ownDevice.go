@@ -2,20 +2,17 @@ package local
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
+
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
 	"fmt"
-	"math/big"
+
 	"sync"
 	//"encoding/base64"
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/codec/cbor"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -27,6 +24,25 @@ type deviceOwnershipClient struct {
 
 func (c *deviceOwnershipClient) GetOwnership() schema.Doxm {
 	return c.ownership
+}
+
+func (c *deviceOwnershipClient) GetTcpTlsAddress(ctx context.Context, deviceID string) (string, error) {
+	deviceLink, err := c.GetDeviceLinks(ctx, deviceID)
+	if err != nil {
+		return "", err
+	}
+	var resourceLink schema.ResourceLink
+	for _, link := range deviceLink.Links {
+		if link.HasType("oic.r.doxm") {
+			resourceLink = link
+			break
+		}
+	}
+	tcpTLSAddr, err := resourceLink.GetTCPTLSAddr()
+	if err != nil {
+		return "", err
+	}
+	return tcpTLSAddr.String(), nil
 }
 
 type deviceOwnershipHandler struct {
@@ -91,22 +107,26 @@ type OTMClient interface {
 	Type() schema.OwnerTransferMethod
 	Dial(ctx context.Context, addr string) (*CoapClient, error)
 	// SignCSR
-	SignCSR(encoding schema.CertificateEncoding, csr []byte) (signedEncoding schema.CertificateEncoding, signedCsr []byte, err error)
+	SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error)
+}
+
+type CertificateSigner interface {
+	//csr is encoded by DER
+	Sign(ctx context.Context, csr []byte) ([]byte, error)
 }
 
 type ManufacturerOTMClient struct {
-	manufacturerCertificate   tls.Certificate
-	manufacturerCA            *x509.Certificate
-	manufacturerCAKey         *ecdsa.PrivateKey
-	signedCertificateValidFor time.Duration
+	manufacturerCertificate tls.Certificate
+	manufacturerCA          *x509.Certificate
+
+	signer CertificateSigner
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, manufacturerCAKey *ecdsa.PrivateKey, signedCertificateValidFor time.Duration) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
-		manufacturerCertificate:   manufacturerCertificate,
-		manufacturerCA:            manufacturerCA,
-		manufacturerCAKey:         manufacturerCAKey,
-		signedCertificateValidFor: signedCertificateValidFor,
+		manufacturerCertificate: manufacturerCertificate,
+		manufacturerCA:          manufacturerCA,
+		signer:                  signer,
 	}
 }
 
@@ -115,54 +135,23 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 }
 
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*CoapClient, error) {
-	return DialTcpTls(ctx, addr, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate)error {return nil})
+	return DialTcpTls(ctx, addr, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
 }
 
-func (otmc *ManufacturerOTMClient) SignCSR(encoding schema.CertificateEncoding, csr []byte) (signedEncoding schema.CertificateEncoding, signedCsr []byte, err error) {
-	der := csr
+func encodeToDer(encoding schema.CertificateEncoding, data []byte) ([]byte, error) {
+	der := data
 	if encoding == schema.CertificateEncoding_PEM {
-		derBlock, _ := pem.Decode(csr)
+		derBlock, _ := pem.Decode(data)
 		if derBlock == nil {
-			err = fmt.Errorf("invalid encoding for csr")
-			return
+			return nil, fmt.Errorf("invalid pem encoding")
 		}
 		der = derBlock.Bytes
 	}
+	return der, nil
+}
 
-	certificateRequest, err := x509.ParseCertificateRequest(der)
-	if err != nil {
-		return
-	}
-
-	err = certificateRequest.CheckSignature()
-	if err != nil {
-		return
-	}
-
-	notBefore := time.Now()
-	notAfter := notBefore.Add(otmc.signedCertificateValidFor)
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-
-	template := x509.Certificate{
-		SerialNumber:       serialNumber,
-		NotBefore:          notBefore,
-		NotAfter:           notAfter,
-		Subject:            certificateRequest.Subject,
-		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
-		PublicKey:          certificateRequest.PublicKey,
-		SignatureAlgorithm: certificateRequest.SignatureAlgorithm,
-		DNSNames:           certificateRequest.DNSNames,
-		IPAddresses:        certificateRequest.IPAddresses,
-		Extensions:         certificateRequest.Extensions,
-		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
-		UnknownExtKeyUsage: []asn1.ObjectIdentifier{ekuOcfId},
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-	}
-
-	signedEncoding = schema.CertificateEncoding_DER
-	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, otmc.manufacturerCA, certificateRequest.PublicKey, otmc.manufacturerCAKey)
-	return
+func (otmc *ManufacturerOTMClient) SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
+	return otmc.signer.Sign(ctx, csr)
 }
 
 func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
@@ -173,6 +162,46 @@ func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
 		return string(d)
 	}
 	return string(data)
+}
+
+func iotivityHack(ctx context.Context, tlsClient *CoapClient, sdkId string) error {
+	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
+
+	setDeviceOwner := schema.DoxmUpdate{
+		DeviceOwner: hackId,
+	}
+
+	/*doxm doesn't send any content for select OTM*/
+	err := tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
+	if err != nil {
+		return fmt.Errorf("cannot set device hackid as owner %v", err)
+	}
+
+	// THIS iS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
+	iotivityHackCredential := schema.CredentialUpdateRequest{
+		ResourceOwner: sdkId,
+		Credentials: []schema.Credential{
+			schema.Credential{
+				Subject: hackId,
+				Type:    schema.CredentialType_SYMMETRIC_PAIR_WISE,
+				PrivateData: schema.CredentialPrivateData{
+					Data:     "IOTIVITY HACK",
+					Encoding: schema.CredentialPrivateDataEncoding_RAW,
+				},
+			},
+		},
+	}
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
+	if err != nil {
+		return fmt.Errorf("cannot set iotivity-hack credential: %v", err)
+	}
+
+	err = tlsClient.DeleteResourceCBOR(ctx, "/oic/sec/cred", nil, WithCredentialSubject(hackId))
+	if err != nil {
+		return fmt.Errorf("cannot delete iotivity-hack credential: %v", err)
+	}
+
+	return nil
 }
 
 // OwnDevice set ownership of device
@@ -190,11 +219,6 @@ func (c *Client) OwnDevice(
 	}
 
 	ownership := client.GetOwnership()
-/*
-	if ownership.Owned {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device already owned by %v", ownership.DeviceOwner))
-	}
-*/
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otmClient.Type() {
@@ -213,26 +237,18 @@ func (c *Client) OwnDevice(
 	/*doxm doesn't send any content for select OTM*/
 	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", selectOTM, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-
-	deviceLink, err := client.GetDeviceLinks(ctx, deviceID)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-	var resourceLink schema.ResourceLink
-	for _, link := range deviceLink.Links {
-		if link.HasType("oic.r.doxm") {
-			resourceLink = link
-			break
+		if ownership.Owned {
+			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
 		}
-	}
-	tcpTLSAddr, err := resourceLink.GetTCPTLSAddr()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("secure endpoints not found"))
+		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	tlsClient, err := otmClient.Dial(ctx, tcpTLSAddr.String())
+	tlsAddr, err := client.GetTcpTlsAddress(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp tls address: %v", err))
+	}
+
+	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
 	}
@@ -269,35 +285,19 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
 	}
 
-	setDeviceOwner := schema.DoxmUpdate{
-		DeviceOwner: sdkId,
-		ResourceOwner: sdkId,
-		Owned: true,
-	}
-
-	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
-	}
-
-	/*verify ownership*/
-	var verifyOwner schema.Doxm
-	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/doxm", &verifyOwner)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-	if verifyOwner.DeviceOwner != sdkId {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is owned by %v, not by %v", verifyOwner.DeviceOwner, sdkId))
-	}
-
 	/*setup credentials - PostOwnerCredential*/
 	var csr schema.CertificateSigningRequestResponse
 	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/csr", &csr)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get csr for setup device owner credentials: %v", err))
 	}
-	signedEncodingCsr, signedCsr, err := otmClient.SignCSR(csr.Encoding, csr.CertificateSigningRequest)
+
+	der, err := encodeToDer(csr.Encoding, csr.CertificateSigningRequest)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot encode csr to der: %v", err))
+	}
+
+	signedCsr, err := otmClient.SignCertificate(ctx, der)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err))
 	}
@@ -311,7 +311,7 @@ func (c *Client) OwnDevice(
 	for _, cred := range deviceCredential.Credentials {
 		switch {
 		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-		cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE: 
+			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
 			err = tlsClient.DeleteResourceCBOR(ctx, "/oic/sec/cred", nil, WithCredentialId(cred.ID))
 			if err != nil {
 				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err))
@@ -325,8 +325,8 @@ func (c *Client) OwnDevice(
 						Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 						Usage:   schema.CredentialUsage_CERT,
 						PublicData: schema.CredentialPublicData{
-							Data:     encodeToPem(signedEncodingCsr, signedCsr),
-							Encoding: schema.CredentialPublicDataEncoding_PEM,
+							Data:     string(signedCsr),
+							Encoding: schema.CredentialPublicDataEncoding_DER,
 						},
 					},
 				},
@@ -352,8 +352,8 @@ func (c *Client) OwnDevice(
 					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 					Usage:   schema.CredentialUsage_TRUST_CA,
 					PublicData: schema.CredentialPublicData{
-						Data:     encodeToPem(schema.CertificateEncoding_DER, ca.Raw),
-						Encoding: schema.CredentialPublicDataEncoding_PEM,
+						Data:     string(ca.Raw),
+						Encoding: schema.CredentialPublicDataEncoding_DER,
 					},
 				},
 			},
@@ -364,17 +364,62 @@ func (c *Client) OwnDevice(
 		}
 	}
 
+	// THIS iS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
+	err = iotivityHack(ctx, tlsClient, sdkId)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+
+	setDeviceOwner := schema.DoxmUpdate{
+		DeviceOwner: sdkId,
+	}
+
+	/*doxm doesn't send any content for select OTM*/
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+	}
+
+	/*verify ownership*/
+	var verifyOwner schema.Doxm
+	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/doxm", &verifyOwner)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	if verifyOwner.DeviceOwner != sdkId {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+
+	setDeviceOwned := schema.DoxmUpdate{
+		ResourceOwner: sdkId,
+		Owned:         true,
+	}
+
+	/*doxm doesn't send any content for select OTM*/
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owned %v", err))
+	}
 
 	//For Servers based on OCF 1.0, PostOwnerAcl can be executed using
-    //the already-existing session. However, get ready here to use the
-    //Owner Credential for establishing future secure sessions.
-    //
-    //For Servers based on OIC 1.1, PostOwnerAcl might fail with status
-    //OC_STACK_UNAUTHORIZED_REQ. After such a failure, OwnerAclHandler
-    //will close the current session and re-establish a new session,
-    //using the Owner Credential.
+	//the already-existing session. However, get ready here to use the
+	//Owner Credential for establishing future secure sessions.
+	//
+	//For Servers based on OIC 1.1, PostOwnerAcl might fail with status
+	//OC_STACK_UNAUTHORIZED_REQ. After such a failure, OwnerAclHandler
+	//will close the current session and re-establish a new session,
+	//using the Owner Credential.
 
+	cert, err := c.GetCertificate()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get cert to setup device owner ACLs: %v", err))
+	}
 
+	tlsClient.Close()
+	tlsClient, err = DialTcpTls(ctx, tlsAddr, cert, cas, VerifyIndetityCertificate)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS communicaton to setup device owner ACLs: %v", err))
+	}
 
 	setOwnerProvisionState := schema.ProvisionStatusUpdateRequest{
 		ResourceOwner: sdkId,
@@ -405,13 +450,6 @@ func (c *Client) OwnDevice(
 		},
 	}
 
-
-	v, _ := cbor.ToJSON(func () []byte {
-		v, _ := cbor.Encode(setOwnerAcl)
-		return v
-	}())
-	fmt.Println(v)
-
 	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/acl2", setOwnerAcl, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update acl resource owner: %v", err))
@@ -429,14 +467,16 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFPRO to setup device owner ACLs: %v", err))
 	}
 
-	cert,err := c.GetCertificate()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get cert to setup device owner ACLs: %v", err))
+	// Change the dos.s value to RFNOP
+	setProvisionStateToRFNOP := schema.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: schema.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
+		},
 	}
 
-	_, err = DialTcpTls(ctx, tcpTLSAddr.String(), cert, cas, VerifyIndetityCertificate)
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/pstat", setProvisionStateToRFNOP, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS communicaton to setup device owner ACLs: %v", err))
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFNOP to setup device owner ACLs: %v", err))
 	}
 
 	return nil

@@ -2,12 +2,13 @@ package local
 
 import (
 	"context"
-	"fmt"
-	"strconv"
-	"time"
-	"strings"
 	"crypto/tls"
 	"crypto/x509"
+	"fmt"
+	"strconv"
+	"strings"
+	"time"
+
 	uuid "github.com/gofrs/uuid"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -43,7 +44,7 @@ func VerifyIndetityCertificate(cert *x509.Certificate) error {
 	}
 	ekuHasOcfId := false
 	for _, eku := range cert.UnknownExtKeyUsage {
-		if eku.Equal(ekuOcfId) {
+		if eku.Equal(schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
 			ekuHasOcfId = true
 			break
 		}
@@ -101,7 +102,6 @@ func DialTcpTls(ctx context.Context, addr string, cert tls.Certificate, cas []*x
 	}
 	return NewCoapClient(coapConn), nil
 }
-
 
 func NewCoapClient(clientConn *gocoap.ClientConn) *CoapClient {
 	return &CoapClient{clientConn: clientConn}
@@ -237,4 +237,8 @@ func (c *CoapClient) DeleteResourceCBOR(
 	options ...optionFunc,
 ) error {
 	return c.DeleteResource(ctx, href, coap.CBORCodec{}, response, options...)
+}
+
+func (c *CoapClient) Close() error {
+	return c.clientConn.Close()
 }

@@ -2,17 +2,65 @@ package local_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/asn1"
 	"encoding/pem"
+	"math/big"
 	"testing"
 	"time"
+
+	"github.com/go-ocf/sdk/schema"
 
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/stretchr/testify/require"
 )
 
 //docker rm -f devsim; docker run -t -d --network=host --entrypoint /usr/bin/kicdevsim -v `pwd`/data:/data --name devsim dockerhub.kistler.com/kiconnect/kiconnect-device-simulator:2.2.7-secure-dbg --svrdb /data/oic_svr_db.dat
+
+type TestCertificateSigner struct {
+	ca       *x509.Certificate
+	caKey    *ecdsa.PrivateKey
+	validFor time.Duration
+}
+
+func (s TestCertificateSigner) Sign(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
+	certificateRequest, err := x509.ParseCertificateRequest(csr)
+	if err != nil {
+		return
+	}
+
+	err = certificateRequest.CheckSignature()
+	if err != nil {
+		return
+	}
+
+	notBefore := time.Now()
+	notAfter := notBefore.Add(s.validFor)
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+
+	template := x509.Certificate{
+		SerialNumber:       serialNumber,
+		NotBefore:          notBefore,
+		NotAfter:           notAfter,
+		Subject:            certificateRequest.Subject,
+		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
+		PublicKey:          certificateRequest.PublicKey,
+		SignatureAlgorithm: certificateRequest.SignatureAlgorithm,
+		DNSNames:           certificateRequest.DNSNames,
+		IPAddresses:        certificateRequest.IPAddresses,
+		Extensions:         certificateRequest.Extensions,
+		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+		UnknownExtKeyUsage: []asn1.ObjectIdentifier{schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
+		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+	}
+
+	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.ca, certificateRequest.PublicKey, s.caKey)
+	return
+}
 
 func TestClient_ownDevice(t *testing.T) {
 	type args struct {
@@ -31,18 +79,16 @@ func TestClient_ownDevice(t *testing.T) {
 		},
 	}
 
-
 	cert, err := tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
 	require.NoError(t, err)
 	derBlock, _ := pem.Decode(CARootPemBlock)
-	require.NotEmpty(t,derBlock)
+	require.NotEmpty(t, derBlock)
 	ca, err := x509.ParseCertificate(derBlock.Bytes)
 	require.NoError(t, err)
 	derBlockKey, _ := pem.Decode(CARootKeyPemBlock)
-	require.NotEmpty(t,derBlockKey)
+	require.NotEmpty(t, derBlockKey)
 	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
 	require.NoError(t, err)
-
 
 	testOwnCfg := testCfg
 	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
@@ -52,7 +98,13 @@ func TestClient_ownDevice(t *testing.T) {
 		return []*x509.Certificate{ca}, nil
 	}
 
-	otm := ocf.NewManufacturerOTMClient(cert, ca, caKey, time.Hour*86400)
+	signer := TestCertificateSigner{
+		ca:       ca,
+		caKey:    caKey,
+		validFor: time.Hour * 86400,
+	}
+
+	otm := ocf.NewManufacturerOTMClient(cert, ca, signer)
 
 	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
 	require := require.New(t)

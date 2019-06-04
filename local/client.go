@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/asn1"
 	"fmt"
 	"strings"
 	"sync"
@@ -129,8 +128,6 @@ func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) 
 	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }
 
-var ekuOcfId = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
-
 func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
 	// verify EKU manually
 	ekuHasClient := false
@@ -145,7 +142,7 @@ func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
 	}
 	ekuHasOcfId := false
 	for _, eku := range cert.UnknownExtKeyUsage {
-		if eku.Equal(ekuOcfId) {
+		if eku.Equal(schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
 			ekuHasOcfId = true
 			break
 		}
