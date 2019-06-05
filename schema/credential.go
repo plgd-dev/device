@@ -1,8 +1,8 @@
 package schema
 
 import (
-	"fmt"
 	"encoding/asn1"
+	"fmt"
 )
 
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json

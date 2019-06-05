@@ -59,7 +59,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 			name: "invalid authorizationCode",
 			args: args{
 				authorizationProvider: "a",
-				url: "c",
+				url:                   "c",
 			},
 			wantErr: true,
 		},

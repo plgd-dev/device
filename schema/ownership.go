@@ -5,24 +5,24 @@ import "fmt"
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.doxm.swagger.json
 
 type Doxm struct {
-	ResourceOwner                 string   `codec:"rowneruuid"`
-	SupportedOwnerTransferMethods []OwnerTransferMethod    `codec:"oxms"`
-	DeviceOwner                   string   `codec:"devowneruuid"`
-	DeviceId                      string   `codec:"deviceuuid"`
-	Owned                         bool     `codec:"owned"`
-	Name                          string   `codec:"n"`
-	InstanceId                    string   `codec:"id"`
-	SupportedCredentialTypes      int      `codec:"sct"`
-	SelectedOwnerTransferMethod   OwnerTransferMethod      `codec:"oxmsel"`
-	Interfaces                    []string `codec:"if"`
-	ResourceTypes                 []string `codec:"rt"`
+	ResourceOwner                 string                `codec:"rowneruuid"`
+	SupportedOwnerTransferMethods []OwnerTransferMethod `codec:"oxms"`
+	DeviceOwner                   string                `codec:"devowneruuid"`
+	DeviceId                      string                `codec:"deviceuuid"`
+	Owned                         bool                  `codec:"owned"`
+	Name                          string                `codec:"n"`
+	InstanceId                    string                `codec:"id"`
+	SupportedCredentialTypes      int                   `codec:"sct"`
+	SelectedOwnerTransferMethod   OwnerTransferMethod   `codec:"oxmsel"`
+	Interfaces                    []string              `codec:"if"`
+	ResourceTypes                 []string              `codec:"rt"`
 }
 
 type DoxmUpdate struct {
-	ResourceOwner             string `codec:"rowneruuid,omitempty"`
-	DeviceOwner               string `codec:"devowneruuid,omitempty"`
-	DeviceId                  string `codec:"deviceuuid,omitempty"`
-	Owned                     bool   `codec:"owned,omitempty"`
+	ResourceOwner             string              `codec:"rowneruuid,omitempty"`
+	DeviceOwner               string              `codec:"devowneruuid,omitempty"`
+	DeviceId                  string              `codec:"deviceuuid,omitempty"`
+	Owned                     bool                `codec:"owned,omitempty"`
 	SelectOwnerTransferMethod OwnerTransferMethod `codec:"oxmsel,omitempty"`
 }
 

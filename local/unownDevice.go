@@ -37,7 +37,7 @@ func (c *Client) UnownDevice(
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: schema.DeviceOnboardingState{
+		DeviceOnboardingState: &schema.DeviceOnboardingState{
 			CurrentOrPendingOperationalState: schema.OperationalState_RESET,
 		},
 	}
@@ -46,5 +46,6 @@ func (c *Client) UnownDevice(
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+
 	return nil
 }

@@ -1,33 +1,31 @@
 package schema
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.acl2.swagger.json
 
 type AccessControlListResponse struct {
-	ResourceOwner string       `codec:"rowneruuid"`
-	Interfaces    []string     `codec:"if"`
-	ResourceTypes []string     `codec:"rt"`
-	Name          string       `codec:"n"`
+	ResourceOwner     string          `codec:"rowneruuid"`
+	Interfaces        []string        `codec:"if"`
+	ResourceTypes     []string        `codec:"rt"`
+	Name              string          `codec:"n"`
 	AccessControlList []AccessControl `codec:"aclist2"`
 }
-
 
 type AccessControlListUpdateRequest struct {
-	ResourceOwner string       `codec:"rowneruuid"`
+	ResourceOwner     string          `codec:"rowneruuid"`
 	AccessControlList []AccessControl `codec:"aclist2"`
 }
 
-
 type AccessControl struct {
-	ID int `codec:"id,omitempty"`
-	Permission AccessControlPermission `codec:"permission"`
-	Resources  []AccessControlResource  `codec:"resources"`
-	Subject   AccessControlSubject `codec:"subject"`
-	Validity  []AccessControlTimePattern `codec:"validity,omitempty"`
+	ID         int                        `codec:"id,omitempty"`
+	Permission AccessControlPermission    `codec:"permission"`
+	Resources  []AccessControlResource    `codec:"resources"`
+	Subject    AccessControlSubject       `codec:"subject"`
+	Validity   []AccessControlTimePattern `codec:"validity,omitempty"`
 }
 
 type AccessControlPermission int
@@ -74,31 +72,31 @@ func (b AccessControlPermission) Has(flag AccessControlPermission) bool {
 }
 
 type AccessControlResource struct {
-	Href string `codec:"href,omitempty"`
-	Interfaces []string `codec:"if,omitempty"`
-	ResourceTypes []string `codec:"rt,omitempty"`
-	Wildcard AccessControlResourceWildcard `codec:"w,omitempty"`
+	Href          string                        `codec:"href,omitempty"`
+	Interfaces    []string                      `codec:"if,omitempty"`
+	ResourceTypes []string                      `codec:"rt,omitempty"`
+	Wildcard      AccessControlResourceWildcard `codec:"w,omitempty"`
 }
 
 type AccessControlResourceWildcard string
 
-const(
-	AccessControlResourceWildcard_NONCFG_SEC_ENDPOINT AccessControlResourceWildcard  = "+"
-	AccessControlResourceWildcard_NONCFG_NONSEC_ENDPOINT AccessControlResourceWildcard  = "-"
-	AccessControlResourceWildcard_NONCFG_ALL AccessControlResourceWildcard  = "*"
+const (
+	AccessControlResourceWildcard_NONCFG_SEC_ENDPOINT    AccessControlResourceWildcard = "+"
+	AccessControlResourceWildcard_NONCFG_NONSEC_ENDPOINT AccessControlResourceWildcard = "-"
+	AccessControlResourceWildcard_NONCFG_ALL             AccessControlResourceWildcard = "*"
 )
 
 type AccessControlSubjectDevice struct {
-	DeviceId string  `codec:"uuid,omitempty"`
+	DeviceId string `codec:"uuid,omitempty"`
 }
 
 type AccessControlSubjectRole struct {
-	Authority string  `codec:"authority,omitempty"`
-	Role string  `codec:"role,omitempty"`
+	Authority string `codec:"authority,omitempty"`
+	Role      string `codec:"role,omitempty"`
 }
 
 type AccessControlSubjectConnection struct {
-	Type AccessControlSubjectConnectionType  `codec:"conntype,omitempty"`
+	Type AccessControlSubjectConnectionType `codec:"conntype,omitempty"`
 }
 
 type AccessControlSubjectConnectionType string
@@ -116,6 +114,6 @@ type AccessControlSubject struct {
 }
 
 type AccessControlTimePattern struct {
-	Period string `codec:"period"`
+	Period     string `codec:"period"`
 	Recurrence string `codec:"recurrence"`
 }

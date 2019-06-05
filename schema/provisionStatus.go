@@ -1,8 +1,8 @@
 package schema
 
 import (
-	"strings"
 	"fmt"
+	"strings"
 )
 
 //https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
@@ -13,36 +13,37 @@ type DeviceOnboardingState struct {
 }
 
 type ProvisionStatusResponse struct {
-	ResourceOwner              string                 `codec:"rowneruuid"`
-	Interfaces                 []string               `codec:"if"`
-	ResourceTypes              []string               `codec:"rt"`
-	CurrentOperationalMode     OperationalMode        `codec:"om"`
-	CurrentProvisioningMode    ProvisioningMode `codec:"cm"`
-	Name                       string                 `codec:"n"`
-	InstanceId                 string                 `codec:"id"`
-	DeviceIsOperational        bool                   `codec:"isop"`
-	TargetProvisioningMode     ProvisioningMode `codec:"tm"`
-	SupportedOperationalModes  OperationalMode        `codec:"sm"`
-	DeviceOnboardingState      DeviceOnboardingState  `codec:"dos"`
+	ResourceOwner             string                `codec:"rowneruuid"`
+	Interfaces                []string              `codec:"if"`
+	ResourceTypes             []string              `codec:"rt"`
+	CurrentOperationalMode    OperationalMode       `codec:"om"`
+	CurrentProvisioningMode   ProvisioningMode      `codec:"cm"`
+	Name                      string                `codec:"n"`
+	InstanceId                string                `codec:"id"`
+	DeviceIsOperational       bool                  `codec:"isop"`
+	TargetProvisioningMode    ProvisioningMode      `codec:"tm"`
+	SupportedOperationalModes OperationalMode       `codec:"sm"`
+	DeviceOnboardingState     DeviceOnboardingState `codec:"dos"`
 }
 
 type ProvisionStatusUpdateRequest struct {
-	ResourceOwner              string                 `codec:"rowneruuid,omitempty"`
-	CurrentOperationalMode     OperationalMode        `codec:"om,omitempty"`
-	TargetProvisioningMode     ProvisioningMode       `codec:"tm,omitempty`
-	DeviceOnboardingState      DeviceOnboardingState  `codec:"dos,omitempty"`
+	ResourceOwner          string                 `codec:"rowneruuid,omitempty"`
+	CurrentOperationalMode OperationalMode        `codec:"om,omitempty"`
+	TargetProvisioningMode ProvisioningMode       `codec:"tm,omitempty`
+	DeviceOnboardingState  *DeviceOnboardingState `codec:"dos,omitempty"`
 }
 
 type OperationalState int
+
 const (
 	// OperationalState_RESET - Device reset state.
-	OperationalState_RESET  = OperationalState(0) 
+	OperationalState_RESET = OperationalState(0)
 	// OperationalState_RFOTM - Ready for Device owner transfer method state.
-	OperationalState_RFOTM  = OperationalState(1)
+	OperationalState_RFOTM = OperationalState(1)
 	// OperationalState_RFPRO - Ready for Device provisioning state.
-	OperationalState_RFPRO  = OperationalState(2)
+	OperationalState_RFPRO = OperationalState(2)
 	// OperationalState_RFNOP - Ready for Device normal operation state.
-	OperationalState_RFNOP  = OperationalState(3)
+	OperationalState_RFNOP = OperationalState(3)
 	// OperationalState_SRESET - The Device is in a soft reset state."
 	OperationalState_SRESET = OperationalState(4)
 )
@@ -60,11 +61,12 @@ func (s OperationalState) String() string {
 	case OperationalState_SRESET:
 		return "OperationalState_SRESET"
 	default:
-		return fmt.Sprintf("unknown %v", s)
+		return fmt.Sprintf("unknown %v", string(s))
 	}
 }
 
 type OperationalMode uint8
+
 const (
 	OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPE_SERVICES OperationalMode = 1 << iota
 	OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE
@@ -97,6 +99,7 @@ func (b OperationalMode) Has(flag OperationalMode) bool {
 }
 
 type ProvisioningMode uint16
+
 const (
 	// ProvisioningMode_INIT_SOFT_VER_VALIDATION - Software version validation requested/pending(1), completed(0)
 	ProvisioningMode_INIT_SOFT_VER_VALIDATION ProvisioningMode = 1 << 6

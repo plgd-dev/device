@@ -105,9 +105,6 @@ func (d DeviceLinks) PatchEndpoint(addr kitNet.Addr) DeviceLinks {
 	for _, r := range d.Links {
 		links = append(links, r.PatchEndpoint(addr))
 	}
-	if d.ID == "00000000-cafe-baba-0000-000000000000" {
-		fmt.Println(links)
-	}
 	d.Links = links
 	return d
 }

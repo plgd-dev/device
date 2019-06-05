@@ -113,12 +113,10 @@ func (c *Cache) getOrCreate(ctx context.Context, deviceID, href string) (_ schem
 	}
 	c.lock.Lock()
 	defer c.lock.Unlock()
-	fmt.Println("getOrCreate", deviceID, href)
 	if r, ok := c.getLocked(deviceID, href); ok {
 		return r, nil
 	}
 	v, err := c.create(ctx, deviceID, href)
-	fmt.Println("getOrCreate:create", deviceID, href)
 	if err != nil {
 		return
 	}

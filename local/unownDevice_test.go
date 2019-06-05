@@ -40,7 +40,7 @@ func TestClient_UnownDevice(t *testing.T) {
 	require.NoError(t, err)
 	derBlockKey, _ := pem.Decode(CARootKeyPemBlock)
 	require.NotEmpty(t, derBlockKey)
-	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
+
 	require.NoError(t, err)
 
 	testOwnCfg := testCfg
@@ -52,18 +52,17 @@ func TestClient_UnownDevice(t *testing.T) {
 		return []*x509.Certificate{ca}, nil
 	}
 
+	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
+	require := require.New(t)
+	require.NoError(err)
+
+	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
 	signer := TestCertificateSigner{
 		ca:       ca,
 		caKey:    caKey,
 		validFor: time.Hour * 86400,
 	}
-
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer)
-
-	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
-	require := require.New(t)
-	require.NoError(err)
-
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err = c.OwnDevice(timeout, ownDevice, otm, 10*time.Second)

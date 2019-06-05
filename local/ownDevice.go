@@ -61,7 +61,7 @@ func newDeviceOwnershipHandler(deviceID string, cancel context.CancelFunc) *devi
 func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, ownership schema.Doxm) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if ownership.DeviceId == h.deviceID {
+	if ownership.DeviceId == h.deviceID && h.client == nil {
 		h.client = &deviceOwnershipClient{CoapClient: NewCoapClient(clientConn), ownership: ownership}
 		h.cancel()
 	}
@@ -99,8 +99,12 @@ func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, disco
 	if err != nil {
 		return nil, err
 	}
+	err = h.Err()
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, h.Err()
+	return nil, fmt.Errorf("device not found")
 }
 
 type OTMClient interface {
@@ -457,7 +461,7 @@ func (c *Client) OwnDevice(
 
 	// Change the dos.s value to RFPRO
 	setProvisionStateToRFPRO := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: schema.DeviceOnboardingState{
+		DeviceOnboardingState: &schema.DeviceOnboardingState{
 			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
 		},
 	}
@@ -469,7 +473,7 @@ func (c *Client) OwnDevice(
 
 	// Change the dos.s value to RFNOP
 	setProvisionStateToRFNOP := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: schema.DeviceOnboardingState{
+		DeviceOnboardingState: &schema.DeviceOnboardingState{
 			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
 		},
 	}
