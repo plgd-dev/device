@@ -134,6 +134,7 @@ type ObservationHandler interface {
 func (c *Client) Observe(
 	ctx context.Context,
 	deviceID, href string,
+	codec Codec,
 	handler ObservationHandler,
 	options ...func(gocoap.Message),
 ) (*gocoap.Observation, error) {
@@ -148,25 +149,25 @@ func (c *Client) Observe(
 	if err != nil {
 		return nil, err
 	}
-	obs, err := conn.ObserveWithContext(ctx, href, c.observationHandler(handler), options...)
+	obs, err := conn.ObserveWithContext(ctx, href, observationHandler(codec, handler), options...)
 	if err != nil {
 		return nil, fmt.Errorf("could not observe %s: %v", href, err)
 	}
 	return obs, nil
 }
 
-func (c *Client) observationHandler(handler ObservationHandler) func(*gocoap.Request) {
+func observationHandler(codec Codec, handler ObservationHandler) func(*gocoap.Request) {
 	return func(req *gocoap.Request) {
-		handler.Handle(req.Ctx, req.Client, c.decode(req.Msg))
+		handler.Handle(req.Ctx, req.Client, decodeObservation(codec, req.Msg))
 	}
 }
 
-func (c *Client) decode(m gocoap.Message) DecodeFunc {
+func decodeObservation(codec Codec, m gocoap.Message) DecodeFunc {
 	return func(body interface{}) error {
 		if m.Code() != gocoap.Content {
 			return fmt.Errorf("observation failed: %s", coap.Dump(m))
 		}
-		if err := c.codec.Decode(m, body); err != nil {
+		if err := codec.Decode(m, body); err != nil {
 			return fmt.Errorf("could not decode observation: %v", err)
 		}
 		return nil

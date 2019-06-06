@@ -69,12 +69,12 @@ func (c *Client) observeResource(
 		})
 	}
 
-	client, err := c.factory.NewClientFromCache(codec)
+	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return "", err
 	}
 
-	obs, err := client.Observe(ctx, deviceID, href, handler, options...)
+	obs, err := client.Observe(ctx, deviceID, href, codec, handler, options...)
 	if err != nil {
 		return "", err
 	}

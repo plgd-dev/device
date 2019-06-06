@@ -50,11 +50,27 @@ func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
 	return NewClient(cfg.TLSConfig, f, conn), nil
 }
 
+func checkTLSConfig(cfg resource.TLSConfig) resource.TLSConfig {
+	if cfg.GetCertificate == nil {
+		cfg.GetCertificate = func() (tls.Certificate, error) {
+			return tls.Certificate{}, fmt.Errorf("not supported")
+		}
+	}
+	if cfg.GetCertificateAuthorities == nil {
+		cfg.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
+			return nil, fmt.Errorf("not supported")
+		}
+	}
+	return cfg
+}
+
 func NewClient(TLSConfig resource.TLSConfig, f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
+	TLSConfig = checkTLSConfig(TLSConfig)
 	return &Client{tlsConfig: TLSConfig, factory: f, conn: conn, observations: &sync.Map{}}
 }
 
 func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientFactory {
+	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
 	switch cfg.Protocol {
 	case "tcp":
 		return &tcpClientFactory{f: resource.NewTCPClientFactory(cfg.TLSConfig, linkCache)}
@@ -66,7 +82,7 @@ func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientF
 }
 
 type resourceClient interface {
-	Observe(ctx context.Context, deviceID, href string, handler resource.ObservationHandler, options ...func(gocoap.Message)) (*gocoap.Observation, error)
+	Observe(ctx context.Context, deviceID, href string, codec resource.Codec, handler resource.ObservationHandler, options ...func(gocoap.Message)) (*gocoap.Observation, error)
 	Get(ctx context.Context, deviceID, href string, codec resource.Codec, responseBody interface{}, options ...func(gocoap.Message)) error
 	Post(ctx context.Context, deviceID, href string, codec resource.Codec, requestBody interface{}, responseBody interface{}, options ...func(gocoap.Message)) error
 }
