@@ -7,7 +7,7 @@ import (
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/resource"
-	"github.com/google/uuid"
+	"github.com/gofrs/uuid"
 )
 
 // coapContentFormat values can be found here
@@ -79,7 +79,7 @@ func (c *Client) observeResource(
 		return "", err
 	}
 
-	id, err := uuid.NewRandom()
+	id, err := uuid.NewV4()
 	if err != nil {
 		return "", fmt.Errorf("observation id generation failed: %v", err)
 	}

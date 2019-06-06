@@ -62,23 +62,7 @@ func (s TestCertificateSigner) Sign(ctx context.Context, csr []byte) (signedCsr 
 	return
 }
 
-func TestClient_ownDevice(t *testing.T) {
-	type args struct {
-		deviceID string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
-	}{
-		{
-			name: "test",
-			args: args{
-				deviceID: "00000000-cafe-baba-0000-000000000000",
-			},
-		},
-	}
-
+func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 	cert, err := tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
 	require.NoError(t, err)
 	derBlock, _ := pem.Decode(CARootPemBlock)
@@ -105,37 +89,54 @@ func TestClient_ownDevice(t *testing.T) {
 	}
 
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer)
+	require.NoError(t, err)
 
 	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
-	require := require.New(t)
-	require.NoError(err)
+	require.NoError(t, err)
+	return c, otm
+}
 
-	/*
-		timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-		h := testOnboardDeviceHandler{}
-		err = c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
-		require.NoError(err)
-		deviceIds := h.PopDeviceIds()
-		require.NotEmpty(deviceIds)
-	*/
+func TestClient_ownDevice(t *testing.T) {
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name: "valid",
+		},
+	}
+
+	c, otm := setupSecureClient(t)
+	require := require.New(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-			err := c.OwnDevice(timeout, tt.args.deviceID, otm, 10*time.Second)
-			if tt.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
+			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+			h := testOnboardDeviceHandler{}
+			err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+			require.NoError(err)
+			deviceIds := h.PopDeviceIds()
+			require.NotEmpty(deviceIds)
+
+			for deviceId, _ := range deviceIds {
+				func() {
+					timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+					defer cancelTimeout()
+					err := c.OwnDevice(timeout, deviceId, otm, 10*time.Second)
+					if tt.wantErr {
+						require.Error(err)
+					} else {
+						require.NoError(err)
+					}
+					err = c.DisownDevice(timeout, deviceId, 10*time.Second)
+					if tt.wantErr {
+						require.Error(err)
+					} else {
+						require.NoError(err)
+					}
+				}()
 			}
-			err = c.DisownDevice(timeout, tt.args.deviceID, 10*time.Second)
-			if tt.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-			}
-			cancelTimeout()
 		})
 	}
 }

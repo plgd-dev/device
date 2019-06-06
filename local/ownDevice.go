@@ -447,7 +447,8 @@ func (c *Client) OwnDevice(
 				},
 				Resources: []schema.AccessControlResource{
 					schema.AccessControlResource{
-						Wildcard: schema.AccessControlResourceWildcard_NONCFG_ALL,
+						Interfaces: []string{"*"},
+						Wildcard:   schema.AccessControlResourceWildcard_NONCFG_ALL,
 					},
 				},
 			},
