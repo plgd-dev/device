@@ -50,7 +50,7 @@ func refreshResourceLink(cfg Config, conn []*gocoap.MulticastClientConn) link.Ca
 		timeout, cancel := context.WithTimeout(ctx, cfg.DiscoveryTimeout)
 		defer cancel()
 		c := link.NewCache(nil, nil)
-		h := refreshResourceLinkHandler{linkCache: c, errors: cfg.Errors, cancel: cancel, deviceID: deviceID}
+		h := refreshResourceLinkHandler{linkCache: c, errors: cfg.Errors, cancel: cancel, deviceID: deviceID, href: href}
 		err = DiscoverDevices(timeout, conn, []string{}, &h)
 
 		res, ok := c.Get(deviceID, href)
@@ -111,12 +111,21 @@ type refreshResourceLinkHandler struct {
 
 	cancel   context.CancelFunc
 	deviceID string
+	href     string
 }
 
 func (h *refreshResourceLinkHandler) Handle(ctx context.Context, client *gocoap.ClientConn, device schema.DeviceLinks) {
-	h.linkCache.Update(device.ID, device.Links...)
-	if device.ID == h.deviceID {
-		h.cancel()
+	links := make([]schema.ResourceLink, 0, len(device.Links))
+	for _, link := range device.Links {
+		if len(link.Endpoints) > 0 {
+			links = append(links, link)
+		}
+	}
+	if len(links) > 0 {
+		h.linkCache.Update(device.ID, links...)
+		if device.ID == h.deviceID {
+			h.cancel()
+		}
 	}
 }
 

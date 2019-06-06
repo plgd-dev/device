@@ -12,7 +12,7 @@ type Doxm struct {
 	Owned                         bool                  `codec:"owned"`
 	Name                          string                `codec:"n"`
 	InstanceId                    string                `codec:"id"`
-	SupportedCredentialTypes      int                   `codec:"sct"`
+	SupportedCredentialTypes      CredentialType        `codec:"sct"`
 	SelectedOwnerTransferMethod   OwnerTransferMethod   `codec:"oxmsel"`
 	Interfaces                    []string              `codec:"if"`
 	ResourceTypes                 []string              `codec:"rt"`

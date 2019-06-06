@@ -29,7 +29,7 @@ type ProvisionStatusResponse struct {
 type ProvisionStatusUpdateRequest struct {
 	ResourceOwner          string                 `codec:"rowneruuid,omitempty"`
 	CurrentOperationalMode OperationalMode        `codec:"om,omitempty"`
-	TargetProvisioningMode ProvisioningMode       `codec:"tm,omitempty`
+	TargetProvisioningMode ProvisioningMode       `codec:"tm,omitempty"`
 	DeviceOnboardingState  *DeviceOnboardingState `codec:"dos,omitempty"`
 }
 

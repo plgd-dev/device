@@ -3,6 +3,7 @@ package schema
 import (
 	"encoding/asn1"
 	"fmt"
+	"strings"
 )
 
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
@@ -10,16 +11,16 @@ import (
 var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
 
 type Credential struct {
-	ID                      int                       `codec:"credid"`
+	ID                      int                       `codec:"credid,omitempty"`
 	Type                    CredentialType            `codec:"credtype"`
-	Usage                   CredentialUsage           `codec:"credusage"`
+	Subject                 string                    `codec:"subjectuuid"`
+	Usage                   CredentialUsage           `codec:"credusage,omitempty"`
 	SupportedRefreshMethods []CredentialRefreshMethod `codec:"crms,omitempty"`
 	OptionalData            CredentialOptionalData    `codec:"optionaldata,omitempty"`
 	Period                  string                    `codec:"period,omitempty"`
 	PrivateData             CredentialPrivateData     `codec:"privatedata,omitempty"`
 	PublicData              CredentialPublicData      `codec:"publicdata,omitempty"`
 	RoleId                  CredentialRoleId          `codec:"roleid,omitempty"`
-	Subject                 string                    `codec:"subjectuuid"`
 }
 
 type CredentialType uint8
@@ -34,25 +35,45 @@ const (
 	CredentialType_ASYMMETRIC_ENCRYPTION_KEY           CredentialType = 32
 )
 
-func (c CredentialType) String() string {
-	switch c {
-	case CredentialType_EMPTY:
-		return "EMPTY"
-	case CredentialType_SYMMETRIC_PAIR_WISE:
-		return "SYMMETRIC_PAIR_WISE"
-	case CredentialType_SYMMETRIC_GROUP:
-		return "SYMMETRIC_GROUP"
-	case CredentialType_ASYMMETRIC_SIGNING:
-		return "ASYMMETRIC_SIGNING"
-	case CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-		return "ASYMMETRIC_SIGNING_WITH_CERTIFICATE"
-	case CredentialType_PIN_OR_PASSWORD:
-		return "PIN_OR_PASSWORD"
-	case CredentialType_ASYMMETRIC_ENCRYPTION_KEY:
-		return "ASYMMETRIC_ENCRYPTION_KEY"
-	default:
-		return fmt.Sprintf("unknown(%v)", uint8(c))
+func (s CredentialType) String() string {
+	res := make([]string, 0, 7)
+	if s.Has(CredentialType_EMPTY) {
+		res = append(res, "EMPTY")
+		s &^= CredentialType_EMPTY
 	}
+	if s.Has(CredentialType_SYMMETRIC_PAIR_WISE) {
+		res = append(res, "SYMMETRIC_PAIR_WISE")
+		s &^= CredentialType_SYMMETRIC_PAIR_WISE
+	}
+	if s.Has(CredentialType_SYMMETRIC_GROUP) {
+		res = append(res, "SYMMETRIC_GROUP")
+		s &^= CredentialType_SYMMETRIC_GROUP
+	}
+	if s.Has(CredentialType_ASYMMETRIC_SIGNING) {
+		res = append(res, "ASYMMETRIC_SIGNING")
+		s &^= CredentialType_ASYMMETRIC_SIGNING
+	}
+	if s.Has(CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE) {
+		res = append(res, "ASYMMETRIC_SIGNING_WITH_CERTIFICATE")
+		s &^= CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE
+	}
+	if s.Has(CredentialType_PIN_OR_PASSWORD) {
+		res = append(res, "PIN_OR_PASSWORD")
+		s &^= CredentialType_PIN_OR_PASSWORD
+	}
+	if s.Has(CredentialType_ASYMMETRIC_ENCRYPTION_KEY) {
+		res = append(res, "ASYMMETRIC_ENCRYPTION_KEY")
+		s &^= CredentialType_ASYMMETRIC_ENCRYPTION_KEY
+	}
+	if s != 0 {
+		res = append(res, fmt.Sprintf("unknown(%v)", int(s)))
+	}
+	return strings.Join(res, "|")
+}
+
+// Has returns true if the flag is set.
+func (b CredentialType) Has(flag CredentialType) bool {
+	return b&flag != 0
 }
 
 type CredentialUsage string

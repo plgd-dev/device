@@ -5,5 +5,6 @@ RUN apt-get install -y git gcc make
 RUN git clone --recursive https://github.com/iotivity/iotivity-lite.git
 RUN make -C /iotivity-lite/port/linux CLOUD=1 SECURE=1 DEBUG=1 cloud_linux
 RUN cp /iotivity-lite/port/linux/cloud_linux /device-simulator
+COPY ./test/cloud_linux_creds ./cloud_linux_creds
 
 ENTRYPOINT ["/device-simulator"]

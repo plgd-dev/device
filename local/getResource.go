@@ -88,25 +88,6 @@ func (c *Client) getResource(
 	response interface{},
 	options ...optionFunc,
 ) error {
-	/*
-		if r, ok := response.(*schema.DeviceLinks); ok && (href == "/oic/res" || href == "oic/res") && interfaceFilter == "" {
-			ctxDev, cancel := context.WithCancel(ctx)
-			defer cancel()
-			h := newDeviceHandler(deviceID, cancel)
-			err := c.GetDevices(ctxDev, nil, h)
-			client := h.Client()
-
-			if client != nil {
-				*r = client.GetDeviceLinks()
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-
-			return h.Err()
-		}
-	*/
 	var opts []func(gocoap.Message)
 	for _, opt := range options {
 		opts = append(opts, func(req gocoap.Message) {

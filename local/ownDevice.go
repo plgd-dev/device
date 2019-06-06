@@ -227,8 +227,8 @@ func (c *Client) OwnDevice(
 	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otmClient.Type() {
 			supportOtm = true
+			break
 		}
-		break
 	}
 	if !supportOtm {
 		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
@@ -320,26 +320,26 @@ func (c *Client) OwnDevice(
 			if err != nil {
 				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err))
 			}
-		case cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING && cred.Usage == schema.CredentialUsage_CERT && cred.Subject == deviceID:
-			setDeviceCredential := schema.CredentialUpdateRequest{
-				ResourceOwner: sdkID,
-				Credentials: []schema.Credential{
-					schema.Credential{
-						Subject: deviceID,
-						Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-						Usage:   schema.CredentialUsage_CERT,
-						PublicData: schema.CredentialPublicData{
-							Data:     string(signedCsr),
-							Encoding: schema.CredentialPublicDataEncoding_DER,
-						},
-					},
-				},
-			}
-			err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setDeviceCredential, nil)
-			if err != nil {
-				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device credentials: %v", err))
-			}
 		}
+	}
+
+	setIdentityDeviceCredential := schema.CredentialUpdateRequest{
+		ResourceOwner: sdkID,
+		Credentials: []schema.Credential{
+			schema.Credential{
+				Subject: deviceID,
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_CERT,
+				PublicData: schema.CredentialPublicData{
+					Data:     string(signedCsr),
+					Encoding: schema.CredentialPublicDataEncoding_DER,
+				},
+			},
+		},
+	}
+	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device identity credentials: %v", err))
 	}
 
 	cas, err := c.GetCertificateAuthorities()
@@ -368,11 +368,18 @@ func (c *Client) OwnDevice(
 		}
 	}
 
-	// THIS iS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
-	err = iotivityHack(ctx, tlsClient, sdkID)
+	// THIS IS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
+	isIotivity, err := tlsClient.IsIotivity(ctx)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+	if isIotivity {
+		err = iotivityHack(ctx, tlsClient, sdkID)
+		if err != nil {
+			return fmt.Errorf(errMsg, deviceID, err)
+		}
+	}
+	// END OF HACK
 
 	setDeviceOwner := schema.DoxmUpdate{
 		DeviceOwner: sdkID,
@@ -396,6 +403,7 @@ func (c *Client) OwnDevice(
 
 	setDeviceOwned := schema.DoxmUpdate{
 		ResourceOwner: sdkID,
+		DeviceId:      deviceID,
 		Owned:         true,
 	}
 

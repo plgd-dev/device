@@ -52,10 +52,11 @@ func (f *TCPClientFactory) NewClientFromCache() (*Client, error) {
 }
 
 func getTCPAddr(r schema.ResourceLink) (net.Addr, error) {
-	if r.Policy.Secured {
+	addr, err := r.GetTCPAddr()
+	if err != nil {
 		return r.GetTCPSecureAddr()
 	}
-	return r.GetTCPAddr()
+	return addr, err
 }
 
 func VerifyIndetityCertificate(cert *x509.Certificate) error {
