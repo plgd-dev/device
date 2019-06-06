@@ -27,7 +27,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1c75f3a003ef1e4a6a8eb2bc53ffed72819110f84cb020a8a01c0659a04499e9"
+  digest = "1:b9bc218be67dd02bfd97f2703ed95035d91f7ecddba208da1cc831f0a2e98c53"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -39,7 +39,15 @@
     "sync",
   ]
   pruneopts = "UT"
-  revision = "6340447ca2ab4f40c493abc3397fc96a3ef37665"
+  revision = "6c95cbe3c4a45a05f3762030cefb51471c8d9275"
+
+[[projects]]
+  digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
+  name = "github.com/gofrs/uuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "6b08a5c5172ba18946672b49749cde22873dd7c2"
+  version = "v3.2.0"
 
 [[projects]]
   digest = "1:4652941215f23c7ad6546bab86964c72248a1134baa53f0df618661344ba5cac"
@@ -124,14 +132,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e456eadc3fc18795bdaf836c3a8f25d678cfdd52a5164cf1d3a64ffe23b8df1a"
+  digest = "1:d4547686da8d62d492af9935cab3cd2393ece01474f263f39ca1b303eefca734"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "4c4f7f33c9ed00de01c4c741d2177abfcfe19307"
+  revision = "79a91cf218c425e1f4d48cd960839b45dd4d065f"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -164,10 +172,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "fb225487d10142b5bcc35abfc6cb9a0609614976"
+  revision = "eb0b1bdb6ae60fcfc41b8d907b50dfb346112301"
 
 [[projects]]
-  digest = "1:c69a4c19c4f241e6b75ad65c5e7a1c4eec5705ae504624df4eb6fb659c2df46c"
+  digest = "1:e8800ddadd6bce3bc0c5ffd7bc55dbdddc6e750956c10cc10271cade542fccbe"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -204,8 +212,8 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "869adfc8d5a43efc0d05780ad109106f457f51e4"
-  version = "v1.21.0"
+  revision = "501c41df7f472c740d0674ff27122f3f48c80ce7"
+  version = "v1.21.1"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -219,6 +227,7 @@
     "github.com/go-ocf/kit/security",
     "github.com/go-ocf/kit/strings",
     "github.com/go-ocf/kit/sync",
+    "github.com/gofrs/uuid",
     "github.com/google/uuid",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
