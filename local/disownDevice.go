@@ -9,13 +9,13 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-// UnownDevice remove ownership of device
-func (c *Client) UnownDevice(
+// DisownDevice remove ownership of device
+func (c *Client) DisownDevice(
 	ctx context.Context,
 	deviceID string,
 	discoveryTimeout time.Duration,
 ) error {
-	const errMsg = "cannot unown device %v: %v"
+	const errMsg = "cannot disown device %v: %v"
 
 	client, err := c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, resource.DiscoverAllDevices)
 	if err != nil {
@@ -27,13 +27,13 @@ func (c *Client) UnownDevice(
 		return fmt.Errorf(errMsg, deviceID, "device is not owned")
 	}
 
-	sdkId, err := c.GetSdkId()
+	sdkID, err := c.GetSdkID()
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	if ownership.DeviceOwner != sdkId {
-		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkId))
+	if ownership.DeviceOwner != sdkID {
+		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
@@ -42,7 +42,7 @@ func (c *Client) UnownDevice(
 		},
 	}
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", "", setResetProvisionState, nil)
+	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", setResetProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}

@@ -20,12 +20,12 @@ type DiscoverDeviceOwnershipHandler interface {
 type DiscoverOwnershipStatus int
 
 const (
-	// DiscoverAllDevices discovers owned and unowned devices.
+	// DiscoverAllDevices discovers owned and disowned devices.
 	DiscoverAllDevices = DiscoverOwnershipStatus(0)
 	// DiscoverOwnedDevices discovers owned devices,
 	DiscoverOwnedDevices = DiscoverOwnershipStatus(1)
-	// DiscoverUnownedDevices discovers unowned devices,
-	DiscoverUnownedDevices = DiscoverOwnershipStatus(2)
+	// DiscoverDisownedDevices discovers disowned devices,
+	DiscoverDisownedDevices = DiscoverOwnershipStatus(2)
 )
 
 // DiscoverDeviceOwnership discovers devices using a CoAP multicast request via UDP.
@@ -42,7 +42,7 @@ func DiscoverDeviceOwnership(
 	case DiscoverAllDevices:
 	case DiscoverOwnedDevices:
 		query = "Owned=TRUE"
-	case DiscoverUnownedDevices:
+	case DiscoverDisownedDevices:
 		query = "Owned=FALSE"
 	default:
 		return fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status)

@@ -55,7 +55,7 @@ func getTCPAddr(r schema.ResourceLink) (net.Addr, error) {
 	if r.Policy.Secured {
 		return r.GetTCPSecureAddr()
 	}
-	return r.GetTCPSecureAddr()
+	return r.GetTCPAddr()
 }
 
 func VerifyIndetityCertificate(cert *x509.Certificate) error {

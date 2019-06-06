@@ -122,14 +122,20 @@ func TestClient_ownDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			err := c.OwnDevice(timeout, tt.args.deviceID, otm, 10*time.Second)
-			cancel()
 			if tt.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
 			}
+			err = c.DisownDevice(timeout, tt.args.deviceID, 10*time.Second)
+			if tt.wantErr {
+				require.Error(err)
+			} else {
+				require.NoError(err)
+			}
+			cancelTimeout()
 		})
 	}
 }

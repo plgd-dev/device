@@ -18,7 +18,7 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-type CoapClient struct {
+type coapClient struct {
 	clientConn *gocoap.ClientConn
 }
 
@@ -66,7 +66,7 @@ func VerifyIndetityCertificate(cert *x509.Certificate) error {
 	return nil
 }
 
-func DialTcpTls(ctx context.Context, addr string, cert tls.Certificate, cas []*x509.Certificate, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*CoapClient, error) {
+func DialTcpTls(ctx context.Context, addr string, cert tls.Certificate, cas []*x509.Certificate, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*coapClient, error) {
 	caPool := x509.NewCertPool()
 	for _, ca := range cas {
 		caPool.AddCert(ca)
@@ -100,11 +100,11 @@ func DialTcpTls(ctx context.Context, addr string, cert tls.Certificate, cas []*x
 	if err != nil {
 		return nil, err
 	}
-	return NewCoapClient(coapConn), nil
+	return NewcoapClient(coapConn), nil
 }
 
-func NewCoapClient(clientConn *gocoap.ClientConn) *CoapClient {
-	return &CoapClient{clientConn: clientConn}
+func NewcoapClient(clientConn *gocoap.ClientConn) *coapClient {
+	return &coapClient{clientConn: clientConn}
 }
 
 func WithInterface(in string) optionFunc {
@@ -131,7 +131,7 @@ func WithCredentialSubject(in string) optionFunc {
 	}
 }
 
-func (c *CoapClient) UpdateResourceCBOR(
+func (c *coapClient) UpdateResourceCBOR(
 	ctx context.Context,
 	href string,
 	request interface{},
@@ -141,7 +141,7 @@ func (c *CoapClient) UpdateResourceCBOR(
 	return c.UpdateResource(ctx, href, coap.CBORCodec{}, request, response, options...)
 }
 
-func (c *CoapClient) UpdateResource(
+func (c *coapClient) UpdateResource(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -159,7 +159,7 @@ func (c *CoapClient) UpdateResource(
 	return resource.COAPPost(ctx, c.clientConn, href, codec, request, response, opts...)
 }
 
-func (c *CoapClient) GetResourceCBOR(
+func (c *coapClient) GetResourceCBOR(
 	ctx context.Context,
 	href string,
 	response interface{},
@@ -168,7 +168,7 @@ func (c *CoapClient) GetResourceCBOR(
 	return c.GetResource(ctx, href, coap.CBORCodec{}, response, options...)
 }
 
-func (c *CoapClient) GetResource(
+func (c *coapClient) GetResource(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -185,7 +185,7 @@ func (c *CoapClient) GetResource(
 	return resource.COAPGet(ctx, c.clientConn, href, codec, response, opts...)
 }
 
-func (c *CoapClient) GetDeviceLinks(ctx context.Context, deviceID string) (device schema.DeviceLinks, _ error) {
+func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (device schema.DeviceLinks, _ error) {
 	var devices []schema.DeviceLinks
 	err := c.GetResourceCBOR(ctx, "/oic/res", &devices)
 	if err != nil {
@@ -213,7 +213,7 @@ func (c *CoapClient) GetDeviceLinks(ctx context.Context, deviceID string) (devic
 	return device, nil
 }
 
-func (c *CoapClient) DeleteResource(
+func (c *coapClient) DeleteResource(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -230,7 +230,7 @@ func (c *CoapClient) DeleteResource(
 	return resource.COAPDelete(ctx, c.clientConn, href, codec, response, opts...)
 }
 
-func (c *CoapClient) DeleteResourceCBOR(
+func (c *coapClient) DeleteResourceCBOR(
 	ctx context.Context,
 	href string,
 	response interface{},
@@ -239,6 +239,6 @@ func (c *CoapClient) DeleteResourceCBOR(
 	return c.DeleteResource(ctx, href, coap.CBORCodec{}, response, options...)
 }
 
-func (c *CoapClient) Close() error {
+func (c *coapClient) Close() error {
 	return c.clientConn.Close()
 }

@@ -152,7 +152,7 @@ func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
 	return deviceId.String(), nil
 }
 
-func (c *Client) GetSdkId() (string, error) {
+func (c *Client) GetSdkID() (string, error) {
 	cert, err := c.GetCertificate()
 	if err != nil {
 		return "", fmt.Errorf("cannot get sdk id: %v", err)

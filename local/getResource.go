@@ -8,7 +8,6 @@ import (
 	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
-	"github.com/go-ocf/sdk/schema"
 )
 
 // coapContentFormat values can be found here
@@ -16,12 +15,12 @@ import (
 func (c *Client) GetResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	coapContentFormat uint16,
+	options ...optionFunc,
 ) ([]byte, error) {
 	var b []byte
 	codec := coap.NoCodec{MediaType: coapContentFormat}
-	err := c.getResource(ctx, deviceID, href, interfaceFilter, codec, &b)
+	err := c.getResource(ctx, deviceID, href, codec, &b, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -71,11 +70,11 @@ func (h *deviceHandler) Client() *device.Client {
 func (c *Client) GetResourceCBOR(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	response interface{},
+	options ...optionFunc,
 ) error {
 	codec := coap.CBORCodec{}
-	err := c.getResource(ctx, deviceID, href, interfaceFilter, codec, response)
+	err := c.getResource(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err
 	}
@@ -85,32 +84,33 @@ func (c *Client) GetResourceCBOR(
 func (c *Client) getResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	codec resource.Codec,
 	response interface{},
+	options ...optionFunc,
 ) error {
-	if r, ok := response.(*schema.DeviceLinks); ok && (href == "/oic/res" || href == "oic/res") && interfaceFilter == "" {
-		ctxDev, cancel := context.WithCancel(ctx)
-		defer cancel()
-		h := newDeviceHandler(deviceID, cancel)
-		err := c.GetDevices(ctxDev, nil, h)
-		client := h.Client()
+	/*
+		if r, ok := response.(*schema.DeviceLinks); ok && (href == "/oic/res" || href == "oic/res") && interfaceFilter == "" {
+			ctxDev, cancel := context.WithCancel(ctx)
+			defer cancel()
+			h := newDeviceHandler(deviceID, cancel)
+			err := c.GetDevices(ctxDev, nil, h)
+			client := h.Client()
 
-		if client != nil {
-			*r = client.GetDeviceLinks()
-			return nil
+			if client != nil {
+				*r = client.GetDeviceLinks()
+				return nil
+			}
+			if err != nil {
+				return err
+			}
+
+			return h.Err()
 		}
-		if err != nil {
-			return err
-		}
-
-		return h.Err()
-	}
-
-	var options []func(gocoap.Message)
-	if interfaceFilter != "" {
-		options = append(options, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, "if="+interfaceFilter)
+	*/
+	var opts []func(gocoap.Message)
+	for _, opt := range options {
+		opts = append(opts, func(req gocoap.Message) {
+			req.AddOption(gocoap.URIQuery, opt())
 		})
 	}
 
@@ -119,7 +119,7 @@ func (c *Client) getResource(
 		return err
 	}
 
-	err = client.Get(ctx, deviceID, href, codec, response, options...)
+	err = client.Get(ctx, deviceID, href, codec, response, opts...)
 	if err != nil {
 		return err
 	}
