@@ -9,10 +9,10 @@ install:
     fi
   - docker build . --network=host -t sdk:build
   - docker build . -f test/Dockerfile.device-simulator-secure --network=host -t sdk:device-simulator-secure
-  - docker run -d -name devsim --network=host sdk:device-simulator-secure /device-simulator
+  - docker run -d --name devsim --network=host sdk:device-simulator-secure /device-simulator
   - sleep 2
 after_failure:
-  - docker logs $(docker ps -a -q --filter ancestor=sdk:device-simulator-secure --format="{{.ID}}")
+  - docker logs devsim
 
 jobs:
   include:
