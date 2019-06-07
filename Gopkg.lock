@@ -27,7 +27,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b9bc218be67dd02bfd97f2703ed95035d91f7ecddba208da1cc831f0a2e98c53"
+  digest = "1:1d6a5747c744f56a0f8a0e4296ee6b92ef36a52d1e725ac3c689fcc633bff635"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -39,7 +39,7 @@
     "sync",
   ]
   pruneopts = "UT"
-  revision = "6c95cbe3c4a45a05f3762030cefb51471c8d9275"
+  revision = "30b8bcb8bd7ccabe5557c4482472b3df238e35c6"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -74,14 +74,6 @@
   pruneopts = "UT"
   revision = "b5d812f8a3706043e23a9cd5babf2e5423744d30"
   version = "v1.3.1"
-
-[[projects]]
-  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
-  name = "github.com/google/uuid"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
-  version = "v1.1.1"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -128,18 +120,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "60506f45cf65977eb3a9c6e30f995f54a721c271"
+  revision = "1492cefac77f61bc789c00f41ead8f8d7307cd21"
 
 [[projects]]
   branch = "master"
-  digest = "1:d4547686da8d62d492af9935cab3cd2393ece01474f263f39ca1b303eefca734"
+  digest = "1:98d02d01de1a49eec5a1f5ec479e522ab4e98ffc6a5488f27bd55b56e570338c"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "79a91cf218c425e1f4d48cd960839b45dd4d065f"
+  revision = "7fc4e5ec1444df20dd195ae7c3bbfcd7114d3faa"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -228,7 +220,6 @@
     "github.com/go-ocf/kit/strings",
     "github.com/go-ocf/kit/sync",
     "github.com/gofrs/uuid",
-    "github.com/google/uuid",
     "github.com/stretchr/testify/assert",
     "github.com/stretchr/testify/require",
     "google.golang.org/grpc/codes",
