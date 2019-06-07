@@ -61,7 +61,7 @@ func closeConnections(pool *sync.Pool, links schema.DeviceLinks) {
 			if err != nil {
 				continue
 			}
-			conn, ok := pool.Pop(addr.URL())
+			conn, ok := pool.Delete(addr.URL())
 			if ok {
 				conn.(*gocoap.ClientConn).Close()
 			}

@@ -27,7 +27,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1d6a5747c744f56a0f8a0e4296ee6b92ef36a52d1e725ac3c689fcc633bff635"
+  digest = "1:2883936ca58b1344d912dc4bcbc259e680efcfe3d3e8ec2edbaf935b194263ad"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -39,7 +39,7 @@
     "sync",
   ]
   pruneopts = "UT"
-  revision = "30b8bcb8bd7ccabe5557c4482472b3df238e35c6"
+  revision = "a31f183787bd1057eb7fcbe29a3baa2c3f97177c"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
