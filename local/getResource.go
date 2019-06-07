@@ -2,11 +2,9 @@ package local
 
 import (
 	"context"
-	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/coap"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 )
 
@@ -25,46 +23,6 @@ func (c *Client) GetResource(
 		return nil, err
 	}
 	return b, nil
-}
-
-type deviceHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
-
-	client *device.Client
-	lock   sync.Mutex
-	err    error
-}
-
-func newDeviceHandler(deviceID string, cancel context.CancelFunc) *deviceHandler {
-	return &deviceHandler{deviceID: deviceID, cancel: cancel}
-}
-
-func (h *deviceHandler) Handle(ctx context.Context, client *device.Client) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if client.DeviceID() == h.deviceID {
-		h.client = client
-		h.cancel()
-	}
-}
-
-func (h *deviceHandler) Error(err error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.err = err
-}
-
-func (h *deviceHandler) Err() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.err
-}
-
-func (h *deviceHandler) Client() *device.Client {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.client
 }
 
 func (c *Client) GetResourceCBOR(

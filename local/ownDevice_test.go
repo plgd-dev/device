@@ -123,13 +123,13 @@ func TestClient_ownDevice(t *testing.T) {
 				func() {
 					timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 					defer cancelTimeout()
-					err := c.OwnDevice(timeout, deviceId, otm, 10*time.Second)
+					err := c.OwnDevice(timeout, deviceId, otm)
 					if tt.wantErr {
 						require.Error(err)
 					} else {
 						require.NoError(err)
 					}
-					err = c.DisownDevice(timeout, deviceId, 10*time.Second)
+					err = c.DisownDevice(timeout, deviceId)
 					if tt.wantErr {
 						require.Error(err)
 					} else {

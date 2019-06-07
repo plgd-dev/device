@@ -10,9 +10,9 @@ import (
 
 	"sync"
 	//"encoding/base64"
-	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -33,7 +33,7 @@ func (c *deviceOwnershipClient) GetTcpSecureAddress(ctx context.Context, deviceI
 	}
 	var resourceLink schema.ResourceLink
 	for _, link := range deviceLink.Links {
-		if link.HasType("oic.r.doxm") {
+		if link.HasType("oic.wk.d") {
 			resourceLink = link
 			break
 		}
@@ -62,7 +62,7 @@ func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	if ownership.DeviceId == h.deviceID && h.client == nil {
-		h.client = &deviceOwnershipClient{coapClient: NewcoapClient(clientConn), ownership: ownership}
+		h.client = &deviceOwnershipClient{coapClient: NewCoapClient(clientConn, schema.UDPScheme), ownership: ownership}
 		h.cancel()
 	}
 }
@@ -85,8 +85,8 @@ func (h *deviceOwnershipHandler) Client() *deviceOwnershipClient {
 	return h.client
 }
 
-func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, discoveryTimeout time.Duration, status resource.DiscoverOwnershipStatus) (*deviceOwnershipClient, error) {
-	ctxOwn, cancel := context.WithTimeout(ctx, discoveryTimeout)
+func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, status resource.DiscoverOwnershipStatus) (*deviceOwnershipClient, error) {
+	ctxOwn, cancel := context.WithCancel(ctx)
 	defer cancel()
 	h := newDeviceOwnershipHandler(deviceID, cancel)
 
@@ -213,11 +213,10 @@ func (c *Client) OwnDevice(
 	ctx context.Context,
 	deviceID string,
 	otmClient OTMClient,
-	discoveryTimeout time.Duration,
 ) error {
 	const errMsg = "cannot own device %v: %v"
 
-	client, err := c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, resource.DiscoverAllDevices)
+	client, err := c.ownDeviceFindClient(ctx, deviceID, resource.DiscoverAllDevices)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
@@ -247,12 +246,21 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	tlsAddr, err := client.GetTcpSecureAddress(ctx, deviceID)
+	var deviceClient *device.Client
+	err = c.GetDevice(ctx, deviceID, nil, &deviceClient)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp tls address: %v", err))
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	links := deviceClient.GetResourceLinks()
+	if len(links) == 0 {
+		return fmt.Errorf(errMsg, deviceID, "device links are empty")
+	}
+	tlsAddr, err := deviceClient.GetResourceLinks()[0].GetTCPSecureAddr()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, "device links are empty")
 	}
 
-	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
+	tlsClient, err := otmClient.Dial(ctx, tlsAddr.String())
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
 	}

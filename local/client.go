@@ -90,6 +90,7 @@ type resourceClient interface {
 type ResourceClientFactory interface {
 	NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error)
 	NewClientFromCache() (resourceClient, error)
+	CloseConnections(links schema.DeviceLinks)
 }
 
 // tcpClientFactory converts the return type from *TCPClient to resourceClient.
@@ -105,6 +106,10 @@ func (w *tcpClientFactory) NewClientFromCache() (resourceClient, error) {
 	return w.f.NewClientFromCache()
 }
 
+func (w *tcpClientFactory) CloseConnections(links schema.DeviceLinks) {
+	w.f.CloseConnections(links)
+}
+
 // udpClientFactory converts the return type from *UDPClient to resourceClient.
 type udpClientFactory struct {
 	f *resource.UDPClientFactory
@@ -116,6 +121,10 @@ func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLi
 
 func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
 	return w.f.NewClientFromCache()
+}
+
+func (w *udpClientFactory) CloseConnections(links schema.DeviceLinks) {
+	w.f.CloseConnections(links)
 }
 
 func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
@@ -190,4 +199,8 @@ func (c *Client) GetSdkID() (string, error) {
 		return deviceId, nil
 	}
 	return "", fmt.Errorf("cannot get sdk id: %v", errors)
+}
+
+func (c *Client) CloseConnections(links schema.DeviceLinks) {
+	c.factory.CloseConnections(links)
 }

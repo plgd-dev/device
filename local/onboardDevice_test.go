@@ -83,36 +83,35 @@ func TestClient_OnboardDevice(t *testing.T) {
 	c, otm := setupSecureClient(t)
 	require := require.New(t)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-			defer cancel()
-			h := testOnboardDeviceHandler{}
-			err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	h := testOnboardDeviceHandler{}
+	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	require.NoError(err)
+	deviceIds := h.PopDeviceIds()
+	require.NotEmpty(deviceIds)
+
+	for deviceId, _ := range deviceIds {
+		timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancelTimeout()
+		err := c.OwnDevice(timeout, deviceId, otm)
+		require.NoError(err)
+
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				err = c.OnboardDevice(timeout, deviceId, tt.args.authorizationProvider, tt.args.authorizationCode, tt.args.url)
+				if tt.wantErr {
+					require.Error(err)
+				} else {
+					require.NoError(err)
+				}
+			})
+		}
+
+		defer func() {
+			err = c.DisownDevice(timeout, deviceId)
 			require.NoError(err)
-			deviceIds := h.PopDeviceIds()
-			require.NotEmpty(deviceIds)
-
-			for deviceId, _ := range deviceIds {
-				func() {
-					timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-					defer cancelTimeout()
-					err := c.OwnDevice(timeout, deviceId, otm, 10*time.Second)
-					require.NoError(err)
-
-					err = c.OnboardDevice(timeout, deviceId, tt.args.authorizationProvider, tt.args.authorizationCode, tt.args.url)
-					if tt.wantErr {
-						require.Error(err)
-					} else {
-						require.NoError(err)
-					}
-
-					err = c.DisownDevice(timeout, deviceId, 10*time.Second)
-					require.NoError(err)
-
-					time.Sleep(time.Second)
-				}()
-			}
-		})
+		}()
 	}
+
 }

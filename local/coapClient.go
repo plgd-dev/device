@@ -20,6 +20,7 @@ import (
 
 type coapClient struct {
 	clientConn *gocoap.ClientConn
+	scheme     string
 }
 
 type optionFunc func() string
@@ -100,11 +101,11 @@ func DialTcpTls(ctx context.Context, addr string, cert tls.Certificate, cas []*x
 	if err != nil {
 		return nil, err
 	}
-	return NewcoapClient(coapConn), nil
+	return NewCoapClient(coapConn, schema.TCPSecureScheme), nil
 }
 
-func NewcoapClient(clientConn *gocoap.ClientConn) *coapClient {
-	return &coapClient{clientConn: clientConn}
+func NewCoapClient(clientConn *gocoap.ClientConn, scheme string) *coapClient {
+	return &coapClient{clientConn: clientConn, scheme: scheme}
 }
 
 func WithInterface(in string) optionFunc {
@@ -235,13 +236,15 @@ func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (devic
 
 	links := make([]schema.ResourceLink, 0, len(device.Links))
 	for _, link := range device.Links {
-		addr, err := net.Parse(schema.UDPScheme, c.clientConn.RemoteAddr())
+		addr, err := net.Parse(c.scheme, c.clientConn.RemoteAddr())
 		if err != nil {
 			return device, fmt.Errorf("invalid address of device %s: %v", device.ID, err)
 		}
+
 		links = append(links, link.PatchEndpoint(addr))
 	}
-	device.Links = links
+	//filter device links with endpoints
+	device.Links = resource.FilterResourceLinksWithEndpoints(links)
 
 	return device, nil
 }

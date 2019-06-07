@@ -36,6 +36,16 @@ func DiscoverDevices(
 	return Discover(ctx, conn, "/oic/res", queries, handleResponse(ctx, handler))
 }
 
+func FilterResourceLinksWithEndpoints(in []schema.ResourceLink) []schema.ResourceLink {
+	links := make([]schema.ResourceLink, 0, len(in))
+	for _, link := range in {
+		if len(link.Endpoints) > 0 {
+			links = append(links, link)
+		}
+	}
+	return links
+}
+
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(req *gocoap.Request) {
 	return func(req *gocoap.Request) {
 		if req.Msg.Code() != gocoap.Content {
@@ -60,7 +70,11 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 			}
 			device = device.PatchEndpoint(addr)
 
-			handler.Handle(ctx, req.Client, device)
+			//filter device links with endpoints
+			links := FilterResourceLinksWithEndpoints(device.Links)
+			if len(links) > 0 {
+				handler.Handle(ctx, req.Client, device)
+			}
 		}
 	}
 }

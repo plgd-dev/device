@@ -115,17 +115,9 @@ type refreshResourceLinkHandler struct {
 }
 
 func (h *refreshResourceLinkHandler) Handle(ctx context.Context, client *gocoap.ClientConn, device schema.DeviceLinks) {
-	links := make([]schema.ResourceLink, 0, len(device.Links))
-	for _, link := range device.Links {
-		if len(link.Endpoints) > 0 {
-			links = append(links, link)
-		}
-	}
-	if len(links) > 0 {
-		h.linkCache.Update(device.ID, links...)
-		if device.ID == h.deviceID {
-			h.cancel()
-		}
+	h.linkCache.Update(device.ID, device.Links...)
+	if device.ID == h.deviceID {
+		h.cancel()
 	}
 }
 

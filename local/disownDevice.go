@@ -3,8 +3,8 @@ package local
 import (
 	"context"
 	"fmt"
-	"time"
 
+	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -13,11 +13,10 @@ import (
 func (c *Client) DisownDevice(
 	ctx context.Context,
 	deviceID string,
-	discoveryTimeout time.Duration,
 ) error {
 	const errMsg = "cannot disown device %v: %v"
 
-	client, err := c.ownDeviceFindClient(ctx, deviceID, discoveryTimeout, resource.DiscoverAllDevices)
+	client, err := c.ownDeviceFindClient(ctx, deviceID, resource.DiscoverAllDevices)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
@@ -25,6 +24,12 @@ func (c *Client) DisownDevice(
 	ownership := client.GetOwnership()
 	if !ownership.Owned {
 		return fmt.Errorf(errMsg, deviceID, "device is not owned")
+	}
+
+	var deviceClient *device.Client
+	err = c.GetDevice(ctx, deviceID, nil, &deviceClient)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
 	sdkID, err := c.GetSdkID()
@@ -46,6 +51,8 @@ func (c *Client) DisownDevice(
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+
+	c.CloseConnections(deviceClient.GetDeviceLinks())
 
 	return nil
 }

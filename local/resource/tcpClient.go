@@ -51,6 +51,10 @@ func (f *TCPClientFactory) NewClientFromCache() (*Client, error) {
 	return &c, nil
 }
 
+func (f *TCPClientFactory) CloseConnections(links schema.DeviceLinks) {
+	closeConnections(f.pool, links)
+}
+
 func getTCPAddr(r schema.ResourceLink) (net.Addr, error) {
 	addr, err := r.GetTCPAddr()
 	if err != nil {
