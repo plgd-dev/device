@@ -243,7 +243,7 @@ func (c *Client) OwnDevice(
 		if ownership.Owned {
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
 		}
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
 	var deviceClient *device.Client
@@ -403,7 +403,7 @@ func (c *Client) OwnDevice(
 	var verifyOwner schema.Doxm
 	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot verify owner: %v", err))
 	}
 	if verifyOwner.DeviceOwner != sdkID {
 		return fmt.Errorf(errMsg, deviceID, err)
