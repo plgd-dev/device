@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +58,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 			name: "invalid authorizationCode",
 			args: args{
 				authorizationProvider: "a",
-				url: "c",
+				url:                   "c",
 			},
 			wantErr: true,
 		},
@@ -81,31 +80,40 @@ func TestClient_OnboardDevice(t *testing.T) {
 		},
 	}
 
-	c, err := ocf.NewClientFromConfig(testCfg, nil)
+	c, otm := setupSecureClient(t)
 	require := require.New(t)
-	require.NoError(err)
 
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	h := testOnboardDeviceHandler{}
-	err = c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
 	require.NoError(err)
 	deviceIds := h.PopDeviceIds()
 	require.NotEmpty(deviceIds)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			for deviceId, _ := range deviceIds {
-				timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-				err := c.OnboardDevice(timeout, deviceId, tt.args.authorizationProvider, tt.args.authorizationCode, tt.args.url)
-				cancel()
-				if tt.wantErr {
-					require.Error(err)
-				} else {
-					require.NoError(err)
-				}
+	for deviceId, _ := range deviceIds {
+		func() {
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelTimeout()
+			err := c.OwnDevice(timeout, deviceId, otm)
+			require.NoError(err)
 
+			defer func() {
+				err = c.DisownDevice(timeout, deviceId)
+				require.NoError(err)
+			}()
+
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					err = c.OnboardDevice(timeout, deviceId, tt.args.authorizationProvider, tt.args.authorizationCode, tt.args.url)
+					if tt.wantErr {
+						require.Error(err)
+					} else {
+						require.NoError(err)
+					}
+				})
 			}
-		})
+		}()
 	}
+
 }

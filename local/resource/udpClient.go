@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"net/url"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net"
@@ -28,30 +29,51 @@ func NewUDPClientFactory(linkCache *link.Cache) *UDPClientFactory {
 func (f *UDPClientFactory) NewClient(
 	c *gocoap.ClientConn,
 	links schema.DeviceLinks,
-	codec Codec,
 ) (*Client, error) {
 	f.linkCache.Update(links.ID, links.Links...)
-	addr, err := net.Parse(c.RemoteAddr())
+	addr, err := net.Parse(schema.UDPScheme, c.RemoteAddr())
 	if err != nil {
 		return nil, err
 	}
 	f.pool.Put(addr.String(), c)
-	return f.NewClientFromCache(codec)
+	return f.NewClientFromCache()
 }
 
 // NewClientFromCache creates the client
 // that uses the shared link cache and connection pool.
-func (f *UDPClientFactory) NewClientFromCache(codec Codec) (*Client, error) {
+func (f *UDPClientFactory) NewClientFromCache() (*Client, error) {
 	c := Client{
 		linkCache: f.linkCache,
 		pool:      f.pool,
-		codec:     codec,
 		getAddr:   getUDPAddr,
 	}
 	return &c, nil
 }
 
-func getUDPAddr(r *schema.ResourceLink) (net.Addr, error) {
+func closeConnections(pool *sync.Pool, links schema.DeviceLinks) {
+	for _, link := range links.Links {
+		for _, endpoint := range link.GetEndpoints() {
+			url, err := url.Parse(endpoint.URI)
+			if err != nil {
+				continue
+			}
+			addr, err := net.ParseURL(url)
+			if err != nil {
+				continue
+			}
+			conn, ok := pool.Delete(addr.URL())
+			if ok {
+				conn.(*gocoap.ClientConn).Close()
+			}
+		}
+	}
+}
+
+func (f *UDPClientFactory) CloseConnections(links schema.DeviceLinks) {
+	closeConnections(f.pool, links)
+}
+
+func getUDPAddr(r schema.ResourceLink) (net.Addr, error) {
 	return r.GetUDPAddr()
 }
 

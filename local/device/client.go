@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -19,19 +20,19 @@ type Client struct {
 }
 
 type resourceClient interface {
-	Get(ctx context.Context, deviceID, href string, value interface{}, options ...func(gocoap.Message)) error
+	Get(ctx context.Context, deviceID, href string, codec resource.Codec, value interface{}, options ...func(gocoap.Message)) error
 }
 
 // QueryDevice queries device details for a device resource type.
-func (c *Client) QueryDevice(ctx context.Context, resourceTypes ...string) (*schema.Device, error) {
+func (c *Client) QueryDevice(ctx context.Context, codec resource.Codec, resourceTypes ...string) (*schema.Device, error) {
 	id := c.links.ID
 	var d, nd schema.Device
 	it := c.QueryResource(resourceTypes...)
-	ok := it.Next(ctx, &d)
+	ok := it.Next(ctx, codec, &d)
 	if !ok {
 		return nil, fmt.Errorf("could not get device details for %s: %v", id, it.Err)
 	}
-	if it.Next(ctx, &nd) {
+	if it.Next(ctx, codec, &nd) {
 		return nil, fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
 	}
 	return &d, nil
@@ -58,12 +59,12 @@ type QueryResourceIterator struct {
 // Next queries the next resource.
 // Returns false when failed or having no more items.
 // Check it.Err for errors.
-func (it *QueryResourceIterator) Next(ctx context.Context, v interface{}) bool {
+func (it *QueryResourceIterator) Next(ctx context.Context, codec resource.Codec, v interface{}) bool {
 	if it.i >= len(it.hrefs) {
 		return false
 	}
 
-	err := it.client.Get(ctx, it.id, it.hrefs[it.i], v)
+	err := it.client.Get(ctx, it.id, it.hrefs[it.i], codec, v)
 	if err != nil {
 		it.Err = fmt.Errorf("could not query the device %s: %v", it.id, err)
 		return false
@@ -87,4 +88,9 @@ func (c *Client) GetResourceLinks() []schema.ResourceLink {
 // The endpoints are returned in order of priority.
 func (c *Client) GetEndpoints(resourceType string) []schema.Endpoint {
 	return c.links.GetEndpoints(resourceType)
+}
+
+// GetDeviceLinks returns device links.
+func (c *Client) GetDeviceLinks() schema.DeviceLinks {
+	return c.links
 }

@@ -16,21 +16,19 @@ func (c *Client) onboardOffboardDevice(
 		return errFunc(fmt.Errorf("invalid deviceID"))
 	}
 
-	var devices []schema.DeviceLinks
-	err := c.GetResourceDiscovery(ctx, deviceID, &devices)
+	var links []schema.ResourceLink
+	err := c.GetResourceCBOR(ctx, deviceID, "/oic/res", &links)
 	if err != nil {
 		return errFunc(err)
 	}
 
 	cloudResourceHref := ""
 Loop:
-	for _, device := range devices {
-		for _, link := range device.Links {
-			for _, resType := range link.ResourceTypes {
-				if resType == schema.CloudResourceType {
-					cloudResourceHref = link.Href
-					break Loop
-				}
+	for _, link := range links {
+		for _, resType := range link.ResourceTypes {
+			if resType == schema.CloudResourceType {
+				cloudResourceHref = link.Href
+				break Loop
 			}
 		}
 	}
@@ -45,7 +43,7 @@ Loop:
 		URL:                   url,
 	}
 	var resp schema.CloudResponse
-	err = c.UpdateResourceCBOR(ctx, deviceID, cloudResourceHref, "", req, &resp)
+	err = c.UpdateResourceCBOR(ctx, deviceID, cloudResourceHref, req, &resp)
 	if err != nil {
 		return errFunc(err)
 	}

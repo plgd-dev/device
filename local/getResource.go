@@ -6,7 +6,6 @@ import (
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/resource"
-	"github.com/go-ocf/sdk/schema"
 )
 
 // coapContentFormat values can be found here
@@ -14,12 +13,12 @@ import (
 func (c *Client) GetResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	coapContentFormat uint16,
+	options ...func(gocoap.Message),
 ) ([]byte, error) {
 	var b []byte
 	codec := coap.NoCodec{MediaType: coapContentFormat}
-	err := c.getResource(ctx, deviceID, href, interfaceFilter, codec, &b)
+	err := c.getResource(ctx, deviceID, href, codec, &b, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -29,24 +28,11 @@ func (c *Client) GetResource(
 func (c *Client) GetResourceCBOR(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	response interface{},
+	options ...func(gocoap.Message),
 ) error {
 	codec := coap.CBORCodec{}
-	err := c.getResource(ctx, deviceID, href, interfaceFilter, codec, response)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (c *Client) GetResourceDiscovery(
-	ctx context.Context,
-	deviceID string,
-	response *[]schema.DeviceLinks,
-) error {
-	codec := resource.DiscoveryResourceCodec{}
-	err := c.getResource(ctx, deviceID, "/oic/res", "", codec, response)
+	err := c.getResource(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err
 	}
@@ -56,23 +42,16 @@ func (c *Client) GetResourceDiscovery(
 func (c *Client) getResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	codec resource.Codec,
 	response interface{},
+	options ...func(gocoap.Message),
 ) error {
-	var options []func(gocoap.Message)
-	if interfaceFilter != "" {
-		options = append(options, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, "if="+interfaceFilter)
-		})
-	}
-
-	client, err := c.factory.NewClientFromCache(codec)
+	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return err
 	}
 
-	err = client.Get(ctx, deviceID, href, response, options...)
+	err = client.Get(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err
 	}

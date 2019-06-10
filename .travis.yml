@@ -8,11 +8,11 @@ install:
       sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6';
     fi
   - docker build . --network=host -t sdk:build
-  - docker build . -f Dockerfile.device-simulator --network=host -t sdk:device-simulator
-  - docker run -d --network=host sdk:device-simulator /device-simulator
+  - docker build ./test --network=host -t sdk:device-simulator
+  - docker run -d --name devsim --network=host sdk:device-simulator /device-simulator
   - sleep 2
 after_failure:
-  - docker logs $(docker ps -a -q --filter ancestor=sdk:device-simulator --format="{{.ID}}")
+  - docker logs devsim
 
 jobs:
   include:

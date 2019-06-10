@@ -13,13 +13,13 @@ import (
 func (c *Client) UpdateResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	data []byte,
 	coapContentFormat uint16,
+	options ...func(gocoap.Message),
 ) ([]byte, error) {
 	var b []byte
 	codec := coap.NoCodec{MediaType: coapContentFormat}
-	err := c.updateResource(ctx, deviceID, href, interfaceFilter, codec, data, &b)
+	err := c.updateResource(ctx, deviceID, href, codec, data, &b, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -29,12 +29,12 @@ func (c *Client) UpdateResource(
 func (c *Client) UpdateResourceCBOR(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	request interface{},
 	response interface{},
+	options ...func(gocoap.Message),
 ) error {
 	codec := coap.CBORCodec{}
-	err := c.updateResource(ctx, deviceID, href, interfaceFilter, codec, request, response)
+	err := c.updateResource(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err
 	}
@@ -44,24 +44,17 @@ func (c *Client) UpdateResourceCBOR(
 func (c *Client) updateResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	codec resource.Codec,
 	request interface{},
 	response interface{},
+	options ...func(gocoap.Message),
 ) error {
-	var options []func(gocoap.Message)
-	if interfaceFilter != "" {
-		options = append(options, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, "if="+interfaceFilter)
-		})
-	}
-
-	client, err := c.factory.NewClientFromCache(codec)
+	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return err
 	}
 
-	err = client.Post(ctx, deviceID, href, request, response, options...)
+	err = client.Post(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err
 	}

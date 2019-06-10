@@ -5,30 +5,51 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/go-ocf/sdk/local"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_OffboardDevice(t *testing.T) {
-	c, err := ocf.NewClientFromConfig(testCfg, nil)
-	require := require.New(t)
-	require.NoError(err)
+	tests := []struct {
+		name    string
+		wantErr bool
+	}{
+		{
+			name: "valid",
+		},
+	}
 
-	timeout, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	c, otm := setupSecureClient(t)
+	require := require.New(t)
+
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 	h := testOnboardDeviceHandler{}
-	err = c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
 	require.NoError(err)
 	deviceIds := h.PopDeviceIds()
 	require.NotEmpty(deviceIds)
 
-	func() {
-		for deviceId, _ := range deviceIds {
-			timeout, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-			defer cancel()
-			err = c.OffboardDevice(timeout, deviceId)
+	for deviceId, _ := range deviceIds {
+		func() {
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelTimeout()
+			err := c.OwnDevice(timeout, deviceId, otm)
 			require.NoError(err)
-		}
-	}()
+			defer func() {
+				err = c.DisownDevice(timeout, deviceId)
+				require.NoError(err)
+			}()
 
+			for _, tt := range tests {
+				t.Run(tt.name, func(t *testing.T) {
+					err = c.OffboardDevice(timeout, deviceId)
+					if tt.wantErr {
+						require.Error(err)
+					} else {
+						require.NoError(err)
+					}
+				})
+			}
+		}()
+	}
 }

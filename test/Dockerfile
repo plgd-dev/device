@@ -3,7 +3,8 @@ FROM ubuntu:18.04 AS device-simulator
 RUN apt-get update
 RUN apt-get install -y git gcc make
 RUN git clone --recursive https://github.com/iotivity/iotivity-lite.git
-RUN make -C /iotivity-lite/port/linux CLOUD=1 SECURE=0 DEBUG=1 cloud_linux
+RUN make -C /iotivity-lite/port/linux CLOUD=1 SECURE=1 DEBUG=1 cloud_linux
 RUN cp /iotivity-lite/port/linux/cloud_linux /device-simulator
+COPY ./cloud_linux_creds ./cloud_linux_creds
 
 ENTRYPOINT ["/device-simulator"]

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -30,7 +31,7 @@ func NewLinkCache(cfg Config, conn []*gocoap.MulticastClientConn) (*link.Cache, 
 	}
 
 	refresh := refreshResourceLinks(cfg, conn)
-	c := link.NewCache(refreshResourceLink(refresh), refresh)
+	c := link.NewCache(refreshResourceLink(cfg, conn), refresh)
 
 	return c, nil
 }
@@ -44,32 +45,38 @@ type Config struct {
 
 type refreshFunc = func(ctx context.Context) (*link.Cache, error)
 
-func refreshResourceLink(f refreshFunc) link.CacheCreateFunc {
+func refreshResourceLink(cfg Config, conn []*gocoap.MulticastClientConn) link.CacheCreateFunc {
 	return func(ctx context.Context, deviceID, href string) (res schema.ResourceLink, err error) {
-		v, err := f(ctx)
-		if err != nil {
-			return res, err
+		timeout, cancel := context.WithTimeout(ctx, cfg.DiscoveryTimeout)
+		defer cancel()
+		c := link.NewCache(nil, nil)
+		h := refreshResourceLinkHandler{linkCache: c, errors: cfg.Errors, cancel: cancel, deviceID: deviceID, href: href}
+		err = DiscoverDevices(timeout, conn, []string{}, &h)
+
+		res, ok := c.Get(deviceID, href)
+		if ok {
+			return res, nil
 		}
-		res, ok := v.Get(deviceID, href)
-		if !ok {
-			return res, fmt.Errorf("cannot refresh resource link %v%v: not found", deviceID, href)
-		}
-		return res, nil
+		return res, fmt.Errorf("cannot create resource link %v%v: not found", deviceID, href)
 	}
 }
 
 func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refreshFunc {
 	var mtx sync.Mutex
-	var lastRefreshTime time.Time
+	var lastCacheNum uint64
+	var lastCache *link.Cache
 
 	return func(ctx context.Context) (*link.Cache, error) {
+		loadBeforeLock := atomic.LoadUint64(&lastCacheNum)
+
 		// Delay duplicate calls
 		mtx.Lock()
 		defer mtx.Unlock()
-		// Skip subsequent calls
-		if time.Since(lastRefreshTime) <= cfg.DiscoveryDelay {
-			return nil, nil
+		loadAfterLock := atomic.LoadUint64(&lastCacheNum)
+		if loadBeforeLock != loadAfterLock {
+			return lastCache, nil
 		}
+		atomic.AddUint64(&lastCacheNum, 1)
 
 		timeout, cancel := context.WithTimeout(ctx, cfg.DiscoveryTimeout)
 		defer cancel()
@@ -80,14 +87,7 @@ func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refres
 			return nil, err
 		}
 
-		// When canceled, do not skip subsequent calls
-		select {
-		case <-ctx.Done():
-			return nil, nil
-		default:
-		}
-
-		lastRefreshTime = time.Now()
+		lastCache = c
 		return c, nil
 	}
 }
@@ -102,5 +102,25 @@ func (h *refreshHandler) Handle(ctx context.Context, client *gocoap.ClientConn, 
 }
 
 func (h *refreshHandler) Error(err error) {
+	h.errors(err)
+}
+
+type refreshResourceLinkHandler struct {
+	linkCache *link.Cache
+	errors    func(error)
+
+	cancel   context.CancelFunc
+	deviceID string
+	href     string
+}
+
+func (h *refreshResourceLinkHandler) Handle(ctx context.Context, client *gocoap.ClientConn, device schema.DeviceLinks) {
+	h.linkCache.Update(device.ID, device.Links...)
+	if device.ID == h.deviceID {
+		h.cancel()
+	}
+}
+
+func (h *refreshResourceLinkHandler) Error(err error) {
 	h.errors(err)
 }

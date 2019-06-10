@@ -3,6 +3,8 @@ package resource
 import (
 	"bytes"
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -13,15 +15,27 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
+// GetCertificateFunc returns certificate for connection
+type GetCertificateFunc func() (tls.Certificate, error)
+
+// GetCertificateAuthoritiesFunc returns certificate authorities to verify peers
+type GetCertificateAuthoritiesFunc func() ([]*x509.Certificate, error)
+
+type TLSConfig struct {
+	// User for communication with owned devices and cloud
+	GetCertificate            GetCertificateFunc
+	GetCertificateAuthorities GetCertificateAuthoritiesFunc
+}
+
 // Client caches resource links and maintains a pool of connections to devices.
 type Client struct {
 	linkCache *link.Cache
 	pool      *sync.Pool
-	codec     Codec
-	getAddr   GetAddr
+	//codec     Codec
+	getAddr GetAddr
 }
 
-type GetAddr = func(*schema.ResourceLink) (net.Addr, error)
+type GetAddr = func(schema.ResourceLink) (net.Addr, error)
 
 // Codec encodes/decodes according to the CoAP content format/media type.
 type Codec interface {
@@ -30,17 +44,14 @@ type Codec interface {
 	Decode(m gocoap.Message, v interface{}) error
 }
 
-// Get makes a GET CoAP request over a connection from the client's pool.
-func (c *Client) Get(
+func COAPGet(
 	ctx context.Context,
-	deviceID, href string,
+	conn *gocoap.ClientConn,
+	href string,
+	codec Codec,
 	responseBody interface{},
 	options ...func(gocoap.Message),
 ) error {
-	conn, err := c.getConn(ctx, deviceID, href)
-	if err != nil {
-		return err
-	}
 	req, err := conn.NewGetRequest(href)
 	if err != nil {
 		return fmt.Errorf("could create request %s: %v", href, err)
@@ -55,17 +66,17 @@ func (c *Client) Get(
 	if resp.Code() != gocoap.Content {
 		return fmt.Errorf("request failed: %s", coap.Dump(resp))
 	}
-	if err := c.codec.Decode(resp, responseBody); err != nil {
+	if err := codec.Decode(resp, responseBody); err != nil {
 		return fmt.Errorf("could not decode the query %s: %v", href, err)
 	}
 	return nil
 }
 
-// Post makes a POST CoAP request over a connection from the client's pool.
-func (c *Client) Post(
+// Get makes a GET CoAP request over a connection from the client's pool.
+func (c *Client) Get(
 	ctx context.Context,
 	deviceID, href string,
-	requestBody interface{},
+	codec Codec,
 	responseBody interface{},
 	options ...func(gocoap.Message),
 ) error {
@@ -73,11 +84,23 @@ func (c *Client) Post(
 	if err != nil {
 		return err
 	}
-	body, err := c.codec.Encode(requestBody)
+	return COAPGet(ctx, conn, href, codec, responseBody, options...)
+}
+
+func COAPPost(
+	ctx context.Context,
+	conn *gocoap.ClientConn,
+	href string,
+	codec Codec,
+	requestBody interface{},
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
+	body, err := codec.Encode(requestBody)
 	if err != nil {
 		return fmt.Errorf("could not encode the query %s: %v", href, err)
 	}
-	req, err := conn.NewPostRequest(href, c.codec.ContentFormat(), bytes.NewReader(body))
+	req, err := conn.NewPostRequest(href, codec.ContentFormat(), bytes.NewReader(body))
 	if err != nil {
 		return fmt.Errorf("could create request %s: %v", href, err)
 	}
@@ -91,7 +114,7 @@ func (c *Client) Post(
 	if resp.Code() != gocoap.Changed && resp.Code() != gocoap.Valid {
 		return fmt.Errorf("request failed: %s", coap.Dump(resp))
 	}
-	if err := c.codec.Decode(resp, responseBody); err != nil {
+	if err := codec.Decode(resp, responseBody); err != nil {
 		return fmt.Errorf("could not decode the query %s: %v", href, err)
 	}
 	return nil
@@ -111,6 +134,7 @@ type ObservationHandler interface {
 func (c *Client) Observe(
 	ctx context.Context,
 	deviceID, href string,
+	codec Codec,
 	handler ObservationHandler,
 	options ...func(gocoap.Message),
 ) (*gocoap.Observation, error) {
@@ -125,29 +149,45 @@ func (c *Client) Observe(
 	if err != nil {
 		return nil, err
 	}
-	obs, err := conn.ObserveWithContext(ctx, href, c.observationHandler(handler), options...)
+	obs, err := conn.ObserveWithContext(ctx, href, observationHandler(codec, handler), options...)
 	if err != nil {
 		return nil, fmt.Errorf("could not observe %s: %v", href, err)
 	}
 	return obs, nil
 }
 
-func (c *Client) observationHandler(handler ObservationHandler) func(*gocoap.Request) {
+func observationHandler(codec Codec, handler ObservationHandler) func(*gocoap.Request) {
 	return func(req *gocoap.Request) {
-		handler.Handle(req.Ctx, req.Client, c.decode(req.Msg))
+		handler.Handle(req.Ctx, req.Client, decodeObservation(codec, req.Msg))
 	}
 }
 
-func (c *Client) decode(m gocoap.Message) DecodeFunc {
+func decodeObservation(codec Codec, m gocoap.Message) DecodeFunc {
 	return func(body interface{}) error {
 		if m.Code() != gocoap.Content {
 			return fmt.Errorf("observation failed: %s", coap.Dump(m))
 		}
-		if err := c.codec.Decode(m, body); err != nil {
+		if err := codec.Decode(m, body); err != nil {
 			return fmt.Errorf("could not decode observation: %v", err)
 		}
 		return nil
 	}
+}
+
+// Post makes a POST CoAP request over a connection from the client's pool.
+func (c *Client) Post(
+	ctx context.Context,
+	deviceID, href string,
+	codec Codec,
+	requestBody interface{},
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
+	conn, err := c.getConn(ctx, deviceID, href)
+	if err != nil {
+		return err
+	}
+	return COAPPost(ctx, conn, href, codec, requestBody, responseBody, options...)
 }
 
 func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.ClientConn, error) {
@@ -155,13 +195,41 @@ func (c *Client) getConn(ctx context.Context, deviceID, href string) (*gocoap.Cl
 	if err != nil {
 		return nil, fmt.Errorf("no response from device %s: %v", deviceID, err)
 	}
-	addr, err := c.getAddr(&r)
+	addr, err := c.getAddr(r)
 	if err != nil {
 		return nil, fmt.Errorf("invalid endpoint of device %s: %v", deviceID, err)
 	}
-	conn, err := c.pool.GetOrCreate(ctx, addr.String())
+	conn, err := c.pool.GetOrCreate(ctx, addr.URL())
 	if err != nil {
 		return nil, fmt.Errorf("could not connect to %s: %v", addr.String(), err)
 	}
 	return conn.(*gocoap.ClientConn), nil
+}
+
+func COAPDelete(
+	ctx context.Context,
+	conn *gocoap.ClientConn,
+	href string,
+	codec Codec,
+	responseBody interface{},
+	options ...func(gocoap.Message),
+) error {
+	req, err := conn.NewDeleteRequest(href)
+	if err != nil {
+		return fmt.Errorf("could create request %s: %v", href, err)
+	}
+	for _, option := range options {
+		option(req)
+	}
+	resp, err := conn.ExchangeWithContext(ctx, req)
+	if err != nil {
+		return fmt.Errorf("could not query %s: %v", href, err)
+	}
+	if resp.Code() != gocoap.Deleted {
+		return fmt.Errorf("request failed: %s", coap.Dump(resp))
+	}
+	if err := codec.Decode(resp, responseBody); err != nil {
+		return fmt.Errorf("could not decode the query %s: %v", href, err)
+	}
+	return nil
 }
