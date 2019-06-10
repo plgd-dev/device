@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -26,13 +25,12 @@ func (c *Client) DisownDevice(
 		return fmt.Errorf(errMsg, deviceID, "device is not owned")
 	}
 
-	var deviceClient *device.Client
-	err = c.GetDevice(ctx, deviceID, nil, &deviceClient)
+	deviceClient, err := c.GetDevice(ctx, deviceID, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	sdkID, err := c.GetSdkID()
+	sdkID, err := c.GetSdkDeviceID()
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
@@ -52,7 +50,7 @@ func (c *Client) DisownDevice(
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
-	c.CloseConnections(deviceClient.GetDeviceLinks())
+	defer c.CloseConnections(deviceClient.GetDeviceLinks())
 
 	return nil
 }

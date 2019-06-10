@@ -12,7 +12,6 @@ import (
 	//"encoding/base64"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -70,7 +69,9 @@ func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.
 func (h *deviceOwnershipHandler) Error(err error) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	h.err = err
+	if h.err == nil {
+		h.err = err
+	}
 }
 
 func (h *deviceOwnershipHandler) Err() error {
@@ -168,6 +169,10 @@ func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
 	return string(data)
 }
 
+/*
+ * iotivityHack sets credential with pair-wise and removes it. It's needed to
+ * enable ciphers for TLS communication with signed certificates.
+ */
 func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) error {
 	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
 
@@ -181,7 +186,6 @@ func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) erro
 		return fmt.Errorf("cannot set device hackid as owner %v", err)
 	}
 
-	// THIS iS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
 	iotivityHackCredential := schema.CredentialUpdateRequest{
 		ResourceOwner: sdkID,
 		Credentials: []schema.Credential{
@@ -246,8 +250,7 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	var deviceClient *device.Client
-	err = c.GetDevice(ctx, deviceID, nil, &deviceClient)
+	deviceClient, err := c.GetDevice(ctx, deviceID, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
@@ -292,7 +295,7 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state %v", err))
 	}
 
-	sdkID, err := c.GetSdkID()
+	sdkID, err := c.GetSdkDeviceID()
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
 	}
@@ -376,7 +379,10 @@ func (c *Client) OwnDevice(
 		}
 	}
 
-	// THIS IS HACK FOR iotivity -> we want to start use normal certificates and certificate-authorities
+	/*
+	 * THIS IS HACK FOR iotivity -> enables ciphers for TLS communication with signed certificates.
+	 * Tested with iotivity 2.0.1-RC0.
+	 */
 	isIotivity, err := tlsClient.IsIotivity(ctx)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)

@@ -49,15 +49,15 @@ func (h *deviceHandler) Client() *device.Client {
 	return h.client
 }
 
-func (c *Client) GetDevice(ctx context.Context, deviceId string, typeFilter []string, client **device.Client) error {
+// GetDevice returns device client.
+func (c *Client) GetDevice(ctx context.Context, deviceId string, typeFilter []string) (*device.Client, error) {
 	ctxDev, cancel := context.WithCancel(ctx)
 	defer cancel()
 	handler := newDeviceHandler(deviceId, cancel)
 	resource.DiscoverDevices(ctxDev, c.conn, typeFilter, c.newDiscoveryHandler(handler))
 	cl := handler.Client()
 	if cl != nil {
-		*client = cl
-		return nil
+		return cl, nil
 	}
-	return fmt.Errorf("cannot get device %v: not found", deviceId)
+	return nil, fmt.Errorf("cannot get device %v: not found", deviceId)
 }

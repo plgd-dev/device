@@ -18,8 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//docker rm -f devsim; docker run -t -d --network=host --entrypoint /usr/bin/kicdevsim -v `pwd`/data:/data --name devsim dockerhub.kistler.com/kiconnect/kiconnect-device-simulator:2.2.7-secure-dbg --svrdb /data/oic_svr_db.dat
-
 type TestCertificateSigner struct {
 	ca       *x509.Certificate
 	caKey    *ecdsa.PrivateKey

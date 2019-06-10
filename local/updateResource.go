@@ -15,7 +15,7 @@ func (c *Client) UpdateResource(
 	deviceID, href string,
 	data []byte,
 	coapContentFormat uint16,
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) ([]byte, error) {
 	var b []byte
 	codec := coap.NoCodec{MediaType: coapContentFormat}
@@ -31,7 +31,7 @@ func (c *Client) UpdateResourceCBOR(
 	deviceID, href string,
 	request interface{},
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
 	codec := coap.CBORCodec{}
 	err := c.updateResource(ctx, deviceID, href, codec, request, response, options...)
@@ -47,21 +47,14 @@ func (c *Client) updateResource(
 	codec resource.Codec,
 	request interface{},
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
-	var opts []func(gocoap.Message)
-	for _, opt := range options {
-		opts = append(opts, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, opt())
-		})
-	}
-
 	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return err
 	}
 
-	err = client.Post(ctx, deviceID, href, codec, request, response, opts...)
+	err = client.Post(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err
 	}

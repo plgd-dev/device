@@ -14,7 +14,7 @@ func (c *Client) GetResource(
 	ctx context.Context,
 	deviceID, href string,
 	coapContentFormat uint16,
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) ([]byte, error) {
 	var b []byte
 	codec := coap.NoCodec{MediaType: coapContentFormat}
@@ -29,7 +29,7 @@ func (c *Client) GetResourceCBOR(
 	ctx context.Context,
 	deviceID, href string,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
 	codec := coap.CBORCodec{}
 	err := c.getResource(ctx, deviceID, href, codec, response, options...)
@@ -44,21 +44,14 @@ func (c *Client) getResource(
 	deviceID, href string,
 	codec resource.Codec,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
-	var opts []func(gocoap.Message)
-	for _, opt := range options {
-		opts = append(opts, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, opt())
-		})
-	}
-
 	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return err
 	}
 
-	err = client.Get(ctx, deviceID, href, codec, response, opts...)
+	err = client.Get(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err
 	}

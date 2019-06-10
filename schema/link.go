@@ -132,7 +132,7 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 	if len(r.Endpoints) > 0 {
 		return r
 	}
-	r.Endpoints = []Endpoint{ /*udpEndpoint(addr)*/ }
+	r.Endpoints = make([]Endpoint, 0, 4)
 	if r.Policy.UDPPort != 0 && addr.GetPort() != r.Policy.UDPPort {
 		if r.Policy.Secured {
 			r.Endpoints = append(r.Endpoints, udpTlsEndpoint(addr.SetPort(r.Policy.UDPPort)))

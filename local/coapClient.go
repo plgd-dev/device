@@ -23,8 +23,6 @@ type coapClient struct {
 	scheme     string
 }
 
-type optionFunc func() string
-
 func VerifyIndetityCertificate(cert *x509.Certificate) error {
 	// verify EKU manually
 	ekuHasClient := false
@@ -108,27 +106,27 @@ func NewCoapClient(clientConn *gocoap.ClientConn, scheme string) *coapClient {
 	return &coapClient{clientConn: clientConn, scheme: scheme}
 }
 
-func WithInterface(in string) optionFunc {
-	return func() string {
-		return "if=" + in
+func WithInterface(in string) func(gocoap.Message) {
+	return func(req gocoap.Message) {
+		req.AddOption(gocoap.URIQuery, "if="+in)
 	}
 }
 
-func WithType(in string) optionFunc {
-	return func() string {
-		return "rt=" + in
+func WithType(in string) func(gocoap.Message) {
+	return func(req gocoap.Message) {
+		req.AddOption(gocoap.URIQuery, "rt="+in)
 	}
 }
 
-func WithCredentialId(in int) optionFunc {
-	return func() string {
-		return "credid=" + strconv.Itoa(in)
+func WithCredentialId(in int) func(gocoap.Message) {
+	return func(req gocoap.Message) {
+		req.AddOption(gocoap.URIQuery, "credid="+strconv.Itoa(in))
 	}
 }
 
-func WithCredentialSubject(in string) optionFunc {
-	return func() string {
-		return "subjectuuid=" + in
+func WithCredentialSubject(in string) func(gocoap.Message) {
+	return func(req gocoap.Message) {
+		req.AddOption(gocoap.URIQuery, "subjectuuid="+in)
 	}
 }
 
@@ -137,7 +135,7 @@ func (c *coapClient) UpdateResourceCBOR(
 	href string,
 	request interface{},
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
 	return c.UpdateResource(ctx, href, coap.CBORCodec{}, request, response, options...)
 }
@@ -148,23 +146,16 @@ func (c *coapClient) UpdateResource(
 	codec resource.Codec,
 	request interface{},
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
-	var opts []func(gocoap.Message)
-	for _, opt := range options {
-		opts = append(opts, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, opt())
-		})
-	}
-
-	return resource.COAPPost(ctx, c.clientConn, href, codec, request, response, opts...)
+	return resource.COAPPost(ctx, c.clientConn, href, codec, request, response, options...)
 }
 
 func (c *coapClient) GetResourceCBOR(
 	ctx context.Context,
 	href string,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
 	return c.GetResource(ctx, href, coap.CBORCodec{}, response, options...)
 }
@@ -174,18 +165,15 @@ func (c *coapClient) GetResource(
 	href string,
 	codec resource.Codec,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
-	var opts []func(gocoap.Message)
-	for _, opt := range options {
-		opts = append(opts, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, opt())
-		})
-	}
-
-	return resource.COAPGet(ctx, c.clientConn, href, codec, response, opts...)
+	return resource.COAPGet(ctx, c.clientConn, href, codec, response, options...)
 }
 
+/*
+ * IsIotivity detects if server is iotivity 2.0.1-RC0.
+ * Tested against iotivty 2.0.1-RC0 and iotivity-lite with revision 04471e61bbf8b936e4531f07f5b4a6fc2b0bc966.
+ */
 func (c *coapClient) IsIotivity(
 	ctx context.Context,
 ) (bool, error) {
@@ -254,23 +242,16 @@ func (c *coapClient) DeleteResource(
 	href string,
 	codec resource.Codec,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
-	var opts []func(gocoap.Message)
-	for _, opt := range options {
-		opts = append(opts, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, opt())
-		})
-	}
-
-	return resource.COAPDelete(ctx, c.clientConn, href, codec, response, opts...)
+	return resource.COAPDelete(ctx, c.clientConn, href, codec, response, options...)
 }
 
 func (c *coapClient) DeleteResourceCBOR(
 	ctx context.Context,
 	href string,
 	response interface{},
-	options ...optionFunc,
+	options ...func(gocoap.Message),
 ) error {
 	return c.DeleteResource(ctx, href, coap.CBORCodec{}, response, options...)
 }

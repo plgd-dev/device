@@ -17,16 +17,11 @@ import (
 
 // Client an OCF local client.
 type Client struct {
-	observations  *sync.Map
-	Certificate   tls.Certificate
-	CertificateId string
-	ca            []x509.Certificate
-	factory       ResourceClientFactory
-	conn          []*gocoap.MulticastClientConn
+	observations *sync.Map
+	factory      ResourceClientFactory
+	conn         []*gocoap.MulticastClientConn
 
 	tlsConfig resource.TLSConfig
-
-	lock sync.Mutex
 }
 
 // Config for the OCF local client.
@@ -177,7 +172,8 @@ func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
 	return deviceId.String(), nil
 }
 
-func (c *Client) GetSdkID() (string, error) {
+// GetSdkDeviceID returns sdk deviceID from identity certificate.
+func (c *Client) GetSdkDeviceID() (string, error) {
 	cert, err := c.GetCertificate()
 	if err != nil {
 		return "", fmt.Errorf("cannot get sdk id: %v", err)

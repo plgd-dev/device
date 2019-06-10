@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/codec/coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -25,15 +24,15 @@ type resourceClient interface {
 }
 
 // QueryDevice queries device details for a device resource type.
-func (c *Client) QueryDevice(ctx context.Context, resourceTypes ...string) (*schema.Device, error) {
+func (c *Client) QueryDevice(ctx context.Context, codec resource.Codec, resourceTypes ...string) (*schema.Device, error) {
 	id := c.links.ID
 	var d, nd schema.Device
 	it := c.QueryResource(resourceTypes...)
-	ok := it.Next(ctx, coap.CBORCodec{}, &d)
+	ok := it.Next(ctx, codec, &d)
 	if !ok {
 		return nil, fmt.Errorf("could not get device details for %s: %v", id, it.Err)
 	}
-	if it.Next(ctx, coap.CBORCodec{}, &nd) {
+	if it.Next(ctx, codec, &nd) {
 		return nil, fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
 	}
 	return &d, nil
