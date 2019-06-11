@@ -9,5 +9,8 @@ insecure:
 .PHONY: insecure
 
 test:
+	docker build test/ --network=host -t device-simulator
+	docker rm -f device-simulator || true
+	docker run -d -t --network=host --name device-simulator device-simulator
 	go test -a ./...
 .PHONY: test
