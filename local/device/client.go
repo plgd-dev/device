@@ -24,26 +24,26 @@ type resourceClient interface {
 }
 
 // QueryDevice queries device details for a device resource type.
-func (c *Client) QueryDevice(ctx context.Context, codec resource.Codec, resourceTypes ...string) (*schema.Device, error) {
+func (c *Client) QuerySingleResource(ctx context.Context, codec resource.Codec, value interface{}, resourceTypes ...string) error {
 	id := c.links.ID
-	var d, nd schema.Device
-	it := c.QueryResource(resourceTypes...)
-	ok := it.Next(ctx, codec, &d)
+	it := c.QueryResource(codec, resourceTypes...)
+	ok := it.Next(ctx, value)
 	if !ok {
-		return nil, fmt.Errorf("could not get device details for %s: %v", id, it.Err)
+		return it.Err
 	}
-	if it.Next(ctx, codec, &nd) {
-		return nil, fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
+	if it.Next(ctx, value) {
+		return fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
 	}
-	return &d, nil
+	return it.Err
 }
 
 // QueryResource resolves URIs and returns an iterator for querying resources of a given type.
-func (c *Client) QueryResource(resourceTypes ...string) *QueryResourceIterator {
+func (c *Client) QueryResource(codec resource.Codec, resourceTypes ...string) *QueryResourceIterator {
 	return &QueryResourceIterator{
 		id:     c.links.ID,
 		hrefs:  c.links.GetResourceHrefs(resourceTypes...),
 		client: c.client,
+		codec:  codec,
 	}
 }
 
@@ -54,17 +54,18 @@ type QueryResourceIterator struct {
 	hrefs  []string
 	i      int
 	client resourceClient
+	codec  resource.Codec
 }
 
 // Next queries the next resource.
 // Returns false when failed or having no more items.
 // Check it.Err for errors.
-func (it *QueryResourceIterator) Next(ctx context.Context, codec resource.Codec, v interface{}) bool {
+func (it *QueryResourceIterator) Next(ctx context.Context, v interface{}) bool {
 	if it.i >= len(it.hrefs) {
 		return false
 	}
 
-	err := it.client.Get(ctx, it.id, it.hrefs[it.i], codec, v)
+	err := it.client.Get(ctx, it.id, it.hrefs[it.i], it.codec, v)
 	if err != nil {
 		it.Err = fmt.Errorf("could not query the device %s: %v", it.id, err)
 		return false
