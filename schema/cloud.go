@@ -6,7 +6,7 @@ package schema
 const CloudResourceType string = "oic.r.coapcloudconf"
 
 type CloudResponse struct {
-	Types                 []string `codec:"rt"`
+	ResourceTypes         []string `codec:"rt"`
 	Interfaces            []string `codec:"if"`
 	Name                  string   `codec:"n"`
 	AuthorizationProvider string   `codec:"apn"`

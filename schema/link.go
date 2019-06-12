@@ -5,9 +5,10 @@ import (
 	"net"
 	"net/url"
 	"sort"
+	"strings"
 
 	kitNet "github.com/go-ocf/kit/net"
-	"github.com/go-ocf/kit/strings"
+	kitStrings "github.com/go-ocf/kit/strings"
 )
 
 // DeviceLinks lists device's resource types
@@ -22,12 +23,17 @@ type DeviceLinks struct {
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
-	Href          string     `codec:"href"`
-	ResourceTypes []string   `codec:"rt"`
-	Interfaces    []string   `codec:"if"`
-	Policy        Policy     `codec:"p"`
-	Endpoints     []Endpoint `codec:"eps"`
-	Anchor        string     `codec:"anchor"`
+	ID                    string     `codec:"id"`
+	Href                  string     `codec:"href"`
+	ResourceTypes         []string   `codec:"rt"`
+	Interfaces            []string   `codec:"if"`
+	Policy                Policy     `codec:"p"`
+	Endpoints             []Endpoint `codec:"eps"`
+	Anchor                string     `codec:"anchor"`
+	DeviceID              string     `codec:"di"`
+	InstanceID            int64      `codec:"ins"`
+	Title                 string     `codec:"title"`
+	SupportedContentTypes []string   `codec:"type"`
 }
 
 // Policy is defined on the line 1822 of the Core specification:
@@ -66,9 +72,9 @@ func (b BitMask) Has(flag BitMask) bool { return b&flag != 0 }
 
 // GetResourceHrefs resolves URIs for a resource type.
 func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
-	rt := make(strings.Set, len(resourceTypes))
+	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make(strings.Set, len(d.Links))
+	links := make(kitStrings.Set, len(d.Links))
 	for _, r := range d.Links {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links.Add(r.Href)
@@ -79,7 +85,7 @@ func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 
 // GetResourceLinks resolves URIs for a resource type.
 func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
-	rt := make(strings.Set, len(resourceTypes))
+	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
 	links := make([]ResourceLink, 0, len(d.Links))
 	for _, r := range d.Links {
@@ -235,4 +241,12 @@ func tcpEndpoint(addr kitNet.Addr) Endpoint {
 func tcpTlsEndpoint(addr kitNet.Addr) Endpoint {
 	u := url.URL{Scheme: TCPSecureScheme, Host: addr.String()}
 	return Endpoint{URI: u.String()}
+}
+
+// GetDeviceID returns device id.
+func (r ResourceLink) GetDeviceID() string {
+	if r.DeviceID != "" {
+		return r.DeviceID
+	}
+	return strings.TrimPrefix(r.Anchor, "ocf://")
 }
