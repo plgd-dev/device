@@ -23,18 +23,17 @@ type resourceClient interface {
 }
 
 // QueryDevice queries device details for a device resource type.
-func (c *Client) QueryDevice(ctx context.Context, resourceTypes ...string) (*schema.Device, error) {
+func (c *Client) QuerySingleResource(ctx context.Context, value interface{}, resourceTypes ...string) error {
 	id := c.links.ID
-	var d, nd schema.Device
 	it := c.QueryResource(resourceTypes...)
-	ok := it.Next(ctx, &d)
+	ok := it.Next(ctx, value)
 	if !ok {
-		return nil, fmt.Errorf("could not get device details for %s: %v", id, it.Err)
+		return it.Err
 	}
-	if it.Next(ctx, &nd) {
-		return nil, fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
+	if it.Next(ctx, value) {
+		return fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
 	}
-	return &d, nil
+	return it.Err
 }
 
 // QueryResource resolves URIs and returns an iterator for querying resources of a given type.
