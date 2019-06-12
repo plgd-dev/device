@@ -5,10 +5,10 @@ package schema
 type Device struct {
 	ID               string             `codec:"di"`
 	Types            []string           `codec:"rt"`
+	Interfaces       []string           `codec:"if"`
 	Name             string             `codec:"n"`
 	ManufacturerName []ManufacturerName `codec:"dmn"`
 	ModelNumber      string             `codec:"dmno"`
-	SerialNumber     string             `codec:"piid"`
 }
 
 // ManufacturerName struct.
