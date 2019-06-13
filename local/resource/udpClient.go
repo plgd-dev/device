@@ -2,6 +2,7 @@ package resource
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -78,9 +79,23 @@ func getUDPAddr(r schema.ResourceLink) (net.Addr, error) {
 }
 
 func createUDPConnection(p *sync.Pool) sync.PoolFunc {
-	return func(ctx context.Context, addr string) (interface{}, error) {
-		closeSession := func(error) { p.Delete(addr) }
-		client := gocoap.Client{Net: "udp", NotifySessionEndFunc: closeSession}
-		return client.DialWithContext(ctx, addr)
+	return func(ctx context.Context, urlraw string) (interface{}, error) {
+		closeSession := func(error) { p.Delete(urlraw) }
+		const errMsg = "cannot create udp connection to %v: %v"
+		url, err := url.Parse(urlraw)
+		if err != nil {
+			return nil, fmt.Errorf(errMsg, urlraw, err)
+		}
+		addr, err := net.ParseURL(url)
+		if err != nil {
+			return nil, fmt.Errorf(errMsg, urlraw, err)
+		}
+		scheme := addr.GetScheme()
+		switch scheme {
+		case schema.UDPScheme:
+			client := gocoap.Client{Net: "udp", NotifySessionEndFunc: closeSession}
+			return client.DialWithContext(ctx, addr.String())
+		}
+		return nil, fmt.Errorf(errMsg, urlraw, fmt.Errorf("unsupported scheme :%v", scheme))
 	}
 }
