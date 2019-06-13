@@ -29,13 +29,13 @@ type ObservationHandler interface {
 	Error(err error)
 }
 
-func (c *Client) ObserveResourceCBOR(
+func (c *Client) ObserveResourceVNDOCFCBOR(
 	ctx context.Context,
 	deviceID, href string,
 	interfaceFilter string,
 	handler resource.ObservationHandler,
 ) (observationID string, _ error) {
-	codec := coap.CBORCodec{}
+	codec := coap.VNDOCFCBORCodec{}
 	return c.observeResource(ctx, deviceID, href, interfaceFilter, codec, handler)
 }
 

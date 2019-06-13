@@ -25,13 +25,13 @@ func (c *Client) GetResource(
 	return b, nil
 }
 
-func (c *Client) GetResourceCBOR(
+func (c *Client) GetResourceVNDOCFCBOR(
 	ctx context.Context,
 	deviceID, href string,
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	codec := coap.CBORCodec{}
+	codec := coap.VNDOCFCBORCodec{}
 	err := c.getResource(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err

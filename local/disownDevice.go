@@ -45,7 +45,7 @@ func (c *Client) DisownDevice(
 		},
 	}
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", setResetProvisionState, nil)
+	err = c.UpdateResourceVNDOCFCBOR(ctx, deviceID, "/oic/sec/pstat", setResetProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}

@@ -26,14 +26,14 @@ func (c *Client) UpdateResource(
 	return b, nil
 }
 
-func (c *Client) UpdateResourceCBOR(
+func (c *Client) UpdateResourceVNDOCFCBOR(
 	ctx context.Context,
 	deviceID, href string,
 	request interface{},
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	codec := coap.CBORCodec{}
+	codec := coap.VNDOCFCBORCodec{}
 	err := c.updateResource(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err
