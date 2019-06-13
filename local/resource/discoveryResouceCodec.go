@@ -24,7 +24,7 @@ func anchorToDeviceId(anchor string) string {
 }
 
 func decodeDiscoveryOcfCbor(msg gocoap.Message, devices *[]schema.DeviceLinks) error {
-	codec := coap.CBORCodec{}
+	codec := coap.VNDOCFCBORCodec{}
 	var resources []schema.ResourceLink
 
 	if err := codec.Decode(msg, &resources); err != nil {
@@ -70,7 +70,7 @@ func (c DiscoveryResourceCodec) Decode(msg gocoap.Message, v interface{}) error 
 	mt, _ := cf.(gocoap.MediaType)
 	switch mt {
 	case gocoap.AppCBOR:
-		codec := coap.CBORCodec{}
+		codec := coap.VNDOCFCBORCodec{}
 		if err := codec.Decode(msg, devices); err != nil {
 			return fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(msg))
 		}
@@ -78,5 +78,5 @@ func (c DiscoveryResourceCodec) Decode(msg gocoap.Message, v interface{}) error 
 	case gocoap.AppOcfCbor:
 		return decodeDiscoveryOcfCbor(msg, devices)
 	}
-	return fmt.Errorf("not a CBOR content format: %v", cf)
+	return fmt.Errorf("not a VNDOCFCBOR content format: %v", cf)
 }

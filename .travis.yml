@@ -10,7 +10,7 @@ install:
   - docker build . --network=host -t sdk:build
   - docker build ./test --network=host -t sdk:device-simulator
   - docker run -d --name devsim --network=host sdk:device-simulator /device-simulator
-  - sleep 2
+  - sleep 10
 after_failure:
   - docker logs devsim
 

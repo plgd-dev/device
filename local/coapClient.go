@@ -130,17 +130,17 @@ func WithCredentialSubject(in string) func(gocoap.Message) {
 	}
 }
 
-func (c *coapClient) UpdateResourceCBOR(
+func (c *coapClient) UpdateResource(
 	ctx context.Context,
 	href string,
 	request interface{},
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	return c.UpdateResource(ctx, href, coap.CBORCodec{}, request, response, options...)
+	return c.UpdateResourceWithCodec(ctx, href, coap.VNDOCFCBORCodec{}, request, response, options...)
 }
 
-func (c *coapClient) UpdateResource(
+func (c *coapClient) UpdateResourceWithCodec(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -151,16 +151,16 @@ func (c *coapClient) UpdateResource(
 	return resource.COAPPost(ctx, c.clientConn, href, codec, request, response, options...)
 }
 
-func (c *coapClient) GetResourceCBOR(
+func (c *coapClient) GetResource(
 	ctx context.Context,
 	href string,
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	return c.GetResource(ctx, href, coap.CBORCodec{}, response, options...)
+	return c.GetResourceWithCodec(ctx, href, coap.VNDOCFCBORCodec{}, response, options...)
 }
 
-func (c *coapClient) GetResource(
+func (c *coapClient) GetResourceWithCodec(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -209,7 +209,7 @@ func (c *coapClient) IsIotivity(
 
 func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (device schema.DeviceLinks, _ error) {
 	var devices []schema.DeviceLinks
-	err := c.GetResource(ctx, "/oic/res", resource.DiscoveryResourceCodec{}, &devices)
+	err := c.GetResourceWithCodec(ctx, "/oic/res", resource.DiscoveryResourceCodec{}, &devices)
 	if err != nil {
 		return device, err
 	}
@@ -237,7 +237,7 @@ func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (devic
 	return device, nil
 }
 
-func (c *coapClient) DeleteResource(
+func (c *coapClient) DeleteResourceWithCodec(
 	ctx context.Context,
 	href string,
 	codec resource.Codec,
@@ -247,13 +247,13 @@ func (c *coapClient) DeleteResource(
 	return resource.COAPDelete(ctx, c.clientConn, href, codec, response, options...)
 }
 
-func (c *coapClient) DeleteResourceCBOR(
+func (c *coapClient) DeleteResource(
 	ctx context.Context,
 	href string,
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	return c.DeleteResource(ctx, href, coap.CBORCodec{}, response, options...)
+	return c.DeleteResourceWithCodec(ctx, href, coap.VNDOCFCBORCodec{}, response, options...)
 }
 
 func (c *coapClient) Close() error {

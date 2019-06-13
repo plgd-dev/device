@@ -27,7 +27,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2883936ca58b1344d912dc4bcbc259e680efcfe3d3e8ec2edbaf935b194263ad"
+  digest = "1:9a68fd8dd47c071e33c961e988bf743a56b2567610b5304fe49488e1c0afe8ac"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -39,7 +39,7 @@
     "sync",
   ]
   pruneopts = "UT"
-  revision = "a31f183787bd1057eb7fcbe29a3baa2c3f97177c"
+  revision = "eacdeb64449877918c447f35c19dd741b81accbd"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -104,7 +104,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f495a764651b84a3a81b165452a3fb8123007a6bde58d16e8cfd69b113720b78"
+  digest = "1:809cf19608921a01fc1b8b15bf397a0cf594f85134583b5e9d5d19df31f28222"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -120,18 +120,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "1492cefac77f61bc789c00f41ead8f8d7307cd21"
+  revision = "3f473d35a33aa6fdd203e306dc439b797820e3f1"
 
 [[projects]]
   branch = "master"
-  digest = "1:98d02d01de1a49eec5a1f5ec479e522ab4e98ffc6a5488f27bd55b56e570338c"
+  digest = "1:2a96b14fed8617c9e499777c03ec21f35dfd5b396f0b05fcdd7eff9e6c67f196"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "7fc4e5ec1444df20dd195ae7c3bbfcd7114d3faa"
+  revision = "93c9922d18aeb82498a065f07aec7ad7fa60dfb7"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -164,7 +164,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "eb0b1bdb6ae60fcfc41b8d907b50dfb346112301"
+  revision = "a7e196e89fd3a3c4d103ca540bd5dac3a736e375"
 
 [[projects]]
   digest = "1:e8800ddadd6bce3bc0c5ffd7bc55dbdddc6e750956c10cc10271cade542fccbe"

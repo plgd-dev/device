@@ -10,7 +10,7 @@ import (
 
 // coapContentFormat values can be found here
 // https://github.com/go-ocf/go-coap/blob/a643abf9bcd9c4d033e63e7530e77d0f5f57dc54/message.go#L243
-func (c *Client) UpdateResource(
+func (c *Client) UpdateResourceWithCodec(
 	ctx context.Context,
 	deviceID, href string,
 	data []byte,
@@ -26,14 +26,14 @@ func (c *Client) UpdateResource(
 	return b, nil
 }
 
-func (c *Client) UpdateResourceCBOR(
+func (c *Client) UpdateResource(
 	ctx context.Context,
 	deviceID, href string,
 	request interface{},
 	response interface{},
 	options ...func(gocoap.Message),
 ) error {
-	codec := coap.CBORCodec{}
+	codec := coap.VNDOCFCBORCodec{}
 	err := c.updateResource(ctx, deviceID, href, codec, request, response, options...)
 	if err != nil {
 		return err

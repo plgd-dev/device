@@ -181,7 +181,7 @@ func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) erro
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err := tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
+	err := tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
 		return fmt.Errorf("cannot set device hackid as owner %v", err)
 	}
@@ -199,12 +199,12 @@ func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) erro
 			},
 		},
 	}
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
 	if err != nil {
 		return fmt.Errorf("cannot set iotivity-hack credential: %v", err)
 	}
 
-	err = tlsClient.DeleteResourceCBOR(ctx, "/oic/sec/cred", nil, WithCredentialSubject(hackId))
+	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, WithCredentialSubject(hackId))
 	if err != nil {
 		return fmt.Errorf("cannot delete iotivity-hack credential: %v", err)
 	}
@@ -242,7 +242,7 @@ func (c *Client) OwnDevice(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = client.UpdateResourceCBOR(ctx, "/oic/sec/doxm", selectOTM, nil)
+	err = client.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
 	if err != nil {
 		if ownership.Owned {
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
@@ -269,7 +269,7 @@ func (c *Client) OwnDevice(
 	}
 
 	var provisionState schema.ProvisionStatusResponse
-	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/pstat", &provisionState)
+	err = tlsClient.GetResource(ctx, "/oic/sec/pstat", &provisionState)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get provision state %v", err))
 	}
@@ -290,7 +290,7 @@ func (c *Client) OwnDevice(
 		CurrentOperationalMode: schema.OperationalMode_CLIENT_DIRECTED,
 	}
 	/*pstat doesn't send any content for select OperationalMode*/
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/pstat", updateProvisionState, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", updateProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state %v", err))
 	}
@@ -302,7 +302,7 @@ func (c *Client) OwnDevice(
 
 	/*setup credentials - PostOwnerCredential*/
 	var csr schema.CertificateSigningRequestResponse
-	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/csr", &csr)
+	err = tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get csr for setup device owner credentials: %v", err))
 	}
@@ -318,7 +318,7 @@ func (c *Client) OwnDevice(
 	}
 
 	var deviceCredential schema.CredentialResponse
-	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/cred", &deviceCredential, WithCredentialSubject(deviceID))
+	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, WithCredentialSubject(deviceID))
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get device credential to setup device owner credentials: %v", err))
 	}
@@ -327,7 +327,7 @@ func (c *Client) OwnDevice(
 		switch {
 		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-			err = tlsClient.DeleteResourceCBOR(ctx, "/oic/sec/cred", nil, WithCredentialId(cred.ID))
+			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, WithCredentialId(cred.ID))
 			if err != nil {
 				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err))
 			}
@@ -348,7 +348,7 @@ func (c *Client) OwnDevice(
 			},
 		},
 	}
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device identity credentials: %v", err))
 	}
@@ -373,7 +373,7 @@ func (c *Client) OwnDevice(
 				},
 			},
 		}
-		err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/cred", setCaCredential, nil)
+		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
 		if err != nil {
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device CA credentials: %v", err))
 		}
@@ -400,14 +400,14 @@ func (c *Client) OwnDevice(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
 	}
 
 	/*verify ownership*/
 	var verifyOwner schema.Doxm
-	err = tlsClient.GetResourceCBOR(ctx, "/oic/sec/doxm", &verifyOwner)
+	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot verify owner: %v", err))
 	}
@@ -422,7 +422,7 @@ func (c *Client) OwnDevice(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResourceCBOR(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owned %v", err))
 	}
@@ -443,7 +443,7 @@ func (c *Client) OwnDevice(
 	}
 
 	/*pstat set owner of resource*/
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", setOwnerProvisionState, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setOwnerProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %v", err))
 	}
@@ -469,7 +469,7 @@ func (c *Client) OwnDevice(
 		},
 	}
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/acl2", setOwnerAcl, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oic/sec/acl2", setOwnerAcl, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update acl resource owner: %v", err))
 	}
@@ -481,7 +481,7 @@ func (c *Client) OwnDevice(
 		},
 	}
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFPRO, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFPRO, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFPRO to setup device owner ACLs: %v", err))
 	}
@@ -493,7 +493,7 @@ func (c *Client) OwnDevice(
 		},
 	}
 
-	err = c.UpdateResourceCBOR(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFNOP, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFNOP, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFNOP to setup device owner ACLs: %v", err))
 	}

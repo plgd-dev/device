@@ -17,7 +17,7 @@ func (c *Client) onboardOffboardDevice(
 	}
 
 	var links []schema.ResourceLink
-	err := c.GetResourceCBOR(ctx, deviceID, "/oic/res", &links)
+	err := c.GetResource(ctx, deviceID, "/oic/res", &links)
 	if err != nil {
 		return errFunc(err)
 	}
@@ -43,7 +43,7 @@ Loop:
 		URL:                   url,
 	}
 	var resp schema.CloudResponse
-	err = c.UpdateResourceCBOR(ctx, deviceID, cloudResourceHref, req, &resp)
+	err = c.UpdateResource(ctx, deviceID, cloudResourceHref, req, &resp)
 	if err != nil {
 		return errFunc(err)
 	}
