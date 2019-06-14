@@ -25,6 +25,13 @@ func NewUDPClientFactory(linkCache *link.Cache) *UDPClientFactory {
 	return &UDPClientFactory{linkCache: linkCache, pool: udpPool}
 }
 
+func (f *UDPClientFactory) GetLinks() (r []schema.ResourceLink) {
+	for _, l := range f.linkCache.Items() {
+		r = append(r, l)
+	}
+	return
+}
+
 // NewClient populates the link cache and the connection pool,
 // then creates the client that uses the shared link cache and connection pool.
 func (f *UDPClientFactory) NewClient(

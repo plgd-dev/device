@@ -31,10 +31,17 @@ func NewTCPClientFactory(tlsConfig TLSConfig, linkCache *link.Cache) *TCPClientF
 	return &TCPClientFactory{linkCache: linkCache, pool: tcpPool}
 }
 
+func (f *TCPClientFactory) GetLinks() (r []schema.ResourceLink) {
+	for _, l := range f.linkCache.Items() {
+		r = append(r, l)
+	}
+	return
+}
+
 // NewClient populates the link cache and creates the client
 // that uses the shared link cache and connection pool.
 func (f *TCPClientFactory) NewClient(
-	c *gocoap.ClientConn,
+	_ *gocoap.ClientConn,
 	links schema.DeviceLinks,
 ) (*Client, error) {
 	f.linkCache.Update(links.ID, links.Links...)

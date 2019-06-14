@@ -2,8 +2,10 @@ package local
 
 import (
 	"context"
+	"crypto/x509"
 	"fmt"
 
+	"github.com/go-ocf/kit/strings"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -43,6 +45,50 @@ func (c *ProvisioningClient) Close() error {
 	err := c.UpdateResource(context.Background(), c.deviceID, "/oic/sec/pstat", normalOperationState, nil)
 	if err != nil {
 		return fmt.Errorf("could not finalize provisioning the device %s: %v", c.deviceID, err)
+	}
+	return nil
+}
+
+func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, cert *x509.Certificate) error {
+	sdkID, err := c.GetSdkDeviceID()
+	if err != nil {
+		return err
+	}
+	setCaCredential := schema.CredentialUpdateRequest{
+		ResourceOwner: sdkID,
+		Credentials: []schema.Credential{
+			schema.Credential{
+				Subject: "*",
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_TRUST_CA,
+				PublicData: schema.CredentialPublicData{
+					Data:     string(cert.Raw),
+					Encoding: schema.CredentialPublicDataEncoding_DER,
+				},
+			},
+		},
+	}
+	err = c.UpdateResource(ctx, c.deviceID, "/oic/sec/cred", setCaCredential, nil)
+	if err != nil {
+		return fmt.Errorf("could not add certificate to device %s: %v", c.deviceID, err)
+	}
+	return nil
+}
+
+func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.CloudUpdateRequest) error {
+	var href string
+	for _, l := range c.factory.GetLinks() {
+		if l.DeviceID == c.deviceID && strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {
+			href = l.Href
+			break
+		}
+	}
+	if href == "" {
+		return fmt.Errorf("could not resolve cloud resource link of device %s", c.deviceID)
+	}
+	err := c.UpdateResource(ctx, c.deviceID, href, r, nil)
+	if err != nil {
+		return fmt.Errorf("could not set cloud resource of device %s: %v", c.deviceID, err)
 	}
 	return nil
 }
