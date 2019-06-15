@@ -242,7 +242,9 @@ func (c *Client) OwnDevice(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
+	fmt.Printf("SELECT OTM START\n")
 	err = client.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
+	fmt.Printf("SELECT OTM STOP\n")
 	if err != nil {
 		if ownership.Owned {
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
