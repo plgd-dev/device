@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
 )
@@ -63,11 +64,17 @@ func Discover(
 		runDiscovery(ctx, c)
 	}
 
-	select {
-	case err := <-errors:
-		return err
-	case <-ctx.Done():
-		return nil
+	for {
+		select {
+		case <-time.After(time.Millisecond * 500):
+			for _, c := range conn {
+				runDiscovery(ctx, c)
+			}
+		case err := <-errors:
+			return err
+		case <-ctx.Done():
+			return nil
+		}
 	}
 }
 
