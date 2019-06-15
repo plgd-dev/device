@@ -7,9 +7,11 @@ install:
   - if [ "${TRAVIS_OS_NAME}" == "linux" ]; then
       sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6';
     fi
+  - DOCKER_NET=network-${TRAVIS_JOB_ID}-${TRAVIS_BUILD_ID}
   - docker build . --network=host -t sdk:build
   - docker build ./test --network=host -t sdk:device-simulator
-  - docker run -d --name devsim --network=host sdk:device-simulator /device-simulator
+  - docker network create ${DOCKER_NET}
+  - docker run -d --name devsim --network=${DOCKER_NET} sdk:device-simulator /device-simulator
   - sleep 10
   - docker logs devsim -f &
 
@@ -18,7 +20,7 @@ jobs:
     - stage: test
       if: type == pull_request
       script:
-        - docker run --network=host sdk:build go test -p 1 -v ./...
+        - docker run --network=${DOCKER_NET} sdk:build go test -v ./...
 
     - stage: test_and_cover
       if: type != pull_request
@@ -26,7 +28,7 @@ jobs:
         - >
             docker run
             --mount type=bind,source="$(pwd)",target=/shared
-            --network=host
+            --network=${DOCKER_NET}
             sdk:build
-            go test -p 1 -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
+            go test -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
         - bash <(curl -s https://codecov.io/bash)
