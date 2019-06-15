@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"time"
 
 	"crypto/tls"
 	"crypto/x509"
@@ -220,10 +221,12 @@ func (c *Client) OwnDevice(
 ) error {
 	const errMsg = "cannot own device %v: %v"
 
+	t := time.Now()
 	client, err := c.ownDeviceFindClient(ctx, deviceID, resource.DiscoverAllDevices)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+	fmt.Printf("ownDeviceFindClient: %v\n", time.Since(t))
 
 	ownership := client.GetOwnership()
 	var supportOtm bool
@@ -241,10 +244,11 @@ func (c *Client) OwnDevice(
 		SelectOwnerTransferMethod: otmClient.Type(),
 	}
 
+	t = time.Now()
 	/*doxm doesn't send any content for select OTM*/
-	fmt.Printf("SELECT OTM START\n")
+	fmt.Printf("SELECT OTM START a\n")
 	err = client.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
-	fmt.Printf("SELECT OTM STOP\n")
+	fmt.Printf("SELECT OTM STOP %v\n", time.Since(t))
 	if err != nil {
 		if ownership.Owned {
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
