@@ -31,7 +31,7 @@ func TestClient_OffboardDevice(t *testing.T) {
 
 	for deviceId, _ := range deviceIds {
 		func() {
-			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 60*time.Second)
 			defer cancelTimeout()
 			err := c.OwnDevice(timeout, deviceId, otm)
 			require.NoError(err)
