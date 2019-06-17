@@ -1,4 +1,4 @@
-default: dep insecure simulator test
+default: test
 
 dep:
 	dep ensure -v -vendor-only
@@ -13,14 +13,18 @@ insecure:
 .PHONY: insecure
 
 simulator: simulator.stop
-	docker build test/ --network=host -t device-simulator
-	docker run -d -t --network=host --name device-simulator device-simulator
+	docker build ./test --network=host -t device-simulator
+	docker network create devsimnet
+	docker run -d --name devsim --network=devsimnet device-simulator /device-simulator
 .PHONY: simulator
 
 simulator.stop:
-	docker rm -f device-simulator || true
+	docker rm -f devsim || true
+	docker network rm devsimnet || true
 .PHONY: simulator.stop
 
-test:
-	go test -a ./...
+test: simulator
+	docker build . --network=host -t sdk:build
+	docker run --network=devsimnet sdk:build go test ./...
 .PHONY: test
+
