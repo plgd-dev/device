@@ -17,11 +17,7 @@ func (c *Client) GetResource(
 	options ...kitNetCoap.OptionFunc,
 ) error {
 	codec := ocf.VNDOCFCBORCodec{}
-	err := c.GetResourceWithCodec(ctx, deviceID, href, codec, response, options...)
-	if err != nil {
-		return err
-	}
-	return nil
+	return c.GetResourceWithCodec(ctx, deviceID, href, codec, response, options...)
 }
 
 func (c *Client) GetResourceWithCodec(
@@ -35,11 +31,7 @@ func (c *Client) GetResourceWithCodec(
 	if err != nil {
 		return err
 	}
+	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
-	err = client.Get(ctx, deviceID, href, codec, response, options...)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return client.Get(ctx, deviceID, href, codec, response, options...)
 }
