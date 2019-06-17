@@ -10,18 +10,15 @@ import (
 	"github.com/gofrs/uuid"
 )
 
-// coapContentFormat values can be found here
-// https://github.com/go-ocf/go-coap/blob/a643abf9bcd9c4d033e63e7530e77d0f5f57dc54/message.go#L243
-func (c *Client) ObserveResource(
+func (c *Client) ObserveResourceWithCodec(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
-	coapContentFormat uint16,
+	codec kitNetCoap.Codec,
 	handler ObservationHandler,
+	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
-	codec := ocf.NoCodec{MediaType: coapContentFormat}
 	h := observationHandler{handler: handler}
-	return c.observeResource(ctx, deviceID, href, interfaceFilter, codec, &h)
+	return c.observeResource(ctx, deviceID, href, codec, &h, options...)
 }
 
 type ObservationHandler interface {
@@ -29,14 +26,14 @@ type ObservationHandler interface {
 	Error(err error)
 }
 
-func (c *Client) ObserveResourceVNDOCFCBOR(
+func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	handler kitNetCoap.ObservationHandler,
+	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 	codec := ocf.VNDOCFCBORCodec{}
-	return c.observeResource(ctx, deviceID, href, interfaceFilter, codec, handler)
+	return c.observeResource(ctx, deviceID, href, codec, handler, options...)
 }
 
 func (c *Client) StopObservingResource(
@@ -58,21 +55,16 @@ func (c *Client) StopObservingResource(
 func (c *Client) observeResource(
 	ctx context.Context,
 	deviceID, href string,
-	interfaceFilter string,
 	codec kitNetCoap.Codec,
 	handler kitNetCoap.ObservationHandler,
+	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
-	var options []kitNetCoap.OptionFunc
-	if interfaceFilter != "" {
-		options = append(options, func(req gocoap.Message) {
-			req.AddOption(gocoap.URIQuery, "if="+interfaceFilter)
-		})
-	}
-
 	client, err := c.factory.NewClientFromCache()
 	if err != nil {
 		return "", err
 	}
+
+	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
 	obs, err := client.Observe(ctx, deviceID, href, codec, handler, options...)
 	if err != nil {
