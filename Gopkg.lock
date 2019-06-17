@@ -11,11 +11,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9e6b61207bc668d1a55f5089298f260675694512d230362d6b1a28cad18b5978"
+  digest = "1:07f7e11549f38d489651053d624c432c1247cd9a0f64a24c4ce455936c7fe325"
   name = "github.com/go-ocf/go-coap"
-  packages = ["."]
+  packages = [
+    ".",
+    "net",
+  ]
   pruneopts = "UT"
-  revision = "37b6b19297850791aa4675060ce208a40d7e38ad"
+  revision = "6251d1201ea55633381bcccde2f47303b3736a40"
 
 [[projects]]
   branch = "master"
@@ -27,19 +30,20 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:9a68fd8dd47c071e33c961e988bf743a56b2567610b5304fe49488e1c0afe8ac"
+  digest = "1:5c188a50836f918ddaff8534e98c90a84acd2d2df8f57cc98b96cee1c6969cb7"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
-    "codec/coap",
+    "codec/ocf",
     "net",
+    "net/coap",
     "net/grpc",
     "security",
     "strings",
     "sync",
   ]
   pruneopts = "UT"
-  revision = "eacdeb64449877918c447f35c19dd741b81accbd"
+  revision = "d646746e554946c6f95deda5b71630f004fc2170"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -104,7 +108,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:809cf19608921a01fc1b8b15bf397a0cf594f85134583b5e9d5d19df31f28222"
+  digest = "1:d2dd60f890074638925f440803679b4ffd4e6efa72c58578e1d6d01a31b38dc4"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -120,18 +124,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "3f473d35a33aa6fdd203e306dc439b797820e3f1"
+  revision = "d28f0bde5980168871434b95cfc858db9f2a7a99"
 
 [[projects]]
   branch = "master"
-  digest = "1:2a96b14fed8617c9e499777c03ec21f35dfd5b396f0b05fcdd7eff9e6c67f196"
+  digest = "1:3398992b8f4b00ce4a6a5f9770008cf66dcff8f128b51eeab8c1f657096cac8f"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "93c9922d18aeb82498a065f07aec7ad7fa60dfb7"
+  revision = "15dcb6c0061f497a3f66e3ea034b629c6dd4d99e"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -215,6 +219,7 @@
     "github.com/go-ocf/grpc-gateway/pb",
     "github.com/go-ocf/kit/codec/ocf",
     "github.com/go-ocf/kit/net",
+    "github.com/go-ocf/kit/net/coap",
     "github.com/go-ocf/kit/net/grpc",
     "github.com/go-ocf/kit/security",
     "github.com/go-ocf/kit/strings",
