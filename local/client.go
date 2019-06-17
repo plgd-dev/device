@@ -5,14 +5,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"strings"
 	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
-	"github.com/gofrs/uuid"
 )
 
 // Client an OCF local client.
@@ -77,9 +76,9 @@ func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientF
 }
 
 type resourceClient interface {
-	Observe(ctx context.Context, deviceID, href string, codec resource.Codec, handler resource.ObservationHandler, options ...func(gocoap.Message)) (*gocoap.Observation, error)
-	Get(ctx context.Context, deviceID, href string, codec resource.Codec, responseBody interface{}, options ...func(gocoap.Message)) error
-	Post(ctx context.Context, deviceID, href string, codec resource.Codec, requestBody interface{}, responseBody interface{}, options ...func(gocoap.Message)) error
+	Observe(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, handler kitNetCoap.ObservationHandler, options ...kitNetCoap.OptionFunc) (*gocoap.Observation, error)
+	Get(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, responseBody interface{}, options ...kitNetCoap.OptionFunc) error
+	Post(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, requestBody interface{}, responseBody interface{}, options ...kitNetCoap.OptionFunc) error
 }
 
 type ResourceClientFactory interface {
@@ -136,42 +135,6 @@ func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) 
 	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }
 
-func getDeviceIdFromCertificate(cert *x509.Certificate) (string, error) {
-	// verify EKU manually
-	ekuHasClient := false
-	for _, eku := range cert.ExtKeyUsage {
-		if eku == x509.ExtKeyUsageClientAuth {
-			ekuHasClient = true
-			break
-		}
-	}
-	if !ekuHasClient {
-		return "", fmt.Errorf("not contains ExtKeyUsageClientAuth")
-	}
-	ekuHasOcfId := false
-	for _, eku := range cert.UnknownExtKeyUsage {
-		if eku.Equal(schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
-			ekuHasOcfId = true
-			break
-		}
-	}
-	if !ekuHasOcfId {
-		return "", fmt.Errorf("not contains ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
-	}
-	cn := strings.Split(cert.Subject.CommonName, ":")
-	if len(cn) != 2 {
-		return "", fmt.Errorf("invalid subject common name: %v", cert.Subject.CommonName)
-	}
-	if strings.ToLower(cn[0]) != "uuid" {
-		return "", fmt.Errorf("invalid subject common name %v: 'uuid' - not found", cert.Subject.CommonName)
-	}
-	deviceId, err := uuid.FromString(cn[1])
-	if err != nil {
-		return "", fmt.Errorf("invalid subject common name %v: %v", cert.Subject.CommonName, err)
-	}
-	return deviceId.String(), nil
-}
-
 // GetSdkDeviceID returns sdk deviceID from identity certificate.
 func (c *Client) GetSdkDeviceID() (string, error) {
 	cert, err := c.GetCertificate()
@@ -187,7 +150,7 @@ func (c *Client) GetSdkDeviceID() (string, error) {
 			errors = append(errors, err)
 			continue
 		}
-		deviceId, err := getDeviceIdFromCertificate(x509cert)
+		deviceId, err := kitNetCoap.GetDeviceIDFromIndetityCertificate(x509cert)
 		if err != nil {
 			errors = append(errors, err)
 			continue

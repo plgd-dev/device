@@ -12,6 +12,7 @@ import (
 	//"encoding/base64"
 
 	gocoap "github.com/go-ocf/go-coap"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -110,9 +111,8 @@ func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, statu
 
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
-	Dial(ctx context.Context, addr string) (*coapClient, error)
-	// SignCSR
-	SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error)
+	Dial(ctx context.Context, addr string) (*kitNetCoap.Client, error)
+	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.Client, ownerID, deviceID string) error
 }
 
 type CertificateSigner interface {
@@ -125,13 +125,15 @@ type ManufacturerOTMClient struct {
 	manufacturerCA          *x509.Certificate
 
 	signer CertificateSigner
+	CAs    []*x509.Certificate
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner, CAs []*x509.Certificate) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
+		CAs:                     CAs,
 	}
 }
 
@@ -139,8 +141,8 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 	return schema.ManufacturerCertificate
 }
 
-func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*coapClient, error) {
-	return DialTcpTls(ctx, addr, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
+func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*kitNetCoap.Client, error) {
+	return kitNetCoap.DialTcpTls(ctx, addr, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
 }
 
 func encodeToDer(encoding schema.CertificateEncoding, data []byte) ([]byte, error) {
@@ -153,6 +155,83 @@ func encodeToDer(encoding schema.CertificateEncoding, data []byte) ([]byte, erro
 		der = derBlock.Bytes
 	}
 	return der, nil
+}
+
+func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.Client, ownerID, deviceID string) error {
+	/*setup credentials - PostOwnerCredential*/
+	var csr schema.CertificateSigningRequestResponse
+	err := tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
+	if err != nil {
+		return fmt.Errorf("cannot get csr for setup device owner credentials: %v", err)
+	}
+
+	der, err := encodeToDer(csr.Encoding, csr.CertificateSigningRequest)
+	if err != nil {
+		return fmt.Errorf("cannot encode csr to der: %v", err)
+	}
+
+	signedCsr, err := otmc.signer.Sign(ctx, der)
+	if err != nil {
+		return fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err)
+	}
+
+	var deviceCredential schema.CredentialResponse
+	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
+	if err != nil {
+		return fmt.Errorf("cannot get device credential to setup device owner credentials: %v", err)
+	}
+
+	for _, cred := range deviceCredential.Credentials {
+		switch {
+		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
+			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialId(cred.ID))
+			if err != nil {
+				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err)
+			}
+		}
+	}
+
+	setIdentityDeviceCredential := schema.CredentialUpdateRequest{
+		ResourceOwner: ownerID,
+		Credentials: []schema.Credential{
+			schema.Credential{
+				Subject: deviceID,
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_CERT,
+				PublicData: schema.CredentialPublicData{
+					Data:     string(signedCsr),
+					Encoding: schema.CredentialPublicDataEncoding_DER,
+				},
+			},
+		},
+	}
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
+	if err != nil {
+		return fmt.Errorf("cannot set device identity credentials: %v", err)
+	}
+
+	for _, ca := range otmc.CAs {
+		setCaCredential := schema.CredentialUpdateRequest{
+			ResourceOwner: ownerID,
+			Credentials: []schema.Credential{
+				schema.Credential{
+					Subject: ownerID,
+					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+					Usage:   schema.CredentialUsage_TRUST_CA,
+					PublicData: schema.CredentialPublicData{
+						Data:     string(ca.Raw),
+						Encoding: schema.CredentialPublicDataEncoding_DER,
+					},
+				},
+			},
+		}
+		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
+		if err != nil {
+			return fmt.Errorf("cannot set device CA credentials: %v", err)
+		}
+	}
+	return nil
 }
 
 func (otmc *ManufacturerOTMClient) SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
@@ -173,7 +252,7 @@ func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
  * iotivityHack sets credential with pair-wise and removes it. It's needed to
  * enable ciphers for TLS communication with signed certificates.
  */
-func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) error {
+func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.Client, sdkID string) error {
 	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
 
 	setDeviceOwner := schema.DoxmUpdate{
@@ -204,7 +283,7 @@ func iotivityHack(ctx context.Context, tlsClient *coapClient, sdkID string) erro
 		return fmt.Errorf("cannot set iotivity-hack credential: %v", err)
 	}
 
-	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, WithCredentialSubject(hackId))
+	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialSubject(hackId))
 	if err != nil {
 		return fmt.Errorf("cannot delete iotivity-hack credential: %v", err)
 	}
@@ -300,90 +379,17 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
 	}
 
-	/*setup credentials - PostOwnerCredential*/
-	var csr schema.CertificateSigningRequestResponse
-	err = tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
+	/*setup credentials */
+	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, deviceID)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get csr for setup device owner credentials: %v", err))
-	}
-
-	der, err := encodeToDer(csr.Encoding, csr.CertificateSigningRequest)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot encode csr to der: %v", err))
-	}
-
-	signedCsr, err := otmClient.SignCertificate(ctx, der)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err))
-	}
-
-	var deviceCredential schema.CredentialResponse
-	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, WithCredentialSubject(deviceID))
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get device credential to setup device owner credentials: %v", err))
-	}
-
-	for _, cred := range deviceCredential.Credentials {
-		switch {
-		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, WithCredentialId(cred.ID))
-			if err != nil {
-				return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err))
-			}
-		}
-	}
-
-	setIdentityDeviceCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: sdkID,
-		Credentials: []schema.Credential{
-			schema.Credential{
-				Subject: deviceID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_CERT,
-				PublicData: schema.CredentialPublicData{
-					Data:     string(signedCsr),
-					Encoding: schema.CredentialPublicDataEncoding_DER,
-				},
-			},
-		},
-	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device identity credentials: %v", err))
-	}
-
-	cas, err := c.GetCertificateAuthorities()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get CAs to setup device owner credentials: %v", err))
-	}
-
-	for _, ca := range cas {
-		setCaCredential := schema.CredentialUpdateRequest{
-			ResourceOwner: sdkID,
-			Credentials: []schema.Credential{
-				schema.Credential{
-					Subject: sdkID,
-					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: schema.CredentialPublicData{
-						Data:     string(ca.Raw),
-						Encoding: schema.CredentialPublicDataEncoding_DER,
-					},
-				},
-			},
-		}
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
-		if err != nil {
-			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device CA credentials: %v", err))
-		}
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot provision owner %v", err))
 	}
 
 	/*
 	 * THIS IS HACK FOR iotivity -> enables ciphers for TLS communication with signed certificates.
 	 * Tested with iotivity 2.0.1-RC0.
 	 */
-	isIotivity, err := tlsClient.IsIotivity(ctx)
+	isIotivity, err := IsIotivity(ctx, tlsClient)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}

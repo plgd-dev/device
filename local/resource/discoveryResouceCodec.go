@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	gocoap "github.com/go-ocf/go-coap"
-	coap "github.com/go-ocf/kit/codec/coap"
+	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -24,11 +24,11 @@ func anchorToDeviceId(anchor string) string {
 }
 
 func decodeDiscoveryOcfCbor(msg gocoap.Message, devices *[]schema.DeviceLinks) error {
-	codec := coap.VNDOCFCBORCodec{}
+	codec := ocf.VNDOCFCBORCodec{}
 	var resources []schema.ResourceLink
 
 	if err := codec.Decode(msg, &resources); err != nil {
-		return fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(msg))
+		return fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(msg))
 	}
 	m := make(map[string]map[string]schema.ResourceLink)
 	for _, r := range resources {
@@ -70,9 +70,9 @@ func (c DiscoveryResourceCodec) Decode(msg gocoap.Message, v interface{}) error 
 	mt, _ := cf.(gocoap.MediaType)
 	switch mt {
 	case gocoap.AppCBOR:
-		codec := coap.VNDOCFCBORCodec{}
+		codec := ocf.VNDOCFCBORCodec{}
 		if err := codec.Decode(msg, devices); err != nil {
-			return fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(msg))
+			return fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(msg))
 		}
 		return nil
 	case gocoap.AppOcfCbor:

@@ -213,7 +213,7 @@
   input-imports = [
     "github.com/go-ocf/go-coap",
     "github.com/go-ocf/grpc-gateway/pb",
-    "github.com/go-ocf/kit/codec/coap",
+    "github.com/go-ocf/kit/codec/ocf",
     "github.com/go-ocf/kit/net",
     "github.com/go-ocf/kit/net/grpc",
     "github.com/go-ocf/kit/security",
