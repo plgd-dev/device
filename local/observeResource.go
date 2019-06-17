@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/codec/coap"
-	"github.com/go-ocf/sdk/local/resource"
+	"github.com/go-ocf/kit/codec/ocf"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/gofrs/uuid"
 )
 
@@ -19,7 +19,7 @@ func (c *Client) ObserveResource(
 	coapContentFormat uint16,
 	handler ObservationHandler,
 ) (observationID string, _ error) {
-	codec := coap.NoCodec{MediaType: coapContentFormat}
+	codec := ocf.NoCodec{MediaType: coapContentFormat}
 	h := observationHandler{handler: handler}
 	return c.observeResource(ctx, deviceID, href, interfaceFilter, codec, &h)
 }
@@ -33,9 +33,9 @@ func (c *Client) ObserveResourceVNDOCFCBOR(
 	ctx context.Context,
 	deviceID, href string,
 	interfaceFilter string,
-	handler resource.ObservationHandler,
+	handler kitNetCoap.ObservationHandler,
 ) (observationID string, _ error) {
-	codec := coap.VNDOCFCBORCodec{}
+	codec := ocf.VNDOCFCBORCodec{}
 	return c.observeResource(ctx, deviceID, href, interfaceFilter, codec, handler)
 }
 
@@ -59,10 +59,10 @@ func (c *Client) observeResource(
 	ctx context.Context,
 	deviceID, href string,
 	interfaceFilter string,
-	codec resource.Codec,
-	handler resource.ObservationHandler,
+	codec kitNetCoap.Codec,
+	handler kitNetCoap.ObservationHandler,
 ) (observationID string, _ error) {
-	var options []func(gocoap.Message)
+	var options []kitNetCoap.OptionFunc
 	if interfaceFilter != "" {
 		options = append(options, func(req gocoap.Message) {
 			req.AddOption(gocoap.URIQuery, "if="+interfaceFilter)
@@ -91,7 +91,7 @@ type observationHandler struct {
 	handler ObservationHandler
 }
 
-func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientConn, body resource.DecodeFunc) {
+func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientConn, body kitNetCoap.DecodeFunc) {
 	var b []byte
 	if err := body(&b); err != nil {
 		h.handler.Error(err)

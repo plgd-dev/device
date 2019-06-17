@@ -3,9 +3,8 @@ package local
 import (
 	"context"
 
-	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/codec/coap"
-	"github.com/go-ocf/sdk/local/resource"
+	"github.com/go-ocf/kit/codec/ocf"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
 // coapContentFormat values can be found here
@@ -15,9 +14,9 @@ func (c *Client) GetResource(
 	ctx context.Context,
 	deviceID, href string,
 	response interface{},
-	options ...func(gocoap.Message),
+	options ...kitNetCoap.OptionFunc,
 ) error {
-	codec := coap.VNDOCFCBORCodec{}
+	codec := ocf.VNDOCFCBORCodec{}
 	err := c.GetResourceWithCodec(ctx, deviceID, href, codec, response, options...)
 	if err != nil {
 		return err
@@ -28,9 +27,9 @@ func (c *Client) GetResource(
 func (c *Client) GetResourceWithCodec(
 	ctx context.Context,
 	deviceID, href string,
-	codec resource.Codec,
+	codec kitNetCoap.Codec,
 	response interface{},
-	options ...func(gocoap.Message),
+	options ...kitNetCoap.OptionFunc,
 ) error {
 	client, err := c.factory.NewClientFromCache()
 	if err != nil {

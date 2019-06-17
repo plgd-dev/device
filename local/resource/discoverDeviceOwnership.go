@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	coap "github.com/go-ocf/kit/codec/coap"
+	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -54,15 +54,15 @@ func DiscoverDeviceOwnership(
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(req *gocoap.Request) {
 	return func(req *gocoap.Request) {
 		if req.Msg.Code() != gocoap.Content {
-			handler.Error(fmt.Errorf("request failed: %s", coap.Dump(req.Msg)))
+			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req.Msg)))
 			return
 		}
 
 		var doxm schema.Doxm
-		var codec coap.VNDOCFCBORCodec
+		var codec ocf.VNDOCFCBORCodec
 		err := codec.Decode(req.Msg, &doxm)
 		if err != nil {
-			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(req.Msg)))
+			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
 			return
 		}
 		handler.Handle(ctx, req.Client, doxm)

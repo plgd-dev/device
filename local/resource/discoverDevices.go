@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	coap "github.com/go-ocf/kit/codec/coap"
+	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/sdk/schema"
 
@@ -49,7 +49,7 @@ func FilterResourceLinksWithEndpoints(in []schema.ResourceLink) []schema.Resourc
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(req *gocoap.Request) {
 	return func(req *gocoap.Request) {
 		if req.Msg.Code() != gocoap.Content {
-			handler.Error(fmt.Errorf("request failed: %s", coap.Dump(req.Msg)))
+			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req.Msg)))
 			return
 		}
 
@@ -58,7 +58,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 
 		err := codec.Decode(req.Msg, &devices)
 		if err != nil {
-			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, coap.DumpHeader(req.Msg)))
+			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
 			return
 		}
 

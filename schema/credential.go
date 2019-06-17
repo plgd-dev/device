@@ -1,14 +1,11 @@
 package schema
 
 import (
-	"encoding/asn1"
 	"fmt"
 	"strings"
 )
 
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
-
-var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
 
 type Credential struct {
 	ID                      int                       `codec:"credid,omitempty"`

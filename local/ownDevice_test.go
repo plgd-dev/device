@@ -12,8 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/schema"
-
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/stretchr/testify/require"
 )
@@ -52,7 +51,7 @@ func (s TestCertificateSigner) Sign(ctx context.Context, csr []byte) (signedCsr 
 		IPAddresses:        certificateRequest.IPAddresses,
 		Extensions:         certificateRequest.Extensions,
 		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
-		UnknownExtKeyUsage: []asn1.ObjectIdentifier{schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
+		UnknownExtKeyUsage: []asn1.ObjectIdentifier{kitNetCoap.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
@@ -86,7 +85,7 @@ func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 		validFor: time.Hour * 86400,
 	}
 
-	otm := ocf.NewManufacturerOTMClient(cert, ca, signer)
+	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	require.NoError(t, err)
 
 	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)

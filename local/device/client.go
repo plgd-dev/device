@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/sdk/local/resource"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -20,11 +19,11 @@ type Client struct {
 }
 
 type resourceClient interface {
-	Get(ctx context.Context, deviceID, href string, codec resource.Codec, value interface{}, options ...func(gocoap.Message)) error
+	Get(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, value interface{}, options ...kitNetCoap.OptionFunc) error
 }
 
 // QueryDevice queries device details for a device resource type.
-func (c *Client) QuerySingleResource(ctx context.Context, codec resource.Codec, value interface{}, resourceTypes ...string) error {
+func (c *Client) QuerySingleResource(ctx context.Context, codec kitNetCoap.Codec, value interface{}, resourceTypes ...string) error {
 	id := c.links.ID
 	it := c.QueryResource(codec, resourceTypes...)
 	ok := it.Next(ctx, value)
@@ -38,7 +37,7 @@ func (c *Client) QuerySingleResource(ctx context.Context, codec resource.Codec, 
 }
 
 // QueryResource resolves URIs and returns an iterator for querying resources of a given type.
-func (c *Client) QueryResource(codec resource.Codec, resourceTypes ...string) *QueryResourceIterator {
+func (c *Client) QueryResource(codec kitNetCoap.Codec, resourceTypes ...string) *QueryResourceIterator {
 	return &QueryResourceIterator{
 		id:     c.links.ID,
 		hrefs:  c.links.GetResourceHrefs(resourceTypes...),
@@ -54,7 +53,7 @@ type QueryResourceIterator struct {
 	hrefs  []string
 	i      int
 	client resourceClient
-	codec  resource.Codec
+	codec  kitNetCoap.Codec
 }
 
 // Next queries the next resource.

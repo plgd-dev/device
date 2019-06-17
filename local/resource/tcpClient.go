@@ -11,6 +11,7 @@ import (
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/kit/sync"
 	"github.com/go-ocf/sdk/local/resource/link"
 	"github.com/go-ocf/sdk/schema"
@@ -83,7 +84,7 @@ func VerifyIndetityCertificate(cert *x509.Certificate) error {
 	}
 	ekuHasOcfId := false
 	for _, eku := range cert.UnknownExtKeyUsage {
-		if eku.Equal(schema.ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
+		if eku.Equal(kitNetCoap.ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
 			ekuHasOcfId = true
 			break
 		}
