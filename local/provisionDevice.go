@@ -49,16 +49,11 @@ func (c *ProvisioningClient) Close() error {
 	return nil
 }
 
-func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, cert *x509.Certificate) error {
-	sdkID, err := c.GetSdkDeviceID()
-	if err != nil {
-		return err
-	}
+func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subject string, cert *x509.Certificate) error {
 	setCaCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: sdkID,
 		Credentials: []schema.Credential{
 			schema.Credential{
-				Subject: "*",
+				Subject: subject,
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
 				PublicData: schema.CredentialPublicData{
@@ -68,7 +63,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, cert *
 			},
 		},
 	}
-	err = c.UpdateResource(ctx, c.deviceID, "/oic/sec/cred", setCaCredential, nil)
+	err := c.UpdateResource(ctx, c.deviceID, "/oic/sec/cred", setCaCredential, nil)
 	if err != nil {
 		return fmt.Errorf("could not add certificate to device %s: %v", c.deviceID, err)
 	}

@@ -23,8 +23,16 @@ simulator.stop:
 	docker network rm devsimnet || true
 .PHONY: simulator.stop
 
-test: simulator
+build: build
 	docker build . --network=host -t sdk:build
+.PHONY: build
+
+docker: build simulator
+	docker run -it --rm --mount type=bind,source="$(shell pwd)",target=/go/src/github.com/go-ocf/sdk --network=devsimnet sdk:build
+
+.PHONY: docker
+
+test: build simulator
 	docker run --network=devsimnet sdk:build go test ./...
 .PHONY: test
 
