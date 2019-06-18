@@ -67,9 +67,9 @@ func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientF
 	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
 	switch cfg.Protocol {
 	case "tcp":
-		return &tcpClientFactory{f: resource.NewTCPClientFactory(cfg.TLSConfig, linkCache)}
+		return &tcpClientFactory{TCPClientFactory: resource.NewTCPClientFactory(cfg.TLSConfig, linkCache)}
 	case "udp":
-		return &udpClientFactory{f: resource.NewUDPClientFactory(linkCache)}
+		return &udpClientFactory{UDPClientFactory: resource.NewUDPClientFactory(linkCache)}
 	default:
 		panic(fmt.Errorf("unsupported resource client protocol %s", cfg.Protocol))
 	}
@@ -82,6 +82,7 @@ type resourceClient interface {
 }
 
 type ResourceClientFactory interface {
+	GetLinks() []schema.ResourceLink
 	NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error)
 	NewClientFromCache() (resourceClient, error)
 	CloseConnections(links schema.DeviceLinks)
@@ -89,36 +90,28 @@ type ResourceClientFactory interface {
 
 // tcpClientFactory converts the return type from *TCPClient to resourceClient.
 type tcpClientFactory struct {
-	f *resource.TCPClientFactory
+	*resource.TCPClientFactory
 }
 
 func (w *tcpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
-	return w.f.NewClient(c, links)
+	return w.TCPClientFactory.NewClient(c, links)
 }
 
 func (w *tcpClientFactory) NewClientFromCache() (resourceClient, error) {
-	return w.f.NewClientFromCache()
-}
-
-func (w *tcpClientFactory) CloseConnections(links schema.DeviceLinks) {
-	w.f.CloseConnections(links)
+	return w.TCPClientFactory.NewClientFromCache()
 }
 
 // udpClientFactory converts the return type from *UDPClient to resourceClient.
 type udpClientFactory struct {
-	f *resource.UDPClientFactory
+	*resource.UDPClientFactory
 }
 
 func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
-	return w.f.NewClient(c, links)
+	return w.UDPClientFactory.NewClient(c, links)
 }
 
 func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
-	return w.f.NewClientFromCache()
-}
-
-func (w *udpClientFactory) CloseConnections(links schema.DeviceLinks) {
-	w.f.CloseConnections(links)
+	return w.UDPClientFactory.NewClientFromCache()
 }
 
 func (c *Client) GetCertificate() (res tls.Certificate, _ error) {

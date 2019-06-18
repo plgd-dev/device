@@ -480,28 +480,14 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update acl resource owner: %v", err))
 	}
 
-	// Change the dos.s value to RFPRO
-	setProvisionStateToRFPRO := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
-		},
-	}
-
-	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFPRO, nil)
+	// Provision the device to switch back to normal operation.
+	p, err := c.ProvisionDevice(ctx, deviceID)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFPRO to setup device owner ACLs: %v", err))
+		return fmt.Errorf(errMsg, deviceID, err)
 	}
-
-	// Change the dos.s value to RFNOP
-	setProvisionStateToRFNOP := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
-		},
-	}
-
-	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setProvisionStateToRFNOP, nil)
+	err = p.Close(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state to RFNOP to setup device owner ACLs: %v", err))
+		return fmt.Errorf(errMsg, deviceID, err)
 	}
 
 	return nil

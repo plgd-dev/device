@@ -32,6 +32,17 @@ func (h *testOnboardDeviceHandler) PopDeviceIds() map[string]bool {
 	return tmp
 }
 
+func (h *testOnboardDeviceHandler) DeviceIDs() []string {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	out := make([]string, 0, len(h.deviceIds))
+	for id, _ := range h.deviceIds {
+		out = append(out, id)
+	}
+	return out
+}
+
 func (h *testOnboardDeviceHandler) Error(err error) {
 }
 
