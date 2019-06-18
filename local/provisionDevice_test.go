@@ -5,35 +5,18 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
-	"time"
 
 	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
 )
 
 func TestProvisioning(t *testing.T) {
-	c, otm := setupSecureClient(t)
-
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-	h := testOnboardDeviceHandler{}
-	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	ids := h.DeviceIDs()
-	require.Len(t, ids, 1)
-	id := ids[0]
+	defer c.Close()
+	require.NoError(t, c.SetUpTestDevice())
 
-	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelTimeout()
-	err = c.OwnDevice(timeout, id, otm)
-	require.NoError(t, err)
-
-	defer func() {
-		err = c.DisownDevice(timeout, id)
-		require.NoError(t, err)
-	}()
-
-	pc, err := c.ProvisionDevice(id)
+	pc, err := c.ProvisionDevice(c.DeviceID)
 	require.NoError(t, err)
 
 	defer func() {
@@ -51,28 +34,12 @@ func TestProvisioning(t *testing.T) {
 }
 
 func TestSettingCloudResource(t *testing.T) {
-	c, otm := setupSecureClient(t)
-
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-	h := testOnboardDeviceHandler{}
-	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	ids := h.DeviceIDs()
-	require.Len(t, ids, 1)
-	id := ids[0]
+	defer c.Close()
+	require.NoError(t, c.SetUpTestDevice())
 
-	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancelTimeout()
-	err = c.OwnDevice(timeout, id, otm)
-	require.NoError(t, err)
-
-	defer func() {
-		err = c.DisownDevice(timeout, id)
-		require.NoError(t, err)
-	}()
-
-	pc, err := c.ProvisionDevice(id)
+	pc, err := c.ProvisionDevice(c.DeviceID)
 	require.NoError(t, err)
 
 	defer func() {
