@@ -73,7 +73,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.CloudUpdateRequest) error {
 	var href string
 	for _, l := range c.factory.GetLinks() {
-		if l.DeviceID == c.deviceID && strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {
+		if l.GetDeviceID() == c.deviceID && strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {
 			href = l.Href
 			break
 		}

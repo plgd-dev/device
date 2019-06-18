@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -44,14 +45,47 @@ func TestProvisioning(t *testing.T) {
 	require.NotEmpty(t, derBlock)
 	ca, err := x509.ParseCertificate(derBlock.Bytes)
 	require.NoError(t, err)
-	/*
-		derBlockKey, _ := pem.Decode(Cert2KeyPEMBlock)
-		require.NotEmpty(t, derBlockKey)
-		caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
-		require.NoError(t, err)
-	*/
 
 	err = pc.AddCertificateAuthority(context.Background(), "*", ca)
+	require.NoError(t, err)
+}
+
+func TestSettingCloudResource(t *testing.T) {
+	c, otm := setupSecureClient(t)
+
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
+	defer cancel()
+	h := testOnboardDeviceHandler{}
+	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	require.NoError(t, err)
+	ids := h.DeviceIDs()
+	require.Len(t, ids, 1)
+	id := ids[0]
+
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelTimeout()
+	err = c.OwnDevice(timeout, id, otm)
+	require.NoError(t, err)
+
+	defer func() {
+		err = c.DisownDevice(timeout, id)
+		require.NoError(t, err)
+	}()
+
+	pc, err := c.ProvisionDevice(id)
+	require.NoError(t, err)
+
+	defer func() {
+		err = pc.Close()
+		require.NoError(t, err)
+	}()
+
+	r := schema.CloudUpdateRequest{
+		AuthorizationProvider: "testAuthorizationProvider",
+		URL:                   "testURL",
+		AuthorizationCode:     "testAuthorizationCode",
+	}
+	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)
 }
 

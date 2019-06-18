@@ -158,6 +158,6 @@ type CredentialResponse struct {
 }
 
 type CredentialUpdateRequest struct {
-	ResourceOwner string       `codec:"rowneruuid"`
+	ResourceOwner string       `codec:"rowneruuid,omitempty"`
 	Credentials   []Credential `codec:"creds"`
 }
