@@ -2,62 +2,15 @@ package local_test
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/asn1"
 	"encoding/pem"
-	"math/big"
 	"testing"
 	"time"
 
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/stretchr/testify/require"
 )
-
-type TestCertificateSigner struct {
-	ca       *x509.Certificate
-	caKey    *ecdsa.PrivateKey
-	validFor time.Duration
-}
-
-func (s TestCertificateSigner) Sign(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
-	certificateRequest, err := x509.ParseCertificateRequest(csr)
-	if err != nil {
-		return
-	}
-
-	err = certificateRequest.CheckSignature()
-	if err != nil {
-		return
-	}
-
-	notBefore := time.Now()
-	notAfter := notBefore.Add(s.validFor)
-	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
-	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
-
-	template := x509.Certificate{
-		SerialNumber:       serialNumber,
-		NotBefore:          notBefore,
-		NotAfter:           notAfter,
-		Subject:            certificateRequest.Subject,
-		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
-		PublicKey:          certificateRequest.PublicKey,
-		SignatureAlgorithm: certificateRequest.SignatureAlgorithm,
-		DNSNames:           certificateRequest.DNSNames,
-		IPAddresses:        certificateRequest.IPAddresses,
-		Extensions:         certificateRequest.Extensions,
-		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
-		UnknownExtKeyUsage: []asn1.ObjectIdentifier{kitNetCoap.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-	}
-
-	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.ca, certificateRequest.PublicKey, s.caKey)
-	return
-}
 
 func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 	cert, err := tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
@@ -79,11 +32,7 @@ func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 		return []*x509.Certificate{ca}, nil
 	}
 
-	signer := TestCertificateSigner{
-		ca:       ca,
-		caKey:    caKey,
-		validFor: time.Hour * 86400,
-	}
+	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
 
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	require.NoError(t, err)
@@ -103,36 +52,24 @@ func TestClient_ownDevice(t *testing.T) {
 		},
 	}
 
-	c, otm := setupSecureClient(t)
-	require := require.New(t)
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-			defer cancel()
-			h := testOnboardDeviceHandler{}
-			err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
-			require.NoError(err)
-			deviceIds := h.PopDeviceIds()
-			require.NotEmpty(deviceIds)
-
-			for deviceId, _ := range deviceIds {
-				func() {
-					timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-					defer cancelTimeout()
-					err := c.OwnDevice(timeout, deviceId, otm)
-					if tt.wantErr {
-						require.Error(err)
-					} else {
-						require.NoError(err)
-					}
-					err = c.DisownDevice(timeout, deviceId)
-					if tt.wantErr {
-						require.Error(err)
-					} else {
-						require.NoError(err)
-					}
-				}()
+			c, otm := setupSecureClient(t)
+			deviceId := testGetDeviceID(t, c, true)
+			require := require.New(t)
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancelTimeout()
+			err := c.OwnDevice(timeout, deviceId, otm)
+			if tt.wantErr {
+				require.Error(err)
+			} else {
+				require.NoError(err)
+			}
+			err = c.DisownDevice(timeout, deviceId)
+			if tt.wantErr {
+				require.Error(err)
+			} else {
+				require.NoError(err)
 			}
 		})
 	}

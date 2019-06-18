@@ -20,6 +20,19 @@ type DeviceLinks struct {
 	Anchor string
 }
 
+// IsSecured returns true if device is secured.
+func (d DeviceLinks) IsSecured() bool {
+	for _, link := range d.Links {
+		if _, err := link.GetTCPSecureAddr(); err == nil {
+			return true
+		}
+		if _, err := link.GetUDPSecureAddr(); err == nil {
+			return true
+		}
+	}
+	return false
+}
+
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {

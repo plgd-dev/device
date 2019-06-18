@@ -9,11 +9,16 @@ install:
     fi
   - DOCKER_NET=network-${TRAVIS_JOB_ID}-${TRAVIS_BUILD_ID}
   - docker build . --network=host -t sdk:build
-  - docker build ./test --network=host -t sdk:device-simulator
+  - docker build ./test --network=host -t sdk:device-simulator --target service
+  - docker build ./test -f ./test/Dockerfile.insecure --network=host -t sdk:device-simulator-insecure --target service
   - docker network create ${DOCKER_NET}
   - docker run -d --name devsim --network=${DOCKER_NET} sdk:device-simulator /device-simulator
-  - sleep 10
-  - docker logs devsim -f &
+  - docker run -d --name devsim-insecure --network=${DOCKER_NET} sdk:device-simulator-insecure /device-simulator 
+after_failure:
+  - echo "------------SECURE-DEVICE------------"
+  - docker logs devsim
+  - echo "------------INSECURE-DEVICE------------"
+  - docker logs devsim-insecure
 
 jobs:
   include:

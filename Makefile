@@ -13,13 +13,16 @@ insecure:
 .PHONY: insecure
 
 simulator: simulator.stop
-	docker build ./test --network=host -t device-simulator
+	docker build ./test --network=host -t device-simulator --target service
+	docker build ./test -f ./test/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
 	docker network create devsimnet
 	docker run -d --name devsim --network=devsimnet device-simulator /device-simulator
+	docker run -d --name devsim-insecure --network=devsimnet device-simulator-insecure /device-simulator
 .PHONY: simulator
 
 simulator.stop:
 	docker rm -f devsim || true
+	docker rm -f devsim-insecure || true
 	docker network rm devsimnet || true
 .PHONY: simulator.stop
 
