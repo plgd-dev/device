@@ -38,6 +38,10 @@ func NewTestSecureClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	return NewTestSecureClientWithCert(cert)
+}
+
+func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 	derBlock, _ := pem.Decode(CARootPemBlock)
 	if derBlock == nil {
 		return nil, fmt.Errorf("invalid CARootPemBlock")

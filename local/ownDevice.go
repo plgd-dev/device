@@ -15,6 +15,7 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/schema/acl"
 )
 
 type deviceOwnershipClient struct {
@@ -457,22 +458,17 @@ func (c *Client) OwnDevice(
 	}
 
 	/*acl2 set owner of resource*/
-	setOwnerAcl := schema.AccessControlListUpdateRequest{
+	setOwnerAcl := acl.UpdateRequest{
 		ResourceOwner: sdkID,
-		AccessControlList: []schema.AccessControl{
-			schema.AccessControl{
-				Permission: schema.AccessControlPermission_CREATE | schema.AccessControlPermission_READ | schema.AccessControlPermission_WRITE | schema.AccessControlPermission_DELETE | schema.AccessControlPermission_NOTIFY,
-				Subject: schema.AccessControlSubject{
-					AccessControlSubjectDevice: &schema.AccessControlSubjectDevice{
+		AccessControlList: []acl.AccessControl{
+			acl.AccessControl{
+				Permission: acl.AllPermissions,
+				Subject: acl.Subject{
+					Subject_Device: &acl.Subject_Device{
 						DeviceId: sdkID,
 					},
 				},
-				Resources: []schema.AccessControlResource{
-					schema.AccessControlResource{
-						Interfaces: []string{"*"},
-						Wildcard:   schema.AccessControlResourceWildcard_NONCFG_ALL,
-					},
-				},
+				Resources: acl.AllResources,
 			},
 		},
 	}

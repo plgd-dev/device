@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-ocf/kit/strings"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/schema/acl"
 )
 
 func (c *Client) ProvisionDevice(ctx context.Context, deviceID string) (*ProvisioningClient, error) {
@@ -92,6 +93,29 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 	err := c.UpdateResource(ctx, c.deviceID, href, r, nil)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %v", c.deviceID, err)
+	}
+	return nil
+}
+
+// Usage: SetAccessControl(ctx, schema.AllPermissions, schema.TLSConnection, schema.AllResources)
+func (c *ProvisioningClient) SetAccessControl(
+	ctx context.Context,
+	permission acl.Permission,
+	subject acl.Subject,
+	resources ...acl.Resource,
+) error {
+	setACL := acl.UpdateRequest{
+		AccessControlList: []acl.AccessControl{
+			acl.AccessControl{
+				Permission: permission,
+				Subject:    subject,
+				Resources:  resources,
+			},
+		},
+	}
+	err := c.UpdateResource(ctx, c.deviceID, "/oic/sec/acl2", setACL, nil)
+	if err != nil {
+		return fmt.Errorf("could not update ACL of device %s: %v", c.deviceID, err)
 	}
 	return nil
 }
