@@ -87,3 +87,26 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 	}
 	return nil
 }
+
+// Usage: SetAccessControl(ctx, schema.AllPermissions, schema.TLSConnection, schema.AllResources)
+func (c *ProvisioningClient) SetAccessControl(
+	ctx context.Context,
+	permission schema.AccessControlPermission,
+	subject schema.AccessControlSubject,
+	resources ...schema.AccessControlResource,
+) error {
+	setACL := schema.AccessControlListUpdateRequest{
+		AccessControlList: []schema.AccessControl{
+			schema.AccessControl{
+				Permission: permission,
+				Subject:    subject,
+				Resources:  resources,
+			},
+		},
+	}
+	err := c.UpdateResource(ctx, c.deviceID, "/oic/sec/acl2", setACL, nil)
+	if err != nil {
+		return fmt.Errorf("could not update ACL of device %s: %v", c.deviceID, err)
+	}
+	return nil
+}

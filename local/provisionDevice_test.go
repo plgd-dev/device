@@ -2,6 +2,7 @@ package local_test
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
@@ -19,10 +20,7 @@ func TestProvisioning(t *testing.T) {
 	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
 	require.NoError(t, err)
 
-	defer func() {
-		err = pc.Close(context.Background())
-		require.NoError(t, err)
-	}()
+	require.NoError(t, pc.SetAccessControl(context.Background(), schema.AllPermissions, schema.TLSConnection, schema.AllResources))
 
 	derBlock, _ := pem.Decode(Cert2PEMBlock)
 	require.NotEmpty(t, derBlock)
@@ -30,6 +28,15 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 
 	err = pc.AddCertificateAuthority(context.Background(), "*", ca)
+	require.NoError(t, err)
+
+	err = pc.Close(context.Background())
+	require.NoError(t, err)
+
+	cert, err := tls.X509KeyPair(Cert2PEMBlock, Cert2KeyPEMBlock)
+	require.NoError(t, err)
+	c2, err := NewTestSecureClientWithCert(cert)
+	err = c2.GetResource(context.Background(), c.DeviceID, "/light/1", nil)
 	require.NoError(t, err)
 }
 

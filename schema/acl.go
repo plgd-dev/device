@@ -16,7 +16,7 @@ type AccessControlListResponse struct {
 }
 
 type AccessControlListUpdateRequest struct {
-	ResourceOwner     string          `codec:"rowneruuid"`
+	ResourceOwner     string          `codec:"rowneruuid,omitempty"`
 	AccessControlList []AccessControl `codec:"aclist2"`
 }
 
@@ -36,6 +36,8 @@ const (
 	AccessControlPermission_WRITE  AccessControlPermission = 4
 	AccessControlPermission_DELETE AccessControlPermission = 8
 	AccessControlPermission_NOTIFY AccessControlPermission = 16
+
+	AllPermissions = AccessControlPermission_CREATE | AccessControlPermission_READ | AccessControlPermission_WRITE | AccessControlPermission_DELETE | AccessControlPermission_NOTIFY
 )
 
 func (s AccessControlPermission) String() string {
@@ -78,6 +80,11 @@ type AccessControlResource struct {
 	Wildcard      AccessControlResourceWildcard `codec:"w,omitempty"`
 }
 
+var AllResources = AccessControlResource{
+	Interfaces: []string{"*"},
+	Wildcard:   AccessControlResourceWildcard_NONCFG_ALL,
+}
+
 type AccessControlResourceWildcard string
 
 const (
@@ -111,6 +118,12 @@ type AccessControlSubject struct {
 	*AccessControlSubjectDevice
 	*AccessControlSubjectRole
 	*AccessControlSubjectConnection
+}
+
+var TLSConnection = AccessControlSubject{
+	AccessControlSubjectConnection: &AccessControlSubjectConnection{
+		Type: AccessControlSubjectConnectionType_AUTH_CRYPT,
+	},
 }
 
 type AccessControlTimePattern struct {
