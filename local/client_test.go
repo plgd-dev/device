@@ -66,7 +66,7 @@ func NewTestSecureClient() (*Client, error) {
 		validFor: time.Hour * 86400,
 	}
 
-	otm := ocf.NewManufacturerOTMClient(cert, ca, signer)
+	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	if err != nil {
 		return nil, err
 	}
