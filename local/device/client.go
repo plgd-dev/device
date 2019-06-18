@@ -28,7 +28,7 @@ func (c *Client) QuerySingleResource(ctx context.Context, codec kitNetCoap.Codec
 	it := c.QueryResource(codec, resourceTypes...)
 	ok := it.Next(ctx, value)
 	if !ok {
-		return it.Err
+		return fmt.Errorf("resource not found for %s %+v", id, resourceTypes)
 	}
 	if it.Next(ctx, value) {
 		return fmt.Errorf("too many resource links for %s %+v", id, resourceTypes)
