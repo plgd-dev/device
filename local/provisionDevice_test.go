@@ -16,11 +16,11 @@ func TestProvisioning(t *testing.T) {
 	defer c.Close()
 	require.NoError(t, c.SetUpTestDevice())
 
-	pc, err := c.ProvisionDevice(c.DeviceID)
+	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
 	require.NoError(t, err)
 
 	defer func() {
-		err = pc.Close()
+		err = pc.Close(context.Background())
 		require.NoError(t, err)
 	}()
 
@@ -39,11 +39,11 @@ func TestSettingCloudResource(t *testing.T) {
 	defer c.Close()
 	require.NoError(t, c.SetUpTestDevice())
 
-	pc, err := c.ProvisionDevice(c.DeviceID)
+	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
 	require.NoError(t, err)
 
 	defer func() {
-		err = pc.Close()
+		err = pc.Close(context.Background())
 		require.NoError(t, err)
 	}()
 

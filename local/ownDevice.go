@@ -481,11 +481,11 @@ func (c *Client) OwnDevice(
 	}
 
 	// Provision the device to switch back to normal operation.
-	p, err := c.ProvisionDevice(deviceID)
+	p, err := c.ProvisionDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
-	err = p.Close()
+	err = p.Close(ctx)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
