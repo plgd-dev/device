@@ -9,9 +9,9 @@ import (
 	"fmt"
 
 	"sync"
-	//"encoding/base64"
 
 	gocoap "github.com/go-ocf/go-coap"
+	kitNet "github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
@@ -111,13 +111,8 @@ func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, statu
 
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
-	Dial(ctx context.Context, addr string) (*kitNetCoap.Client, error)
+	Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error)
 	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.Client, ownerID, deviceID string) error
-}
-
-type CertificateSigner interface {
-	//csr is encoded by DER
-	Sign(ctx context.Context, csr []byte) ([]byte, error)
 }
 
 type ManufacturerOTMClient struct {
@@ -141,8 +136,12 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 	return schema.ManufacturerCertificate
 }
 
-func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr string) (*kitNetCoap.Client, error) {
-	return kitNetCoap.DialTcpTls(ctx, addr, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
+func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error) {
+	switch addr.GetScheme() {
+	case schema.TCPSecureScheme:
+		return kitNetCoap.DialTcpTls(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
+	}
+	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
 
 func encodeToDer(encoding schema.CertificateEncoding, data []byte) ([]byte, error) {
@@ -320,10 +319,18 @@ func (c *Client) OwnDevice(
 		SelectOwnerTransferMethod: otmClient.Type(),
 	}
 
+	sdkID, err := c.GetSdkDeviceID()
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+	}
+
 	/*doxm doesn't send any content for select OTM*/
 	err = client.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
 	if err != nil {
 		if ownership.Owned {
+			if ownership.DeviceOwner == sdkID {
+				return nil
+			}
 			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
 		}
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
@@ -342,7 +349,7 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, "device links are empty")
 	}
 
-	tlsClient, err := otmClient.Dial(ctx, tlsAddr.String())
+	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
 	}
@@ -372,11 +379,6 @@ func (c *Client) OwnDevice(
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", updateProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state %v", err))
-	}
-
-	sdkID, err := c.GetSdkDeviceID()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
 	}
 
 	/*setup credentials */

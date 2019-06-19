@@ -64,9 +64,9 @@ func (f *TCPClientFactory) CloseConnections(links schema.DeviceLinks) {
 }
 
 func getTCPAddr(r schema.ResourceLink) (net.Addr, error) {
-	addr, err := r.GetTCPAddr()
+	addr, err := r.GetTCPSecureAddr()
 	if err != nil {
-		return r.GetTCPSecureAddr()
+		return r.GetTCPAddr()
 	}
 	return addr, err
 }

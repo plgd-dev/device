@@ -7,4 +7,7 @@
 
 The **local SDK** enables interacting with devices in a local network:
 - Listing devices 
-- Retrieving and updating resources 
+- Retrieving and updating resources
+- Secure ownership transfer via coaps+tcp
+- Onboard and offboard device
+- Provisioning cloud resource and credentials

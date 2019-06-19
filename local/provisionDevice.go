@@ -71,6 +71,14 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 }
 
 func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.CloudUpdateRequest) error {
+	switch {
+	case r.AuthorizationProvider == "":
+		return fmt.Errorf("invalid AuthorizationProvider")
+	case r.AuthorizationCode == "":
+		return fmt.Errorf("invalid AuthorizationCode")
+	case r.URL == "":
+		return fmt.Errorf("invalid URL")
+	}
 	var href string
 	for _, l := range c.factory.GetLinks() {
 		if l.GetDeviceID() == c.deviceID && strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {

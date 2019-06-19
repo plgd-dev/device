@@ -6,7 +6,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/local/resource"
@@ -60,12 +63,7 @@ func NewTestSecureClient() (*Client, error) {
 		return []*x509.Certificate{ca}, nil
 	}
 
-	signer := TestCertificateSigner{
-		ca:       ca,
-		caKey:    caKey,
-		validFor: time.Hour * 86400,
-	}
-
+	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	if err != nil {
 		return nil, err
@@ -79,28 +77,14 @@ func NewTestSecureClient() (*Client, error) {
 	return &Client{Client: c, otm: otm}, nil
 }
 
-func (c *Client) SetUpTestDevice() error {
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-	h := testOnboardDeviceHandler{}
-	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
-	if err != nil {
-		return err
-	}
-	ids := h.DeviceIDs()
-	if len(ids) != 1 {
-		return fmt.Errorf("exactly one test device required, but found %+v", ids)
-	}
-	id := ids[0]
+func (c *Client) SetUpTestDevice(t *testing.T) {
+	id := testGetDeviceID(t, c.Client, true)
 
-	timeout, cancel = context.WithTimeout(context.Background(), 30*time.Second)
+	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err = c.OwnDevice(timeout, id, c.otm)
-	if err != nil {
-		return err
-	}
+	err := c.OwnDevice(timeout, id, c.otm)
+	require.NoError(t, err)
 	c.DeviceID = id
-	return nil
 }
 
 func (c *Client) Close() {

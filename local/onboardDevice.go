@@ -7,19 +7,19 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-func (c *Client) onboardOffboardDevice(
+func (c *Client) onboardOffboardInsecuredDevice(
 	ctx context.Context,
-	deviceID, authorizationProvider, authorizationCode, url string, errFunc func(err error) error,
+	deviceID, authorizationProvider, authorizationCode, url string,
 ) error {
 	switch {
 	case deviceID == "":
-		return errFunc(fmt.Errorf("invalid deviceID"))
+		return fmt.Errorf("invalid deviceID")
 	}
 
 	var links []schema.ResourceLink
 	err := c.GetResource(ctx, deviceID, "/oic/res", &links)
 	if err != nil {
-		return errFunc(err)
+		return err
 	}
 
 	cloudResourceHref := ""
@@ -34,7 +34,7 @@ Loop:
 	}
 
 	if cloudResourceHref == "" {
-		return errFunc(fmt.Errorf("cloud resource not found"))
+		return fmt.Errorf("cloud resource not found")
 	}
 
 	req := schema.CloudUpdateRequest{
@@ -45,15 +45,54 @@ Loop:
 	var resp schema.CloudResponse
 	err = c.UpdateResource(ctx, deviceID, cloudResourceHref, req, &resp)
 	if err != nil {
-		return errFunc(err)
+		return err
 	}
 	return nil
 }
 
+func (c *Client) isSecuredDevice(ctx context.Context, deviceID string) (bool, error) {
+	devClient, err := c.GetDevice(ctx, deviceID, nil)
+	if err != nil {
+		return false, err
+	}
+	return devClient.GetDeviceLinks().IsSecured(), nil
+}
+
+type ProvisionDeviceFunc = func(ctx context.Context, c *ProvisioningClient) error
+
+// OnboardDevice onboards secure device.
 func (c *Client) OnboardDevice(
 	ctx context.Context,
-	deviceID, authorizationProvider, authorizationCode, url string,
+	deviceID string,
+	otmClient OTMClient,
+	provision ProvisionDeviceFunc,
 ) error {
+	const errMsg = "cannot onboard secured device %v: %v"
+	if deviceID == "" {
+		return fmt.Errorf(errMsg, deviceID, "invalid deviceID")
+	}
+	if otmClient == nil {
+		return fmt.Errorf(errMsg, deviceID, "invalid otmClient")
+	}
+	if provision == nil {
+		return fmt.Errorf(errMsg, deviceID, "invalid provision function")
+	}
+	ok, err := c.isSecuredDevice(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot determines if device is secured: %v", err))
+	}
+	if !ok {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is insecured"))
+	}
+	err = c.onboardSecuredDevice(ctx, deviceID, otmClient, provision)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, err)
+	}
+	return nil
+}
+
+// OnboardInsecuredDevice onboards insecure device.
+func (c *Client) OnboardInsecuredDevice(ctx context.Context, deviceID, authorizationProvider, authorizationCode, url string) error {
 	const errMsg = "cannot onboard device %v: %v"
 	switch {
 	case authorizationProvider == "":
@@ -63,7 +102,42 @@ func (c *Client) OnboardDevice(
 	case url == "":
 		return fmt.Errorf(errMsg, deviceID, "invalid url")
 	}
-	return c.onboardOffboardDevice(ctx, deviceID, authorizationProvider, authorizationCode, url, func(err error) error {
+	ok, err := c.isSecuredDevice(ctx, deviceID)
+	if err != nil {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot determines if device is secured: %v", err))
+	}
+	if ok {
+		return fmt.Errorf(errMsg, deviceID, "is insecured device")
+	}
+
+	err = c.onboardOffboardInsecuredDevice(ctx, deviceID, authorizationProvider, authorizationCode, url)
+	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
-	})
+	}
+	return nil
+}
+
+func (c *Client) onboardSecuredDevice(ctx context.Context, deviceID string, otmClient OTMClient, provision ProvisionDeviceFunc) error {
+	err := c.OwnDevice(ctx, deviceID, otmClient)
+	if err != nil {
+		return err
+	}
+
+	provisionClient, err := c.ProvisionDevice(ctx, deviceID)
+	if err != nil {
+		c.DisownDevice(ctx, deviceID)
+		return err
+	}
+
+	err = provision(ctx, provisionClient)
+	if err != nil {
+		provisionClient.Close(ctx)
+		c.DisownDevice(ctx, deviceID)
+		return err
+	}
+	err = provisionClient.Close(ctx)
+	if err != nil {
+		return err
+	}
+	return nil
 }
