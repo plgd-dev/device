@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-ocf/kit/strings"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/schema/acl"
 )
 
 func (c *Client) ProvisionDevice(ctx context.Context, deviceID string) (*ProvisioningClient, error) {
@@ -91,13 +92,13 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 // Usage: SetAccessControl(ctx, schema.AllPermissions, schema.TLSConnection, schema.AllResources)
 func (c *ProvisioningClient) SetAccessControl(
 	ctx context.Context,
-	permission schema.AccessControlPermission,
-	subject schema.AccessControlSubject,
-	resources ...schema.AccessControlResource,
+	permission acl.Permission,
+	subject acl.Subject,
+	resources ...acl.Resource,
 ) error {
-	setACL := schema.AccessControlListUpdateRequest{
-		AccessControlList: []schema.AccessControl{
-			schema.AccessControl{
+	setACL := acl.UpdateRequest{
+		AccessControlList: []acl.AccessControl{
+			acl.AccessControl{
 				Permission: permission,
 				Subject:    subject,
 				Resources:  resources,

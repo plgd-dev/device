@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/schema/acl"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,7 +21,7 @@ func TestProvisioning(t *testing.T) {
 	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
 	require.NoError(t, err)
 
-	require.NoError(t, pc.SetAccessControl(context.Background(), schema.AllPermissions, schema.TLSConnection, schema.AllResources))
+	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
 
 	derBlock, _ := pem.Decode(Cert2PEMBlock)
 	require.NotEmpty(t, derBlock)
