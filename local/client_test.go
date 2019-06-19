@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/local/resource"
 )
@@ -75,17 +77,14 @@ func NewTestSecureClient() (*Client, error) {
 	return &Client{Client: c, otm: otm}, nil
 }
 
-func (c *Client) SetUpTestDevice(t *testing.T) error {
+func (c *Client) SetUpTestDevice(t *testing.T) {
 	id := testGetDeviceID(t, c.Client, true)
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err := c.OwnDevice(timeout, id, c.otm)
-	if err != nil {
-		return err
-	}
+	require.NoError(t, err)
 	c.DeviceID = id
-	return nil
 }
 
 func (c *Client) Close() {

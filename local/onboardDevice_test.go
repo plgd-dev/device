@@ -196,7 +196,7 @@ func TestClient_OnboardInsecureDevice(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid authorizationCdode",
+			name: "invalid authorizationCode",
 			args: args{
 				AuthorizationProvider: "a",
 			},
