@@ -345,9 +345,16 @@ func (c *Client) OwnDevice(
 	if len(links) == 0 {
 		return fmt.Errorf(errMsg, deviceID, "device links are empty")
 	}
-	tlsAddr, err := deviceClient.GetResourceLinks()[0].GetTCPSecureAddr()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, "device links are empty")
+	var tlsAddr kitNet.Addr
+	var tlsAddrFound bool
+	for _, link := range deviceClient.GetResourceLinks() {
+		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
+			tlsAddrFound = true
+			break
+		}
+	}
+	if !tlsAddrFound {
+		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp secure address: not found"))
 	}
 
 	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
