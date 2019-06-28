@@ -303,6 +303,7 @@ func (c *Client) OwnDevice(
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+	defer client.Close()
 
 	ownership := client.GetOwnership()
 	var supportOtm bool
