@@ -114,6 +114,7 @@ func (c *Cache) getOrCreate(ctx context.Context, deviceID, href string) (_ schem
 	c.lock.Lock()
 	defer c.lock.Unlock()
 
+	// this is a workaround to force refresh cache of device -> it can contains invalid connections
 	c.cache = make(map[string]schema.ResourceLink)
 
 	if r, ok := c.getLocked(deviceID, href); ok {

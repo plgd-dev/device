@@ -46,7 +46,6 @@ func (c *Client) DisownDevice(
 			break
 		}
 	}
-	//tlsAddr, err := deviceClient.GetResourceLinks()[0].GetTCPSecureAddr()
 	if !tlsAddrFound {
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp secure address: not found"))
 	}
