@@ -84,12 +84,6 @@ func (c *Client) GetResourceLinks() []schema.ResourceLink {
 	return c.links.Links
 }
 
-// GetEndpoints returns endpoints for a resource type.
-// The endpoints are returned in order of priority.
-func (c *Client) GetEndpoints(resourceType string) []schema.Endpoint {
-	return c.links.GetEndpoints(resourceType)
-}
-
 // GetDeviceLinks returns device links.
 func (c *Client) GetDeviceLinks() schema.DeviceLinks {
 	return c.links

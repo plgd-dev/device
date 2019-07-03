@@ -109,15 +109,6 @@ func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
 	return links
 }
 
-// GetEndpoints returns endpoints for a resource type.
-// The endpoints are returned in order of priority.
-func (d DeviceLinks) GetEndpoints(resourceTypes ...string) []Endpoint {
-	for _, l := range d.GetResourceLinks(resourceTypes...) {
-		return l.GetEndpoints()
-	}
-	return nil
-}
-
 // PatchEndpoint adds Endpoint information where missing.
 func (d DeviceLinks) PatchEndpoint(addr kitNet.Addr) DeviceLinks {
 	links := make([]ResourceLink, 0, len(d.Links))

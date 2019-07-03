@@ -42,9 +42,3 @@ func (d *Device) connection(endpoint string) *coap.Client {
 func (d *Device) DeviceID() string                        { return d.ID }
 func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
 func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }
-
-// GetEndpoints returns endpoints for a resource type.
-// The endpoints are returned in order of priority.
-func (d *Device) GetEndpoints(resourceType string) []schema.Endpoint {
-	return d.GetEndpoints(resourceType)
-}
