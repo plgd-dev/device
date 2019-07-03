@@ -35,32 +35,22 @@ type deviceHandler struct {
 	cancel context.CancelFunc
 
 	lock   sync.Mutex
-	device *schema.DeviceLinks
-	conn   *gocoap.ClientConn
+	device *Device
 }
 
 func (h *deviceHandler) Device() *Device {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
-	if h.device != nil {
-		return nil
-	}
-
-	return &Device{DeviceLinks: *h.device}
+	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, device schema.DeviceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
 	if h.device != nil {
 		return
 	}
-
-	h.device = &device
-	h.conn = conn
-
+	h.device = NewDevice(links, conn)
 	h.cancel()
 }
 
