@@ -5,60 +5,64 @@ import (
 	"fmt"
 	"sync"
 
+	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
+	"github.com/go-ocf/sdk/schema"
 )
 
+// GetDevice performs a multicast and returns a device object if the device responds.
+func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	h := newDeviceHandler(cancel)
+	err := resource.DiscoverDevices(ctx, c.conn, h, coap.WithDeviceID(deviceID))
+	if err != nil {
+		return nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
+	}
+	d := h.Device()
+	if d == nil {
+		return nil, fmt.Errorf("no response from the device %s", deviceID)
+	}
+	return d, nil
+}
+
+func newDeviceHandler(cancel context.CancelFunc) *deviceHandler {
+	return &deviceHandler{cancel: cancel}
+}
+
 type deviceHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
+	cancel context.CancelFunc
 
-	client *device.Client
 	lock   sync.Mutex
-	err    error
+	device *schema.DeviceLinks
+	conn   *gocoap.ClientConn
 }
 
-func newDeviceHandler(deviceID string, cancel context.CancelFunc) *deviceHandler {
-	return &deviceHandler{deviceID: deviceID, cancel: cancel}
-}
-
-func (h *deviceHandler) Handle(ctx context.Context, client *device.Client) {
+func (h *deviceHandler) Device() *Device {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if client.DeviceID() == h.deviceID {
-		h.client = client
-		h.cancel()
+
+	if h.device != nil {
+		return nil
 	}
+
+	return &Device{DeviceLinks: *h.device}
+}
+
+func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, device schema.DeviceLinks) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	if h.device != nil {
+		return
+	}
+
+	h.device = &device
+	h.conn = conn
+
+	h.cancel()
 }
 
 func (h *deviceHandler) Error(err error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	h.err = err
-}
-
-func (h *deviceHandler) Err() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.err
-}
-
-func (h *deviceHandler) Client() *device.Client {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.client
-}
-
-// GetDevice returns device client.
-func (c *Client) GetDevice(ctx context.Context, deviceID string) (*device.Client, error) {
-	ctxDev, cancel := context.WithCancel(ctx)
-	defer cancel()
-	handler := newDeviceHandler(deviceID, cancel)
-	resource.DiscoverDevices(ctxDev, c.conn, c.newDiscoveryHandler(handler), coap.WithDeviceID(deviceID))
-	cl := handler.Client()
-	if cl != nil {
-		return cl, nil
-	}
-	return nil, fmt.Errorf("cannot get device %v: not found", deviceID)
 }
