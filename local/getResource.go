@@ -28,7 +28,7 @@ func (d *Device) GetResourceWithCodec(
 	options ...coap.OptionFunc,
 ) error {
 	options = append(options, coap.WithAccept(codec.ContentFormat()))
-	return d.connection("TODO").GetResourceWithCodec(ctx, href, codec, response, options...)
+	return d.connect(href).GetResourceWithCodec(ctx, href, codec, response, options...)
 }
 
 // GetSingleResource queries a resource of a given resource type.

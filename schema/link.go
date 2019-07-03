@@ -96,6 +96,16 @@ func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 	return links.ToSlice()
 }
 
+// GetResourceLink finds a resource link with the same href.
+func (d DeviceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
+	for _, r := range d.Links {
+		if r.Href == href {
+			return r, true
+		}
+	}
+	return
+}
+
 // GetResourceLinks resolves URIs for a resource type.
 func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
 	rt := make(kitStrings.Set, len(resourceTypes))

@@ -35,7 +35,16 @@ func (d *Device) Close() {
 }
 
 // Connection returns a connection
-func (d *Device) connection(endpoint string) *coap.Client {
+func (d *Device) connect(href string) *coap.Client {
+	link, ok := d.GetResourceLink(href)
+	if !ok {
+		return nil
+	}
+	addr, err := link.GetUDPAddr()
+	if err != nil {
+		return nil
+	}
+	endpoint := addr.URL()
 	return coap.NewClient(d.conn[endpoint])
 }
 
