@@ -15,7 +15,7 @@ import (
 func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	h := newDeviceHandler(cancel)
+	h := newDeviceHandler(deviceID, cancel)
 	err := resource.DiscoverDevices(ctx, c.conn, h, coap.WithDeviceID(deviceID))
 	if err != nil {
 		return nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -27,12 +27,13 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error
 	return d, nil
 }
 
-func newDeviceHandler(cancel context.CancelFunc) *deviceHandler {
-	return &deviceHandler{cancel: cancel}
+func newDeviceHandler(deviceID string, cancel context.CancelFunc) *deviceHandler {
+	return &deviceHandler{deviceID: deviceID, cancel: cancel}
 }
 
 type deviceHandler struct {
-	cancel context.CancelFunc
+	deviceID string
+	cancel   context.CancelFunc
 
 	lock   sync.Mutex
 	device *Device
@@ -47,7 +48,7 @@ func (h *deviceHandler) Device() *Device {
 func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if h.device != nil {
+	if h.device != nil || links.ID != h.deviceID {
 		return
 	}
 	h.device = NewDevice(links, conn)

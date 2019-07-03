@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/local"
 	ocf "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +21,8 @@ type testFindDeviceHandler struct {
 	deviceIds map[string]bool
 }
 
-func (h *testFindDeviceHandler) Handle(ctx context.Context, client *device.Client) {
-	if !client.GetDeviceLinks().IsSecured() == h.secured {
+func (h *testFindDeviceHandler) Handle(ctx context.Context, d *local.Device) {
+	if !d.GetDeviceLinks().IsSecured() == h.secured {
 		return
 	}
 	h.lock.Lock()
@@ -30,7 +30,7 @@ func (h *testFindDeviceHandler) Handle(ctx context.Context, client *device.Clien
 	if h.deviceIds == nil {
 		h.deviceIds = make(map[string]bool)
 	}
-	h.deviceIds[client.DeviceID()] = true
+	h.deviceIds[d.DeviceID()] = true
 }
 
 func (h *testFindDeviceHandler) PopDeviceIds() map[string]bool {

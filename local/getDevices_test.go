@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/local"
 	ocf "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/resource/types"
 
 	"github.com/stretchr/testify/require"
@@ -35,7 +35,7 @@ func TestDeviceDiscoveryFilter(t *testing.T) {
 type testDeviceHandler struct {
 }
 
-func (h *testDeviceHandler) Handle(ctx context.Context, client *device.Client) {
+func (h *testDeviceHandler) Handle(context.Context, *local.Device) {
 }
 
 func (h *testDeviceHandler) Error(err error) {

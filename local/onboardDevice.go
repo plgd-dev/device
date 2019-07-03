@@ -16,15 +16,14 @@ func (c *Client) onboardOffboardInsecuredDevice(
 		return fmt.Errorf("invalid deviceID")
 	}
 
-	var links []schema.ResourceLink
-	err := c.GetResource(ctx, deviceID, "/oic/res", &links)
+	d, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return err
 	}
 
 	cloudResourceHref := ""
 Loop:
-	for _, link := range links {
+	for _, link := range d.GetResourceLinks() {
 		for _, resType := range link.ResourceTypes {
 			if resType == schema.CloudResourceType {
 				cloudResourceHref = link.Href
@@ -51,11 +50,12 @@ Loop:
 }
 
 func (c *Client) isSecuredDevice(ctx context.Context, deviceID string) (bool, error) {
-	devClient, err := c.GetDevice(ctx, deviceID)
+	device, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return false, err
 	}
-	return devClient.GetDeviceLinks().IsSecured(), nil
+	defer device.Close()
+	return device.GetDeviceLinks().IsSecured(), nil
 }
 
 type ProvisionDeviceFunc = func(ctx context.Context, c *ProvisioningClient) error

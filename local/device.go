@@ -2,6 +2,7 @@ package local
 
 import (
 	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -25,12 +26,17 @@ func (d *Device) Close() {
 	}
 }
 
-// GetResourceLinks returns all resource links.
-func (d *Device) GetResourceLinks() []schema.ResourceLink {
-	return d.Links
+// Connection returns a connection
+func (d *Device) connection(endpoint string) *coap.Client {
+	return coap.NewClient(d.conn)
 }
 
-// GetDeviceLinks returns device links.
-func (d *Device) GetDeviceLinks() schema.DeviceLinks {
-	return d.DeviceLinks
+func (d *Device) DeviceID() string                        { return d.ID }
+func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
+func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }
+
+// GetEndpoints returns endpoints for a resource type.
+// The endpoints are returned in order of priority.
+func (d *Device) GetEndpoints(resourceType string) []schema.Endpoint {
+	return d.GetEndpoints(resourceType)
 }

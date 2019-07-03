@@ -37,7 +37,10 @@ func TestProvisioning(t *testing.T) {
 	cert, err := tls.X509KeyPair(Cert2PEMBlock, Cert2KeyPEMBlock)
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert)
-	err = c2.GetResource(context.Background(), c.DeviceID, "/light/1", nil)
+	require.NoError(t, err)
+	d, err := c2.GetDevice(context.Background(), c.DeviceID)
+	require.NoError(t, err)
+	err = d.GetResource(context.Background(), c.DeviceID, "/light/1", nil)
 	require.NoError(t, err)
 }
 
@@ -57,8 +60,8 @@ func TestSettingCloudResource(t *testing.T) {
 
 	r := schema.CloudUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:               "testURL",
-		AuthorizationCode: "testAuthorizationCode",
+		URL:                   "testURL",
+		AuthorizationCode:     "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)

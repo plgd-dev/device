@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 
@@ -13,7 +12,7 @@ import (
 
 // DeviceHandler can use the client to query details about device's resources.
 type DeviceHandler interface {
-	Handle(ctx context.Context, client *device.Client)
+	Handle(ctx context.Context, device *Device)
 	Error(err error)
 }
 
@@ -27,25 +26,19 @@ func (c *Client) GetDevices(ctx context.Context, typeFilter []string, handler De
 	for _, t := range typeFilter {
 		options = append(options, coap.WithResourceType(t))
 	}
-	return resource.DiscoverDevices(ctx, c.conn, c.newDiscoveryHandler(handler), options...)
+	return resource.DiscoverDevices(ctx, c.conn, newDiscoveryHandler(handler), options...)
 }
 
-func (c *Client) newDiscoveryHandler(h DeviceHandler) *discoveryHandler {
-	return &discoveryHandler{handler: h, factory: c.factory}
+func newDiscoveryHandler(h DeviceHandler) *discoveryHandler {
+	return &discoveryHandler{handler: h}
 }
 
 type discoveryHandler struct {
 	handler DeviceHandler
-	factory ResourceClientFactory
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, client *gocoap.ClientConn, links schema.DeviceLinks) {
-	c, err := h.factory.NewClient(client, links)
-	if err != nil {
-		h.handler.Error(err)
-		return
-	}
-	h.handler.Handle(ctx, device.NewClient(c, links))
+func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
+	h.handler.Handle(ctx, NewDevice(links, conn))
 }
 
 func (h *discoveryHandler) Error(err error) {
