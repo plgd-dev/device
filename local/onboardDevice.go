@@ -51,7 +51,7 @@ Loop:
 }
 
 func (c *Client) isSecuredDevice(ctx context.Context, deviceID string) (bool, error) {
-	devClient, err := c.GetDevice(ctx, deviceID, nil)
+	devClient, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return false, err
 	}

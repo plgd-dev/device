@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/go-ocf/kit/codec/ocf"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -37,18 +38,18 @@ func DiscoverDeviceOwnership(
 	status DiscoverOwnershipStatus,
 	handler DiscoverDeviceOwnershipHandler,
 ) error {
-	query := ""
+	var opt kitNetCoap.OptionFunc
 	switch status {
 	case DiscoverAllDevices:
 	case DiscoverOwnedDevices:
-		query = "Owned=TRUE"
+		opt = func(m gocoap.Message) { m.AddOption(gocoap.URIQuery, "Owned=TRUE") }
 	case DiscoverDisownedDevices:
-		query = "Owned=FALSE"
+		opt = func(m gocoap.Message) { m.AddOption(gocoap.URIQuery, "Owned=FALSE") }
 	default:
 		return fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status)
 	}
 
-	return Discover(ctx, conn, "/oic/sec/doxm", []string{query}, handleDiscoverOwnershipResponse(ctx, handler))
+	return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler), opt)
 }
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(req *gocoap.Request) {

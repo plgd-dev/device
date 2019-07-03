@@ -29,7 +29,7 @@ func (c *Client) DisownDevice(
 		return fmt.Errorf(errMsg, deviceID, "device is not owned")
 	}
 
-	deviceClient, err := c.GetDevice(ctx, deviceID, nil)
+	deviceClient, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}

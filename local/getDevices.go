@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 
+	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
@@ -22,7 +23,11 @@ type DeviceHandler interface {
 // An empty typeFilter queries all resource types.
 // Note: len(typeFilter) > 1 does not work with Iotivity 1.3 which responds with BadRequest.
 func (c *Client) GetDevices(ctx context.Context, typeFilter []string, handler DeviceHandler) error {
-	return resource.DiscoverDevices(ctx, c.conn, typeFilter, c.newDiscoveryHandler(handler))
+	options := make([]coap.OptionFunc, 0, len(typeFilter))
+	for _, t := range typeFilter {
+		options = append(options, coap.WithResourceType(t))
+	}
+	return resource.DiscoverDevices(ctx, c.conn, c.newDiscoveryHandler(handler), options...)
 }
 
 func (c *Client) newDiscoveryHandler(h DeviceHandler) *discoveryHandler {

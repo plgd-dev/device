@@ -51,7 +51,7 @@ func refreshResourceLink(cfg Config, conn []*gocoap.MulticastClientConn) link.Ca
 		defer cancel()
 		c := link.NewCache(nil, nil)
 		h := refreshResourceLinkHandler{linkCache: c, errors: cfg.Errors, cancel: cancel, deviceID: deviceID, href: href}
-		err = DiscoverDevices(timeout, conn, []string{}, &h)
+		err = DiscoverDevices(timeout, conn, &h)
 
 		res, ok := c.Get(deviceID, href)
 		if ok {
@@ -82,7 +82,7 @@ func refreshResourceLinks(cfg Config, conn []*gocoap.MulticastClientConn) refres
 		defer cancel()
 		c := link.NewCache(nil, nil)
 		h := refreshHandler{linkCache: c, errors: cfg.Errors}
-		err := DiscoverDevices(timeout, conn, []string{}, &h)
+		err := DiscoverDevices(timeout, conn, &h)
 		if err != nil {
 			return nil, err
 		}

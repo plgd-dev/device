@@ -338,7 +338,7 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	deviceClient, err := c.GetDevice(ctx, deviceID, nil)
+	deviceClient, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}

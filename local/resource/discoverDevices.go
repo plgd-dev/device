@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/kit/net"
+	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -21,19 +22,14 @@ type DiscoverDevicesHandler interface {
 // It waits for device responses until the context is canceled.
 // Device resources can be queried in DiscoveryHandler.
 // An empty typeFilter queries all resource types.
-// Note: len(typeFilter) > 1 does not work with Iotivity 1.3 which responds with BadRequest.
+// Note: Iotivity 1.3 which responds with BadRequest if more than 1 resource type is queried.
 func DiscoverDevices(
 	ctx context.Context,
 	conn []*gocoap.MulticastClientConn,
-	typeFilter []string,
 	handler DiscoverDevicesHandler,
+	options ...coap.OptionFunc,
 ) error {
-	queries := make([]string, 0, len(typeFilter))
-	for _, t := range typeFilter {
-		queries = append(queries, "rt="+t)
-	}
-
-	return Discover(ctx, conn, "/oic/res", queries, handleResponse(ctx, handler))
+	return Discover(ctx, conn, "/oic/res", handleResponse(ctx, handler), options...)
 }
 
 func FilterResourceLinksWithEndpoints(in []schema.ResourceLink) []schema.ResourceLink {

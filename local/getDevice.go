@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/local/device"
 	"github.com/go-ocf/sdk/local/resource"
 )
@@ -50,14 +51,14 @@ func (h *deviceHandler) Client() *device.Client {
 }
 
 // GetDevice returns device client.
-func (c *Client) GetDevice(ctx context.Context, deviceId string, typeFilter []string) (*device.Client, error) {
+func (c *Client) GetDevice(ctx context.Context, deviceID string) (*device.Client, error) {
 	ctxDev, cancel := context.WithCancel(ctx)
 	defer cancel()
-	handler := newDeviceHandler(deviceId, cancel)
-	resource.DiscoverDevices(ctxDev, c.conn, typeFilter, c.newDiscoveryHandler(handler))
+	handler := newDeviceHandler(deviceID, cancel)
+	resource.DiscoverDevices(ctxDev, c.conn, c.newDiscoveryHandler(handler), coap.WithDeviceID(deviceID))
 	cl := handler.Client()
 	if cl != nil {
 		return cl, nil
 	}
-	return nil, fmt.Errorf("cannot get device %v: not found", deviceId)
+	return nil, fmt.Errorf("cannot get device %v: not found", deviceID)
 }
