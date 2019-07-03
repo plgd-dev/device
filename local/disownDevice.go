@@ -29,18 +29,19 @@ func (c *Client) DisownDevice(
 		return fmt.Errorf(errMsg, deviceID, "device is not owned")
 	}
 
-	deviceClient, err := c.GetDevice(ctx, deviceID)
+	device, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
+	defer device.Close()
 
-	links := deviceClient.GetResourceLinks()
+	links := device.GetResourceLinks()
 	if len(links) == 0 {
 		return fmt.Errorf(errMsg, deviceID, "device links are empty")
 	}
 	var tlsAddr kitNet.Addr
 	var tlsAddrFound bool
-	for _, link := range deviceClient.GetResourceLinks() {
+	for _, link := range device.GetResourceLinks() {
 		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
 			tlsAddrFound = true
 			break
@@ -82,8 +83,6 @@ func (c *Client) DisownDevice(
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
-
-	defer c.CloseConnections(deviceClient.GetDeviceLinks())
 
 	return nil
 }

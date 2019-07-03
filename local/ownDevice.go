@@ -338,17 +338,18 @@ func (c *Client) OwnDevice(
 		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	deviceClient, err := c.GetDevice(ctx, deviceID)
+	device, err := c.GetDevice(ctx, deviceID)
 	if err != nil {
 		return fmt.Errorf(errMsg, deviceID, err)
 	}
-	links := deviceClient.GetResourceLinks()
+	defer device.Close()
+	links := device.GetResourceLinks()
 	if len(links) == 0 {
 		return fmt.Errorf(errMsg, deviceID, "device links are empty")
 	}
 	var tlsAddr kitNet.Addr
 	var tlsAddrFound bool
-	for _, link := range deviceClient.GetResourceLinks() {
+	for _, link := range device.GetResourceLinks() {
 		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
 			tlsAddrFound = true
 			break
