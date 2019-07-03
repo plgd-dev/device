@@ -2,33 +2,41 @@ package local
 
 import (
 	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
 type Device struct {
 	schema.DeviceLinks
-	conn *gocoap.ClientConn
+	conn map[string]*gocoap.ClientConn
 }
 
 func NewDevice(links schema.DeviceLinks, conn *gocoap.ClientConn) *Device {
+	pool := make(map[string]*gocoap.ClientConn)
+
+	addr, err := net.Parse("coap://", conn.RemoteAddr())
+	if err == nil {
+		pool[addr.URL()] = conn
+	}
+
 	return &Device{
 		DeviceLinks: links,
 
-		conn: conn,
+		conn: pool,
 	}
 }
 
 // Close closes open connections to the device.
 func (d *Device) Close() {
-	if d.conn != nil {
-		d.conn.Close()
+	for _, conn := range d.conn {
+		conn.Close()
 	}
 }
 
 // Connection returns a connection
 func (d *Device) connection(endpoint string) *coap.Client {
-	return coap.NewClient(d.conn)
+	return coap.NewClient(d.conn[endpoint])
 }
 
 func (d *Device) DeviceID() string                        { return d.ID }
