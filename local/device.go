@@ -34,7 +34,7 @@ func (d *Device) Close() {
 	}
 }
 
-// Connection returns a connection
+// connect gets or creates a connection based on the resource link
 func (d *Device) connect(href string) *coap.Client {
 	link, ok := d.GetResourceLink(href)
 	if !ok {

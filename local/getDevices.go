@@ -10,9 +10,11 @@ import (
 	gocoap "github.com/go-ocf/go-coap"
 )
 
-// DeviceHandler can use the client to query details about device's resources.
+// DeviceHandler conveys device connections and errors during discovery.
 type DeviceHandler interface {
+	// Handle gets a device connection and is responsible for closing it.
 	Handle(ctx context.Context, device *Device)
+	// Error gets errors during discovery.
 	Error(err error)
 }
 
