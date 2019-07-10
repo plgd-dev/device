@@ -12,8 +12,14 @@ func (d *Device) onboardOffboardInsecuredDevice(
 	authorizationProvider, authorizationCode, url string,
 ) error {
 	cloudResourceHref := ""
+
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return err
+	}
+
 Loop:
-	for _, link := range d.GetResourceLinks() {
+	for _, link := range links {
 		for _, resType := range link.ResourceTypes {
 			if resType == schema.CloudResourceType {
 				cloudResourceHref = link.Href
@@ -32,7 +38,7 @@ Loop:
 		URL:                   url,
 	}
 	var resp schema.CloudResponse
-	err := d.UpdateResource(ctx, cloudResourceHref, req, &resp)
+	err = d.UpdateResource(ctx, cloudResourceHref, req, &resp)
 	if err != nil {
 		return err
 	}
@@ -40,7 +46,20 @@ Loop:
 }
 
 func (d *Device) IsSecured(ctx context.Context) (bool, error) {
-	return d.DeviceLinks.IsSecured(), nil
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return false, err
+	}
+
+	for _, link := range links {
+		if _, err := link.GetTCPSecureAddr(); err == nil {
+			return true, nil
+		}
+		if _, err := link.GetUDPSecureAddr(); err == nil {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 type ProvisionDeviceFunc = func(ctx context.Context, c *ProvisioningClient) error
@@ -50,6 +69,7 @@ func (d *Device) Onboard(
 	ctx context.Context,
 	otmClient OTMClient,
 	provision ProvisionDeviceFunc,
+	ownOptions ...OwnOption,
 ) error {
 	const errMsg = "cannot onboard secured device  %v"
 	if otmClient == nil {
@@ -65,7 +85,7 @@ func (d *Device) Onboard(
 	if !ok {
 		return fmt.Errorf(errMsg, fmt.Errorf("device is insecured"))
 	}
-	err = d.onboardSecuredDevice(ctx, otmClient, provision)
+	err = d.onboardSecuredDevice(ctx, otmClient, provision, ownOptions...)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -98,8 +118,8 @@ func (d *Device) OnboardInsecured(ctx context.Context, authorizationProvider, au
 	return nil
 }
 
-func (d *Device) onboardSecuredDevice(ctx context.Context, otmClient OTMClient, provision ProvisionDeviceFunc) error {
-	err := d.Own(ctx, otmClient)
+func (d *Device) onboardSecuredDevice(ctx context.Context, otmClient OTMClient, provision ProvisionDeviceFunc, ownOptions ...OwnOption) error {
+	err := d.Own(ctx, otmClient, ownOptions...)
 	if err != nil {
 		return err
 	}

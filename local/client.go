@@ -64,4 +64,8 @@ func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) 
 	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }
 
-
+func (c *Client) Close() {
+	for _, conn := range c.conn {
+		conn.Close()
+	}
+}

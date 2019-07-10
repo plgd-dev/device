@@ -11,28 +11,6 @@ import (
 	kitStrings "github.com/go-ocf/kit/strings"
 )
 
-// DeviceLinks lists device's resource types
-// along with links for retrieving resource details:
-// https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/oic.wk.res.raml
-type DeviceLinks struct {
-	ID     string         `codec:"di"`
-	Links  []ResourceLink `codec:"links"`
-	Anchor string
-}
-
-// IsSecured returns true if device is secured.
-func (d DeviceLinks) IsSecured() bool {
-	for _, link := range d.Links {
-		if _, err := link.GetTCPSecureAddr(); err == nil {
-			return true
-		}
-		if _, err := link.GetUDPSecureAddr(); err == nil {
-			return true
-		}
-	}
-	return false
-}
-
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
@@ -48,6 +26,8 @@ type ResourceLink struct {
 	Title                 string     `codec:"title"`
 	SupportedContentTypes []string   `codec:"type"`
 }
+
+type ResourceLinks []ResourceLink
 
 // Policy is defined on the line 1822 of the Core specification:
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
@@ -93,11 +73,11 @@ const (
 func (b BitMask) Has(flag BitMask) bool { return b&flag != 0 }
 
 // GetResourceHrefs resolves URIs for a resource type.
-func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
+func (d ResourceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make(kitStrings.Set, len(d.Links))
-	for _, r := range d.Links {
+	links := make(kitStrings.Set, len(d))
+	for _, r := range d {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links.Add(r.Href)
 		}
@@ -106,8 +86,8 @@ func (d DeviceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 }
 
 // GetResourceLink finds a resource link with the same href.
-func (d DeviceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
-	for _, r := range d.Links {
+func (d ResourceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
+	for _, r := range d {
 		if r.Href == href {
 			return r, true
 		}
@@ -116,11 +96,11 @@ func (d DeviceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
 }
 
 // GetResourceLinks resolves URIs for a resource type.
-func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
+func (d ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
 	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make([]ResourceLink, 0, len(d.Links))
-	for _, r := range d.Links {
+	links := make([]ResourceLink, 0, len(d))
+	for _, r := range d {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links = append(links, r)
 		}
@@ -129,13 +109,12 @@ func (d DeviceLinks) GetResourceLinks(resourceTypes ...string) []ResourceLink {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (d DeviceLinks) PatchEndpoint(addr kitNet.Addr) DeviceLinks {
-	links := make([]ResourceLink, 0, len(d.Links))
-	for _, r := range d.Links {
+func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr) ResourceLinks {
+	links := make(ResourceLinks, 0, len(d))
+	for _, r := range d {
 		links = append(links, r.PatchEndpoint(addr))
 	}
-	d.Links = links
-	return d
+	return links
 }
 
 // GetEndpoints returns endpoints in order of priority.

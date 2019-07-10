@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -15,7 +14,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	h := newDeviceHandler(deviceID, c.tlsConfig, c.conn, cancel)
-	err := DiscoverDevices(ctx, c.conn, h, coap.WithDeviceID(deviceID))
+	err := DiscoverDeviceOwnership(ctx, c.conn, DiscoverAllDevices, h)
 	if err != nil {
 		return nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
 	}
@@ -46,13 +45,13 @@ func (h *deviceHandler) Device() *Device {
 	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, ownership schema.Doxm) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	if h.device != nil || links.ID != h.deviceID {
+	if h.device != nil || ownership.DeviceId != h.deviceID {
 		return
 	}
-	h.device = NewDevice(links, conn, h.multicastConn, h.tlsConfig)
+	h.device = NewDevice(ownership, conn, h.multicastConn, h.tlsConfig)
 	h.cancel()
 }
 

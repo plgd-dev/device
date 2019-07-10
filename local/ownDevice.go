@@ -14,34 +14,6 @@ import (
 	"github.com/go-ocf/sdk/schema/acl"
 )
 
-type deviceOwnershipClient struct {
-	*coapClient
-	ownership schema.Doxm
-}
-
-func (c *deviceOwnershipClient) GetOwnership() schema.Doxm {
-	return c.ownership
-}
-
-func (c *deviceOwnershipClient) GetTcpSecureAddress(ctx context.Context, deviceID string) (string, error) {
-	deviceLink, err := c.GetDeviceLinks(ctx, deviceID)
-	if err != nil {
-		return "", err
-	}
-	var resourceLink schema.ResourceLink
-	for _, link := range deviceLink.Links {
-		if link.HasType("oic.wk.d") {
-			resourceLink = link
-			break
-		}
-	}
-	tcpTLSAddr, err := resourceLink.GetTCPSecureAddr()
-	if err != nil {
-		return "", err
-	}
-	return tcpTLSAddr.String(), nil
-}
-
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
 	Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error)
@@ -223,17 +195,39 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.Client, sdkID strin
 	return nil
 }
 
+type ownCfg struct {
+	iotivityHack bool
+}
+
+type OwnOption = func(ownCfg) ownCfg
+
+// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
+func WithIotivityHack() OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.iotivityHack = true
+		return o
+	}
+}
+
 // Own set ownership of device
 func (d *Device) Own(
 	ctx context.Context,
 	otmClient OTMClient,
+	options ...OwnOption,
 ) error {
+	var cfg ownCfg
 	const errMsg = "cannot own device: %v"
-
-	ownership, err := d.GetOwnership(ctx)
-	if err != nil {
-		return fmt.Errorf(errMsg, err)
+	for _, opt := range options {
+		cfg = opt(cfg)
 	}
+
+	/*
+		ownership, err := d.GetOwnership(ctx)
+		if err != nil {
+			return fmt.Errorf(errMsg, err)
+		}*/
+
+	ownership := d.ownership
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otmClient.Type() {
@@ -266,7 +260,10 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	links := d.GetResourceLinks()
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links %v", err))
+	}
 	if len(links) == 0 {
 		return fmt.Errorf(errMsg, "device links are empty")
 	}
@@ -324,11 +321,7 @@ func (d *Device) Own(
 	 * THIS IS HACK FOR iotivity -> enables ciphers for TLS communication with signed certificates.
 	 * Tested with iotivity 2.0.1-RC0.
 	 */
-	isIotivity, err := IsIotivity(ctx, tlsClient)
-	if err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	if isIotivity {
+	if cfg.iotivityHack {
 		err = iotivityHack(ctx, tlsClient, sdkID)
 		if err != nil {
 			return fmt.Errorf(errMsg, err)

@@ -38,23 +38,30 @@ func (d *Device) GetResourceWithCodec(
 // GetSingleResource queries a resource of a given resource type.
 // Only a single instance of this resource type is expected.
 func (d *Device) GetSingleResource(ctx context.Context, value interface{}, resourceType string) error {
-	it := d.GetResources(resourceType)
+	it, err := d.GetResources(ctx, resourceType)
+	if err != nil {
+		return fmt.Errorf("canno get resources for %s %+v: %v", d.DeviceID(), resourceType, err)
+	}
 	ok := it.Next(ctx, value)
 	if !ok {
-		return fmt.Errorf("resource not found for %s %+v", d.ID, resourceType)
+		return fmt.Errorf("resource not found for %s %+v", d.DeviceID(), resourceType)
 	}
 	if it.Next(ctx, value) {
-		return fmt.Errorf("too many resource links for %s %+v", d.ID, resourceType)
+		return fmt.Errorf("too many resource links for %s %+v", d.DeviceID(), resourceType)
 	}
 	return it.Err
 }
 
 // GetResources resolves URIs and returns an iterator for querying resources of given resource types.
-func (d *Device) GetResources(resourceTypes ...string) *ResourceIterator {
+func (d *Device) GetResources(ctx context.Context, resourceTypes ...string) (*ResourceIterator, error) {
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return nil, err
+	}
 	return &ResourceIterator{
 		device: d,
-		hrefs:  d.GetResourceHrefs(resourceTypes...),
-	}
+		hrefs:  links.GetResourceHrefs(resourceTypes...),
+	}, nil
 }
 
 // ResourceIterator queries resource values.
@@ -75,7 +82,7 @@ func (it *ResourceIterator) Next(ctx context.Context, v interface{}) bool {
 
 	err := it.device.GetResource(ctx, it.hrefs[it.i], v)
 	if err != nil {
-		it.Err = fmt.Errorf("could not get a resource value for the device %s: %v", it.device.ID, err)
+		it.Err = fmt.Errorf("could not get a resource value for the device %s: %v", it.device.DeviceID(), err)
 		return false
 	}
 

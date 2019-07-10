@@ -19,11 +19,10 @@ type DeviceHandler interface {
 // GetDevices discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
 func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
-	return DiscoverDevices(ctx, c.conn, newDiscoveryHandler(c.tlsConfig, c.conn, handler))
+	return DiscoverDeviceOwnership(ctx, c.conn, DiscoverAllDevices, newDiscoveryHandler(c.tlsConfig, c.conn, handler))
 }
 
 func newDiscoveryHandler(tlsConfig *TLSConfig, multicastConn []*gocoap.MulticastClientConn, h DeviceHandler) *discoveryHandler {
-
 	return &discoveryHandler{tlsConfig: tlsConfig, multicastConn: multicastConn, handler: h}
 }
 
@@ -33,8 +32,8 @@ type discoveryHandler struct {
 	handler       DeviceHandler
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
-	h.handler.Handle(ctx, NewDevice(links, conn, h.multicastConn, h.tlsConfig))
+func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, ownership schema.Doxm) {
+	h.handler.Handle(ctx, NewDevice(ownership, conn, h.multicastConn, h.tlsConfig))
 }
 
 func (h *discoveryHandler) Error(err error) {

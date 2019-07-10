@@ -15,7 +15,8 @@ import (
 )
 
 type Device struct {
-	schema.DeviceLinks
+	//schema.DeviceLinks
+	ownership     schema.Doxm
 	tlsConfig     *TLSConfig
 	multicastConn []*gocoap.MulticastClientConn
 
@@ -36,16 +37,16 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
-func NewDevice(links schema.DeviceLinks, conn *gocoap.ClientConn, multicastConn []*gocoap.MulticastClientConn, tlsConfig *TLSConfig) *Device {
+func NewDevice(ownership schema.Doxm, conn *gocoap.ClientConn, multicastConn []*gocoap.MulticastClientConn, tlsConfig *TLSConfig) *Device {
 	pool := make(map[string]*coap.Client)
 
-	addr, err := net.Parse("coap://", conn.RemoteAddr())
+	addr, err := net.Parse(schema.UDPScheme, conn.RemoteAddr())
 	if err == nil {
 		pool[addr.URL()] = coap.NewClient(conn)
 	}
 
 	return &Device{
-		DeviceLinks:   links,
+		ownership:     ownership,
 		tlsConfig:     tlsConfig,
 		conn:          pool,
 		multicastConn: multicastConn,
@@ -184,7 +185,12 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 
 // connect gets or creates a connection based on the resource link
 func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error) {
-	link, ok := d.GetResourceLink(href)
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("cannot get resource links: %v", err)
+	}
+
+	link, ok := links.GetResourceLink(href)
 	if !ok {
 		return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
 	}
@@ -200,6 +206,7 @@ func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error)
 	return nil, fmt.Errorf("%v", errors)
 }
 
-func (d *Device) DeviceID() string                        { return d.ID }
-func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
-func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }
+func (d *Device) DeviceID() string { return d.ownership.DeviceId }
+
+//func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
+//func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }

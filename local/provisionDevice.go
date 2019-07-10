@@ -80,7 +80,12 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 		return fmt.Errorf("invalid URL")
 	}
 	var href string
-	for _, l := range c.GetResourceLinks() {
+
+	links, err := c.GetResourceLinks(ctx)
+	if err != nil {
+		return fmt.Errorf("cannot get resource links %v", err)
+	}
+	for _, l := range links {
 		if strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {
 			href = l.Href
 			break
@@ -89,7 +94,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 	if href == "" {
 		return fmt.Errorf("could not resolve cloud resource link of device %s", c.DeviceID())
 	}
-	err := c.UpdateResource(ctx, href, r, nil)
+	err = c.UpdateResource(ctx, href, r, nil)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %v", c.DeviceID(), err)
 	}
