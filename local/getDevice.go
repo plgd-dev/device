@@ -7,7 +7,6 @@ import (
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -15,8 +14,8 @@ import (
 func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	h := newDeviceHandler(deviceID, cancel)
-	err := resource.DiscoverDevices(ctx, c.conn, h, coap.WithDeviceID(deviceID))
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.conn, cancel)
+	err := DiscoverDevices(ctx, c.conn, h, coap.WithDeviceID(deviceID))
 	if err != nil {
 		return nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
 	}
@@ -27,13 +26,15 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error
 	return d, nil
 }
 
-func newDeviceHandler(deviceID string, cancel context.CancelFunc) *deviceHandler {
-	return &deviceHandler{deviceID: deviceID, cancel: cancel}
+func newDeviceHandler(deviceID string, tlsConfig *TLSConfig, multicastConn []*gocoap.MulticastClientConn, cancel context.CancelFunc) *deviceHandler {
+	return &deviceHandler{deviceID: deviceID, tlsConfig: tlsConfig, multicastConn: multicastConn, cancel: cancel}
 }
 
 type deviceHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
+	deviceID      string
+	tlsConfig     *TLSConfig
+	multicastConn []*gocoap.MulticastClientConn
+	cancel        context.CancelFunc
 
 	lock   sync.Mutex
 	device *Device
@@ -51,7 +52,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 	if h.device != nil || links.ID != h.deviceID {
 		return
 	}
-	h.device = NewDevice(links, conn)
+	h.device = NewDevice(links, conn, h.multicastConn, h.tlsConfig)
 	h.cancel()
 }
 

@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"testing"
+	"time"
 
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
@@ -15,32 +16,36 @@ import (
 func TestProvisioning(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close()
 	c.SetUpTestDevice(t)
+	defer c.Close()
 
-	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	pc, err := c.Provision(ctx)
 	require.NoError(t, err)
 
-	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
+	require.NoError(t, pc.SetAccessControl(ctx, acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
 
 	derBlock, _ := pem.Decode(Cert2PEMBlock)
 	require.NotEmpty(t, derBlock)
 	ca, err := x509.ParseCertificate(derBlock.Bytes)
 	require.NoError(t, err)
 
-	err = pc.AddCertificateAuthority(context.Background(), "*", ca)
+	err = pc.AddCertificateAuthority(ctx, "*", ca)
 	require.NoError(t, err)
 
-	err = pc.Close(context.Background())
+	err = pc.Close(ctx)
 	require.NoError(t, err)
 
 	cert, err := tls.X509KeyPair(Cert2PEMBlock, Cert2KeyPEMBlock)
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert)
 	require.NoError(t, err)
-	d, err := c2.GetDevice(context.Background(), c.DeviceID)
+	d, err := c2.GetDevice(ctx, c.DeviceID)
 	require.NoError(t, err)
-	err = d.GetResource(context.Background(), c.DeviceID, "/light/1", nil)
+	defer d.Close(ctx)
+	err = d.GetResource(ctx, "/light/1", nil)
 	require.NoError(t, err)
 }
 
@@ -50,7 +55,7 @@ func TestSettingCloudResource(t *testing.T) {
 	defer c.Close()
 	c.SetUpTestDevice(t)
 
-	pc, err := c.ProvisionDevice(context.Background(), c.DeviceID)
+	pc, err := c.Provision(context.Background())
 	require.NoError(t, err)
 
 	defer func() {
@@ -60,8 +65,8 @@ func TestSettingCloudResource(t *testing.T) {
 
 	r := schema.CloudUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:                   "testURL",
-		AuthorizationCode:     "testAuthorizationCode",
+		URL:               "testURL",
+		AuthorizationCode: "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)

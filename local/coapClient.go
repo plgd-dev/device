@@ -8,7 +8,6 @@ import (
 	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -56,7 +55,7 @@ func IsIotivity(ctx context.Context, c *kitNetCoap.Client) (bool, error) {
 
 func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (device schema.DeviceLinks, _ error) {
 	var devices []schema.DeviceLinks
-	err := c.GetResourceWithCodec(ctx, "/oic/res", resource.DiscoveryResourceCodec{}, &devices)
+	err := c.GetResourceWithCodec(ctx, "/oic/res", DiscoveryResourceCodec{}, &devices)
 	if err != nil {
 		return device, err
 	}
@@ -79,7 +78,7 @@ func (c *coapClient) GetDeviceLinks(ctx context.Context, deviceID string) (devic
 		links = append(links, link.PatchEndpoint(addr))
 	}
 	//filter device links with endpoints
-	device.Links = resource.FilterResourceLinksWithEndpoints(links)
+	device.Links = FilterResourceLinksWithEndpoints(links)
 
 	return device, nil
 }

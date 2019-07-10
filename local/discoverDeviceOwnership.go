@@ -1,4 +1,4 @@
-package resource
+package local
 
 import (
 	"context"
@@ -41,6 +41,7 @@ func DiscoverDeviceOwnership(
 	var opt kitNetCoap.OptionFunc
 	switch status {
 	case DiscoverAllDevices:
+		return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler))
 	case DiscoverOwnedDevices:
 		opt = func(m gocoap.Message) { m.AddOption(gocoap.URIQuery, "Owned=TRUE") }
 	case DiscoverDisownedDevices:

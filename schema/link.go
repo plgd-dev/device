@@ -71,6 +71,15 @@ type Endpoint struct {
 	Priority uint64 `codec:"pri"`
 }
 
+// GetAddr parses a endpoint URI to addr.
+func (ep Endpoint) GetAddr() (kitNet.Addr, error) {
+	u, err := url.ParseRequestURI(ep.URI)
+	if err != nil {
+		return kitNet.Addr{}, err
+	}
+	return kitNet.ParseURL(u)
+}
+
 // BitMask is defined with Policy on the line 1822 of the Core specification.
 type BitMask uint8
 

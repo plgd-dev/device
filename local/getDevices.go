@@ -3,8 +3,6 @@ package local
 import (
 	"context"
 
-	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -20,27 +18,23 @@ type DeviceHandler interface {
 
 // GetDevices discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-// which also caches resource links and pools connections.
-// An empty typeFilter queries all resource types.
-// Note: len(typeFilter) > 1 does not work with Iotivity 1.3 which responds with BadRequest.
-func (c *Client) GetDevices(ctx context.Context, typeFilter []string, handler DeviceHandler) error {
-	options := make([]coap.OptionFunc, 0, len(typeFilter))
-	for _, t := range typeFilter {
-		options = append(options, coap.WithResourceType(t))
-	}
-	return resource.DiscoverDevices(ctx, c.conn, newDiscoveryHandler(handler), options...)
+func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
+	return DiscoverDevices(ctx, c.conn, newDiscoveryHandler(c.tlsConfig, c.conn, handler))
 }
 
-func newDiscoveryHandler(h DeviceHandler) *discoveryHandler {
-	return &discoveryHandler{handler: h}
+func newDiscoveryHandler(tlsConfig *TLSConfig, multicastConn []*gocoap.MulticastClientConn, h DeviceHandler) *discoveryHandler {
+
+	return &discoveryHandler{tlsConfig: tlsConfig, multicastConn: multicastConn, handler: h}
 }
 
 type discoveryHandler struct {
-	handler DeviceHandler
+	multicastConn []*gocoap.MulticastClientConn
+	tlsConfig     *TLSConfig
+	handler       DeviceHandler
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.DeviceLinks) {
-	h.handler.Handle(ctx, NewDevice(links, conn))
+	h.handler.Handle(ctx, NewDevice(links, conn, h.multicastConn, h.tlsConfig))
 }
 
 func (h *discoveryHandler) Error(err error) {

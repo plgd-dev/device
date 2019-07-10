@@ -5,40 +5,38 @@ import (
 	"fmt"
 )
 
-func (c *Client) OffboardInsecuredDevice(
+func (d *Device) OffboardInsecured(
 	ctx context.Context,
-	deviceID string,
 ) error {
-	const errMsg = "cannot offboard device %v: %v"
-	ok, err := c.isSecuredDevice(ctx, deviceID)
+	const errMsg = "cannot offboard device: %v"
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	if ok {
-		return fmt.Errorf(errMsg, deviceID, "is secured device")
+		return fmt.Errorf(errMsg, "is secured device")
 	}
 
-	err = c.onboardOffboardInsecuredDevice(ctx, deviceID, "", "", "")
+	err = d.onboardOffboardInsecuredDevice(ctx, "", "", "")
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 	return nil
 }
 
-func (c *Client) OffboardDevice(
+func (d *Device) Offboard(
 	ctx context.Context,
-	deviceID string,
 ) error {
-	const errMsg = "cannot offboard device %v: %v"
-	ok, err := c.isSecuredDevice(ctx, deviceID)
+	const errMsg = "cannot offboard device: %v"
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	if !ok {
-		return fmt.Errorf(errMsg, deviceID, "is insecured device")
+		return fmt.Errorf(errMsg, "is insecured device")
 	}
 
-	return c.DisownDevice(ctx, deviceID)
+	return d.Disown(ctx)
 }

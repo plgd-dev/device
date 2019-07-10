@@ -7,30 +7,30 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
-func (c *Client) UpdateResource(
+func (d *Device) UpdateResource(
 	ctx context.Context,
-	deviceID, href string,
+	href string,
 	request interface{},
 	response interface{},
 	options ...kitNetCoap.OptionFunc,
 ) error {
 	codec := ocf.VNDOCFCBORCodec{}
-	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response, options...)
+	return d.UpdateResourceWithCodec(ctx, href, codec, request, response, options...)
 }
 
-func (c *Client) UpdateResourceWithCodec(
+func (d *Device) UpdateResourceWithCodec(
 	ctx context.Context,
-	deviceID, href string,
+	href string,
 	codec kitNetCoap.Codec,
 	request interface{},
 	response interface{},
 	options ...kitNetCoap.OptionFunc,
 ) error {
-	client, err := c.factory.NewClientFromCache()
+	client, err := d.connect(ctx, href)
 	if err != nil {
 		return err
 	}
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
-	return client.Post(ctx, deviceID, href, codec, request, response, options...)
+	return client.UpdateResourceWithCodec(ctx, href, codec, request, response, options...)
 }

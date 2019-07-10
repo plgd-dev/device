@@ -2,75 +2,29 @@ package local
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
 
-	"github.com/go-ocf/kit/net/coap"
-
-	kitNet "github.com/go-ocf/kit/net"
-	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 )
 
 // DisownDevice remove ownership of device
-func (c *Client) DisownDevice(
+func (d *Device) Disown(
 	ctx context.Context,
-	deviceID string,
 ) error {
-	const errMsg = "cannot disown device %v: %v"
+	const errMsg = "cannot disown: %v"
 
-	client, err := c.ownDeviceFindClient(ctx, deviceID, resource.DiscoverAllDevices)
+	ownership, err := d.GetOwnership(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-
-	ownership := client.GetOwnership()
-	if !ownership.Owned {
-		return fmt.Errorf(errMsg, deviceID, "device is not owned")
+		return fmt.Errorf(errMsg, err)
 	}
 
-	device, err := c.GetDevice(ctx, deviceID)
+	sdkID, err := d.GetSdkDeviceID()
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-	defer device.Close()
-
-	links := device.GetResourceLinks()
-	if len(links) == 0 {
-		return fmt.Errorf(errMsg, deviceID, "device links are empty")
-	}
-	var tlsAddr kitNet.Addr
-	var tlsAddrFound bool
-	for _, link := range device.GetResourceLinks() {
-		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
-			tlsAddrFound = true
-			break
-		}
-	}
-	if !tlsAddrFound {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp secure address: not found"))
-	}
-	cert, err := c.GetCertificate()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get identity certificate: %v", err))
-	}
-	cas, err := c.GetCertificateAuthorities()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get identity certificate: %v", err))
-	}
-	tlsConn, err := coap.DialTcpTls(ctx, tlsAddr.String(), cert, cas, func(*x509.Certificate) error { return nil })
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create connection: %v", err))
-	}
-	defer tlsConn.Close()
-
-	sdkID, err := c.GetSdkDeviceID()
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	if ownership.DeviceOwner != sdkID {
-		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
+		return fmt.Errorf(errMsg, fmt.Sprintf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
@@ -79,9 +33,9 @@ func (c *Client) DisownDevice(
 		},
 	}
 
-	err = tlsConn.UpdateResource(ctx, "/oic/sec/pstat", setResetProvisionState, nil)
+	err = d.UpdateResource(ctx, "/oic/sec/pstat", setResetProvisionState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	return nil

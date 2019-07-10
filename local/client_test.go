@@ -12,25 +12,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ocf "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/local/resource"
 )
-
-var testCfg = ocf.Config{
-	Protocol: "tcp",
-	Resource: resource.Config{
-		ResourceHrefExpiration: time.Hour,
-		DiscoveryTimeout:       time.Second * 3,
-		DiscoveryDelay:         100 * time.Millisecond,
-
-		Errors: func(error) {},
-	},
-}
 
 type Client struct {
 	*ocf.Client
 	otm *ocf.ManufacturerOTMClient
 
 	DeviceID string
+	*ocf.Device
 }
 
 func NewTestSecureClient() (*Client, error) {
@@ -59,12 +48,15 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 		return nil, err
 	}
 
-	testOwnCfg := testCfg
-	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
-		return cert, nil
-	}
-	testOwnCfg.TLSConfig.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
-		return []*x509.Certificate{ca}, nil
+	testOwnCfg := ocf.Config{
+		TLSConfig: &ocf.TLSConfig{
+			GetCertificate: func() (tls.Certificate, error) {
+				return cert, nil
+			},
+			GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
+				return []*x509.Certificate{ca}, nil
+			},
+		},
 	}
 
 	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
@@ -86,8 +78,11 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := c.OwnDevice(timeout, id, c.otm)
+	device, err := c.GetDevice(timeout, id)
 	require.NoError(t, err)
+	err = device.Own(timeout, c.otm)
+	require.NoError(t, err)
+	c.Device = device
 	c.DeviceID = id
 }
 
@@ -97,8 +92,9 @@ func (c *Client) Close() {
 	}
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := c.DisownDevice(timeout, c.DeviceID)
+	err := c.Disown(timeout)
 	if err != nil {
 		panic(err)
 	}
+	c.Device.Close(timeout)
 }

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/local"
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
@@ -21,8 +20,21 @@ type testFindDeviceHandler struct {
 	deviceIds map[string]bool
 }
 
-func (h *testFindDeviceHandler) Handle(ctx context.Context, d *local.Device) {
-	if !d.GetDeviceLinks().IsSecured() == h.secured {
+func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
+	secured, _ := d.IsSecured(ctx)
+	defer d.Close(ctx)
+	if secured != h.secured {
+		return
+	}
+	switch d.DeviceID() {
+	case
+		"aa65fa78-da66-30ed-6418-223378547d39",
+		"2786fab7-c698-06cd-72cb-d06dacf018d",
+		"474a705c-e46f-2602-3ad3-4855d1c37e89",
+		"2054f3c2-84d4-8ee6-e137-a6733dd605e6",
+		"14cfa311-579d-8478-f341-742b13d69928",
+		"dcb83dec-fb8d-d4b9-21a5-7704d0395c88",
+		"d6bed467-2c48-1f43-3838-80e19489bbcc":
 		return
 	}
 	h.lock.Lock()
@@ -59,7 +71,7 @@ func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	h := testFindDeviceHandler{secured: secured}
-	err := c.GetDevices(timeout, []string{"oic.d.cloudDevice"}, &h)
+	err := c.GetDevices(timeout, &h)
 	require.NoError(t, err)
 	deviceIds := h.PopDeviceIds()
 	require.NotEmpty(t, deviceIds)
@@ -90,7 +102,6 @@ func testGetProvisionDevice(t *testing.T) ocf.ProvisionDeviceFunc {
 }
 
 func TestClient_OnboardDevice(t *testing.T) {
-
 	type args struct {
 		provision ocf.ProvisionDeviceFunc
 	}
@@ -108,8 +119,9 @@ func TestClient_OnboardDevice(t *testing.T) {
 			},
 			wantErr: true,
 		},
+
 		{
-			name: "invalid authorizationCdode",
+			name: "invalid authorizationCode",
 			args: args{
 				provision: func(ctx context.Context, c *ocf.ProvisioningClient) error {
 					return c.SetCloudResource(ctx, schema.CloudUpdateRequest{
@@ -146,13 +158,16 @@ func TestClient_OnboardDevice(t *testing.T) {
 			deviceId := testGetDeviceID(t, c, true)
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
+			device, err := c.GetDevice(timeout, deviceId)
+			require.NoError(err)
+			defer device.Close(timeout)
 
-			err := c.OnboardDevice(timeout, deviceId, otm, tt.args.provision)
+			err = device.Onboard(timeout, otm, tt.args.provision)
 			if tt.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
-				err = c.OffboardDevice(timeout, deviceId)
+				err = device.Offboard(timeout)
 				require.NoError(err)
 			}
 		})
@@ -167,15 +182,19 @@ func TestClient_OnboardDevice2Times(t *testing.T) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
+	device, err := c.GetDevice(timeout, deviceId)
+	require.NoError(err)
+	defer device.Close(timeout)
+
 	p := testGetProvisionDevice(t)
 
-	err := c.OnboardDevice(timeout, deviceId, otm, p)
+	err = device.Onboard(timeout, otm, p)
 	require.NoError(err)
 
-	err = c.OnboardDevice(timeout, deviceId, otm, p)
+	err = device.Onboard(timeout, otm, p)
 	require.NoError(err)
 
-	err = c.OffboardDevice(timeout, deviceId)
+	err = device.Offboard(timeout)
 	require.NoError(err)
 }
 
@@ -223,20 +242,22 @@ func TestClient_OnboardInsecureDevice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			cfg := testCfg
-			cfg.Protocol = "udp"
-			c, err := ocf.NewClientFromConfig(cfg, nil)
+			c, err := ocf.NewClientFromConfig(ocf.Config{}, nil)
 			require.NoError(err)
 			deviceId := testGetDeviceID(t, c, false)
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 
-			err = c.OnboardInsecuredDevice(timeout, deviceId, tt.args.AuthorizationProvider, tt.args.AuthorizationCode, tt.args.URL)
+			device, err := c.GetDevice(timeout, deviceId)
+			require.NoError(err)
+			defer device.Close(timeout)
+
+			err = device.OnboardInsecured(timeout, tt.args.AuthorizationProvider, tt.args.AuthorizationCode, tt.args.URL)
 			if tt.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
-				err = c.OffboardInsecuredDevice(timeout, deviceId)
+				err = device.OffboardInsecured(timeout)
 				require.NoError(err)
 			}
 		})
