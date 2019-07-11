@@ -48,27 +48,20 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 		return nil, err
 	}
 
-	testOwnCfg := ocf.Config{
-		TLSConfig: &ocf.TLSConfig{
-			GetCertificate: func() (tls.Certificate, error) {
-				return cert, nil
-			},
-			GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
-				return []*x509.Certificate{ca}, nil
-			},
-		},
-	}
-
 	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	if err != nil {
 		return nil, err
 	}
 
-	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
-	if err != nil {
-		return nil, err
-	}
+	c := ocf.NewClient(ocf.WithTLS(&ocf.TLSConfig{
+		GetCertificate: func() (tls.Certificate, error) {
+			return cert, nil
+		},
+		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
+			return []*x509.Certificate{ca}, nil
+		},
+	}))
 
 	return &Client{Client: c, otm: otm}, nil
 }

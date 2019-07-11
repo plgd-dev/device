@@ -50,9 +50,16 @@ func (h *deviceOwnershipHandler) Err() error {
 func (d *Device) GetOwnership(ctx context.Context) (*schema.Doxm, error) {
 	ctxOwn, cancel := context.WithCancel(ctx)
 	defer cancel()
-	h := newDeviceOwnershipHandler(d.DeviceID(), cancel)
 
-	err := DiscoverDeviceOwnership(ctxOwn, d.multicastConn, DiscoverAllDevices, h)
+	multicastConn := DialDiscoveryAddresses(ctx, d.errFunc)
+	defer func() {
+		for _, conn := range multicastConn {
+			conn.Close()
+		}
+	}()
+
+	h := newDeviceOwnershipHandler(d.DeviceID(), cancel)
+	err := DiscoverDeviceOwnership(ctxOwn, multicastConn, DiscoverAllDevices, h)
 	if h.ownership != nil {
 		return h.ownership, nil
 	}

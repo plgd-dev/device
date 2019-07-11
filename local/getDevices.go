@@ -2,6 +2,8 @@ package local
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"github.com/go-ocf/sdk/schema"
 
@@ -19,21 +21,44 @@ type DeviceHandler interface {
 // GetDevices discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
 func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
-	return DiscoverDeviceOwnership(ctx, c.conn, DiscoverAllDevices, newDiscoveryHandler(c.tlsConfig, c.conn, handler))
+	multicastConn := DialDiscoveryAddresses(ctx, c.errFunc)
+	defer func() {
+		for _, conn := range multicastConn {
+			conn.Close()
+		}
+	}()
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, handler))
 }
 
-func newDiscoveryHandler(tlsConfig *TLSConfig, multicastConn []*gocoap.MulticastClientConn, h DeviceHandler) *discoveryHandler {
-	return &discoveryHandler{tlsConfig: tlsConfig, multicastConn: multicastConn, handler: h}
+func newDiscoveryHandler(
+	tlsConfig *TLSConfig,
+	retryFunc RetryFunc,
+	retrieveTimeout time.Duration,
+	errFunc ErrFunc,
+	h DeviceHandler,
+) *discoveryHandler {
+	return &discoveryHandler{tlsConfig: tlsConfig, retryFunc: retryFunc, retrieveTimeout: retrieveTimeout, errFunc: errFunc, handler: h}
 }
 
 type discoveryHandler struct {
-	multicastConn []*gocoap.MulticastClientConn
-	tlsConfig     *TLSConfig
-	handler       DeviceHandler
+	tlsConfig       *TLSConfig
+	retryFunc       RetryFunc
+	retrieveTimeout time.Duration
+	errFunc         ErrFunc
+	handler         DeviceHandler
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, ownership schema.Doxm) {
-	h.handler.Handle(ctx, NewDevice(ownership, conn, h.multicastConn, h.tlsConfig))
+func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
+	defer conn.Close()
+
+	link, ok := links.GetResourceLink("/oic/d")
+	if !ok {
+		h.handler.Error(fmt.Errorf("cannot get link to /oic/d"))
+		return
+	}
+	deviceID := link.GetDeviceID()
+
+	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, links))
 }
 
 func (h *discoveryHandler) Error(err error) {

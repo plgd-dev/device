@@ -11,12 +11,11 @@ import (
 )
 
 func TestDeviceDiscovery(t *testing.T) {
-	c, err := ocf.NewClientFromConfig(ocf.Config{}, nil)
-	require.NoError(t, err)
+	c := ocf.NewClient()
 	timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	h := testDeviceHandler{}
-	err = c.GetDevices(timeout, &h)
+	err := c.GetDevices(timeout, &h)
 	require.NoError(t, err)
 }
 

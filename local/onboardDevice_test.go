@@ -15,26 +15,17 @@ import (
 
 type testFindDeviceHandler struct {
 	secured bool
+	t       *testing.T
 
 	lock      sync.Mutex
 	deviceIds map[string]bool
 }
 
 func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
-	secured, _ := d.IsSecured(ctx)
+	secured, err := d.IsSecured(ctx)
+	require.NoError(h.t, err)
 	defer d.Close(ctx)
 	if secured != h.secured {
-		return
-	}
-	switch d.DeviceID() {
-	case
-		"aa65fa78-da66-30ed-6418-223378547d39",
-		"2786fab7-c698-06cd-72cb-d06dacf018d",
-		"474a705c-e46f-2602-3ad3-4855d1c37e89",
-		"2054f3c2-84d4-8ee6-e137-a6733dd605e6",
-		"14cfa311-579d-8478-f341-742b13d69928",
-		"dcb83dec-fb8d-d4b9-21a5-7704d0395c88",
-		"d6bed467-2c48-1f43-3838-80e19489bbcc":
 		return
 	}
 	h.lock.Lock()
@@ -68,9 +59,9 @@ func (h *testFindDeviceHandler) Error(err error) {
 }
 
 func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*1)
 	defer cancel()
-	h := testFindDeviceHandler{secured: secured}
+	h := testFindDeviceHandler{secured: secured, t: t}
 	err := c.GetDevices(timeout, &h)
 	require.NoError(t, err)
 	deviceIds := h.PopDeviceIds()
@@ -242,8 +233,7 @@ func TestClient_OnboardInsecureDevice(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			require := require.New(t)
-			c, err := ocf.NewClientFromConfig(ocf.Config{}, nil)
-			require.NoError(err)
+			c := ocf.NewClient()
 			deviceId := testGetDeviceID(t, c, false)
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()

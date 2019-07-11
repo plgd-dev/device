@@ -46,12 +46,7 @@ Loop:
 }
 
 func (d *Device) IsSecured(ctx context.Context) (bool, error) {
-	links, err := d.GetResourceLinks(ctx)
-	if err != nil {
-		return false, err
-	}
-
-	for _, link := range links {
+	for _, link := range d.links {
 		if _, err := link.GetTCPSecureAddr(); err == nil {
 			return true, nil
 		}

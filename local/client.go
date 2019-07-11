@@ -1,31 +1,26 @@
 package local
 
 import (
-	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"time"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/kit/log"
 )
+
+// RetryFunc defines policy to repeat GetResource on error.
+type RetryFunc = func() (when time.Time, err error)
+
+// ErrFunc to log errors in goroutines
+type ErrFunc = func(err error)
 
 // Client an OCF local client.
 type Client struct {
-	conn []*gocoap.MulticastClientConn
-
-	tlsConfig *TLSConfig
-}
-
-// Config for the OCF local client.
-type Config struct {
-	TLSConfig *TLSConfig
-}
-
-// NewClientFromConfig constructs a new OCF client.
-func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
-	conn := DialDiscoveryAddresses(context.Background(), errors)
-
-	return NewClient(cfg.TLSConfig, conn), nil
+	tlsConfig       *TLSConfig
+	retryFunc       RetryFunc
+	retrieveTimeout time.Duration
+	errFunc         ErrFunc
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -45,27 +40,67 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 	return cfg
 }
 
-func NewClient(tlsConfig *TLSConfig, conn []*gocoap.MulticastClientConn) *Client {
-	tlsConfig = checkTLSConfig(tlsConfig)
-	return &Client{tlsConfig: tlsConfig, conn: conn}
+type config struct {
+	tlsConfig       *TLSConfig
+	retryFunc       RetryFunc
+	retrieveTimeout time.Duration
+	errFunc         ErrFunc
 }
 
-func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
-	if c.tlsConfig.GetCertificate != nil {
-		return c.tlsConfig.GetCertificate()
+type OptionFunc func(config) config
+
+func WithTLS(tlsConfig *TLSConfig) OptionFunc {
+	return func(cfg config) config {
+		if tlsConfig != nil {
+			cfg.tlsConfig = tlsConfig
+		}
+		return cfg
 	}
-	return res, fmt.Errorf("Config.GetCertificate is not set")
 }
 
-func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) {
-	if c.tlsConfig.GetCertificateAuthorities != nil {
-		return c.tlsConfig.GetCertificateAuthorities()
+func WithRetryPolicy(retryFunc RetryFunc, retrieveTimeout time.Duration) OptionFunc {
+	return func(cfg config) config {
+		if retryFunc != nil {
+			cfg.retryFunc = retryFunc
+		}
+		if retrieveTimeout > 0 {
+			cfg.retrieveTimeout = retrieveTimeout
+		}
+		return cfg
 	}
-	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
 }
 
-func (c *Client) Close() {
-	for _, conn := range c.conn {
-		conn.Close()
+func WithErr(errFunc ErrFunc) OptionFunc {
+	return func(cfg config) config {
+		if errFunc != nil {
+			cfg.errFunc = errFunc
+		}
+		return cfg
 	}
+}
+
+func NewClient(opts ...OptionFunc) *Client {
+	cfg := config{
+		retryFunc: func() func() (when time.Time, err error) {
+			i := new(int)
+			return func() (time.Time, error) {
+				if *i > 5 {
+					return time.Time{}, fmt.Errorf("retry reach limit")
+				}
+				when := time.Now().Add(time.Millisecond * 100 * time.Duration(*i))
+				*i++
+				return when, nil
+			}
+		}(),
+		retrieveTimeout: time.Second,
+		errFunc: func(err error) {
+			log.Error(err)
+		},
+	}
+	for _, o := range opts {
+		cfg = o(cfg)
+	}
+
+	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
+	return &Client{tlsConfig: cfg.tlsConfig, retryFunc: cfg.retryFunc, retrieveTimeout: cfg.retrieveTimeout, errFunc: cfg.errFunc}
 }

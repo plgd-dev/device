@@ -32,7 +32,10 @@ func (d *Device) GetResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("cannot get resource with href %v: %v", href, err)
 	}
-	return client.GetResourceWithCodec(ctx, href, codec, response, options...)
+
+	return operationWithRetries(ctx, d.retryFunc, d.retrieveTimeout, func(ctx context.Context) error {
+		return client.GetResourceWithCodec(ctx, href, codec, response, options...)
+	})
 }
 
 // GetSingleResource queries a resource of a given resource type.

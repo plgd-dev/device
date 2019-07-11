@@ -221,13 +221,12 @@ func (d *Device) Own(
 		cfg = opt(cfg)
 	}
 
-	/*
-		ownership, err := d.GetOwnership(ctx)
-		if err != nil {
-			return fmt.Errorf(errMsg, err)
-		}*/
+	ownership, err := d.GetOwnership(ctx)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
 
-	ownership := d.ownership
+	//ownership := d.ownership
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otmClient.Type() {

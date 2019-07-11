@@ -41,7 +41,7 @@ func DialDiscoveryAddresses(ctx context.Context, errors func(error)) []*gocoap.M
 
 type DiscoveryHandler func(req *gocoap.Request)
 
-// DiscoverDevices discovers devices using a CoAP multicast request via UDP.
+// Discover discovers devices using a CoAP multicast request via UDP.
 // It waits for device responses until the context is canceled.
 // Device resources can be queried in DiscoveryHandler.
 // An empty typeFilter queries all resource types.

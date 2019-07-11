@@ -14,7 +14,7 @@ import (
 
 // DiscoverDevicesHandler receives device links and errors from the discovery multicast request.
 type DiscoverDevicesHandler interface {
-	Handle(ctx context.Context, client *gocoap.ClientConn, device schema.DeviceLinks)
+	Handle(ctx context.Context, client *gocoap.ClientConn, device schema.ResourceLinks)
 	Error(err error)
 }
 
@@ -29,6 +29,7 @@ func DiscoverDevices(
 	handler DiscoverDevicesHandler,
 	options ...coap.OptionFunc,
 ) error {
+	options = append(options, coap.WithAccept(gocoap.AppOcfCbor))
 	return Discover(ctx, conn, "/oic/res", handleResponse(ctx, handler), options...)
 }
 
@@ -49,28 +50,23 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 			return
 		}
 
-		var devices []schema.DeviceLinks
-		var codec DiscoveryResourceCodec
+		var links schema.ResourceLinks
+		var codec ocf.VNDOCFCBORCodec
 
-		err := codec.Decode(req.Msg, &devices)
+		err := codec.Decode(req.Msg, &links)
 		if err != nil {
 			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
 			return
 		}
+		addr, err := net.Parse(schema.UDPScheme, req.Client.RemoteAddr())
+		if err != nil {
+			handler.Error(fmt.Errorf("invalid address %v: %v", req.Client.RemoteAddr(), err))
+			return
+		}
+		links = FilterResourceLinksWithEndpoints(links.PatchEndpoint(addr))
 
-		for _, device := range devices {
-			addr, err := net.Parse("coap://", req.Client.RemoteAddr())
-			if err != nil {
-				handler.Error(fmt.Errorf("invalid address of device %s: %v", device.ID, err))
-				continue
-			}
-			device = device.PatchEndpoint(addr)
-
-			//filter device links with endpoints
-			links := FilterResourceLinksWithEndpoints(device.Links)
-			if len(links) > 0 {
-				handler.Handle(ctx, req.Client, device)
-			}
+		if len(links) > 0 {
+			handler.Handle(ctx, req.Client, links)
 		}
 	}
 }

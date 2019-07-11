@@ -9,16 +9,17 @@ import (
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
 type Device struct {
-	//schema.DeviceLinks
-	ownership     schema.Doxm
-	tlsConfig     *TLSConfig
-	multicastConn []*gocoap.MulticastClientConn
+	deviceID        string
+	links           schema.ResourceLinks
+	tlsConfig       *TLSConfig
+	retryFunc       RetryFunc
+	retrieveTimeout time.Duration
+	errFunc         ErrFunc
 
 	conn         map[string]*coap.Client
 	observations *sync.Map
@@ -37,20 +38,18 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
-func NewDevice(ownership schema.Doxm, conn *gocoap.ClientConn, multicastConn []*gocoap.MulticastClientConn, tlsConfig *TLSConfig) *Device {
+func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, deviceID string, links schema.ResourceLinks) *Device {
 	pool := make(map[string]*coap.Client)
 
-	addr, err := net.Parse(schema.UDPScheme, conn.RemoteAddr())
-	if err == nil {
-		pool[addr.URL()] = coap.NewClient(conn)
-	}
-
 	return &Device{
-		ownership:     ownership,
-		tlsConfig:     tlsConfig,
-		conn:          pool,
-		multicastConn: multicastConn,
-		observations:  &sync.Map{},
+		deviceID:        deviceID,
+		links:           links,
+		tlsConfig:       tlsConfig,
+		retryFunc:       retryFunc,
+		retrieveTimeout: retrieveTimeout,
+		conn:            pool,
+		errFunc:         errFunc,
+		observations:    &sync.Map{},
 	}
 }
 
@@ -206,7 +205,7 @@ func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error)
 	return nil, fmt.Errorf("%v", errors)
 }
 
-func (d *Device) DeviceID() string { return d.ownership.DeviceId }
+func (d *Device) DeviceID() string { return d.deviceID }
 
 //func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
 //func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }
