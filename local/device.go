@@ -53,6 +53,17 @@ func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.D
 	}
 }
 
+func (d *Device) popConnections() []*coap.Client {
+	conns := make([]*coap.Client, 0, 4)
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	for key, conn := range d.conn {
+		conns = append(conns, conn)
+		delete(d.conn, key)
+	}
+	return conns
+}
+
 // Close closes open connections to the device.
 func (d *Device) Close(ctx context.Context) error {
 	var errors []error
@@ -61,14 +72,7 @@ func (d *Device) Close(ctx context.Context) error {
 		errors = append(errors, err)
 	}
 
-	conns := make([]*coap.Client, 0, 4)
-	d.lock.Lock()
-	for key, conn := range d.conn {
-		conns = append(conns, conn)
-		delete(d.conn, key)
-	}
-	d.lock.Unlock()
-	for _, conn := range conns {
+	for _, conn := range d.popConnections() {
 		err = conn.Close()
 		if err != nil {
 			errors = append(errors, err)
@@ -80,13 +84,22 @@ func (d *Device) Close(ctx context.Context) error {
 	return nil
 }
 
-func DialTCPSecure(ctx context.Context, addr string, closeSession func(error), cert tls.Certificate, cas []*x509.Certificate, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*gocoap.ClientConn, error) {
+func DialTCPSecure(ctx context.Context, addr string, closeSession func(error), tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*gocoap.ClientConn, error) {
+
+	cert, err := tlsConfig.GetCertificate()
+	if err != nil {
+		return nil, err
+	}
+	cas, err := tlsConfig.GetCertificateAuthorities()
+	if err != nil {
+		return nil, err
+	}
 	caPool := x509.NewCertPool()
 	for _, ca := range cas {
 		caPool.AddCert(ca)
 	}
 
-	tlsConfig := tls.Config{
+	tlsCfg := tls.Config{
 		InsecureSkipVerify: true,
 		Certificates:       []tls.Certificate{cert},
 		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
@@ -111,7 +124,7 @@ func DialTCPSecure(ctx context.Context, addr string, closeSession func(error), c
 		},
 	}
 	client := gocoap.Client{Net: "tcp-tls", NotifySessionEndFunc: closeSession,
-		TLSConfig: &tlsConfig,
+		TLSConfig: &tlsCfg,
 		// Iotivity 1.3 breaks with signal messages,
 		// but Iotivity 2.0 requires them.
 		DisableTCPSignalMessages: false,
@@ -128,23 +141,49 @@ func DialTCP(ctx context.Context, addr string, closeSession func(error)) (*gocoa
 	return client.DialWithContext(ctx, addr)
 }
 
+func (d *Device) getConn(addr string) *coap.Client {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	conn, ok := d.conn[addr]
+	if ok {
+		return conn
+	}
+	return nil
+}
+
+type removeConnection struct {
+	device *Device
+	addr   string
+	remove bool
+}
+
+func (c *removeConnection) removeSession(err error) {
+	c.device.lock.Lock()
+	defer c.device.lock.Unlock()
+	if !c.remove {
+		return
+	}
+	delete(c.device.conn, c.addr)
+}
+
 func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.Client, error) {
 	const errMsg = "cannot connect to %v: %v"
 	addr, err := endpoint.GetAddr()
 	if err != nil {
 		return nil, err
 	}
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	conn, ok := d.conn[addr.URL()]
-	if ok {
+
+	conn := d.getConn(addr.URL())
+	if conn != nil {
 		return conn, nil
 	}
-	closeSession := func(error) {
-		d.lock.Lock()
-		defer d.lock.Unlock()
-		delete(d.conn, addr.URL())
+
+	rem := &removeConnection{
+		device: d,
+		addr:   addr.URL(),
 	}
+
+	closeSession := rem.removeSession
 	var c *gocoap.ClientConn
 	switch addr.GetScheme() {
 	case schema.UDPScheme:
@@ -161,21 +200,21 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.TCPSecureScheme:
-		cert, err := d.tlsConfig.GetCertificate()
-		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
-		}
-		cas, err := d.tlsConfig.GetCertificateAuthorities()
-		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
-		}
-		c, err = DialTCPSecure(ctx, addr.String(), closeSession, cert, cas, coap.VerifyIndetityCertificate)
+		c, err = DialTCPSecure(ctx, addr.String(), closeSession, d.tlsConfig, coap.VerifyIndetityCertificate)
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	default:
 		return nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("unknown scheme :%v", addr.GetScheme()))
 	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	conn, ok := d.conn[addr.URL()]
+	if ok {
+		c.Close()
+		return conn, nil
+	}
+	rem.remove = true
 	conn = coap.NewClient(c)
 	d.conn[addr.URL()] = conn
 	return conn, nil
