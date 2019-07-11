@@ -81,17 +81,9 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
-		retryFunc: func() func() (when time.Time, err error) {
-			i := new(int)
-			return func() (time.Time, error) {
-				if *i > 5 {
-					return time.Time{}, fmt.Errorf("retry reach limit")
-				}
-				when := time.Now().Add(time.Millisecond * 100 * time.Duration(*i))
-				*i++
-				return when, nil
-			}
-		}(),
+		retryFunc: func() (time.Time, error) {
+			return time.Time{}, fmt.Errorf("retry reach limit")
+		},
 		retrieveTimeout: time.Second,
 		errFunc: func(err error) {
 			log.Error(err)
