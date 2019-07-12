@@ -13,7 +13,7 @@ import (
 // DeviceHandler conveys device connections and errors during discovery.
 type DeviceHandler interface {
 	// Handle gets a device connection and is responsible for closing it.
-	Handle(ctx context.Context, device *Device)
+	Handle(ctx context.Context, device *Device, deviceLinks schema.ResourceLinks)
 	// Error gets errors during discovery.
 	Error(err error)
 }
@@ -66,7 +66,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		return
 	}
 
-	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links))
+	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links), links)
 }
 
 func (h *discoveryHandler) Error(err error) {

@@ -21,7 +21,7 @@ type testFindDeviceHandler struct {
 	deviceIds map[string]bool
 }
 
-func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
+func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
 	secured, err := d.IsSecured(ctx)
 	require.NoError(h.t, err)
 	defer d.Close(ctx)
@@ -149,7 +149,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 			deviceId := testGetDeviceID(t, c, true)
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			device, err := c.GetDevice(timeout, deviceId)
+			device, _, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 
@@ -173,7 +173,7 @@ func TestClient_OnboardDevice2Times(t *testing.T) {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
-	device, err := c.GetDevice(timeout, deviceId)
+	device, _, err := c.GetDevice(timeout, deviceId)
 	require.NoError(err)
 	defer device.Close(timeout)
 
@@ -238,7 +238,7 @@ func TestClient_OnboardInsecureDevice(t *testing.T) {
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 
-			device, err := c.GetDevice(timeout, deviceId)
+			device, _, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 

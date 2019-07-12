@@ -71,7 +71,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, err := c.GetDevice(timeout, id)
+	device, _, err := c.GetDevice(timeout, id)
 	require.NoError(t, err)
 	err = device.Own(timeout, c.otm)
 	require.NoError(t, err)

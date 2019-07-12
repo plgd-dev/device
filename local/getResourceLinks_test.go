@@ -35,7 +35,7 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDevice(timeout, deviceId)
+			device, _, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 

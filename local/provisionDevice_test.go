@@ -42,7 +42,7 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert)
 	require.NoError(t, err)
-	d, err := c2.GetDevice(ctx, c.DeviceID)
+	d, _, err := c2.GetDevice(ctx, c.DeviceID)
 	require.NoError(t, err)
 	defer d.Close(ctx)
 	err = d.GetResource(ctx, "/light/1", nil)
@@ -65,8 +65,8 @@ func TestSettingCloudResource(t *testing.T) {
 
 	r := schema.CloudUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:               "testURL",
-		AuthorizationCode: "testAuthorizationCode",
+		URL:                   "testURL",
+		AuthorizationCode:     "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)

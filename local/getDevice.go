@@ -12,7 +12,7 @@ import (
 )
 
 // GetDevice performs a multicast and returns a device object if the device responds.
-func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error) {
+func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schema.ResourceLinks, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -26,13 +26,13 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, error
 	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
-		return nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
+		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
 	}
-	d := h.Device()
+	d, dlinks := h.Device()
 	if d == nil {
-		return nil, fmt.Errorf("no response from the device %s", deviceID)
+		return nil, nil, fmt.Errorf("no response from the device %s", deviceID)
 	}
-	return d, nil
+	return d, dlinks, nil
 }
 
 func newDeviceHandler(
@@ -61,15 +61,16 @@ type deviceHandler struct {
 	errFunc         ErrFunc
 	cancel          context.CancelFunc
 
-	lock   sync.Mutex
-	device *Device
-	err    error
+	lock        sync.Mutex
+	device      *Device
+	deviceLinks schema.ResourceLinks
+	err         error
 }
 
-func (h *deviceHandler) Device() *Device {
+func (h *deviceHandler) Device() (*Device, schema.ResourceLinks) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	return h.device
+	return h.device, h.deviceLinks
 }
 
 func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
@@ -99,6 +100,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 	defer client.Close()
 
 	h.device = NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
+	h.deviceLinks = links
 }
 
 func (h *deviceHandler) Error(err error) {

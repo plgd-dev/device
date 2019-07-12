@@ -6,6 +6,7 @@ import (
 	"time"
 
 	ocf "github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/schema"
 
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +23,7 @@ func TestDeviceDiscovery(t *testing.T) {
 type testDeviceHandler struct {
 }
 
-func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
+func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
 	defer d.Close(ctx)
 }
 
