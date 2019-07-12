@@ -82,15 +82,23 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		return
 	}
 	deviceID := link.GetDeviceID()
+	if deviceID == "" {
+		h.err = fmt.Errorf("cannot determine deviceID")
+		return
+	}
 
 	if h.device != nil || deviceID != h.deviceID {
+		return
+	}
+	if len(link.ResourceTypes) == 0 {
+		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
 	defer h.cancel()
 	client := coap.NewClient(conn)
 	defer client.Close()
 
-	h.device = NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, links)
+	h.device = NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
 }
 
 func (h *deviceHandler) Error(err error) {

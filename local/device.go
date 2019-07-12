@@ -15,6 +15,7 @@ import (
 
 type Device struct {
 	deviceID        string
+	deviceTypes     []string
 	links           schema.ResourceLinks
 	tlsConfig       *TLSConfig
 	retryFunc       RetryFunc
@@ -38,11 +39,12 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
-func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, deviceID string, links schema.ResourceLinks) *Device {
+func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, deviceID string, deviceTypes []string, links schema.ResourceLinks) *Device {
 	pool := make(map[string]*coap.Client)
 
 	return &Device{
 		deviceID:        deviceID,
+		deviceTypes:     deviceTypes,
 		links:           links,
 		tlsConfig:       tlsConfig,
 		retryFunc:       retryFunc,
@@ -244,7 +246,8 @@ func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error)
 	return nil, fmt.Errorf("%v", errors)
 }
 
-func (d *Device) DeviceID() string { return d.deviceID }
+func (d *Device) DeviceID() string      { return d.deviceID }
+func (d *Device) DeviceTypes() []string { return d.deviceTypes }
 
 //func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
 //func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }

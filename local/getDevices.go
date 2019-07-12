@@ -57,8 +57,16 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		return
 	}
 	deviceID := link.GetDeviceID()
+	if deviceID == "" {
+		h.handler.Error(fmt.Errorf("cannot determine deviceID"))
+		return
+	}
+	if len(link.ResourceTypes) == 0 {
+		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
+		return
+	}
 
-	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, links))
+	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links))
 }
 
 func (h *discoveryHandler) Error(err error) {
