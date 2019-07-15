@@ -25,6 +25,21 @@ func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links
 	secured, err := d.IsSecured(ctx)
 	require.NoError(h.t, err)
 	defer d.Close(ctx)
+	switch d.DeviceID() {
+	case
+		"aa65fa78-da66-30ed-6418-223378547d39",
+		"2786fab7-c698-06cd-72cb-d06dacf018d",
+		"474a705c-e46f-2602-3ad3-4855d1c37e89",
+		"2054f3c2-84d4-8ee6-e137-a6733dd605e6",
+		"14cfa311-579d-8478-f341-742b13d69928",
+		"dcb83dec-fb8d-d4b9-21a5-7704d0395c88",
+		"7e401c52-4713-a8ec-a980-b58a796b150c",
+		"7a74fb9a-f43e-7f5b-d778-ba9c6279e8b5",
+		"43469952-17da-a0b4-8b82-90ff48c2d227",
+		"a434db3a-5ec0-e691-fef1-4c13bd99fd2d",
+		"d6bed467-2c48-1f43-3838-80e19489bbcc":
+		return
+	}
 	if secured != h.secured {
 		return
 	}

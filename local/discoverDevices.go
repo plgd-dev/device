@@ -51,7 +51,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 		}
 
 		var links schema.ResourceLinks
-		var codec ocf.VNDOCFCBORCodec
+		var codec DiscoverDeviceCodec
 
 		err := codec.Decode(req.Msg, &links)
 		if err != nil {
