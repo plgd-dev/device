@@ -49,7 +49,7 @@ type discoveryHandler struct {
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
-	defer conn.Close()
+	conn.Close()
 
 	link, ok := links.GetResourceLink("/oic/d")
 	if !ok {
@@ -66,7 +66,15 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		return
 	}
 
-	h.handler.Handle(ctx, NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links), links)
+	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
+	_, err := d.connectToLink(ctx, link)
+	if err != nil {
+		d.Close(ctx)
+		h.handler.Error(fmt.Errorf("cannot connect to /oic/d for %v: %v", deviceID, err))
+		return
+	}
+
+	h.handler.Handle(ctx, d, links)
 }
 
 func (h *discoveryHandler) Error(err error) {

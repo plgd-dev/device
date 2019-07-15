@@ -118,7 +118,8 @@ func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout 
 	var links schema.ResourceLinks
 
 	err := operationWithRetries(ctx, retryFunc, retrieveTimeout, func(opCtx context.Context) error {
-		return client.GetResource(opCtx, "/oic/res", &links, options...)
+		var codec DiscoverDeviceCodec
+		return client.GetResourceWithCodec(opCtx, "/oic/res", codec, &links, options...)
 	})
 
 	if err != nil {

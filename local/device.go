@@ -223,6 +223,19 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 
 }
 
+func (d *Device) connectToLink(ctx context.Context, link schema.ResourceLink) (*coap.Client, error) {
+	errors := make([]error, 0, 4)
+	for _, endpoint := range link.GetEndpoints() {
+		conn, err := d.connectToEndpoint(ctx, endpoint)
+		if err != nil {
+			errors = append(errors, err)
+			continue
+		}
+		return conn, nil
+	}
+	return nil, fmt.Errorf("%v", errors)
+}
+
 // connect gets or creates a connection based on the resource link
 func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error) {
 	links, err := d.GetResourceLinks(ctx)
@@ -234,16 +247,7 @@ func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error)
 	if !ok {
 		return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
 	}
-	errors := make([]error, 0, 4)
-	for _, endpoint := range link.GetEndpoints() {
-		conn, err := d.connectToEndpoint(ctx, endpoint)
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		return conn, nil
-	}
-	return nil, fmt.Errorf("%v", errors)
+	return d.connectToLink(ctx, link)
 }
 
 func (d *Device) DeviceID() string      { return d.deviceID }

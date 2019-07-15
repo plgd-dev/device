@@ -7,7 +7,6 @@ import (
 	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -74,6 +73,7 @@ func (h *deviceHandler) Device() (*Device, schema.ResourceLinks) {
 }
 
 func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
+	conn.Close()
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -95,12 +95,17 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
-	defer h.cancel()
-	client := coap.NewClient(conn)
-	defer client.Close()
+	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
+	_, err := d.connectToLink(ctx, link)
+	if err != nil {
+		d.Close(ctx)
+		h.err = fmt.Errorf("cannot connect to /oic/d for %v: %v", deviceID, err)
+		return
+	}
 
-	h.device = NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
+	h.device = d
 	h.deviceLinks = links
+	h.cancel()
 }
 
 func (h *deviceHandler) Error(err error) {
