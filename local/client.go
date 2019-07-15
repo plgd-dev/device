@@ -9,8 +9,8 @@ import (
 	"github.com/go-ocf/kit/log"
 )
 
-// RetryFunc defines policy to repeat GetResource on error.
-type RetryFunc = func() (when time.Time, err error)
+// RetryFunc defines factor of policy to repeat GetResource on error.
+type RetryFunc = func() func() (when time.Time, err error)
 
 // ErrFunc to log errors in goroutines
 type ErrFunc = func(err error)
@@ -81,8 +81,8 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
-		retryFunc: func() (time.Time, error) {
-			return time.Time{}, fmt.Errorf("retry reach limit")
+		retryFunc: func() func() (time.Time, error) {
+			return func() (time.Time, error) { return time.Time{}, fmt.Errorf("retry reach limit") }
 		},
 		retrieveTimeout: time.Second,
 		errFunc: func(err error) {

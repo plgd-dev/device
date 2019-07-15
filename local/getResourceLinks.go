@@ -43,6 +43,7 @@ func (d *Device) findBestClient() (net.Addr, *coap.Client, error) {
 }
 
 func operationWithRetries(parentCtx context.Context, retryFunc RetryFunc, operationTimeout time.Duration, op func(context.Context) error) error {
+	rf := retryFunc()
 	for {
 		ctx, cancel := context.WithTimeout(parentCtx, operationTimeout)
 		opErr := op(ctx)
@@ -50,7 +51,7 @@ func operationWithRetries(parentCtx context.Context, retryFunc RetryFunc, operat
 		if opErr == nil {
 			return nil
 		}
-		when, err := retryFunc()
+		when, err := rf()
 		if err != nil {
 			return fmt.Errorf("%v: %v", err, opErr)
 		}
