@@ -42,7 +42,7 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 }
 
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error) {
-	switch addr.GetScheme() {
+	switch schema.Scheme(addr.GetScheme()) {
 	case schema.TCPSecureScheme:
 		return kitNetCoap.DialTcpTls(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
 	}

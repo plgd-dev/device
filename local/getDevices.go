@@ -27,7 +27,7 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, handler))
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, handler))
 }
 
 func newDiscoveryHandler(
@@ -35,17 +35,19 @@ func newDiscoveryHandler(
 	retryFunc RetryFunc,
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
+	resolveEndpointsFunc ResolveEndpointsFunc,
 	h DeviceHandler,
 ) *discoveryHandler {
-	return &discoveryHandler{tlsConfig: tlsConfig, retryFunc: retryFunc, retrieveTimeout: retrieveTimeout, errFunc: errFunc, handler: h}
+	return &discoveryHandler{tlsConfig: tlsConfig, retryFunc: retryFunc, retrieveTimeout: retrieveTimeout, errFunc: errFunc, resolveEndpointsFunc: resolveEndpointsFunc, handler: h}
 }
 
 type discoveryHandler struct {
-	tlsConfig       *TLSConfig
-	retryFunc       RetryFunc
-	retrieveTimeout time.Duration
-	errFunc         ErrFunc
-	handler         DeviceHandler
+	tlsConfig            *TLSConfig
+	retryFunc            RetryFunc
+	retrieveTimeout      time.Duration
+	errFunc              ErrFunc
+	resolveEndpointsFunc ResolveEndpointsFunc
+	handler              DeviceHandler
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
@@ -65,9 +67,14 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
+	endpoints, err := h.resolveEndpointsFunc(ctx, "/oic/d", links)
+	if err != nil {
+		h.handler.Error(fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err))
+		return
+	}
 
-	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
-	_, err := d.connectToLink(ctx, link)
+	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
 		d.Close(ctx)
 		h.handler.Error(fmt.Errorf("cannot connect to /oic/d for %v: %v", deviceID, err))

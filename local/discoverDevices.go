@@ -58,7 +58,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
 			return
 		}
-		addr, err := net.Parse(schema.UDPScheme, req.Client.RemoteAddr())
+		addr, err := net.Parse(string(schema.UDPScheme), req.Client.RemoteAddr())
 		if err != nil {
 			handler.Error(fmt.Errorf("invalid address %v: %v", req.Client.RemoteAddr(), err))
 			return

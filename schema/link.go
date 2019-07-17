@@ -147,10 +147,6 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 		} else {
 			r.Endpoints = append(r.Endpoints, udpEndpoint(addr.SetPort(r.Policy.UDPPort)))
 		}
-	} else {
-		if !r.Policy.Secured {
-			r.Endpoints = append(r.Endpoints, udpEndpoint(addr))
-		}
 	}
 	if r.Policy.TCPPort != 0 {
 		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
@@ -187,14 +183,14 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 	return r.patchEndpoint(addr)
 }
 
-func (r ResourceLink) getEndpoint(scheme string) (_ kitNet.Addr, err error) {
+func (r ResourceLink) getEndpoint(scheme Scheme) (_ kitNet.Addr, err error) {
 	var u *url.URL
 	for _, ep := range r.Endpoints {
 		u, err = url.ParseRequestURI(ep.URI)
 		if err != nil {
 			return
 		}
-		if u.Scheme == scheme {
+		if Scheme(u.Scheme) == scheme {
 			return kitNet.ParseURL(u)
 		}
 	}
@@ -222,30 +218,32 @@ func (r ResourceLink) GetUDPSecureAddr() (_ kitNet.Addr, err error) {
 	return r.getEndpoint(UDPSecureScheme)
 }
 
+type Scheme string
+
 const (
-	TCPSecureScheme = "coaps+tcp"
-	TCPScheme       = "coap+tcp"
-	UDPScheme       = "coap"
-	UDPSecureScheme = "coaps"
+	TCPSecureScheme Scheme = "coaps+tcp"
+	TCPScheme       Scheme = "coap+tcp"
+	UDPScheme       Scheme = "coap"
+	UDPSecureScheme Scheme = "coaps"
 )
 
 func udpEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: UDPScheme, Host: addr.String()}
+	u := url.URL{Scheme: string(UDPScheme), Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func udpTlsEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: UDPSecureScheme, Host: addr.String()}
+	u := url.URL{Scheme: string(UDPSecureScheme), Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func tcpEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: TCPScheme, Host: addr.String()}
+	u := url.URL{Scheme: string(TCPScheme), Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 
 func tcpTlsEndpoint(addr kitNet.Addr) Endpoint {
-	u := url.URL{Scheme: TCPSecureScheme, Host: addr.String()}
+	u := url.URL{Scheme: string(TCPSecureScheme), Host: addr.String()}
 	return Endpoint{URI: u.String()}
 }
 

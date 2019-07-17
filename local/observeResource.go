@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"fmt"
+	"sync"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/ocf"
@@ -17,23 +18,23 @@ func (d *Device) ObserveResourceWithCodec(
 	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
-	h := observationHandler{handler: handler}
-	return d.observeResource(ctx, href, codec, &h, options...)
+	return d.observeResource(ctx, href, codec, handler, options...)
 }
 
 type ObservationHandler interface {
-	Handle(ctx context.Context, client *gocoap.ClientConn, body []byte)
+	Handle(ctx context.Context, body []byte)
+	OnClose()
 	Error(err error)
 }
 
 func (d *Device) ObserveResource(
 	ctx context.Context,
-	deviceID, href string,
-	handler kitNetCoap.ObservationHandler,
+	href string,
+	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 	codec := ocf.VNDOCFCBORCodec{}
-	return d.observeResource(ctx, href, codec, handler, options...)
+	return d.ObserveResourceWithCodec(ctx, href, codec, handler, options...)
 }
 
 func (d *Device) StopObservingResource(
@@ -44,11 +45,13 @@ func (d *Device) StopObservingResource(
 	if !ok {
 		return fmt.Errorf("unknown observation %s", observationID)
 	}
-	err := v.(*gocoap.Observation).CancelWithContext(ctx)
+	d.observations.Delete(observationID)
+	o := v.(*observation)
+	err := o.Stop(ctx)
 	if err != nil {
 		return fmt.Errorf("could not cancel observation %s: %v", observationID, err)
 	}
-	d.observations.Delete(observationID)
+
 	return nil
 }
 
@@ -72,10 +75,48 @@ func (d *Device) stopObservations(ctx context.Context) error {
 	return nil
 }
 
+type observation struct {
+	id      string
+	handler ObservationHandler
+	client  *kitNetCoap.ClientCloseHandler
+
+	lock      sync.Mutex
+	onCloseID int
+	obs       *gocoap.Observation
+}
+
+func (o *observation) Set(onCloseID int, obs *gocoap.Observation) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	o.onCloseID = onCloseID
+	o.obs = obs
+}
+
+func (o *observation) Get() (onCloseID int, obs *gocoap.Observation) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+
+	return o.onCloseID, o.obs
+}
+
+func (o *observation) Stop(ctx context.Context) error {
+	onCloseID, obs := o.Get()
+	o.client.UnregisterCloseHandler(onCloseID)
+	if obs != nil {
+		err := obs.CancelWithContext(ctx)
+		if err != nil {
+			return fmt.Errorf("cannot cancel observation %s: %v", o.id, err)
+		}
+		return err
+	}
+	return nil
+}
+
 func (d *Device) observeResource(
 	ctx context.Context, href string,
 	codec kitNetCoap.Codec,
-	handler kitNetCoap.ObservationHandler,
+	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 
@@ -87,17 +128,33 @@ func (d *Device) observeResource(
 
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
-	obs, err := client.Observe(ctx, href, codec, handler, options...)
-	if err != nil {
-		return "", err
-	}
-
 	id, err := uuid.NewV4()
 	if err != nil {
 		return "", fmt.Errorf("observation id generation failed: %v", err)
 	}
-	d.observations.Store(id.String(), obs)
-	return id.String(), nil
+	h := observationHandler{handler: handler}
+	o := &observation{
+		id:      id.String(),
+		handler: handler,
+		client:  client,
+	}
+	onCloseID := client.RegisterCloseHandler(func(err error) {
+		o.handler.OnClose()
+		obsCtx, cancel := context.WithCancel(context.Background())
+		cancel()
+		d.StopObservingResource(obsCtx, o.id)
+	})
+
+	obs, err := client.Observe(ctx, href, codec, &h, options...)
+	if err != nil {
+		client.UnregisterCloseHandler(o.onCloseID)
+		return "", err
+	}
+
+	o.Set(onCloseID, obs)
+
+	d.observations.Store(o.id, o)
+	return o.id, nil
 }
 
 type observationHandler struct {
@@ -108,8 +165,9 @@ func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientCo
 	var b []byte
 	if err := body(&b); err != nil {
 		h.handler.Error(err)
+		return
 	}
-	h.handler.Handle(ctx, client, b)
+	h.handler.Handle(ctx, b)
 }
 
 func (h *observationHandler) Error(err error) {

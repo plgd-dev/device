@@ -8,21 +8,21 @@ import (
 	"sync"
 	"time"
 
-	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 )
 
 type Device struct {
-	deviceID        string
-	deviceTypes     []string
-	links           schema.ResourceLinks
-	tlsConfig       *TLSConfig
-	retryFunc       RetryFunc
-	retrieveTimeout time.Duration
-	errFunc         ErrFunc
+	deviceID             string
+	deviceTypes          []string
+	links                schema.ResourceLinks
+	tlsConfig            *TLSConfig
+	retryFunc            RetryFunc
+	retrieveTimeout      time.Duration
+	errFunc              ErrFunc
+	resolveEndpointsFunc ResolveEndpointsFunc
 
-	conn         map[string]*coap.Client
+	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
 	lock         sync.Mutex
 }
@@ -39,24 +39,25 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
-func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, deviceID string, deviceTypes []string, links schema.ResourceLinks) *Device {
-	pool := make(map[string]*coap.Client)
+func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, resolveEndpointsFunc ResolveEndpointsFunc, deviceID string, deviceTypes []string, links schema.ResourceLinks) *Device {
+	pool := make(map[string]*coap.ClientCloseHandler)
 
 	return &Device{
-		deviceID:        deviceID,
-		deviceTypes:     deviceTypes,
-		links:           links,
-		tlsConfig:       tlsConfig,
-		retryFunc:       retryFunc,
-		retrieveTimeout: retrieveTimeout,
-		conn:            pool,
-		errFunc:         errFunc,
-		observations:    &sync.Map{},
+		deviceID:             deviceID,
+		deviceTypes:          deviceTypes,
+		links:                links,
+		tlsConfig:            tlsConfig,
+		retryFunc:            retryFunc,
+		retrieveTimeout:      retrieveTimeout,
+		conn:                 pool,
+		errFunc:              errFunc,
+		resolveEndpointsFunc: resolveEndpointsFunc,
+		observations:         &sync.Map{},
 	}
 }
 
-func (d *Device) popConnections() []*coap.Client {
-	conns := make([]*coap.Client, 0, 4)
+func (d *Device) popConnections() []*coap.ClientCloseHandler {
+	conns := make([]*coap.ClientCloseHandler, 0, 4)
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	for key, conn := range d.conn {
@@ -86,8 +87,7 @@ func (d *Device) Close(ctx context.Context) error {
 	return nil
 }
 
-func DialTCPSecure(ctx context.Context, addr string, closeSession func(error), tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*gocoap.ClientConn, error) {
-
+func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*coap.ClientCloseHandler, error) {
 	cert, err := tlsConfig.GetCertificate()
 	if err != nil {
 		return nil, err
@@ -96,54 +96,10 @@ func DialTCPSecure(ctx context.Context, addr string, closeSession func(error), t
 	if err != nil {
 		return nil, err
 	}
-	caPool := x509.NewCertPool()
-	for _, ca := range cas {
-		caPool.AddCert(ca)
-	}
-
-	tlsCfg := tls.Config{
-		InsecureSkipVerify: true,
-		Certificates:       []tls.Certificate{cert},
-		VerifyPeerCertificate: func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-			for _, rawCert := range rawCerts {
-				cert, err := x509.ParseCertificate(rawCert)
-				if err != nil {
-					return err
-				}
-				_, err = cert.Verify(x509.VerifyOptions{
-					Roots:       caPool,
-					CurrentTime: time.Now(),
-					KeyUsages:   []x509.ExtKeyUsage{x509.ExtKeyUsageAny},
-				})
-				if err != nil {
-					return err
-				}
-				if verifyPeerCertificate(cert) != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	}
-	client := gocoap.Client{Net: "tcp-tls", NotifySessionEndFunc: closeSession,
-		TLSConfig: &tlsCfg,
-		// Iotivity 1.3 breaks with signal messages,
-		// but Iotivity 2.0 requires them.
-		DisableTCPSignalMessages: false,
-	}
-	return client.DialWithContext(ctx, addr)
+	return coap.DialTCPSecure(ctx, addr, false, cert, cas, verifyPeerCertificate)
 }
 
-func DialTCP(ctx context.Context, addr string, closeSession func(error)) (*gocoap.ClientConn, error) {
-	client := gocoap.Client{Net: "tcp", NotifySessionEndFunc: closeSession,
-		// Iotivity 1.3 breaks with signal messages,
-		// but Iotivity 2.0 requires them.
-		DisableTCPSignalMessages: false,
-	}
-	return client.DialWithContext(ctx, addr)
-}
-
-func (d *Device) getConn(addr string) *coap.Client {
+func (d *Device) getConn(addr string) *coap.ClientCloseHandler {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	conn, ok := d.conn[addr]
@@ -153,22 +109,7 @@ func (d *Device) getConn(addr string) *coap.Client {
 	return nil
 }
 
-type removeConnection struct {
-	device *Device
-	addr   string
-	remove bool
-}
-
-func (c *removeConnection) removeSession(err error) {
-	c.device.lock.Lock()
-	defer c.device.lock.Unlock()
-	if !c.remove {
-		return
-	}
-	delete(c.device.conn, c.addr)
-}
-
-func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.Client, error) {
+func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.ClientCloseHandler, error) {
 	const errMsg = "cannot connect to %v: %v"
 	addr, err := endpoint.GetAddr()
 	if err != nil {
@@ -180,29 +121,22 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		return conn, nil
 	}
 
-	rem := &removeConnection{
-		device: d,
-		addr:   addr.URL(),
-	}
-
-	closeSession := rem.removeSession
-	var c *gocoap.ClientConn
-	switch addr.GetScheme() {
+	var c *coap.ClientCloseHandler
+	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPScheme:
-		client := gocoap.Client{Net: "udp", NotifySessionEndFunc: closeSession}
-		c, err = client.DialWithContext(ctx, addr.String())
+		c, err = coap.DialUDP(ctx, addr.String())
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.UDPSecureScheme:
 		return nil, fmt.Errorf(errMsg, addr.URL(), "not supported")
 	case schema.TCPScheme:
-		c, err = DialTCP(ctx, addr.String(), closeSession)
+		c, err = coap.DialTCP(ctx, addr.String(), false)
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.TCPSecureScheme:
-		c, err = DialTCPSecure(ctx, addr.String(), closeSession, d.tlsConfig, coap.VerifyIndetityCertificate)
+		c, err = DialTCPSecure(ctx, addr.String(), d.tlsConfig, coap.VerifyIndetityCertificate)
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
@@ -216,16 +150,19 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		c.Close()
 		return conn, nil
 	}
-	rem.remove = true
-	conn = coap.NewClient(c)
-	d.conn[addr.URL()] = conn
-	return conn, nil
-
+	c.RegisterCloseHandler(func(error) {
+		d.lock.Lock()
+		defer d.lock.Unlock()
+		delete(d.conn, addr.URL())
+	})
+	d.conn[addr.URL()] = c
+	return c, nil
 }
 
-func (d *Device) connectToLink(ctx context.Context, link schema.ResourceLink) (*coap.Client, error) {
+func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endpoint) (*coap.ClientCloseHandler, error) {
 	errors := make([]error, 0, 4)
-	for _, endpoint := range link.GetEndpoints() {
+
+	for _, endpoint := range endpoints {
 		conn, err := d.connectToEndpoint(ctx, endpoint)
 		if err != nil {
 			errors = append(errors, err)
@@ -233,21 +170,24 @@ func (d *Device) connectToLink(ctx context.Context, link schema.ResourceLink) (*
 		}
 		return conn, nil
 	}
-	return nil, fmt.Errorf("%v", errors)
+	if len(errors) > 0 {
+		return nil, fmt.Errorf("%v", errors)
+	}
+	return nil, fmt.Errorf("cannot connect to empty endpoints")
 }
 
 // connect gets or creates a connection based on the resource link
-func (d *Device) connect(ctx context.Context, href string) (*coap.Client, error) {
+func (d *Device) connect(ctx context.Context, href string) (*coap.ClientCloseHandler, error) {
 	links, err := d.GetResourceLinks(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("cannot get resource links: %v", err)
 	}
 
-	link, ok := links.GetResourceLink(href)
-	if !ok {
-		return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
+	endpoints, err := d.resolveEndpointsFunc(ctx, href, links)
+	if err != nil {
+		return nil, fmt.Errorf("cannot resolve endpoints: %v", err)
 	}
-	return d.connectToLink(ctx, link)
+	return d.connectToEndpoints(ctx, endpoints)
 }
 
 func (d *Device) DeviceID() string      { return d.deviceID }

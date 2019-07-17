@@ -47,6 +47,9 @@ func (d *Device) GetSingleResource(ctx context.Context, value interface{}, resou
 	}
 	ok := it.Next(ctx, value)
 	if !ok {
+		if it.Err != nil {
+			return fmt.Errorf("resource not found for %s %+v: %v", d.DeviceID(), resourceType, it.Err)
+		}
 		return fmt.Errorf("resource not found for %s %+v", d.DeviceID(), resourceType)
 	}
 	if it.Next(ctx, value) {

@@ -22,7 +22,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, cancel)
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -40,25 +40,28 @@ func newDeviceHandler(
 	retryFunc RetryFunc,
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
+	resolveEndpointsFunc ResolveEndpointsFunc,
 	cancel context.CancelFunc,
 ) *deviceHandler {
 	return &deviceHandler{
-		deviceID:        deviceID,
-		tlsConfig:       tlsConfig,
-		retryFunc:       retryFunc,
-		retrieveTimeout: retrieveTimeout,
-		errFunc:         errFunc,
-		cancel:          cancel,
+		deviceID:             deviceID,
+		tlsConfig:            tlsConfig,
+		retryFunc:            retryFunc,
+		retrieveTimeout:      retrieveTimeout,
+		errFunc:              errFunc,
+		resolveEndpointsFunc: resolveEndpointsFunc,
+		cancel:               cancel,
 	}
 }
 
 type deviceHandler struct {
-	deviceID        string
-	tlsConfig       *TLSConfig
-	retryFunc       RetryFunc
-	retrieveTimeout time.Duration
-	errFunc         ErrFunc
-	cancel          context.CancelFunc
+	deviceID             string
+	tlsConfig            *TLSConfig
+	retryFunc            RetryFunc
+	retrieveTimeout      time.Duration
+	errFunc              ErrFunc
+	resolveEndpointsFunc ResolveEndpointsFunc
+	cancel               context.CancelFunc
 
 	lock        sync.Mutex
 	device      *Device
@@ -95,8 +98,14 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, deviceID, link.ResourceTypes, links)
-	_, err := d.connectToLink(ctx, link)
+	endpoints, err := h.resolveEndpointsFunc(ctx, "/oic/d", links)
+	if err != nil {
+		h.err = fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err)
+		return
+	}
+	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+
+	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
 		d.Close(ctx)
 		h.err = fmt.Errorf("cannot connect to /oic/d for %v: %v", deviceID, err)

@@ -12,8 +12,8 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-func (d *Device) findBestClient() (net.Addr, *coap.Client, error) {
-	var client *coap.Client
+func (d *Device) findBestClient() (net.Addr, *coap.ClientCloseHandler, error) {
+	var client *coap.ClientCloseHandler
 	var addr net.Addr
 	var err error
 
@@ -27,7 +27,7 @@ func (d *Device) findBestClient() (net.Addr, *coap.Client, error) {
 		if err != nil {
 			continue
 		}
-		switch addr.GetScheme() {
+		switch schema.Scheme(addr.GetScheme()) {
 		case schema.TCPSecureScheme:
 			return addr, conn, nil
 		case schema.UDPSecureScheme:
@@ -95,7 +95,7 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 	defer conn.Close()
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	addr, err := net.Parse(schema.UDPScheme, conn.RemoteAddr())
+	addr, err := net.Parse(string(schema.UDPScheme), conn.RemoteAddr())
 	if err != nil {
 		return
 	}
@@ -114,7 +114,7 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 func (h *deviceDiscoveryHandler) Error(err error) {
 }
 
-func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout time.Duration, addr net.Addr, client *coap.Client, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
+func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout time.Duration, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	options = append(options, coap.WithAccept(gocoap.AppOcfCbor))
 	var links schema.ResourceLinks
 
@@ -132,7 +132,11 @@ func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout 
 func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	addr, client, err := d.findBestClient()
 	if err == nil {
-		return getResourceLinks(ctx, d.retryFunc, d.retrieveTimeout, addr, client, options...)
+		links, err := getResourceLinks(ctx, d.retryFunc, d.retrieveTimeout, addr, client, options...)
+		if err != nil {
+			return links, fmt.Errorf("cannot get resource links for %v: %v", d.DeviceID(), err)
+		}
+		return links, nil
 	}
 
 	resLinksCtx, cancel := context.WithCancel(ctx)
