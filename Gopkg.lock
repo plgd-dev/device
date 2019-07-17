@@ -10,15 +10,15 @@
   version = "v1.1.1"
 
 [[projects]]
-  branch = "master"
-  digest = "1:07f7e11549f38d489651053d624c432c1247cd9a0f64a24c4ce455936c7fe325"
+  branch = "dtls"
+  digest = "1:7677e6694acc7ec9bd87d8070c106359ab8f56681652a73d428358f04870a9dd"
   name = "github.com/go-ocf/go-coap"
   packages = [
     ".",
     "net",
   ]
   pruneopts = "UT"
-  revision = "6251d1201ea55633381bcccde2f47303b3736a40"
+  revision = "159e43f36d23ad5648459f8386160071be08c52e"
 
 [[projects]]
   branch = "master"
@@ -29,8 +29,8 @@
   revision = "b3e1821a18274ff0f74bd8b217f3dc8a25cfb37b"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c268e4869c95bb5a4d3593f0cc5601b848c73b3cfdb44fba07ee4015b3fe92b0"
+  branch = "refcounter"
+  digest = "1:cd727f636fe47c5c680707dd062e12ae8f166b6cb2d42174594780f1d05eedd5"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -43,7 +43,7 @@
     "strings",
   ]
   pruneopts = "UT"
-  revision = "31d82dceaba0ee94016e05ee01d024e47ef9aa17"
+  revision = "d10447db136dabc2ba03f1ab4c7bb470b94df727"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -78,6 +78,26 @@
   pruneopts = "UT"
   revision = "6c65a5562fc06764971b7c5d05c76c75e84bdbf7"
   version = "v1.3.2"
+
+[[projects]]
+  digest = "1:00ba9fb5c14095829a3c738c8998b2e3d6019002291e41443ecb775f191e8ba2"
+  name = "github.com/pion/dtls"
+  packages = [
+    ".",
+    "internal/crypto/ccm",
+    "internal/udp",
+  ]
+  pruneopts = "UT"
+  revision = "bcc3927a53a8f925a2d30ee83cb319270a7bd667"
+  version = "v1.4.0"
+
+[[projects]]
+  digest = "1:92d9305a35d7130172f46e095505cc56af49d073907ae52088c15e8c8ae3f519"
+  name = "github.com/pion/logging"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "0387f8acdeb20faf48e539e74906dd633851f3a8"
+  version = "v0.2.2"
 
 [[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
@@ -139,6 +159,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c79dab329e903f5f7793c3f541645f5e4fdaeb222ccd804b0913ea796d0f0213"
+  name = "golang.org/x/crypto"
+  packages = ["curve25519"]
+  pruneopts = "UT"
+  revision = "4def268fd1a49955bfb3dda92fe3db4f924f2285"
+
+[[projects]]
+  branch = "master"
   digest = "1:c3c01cba37f390ea77bb129f5c4ad848de359b65d6e3e5a25b27fc5375524b28"
   name = "golang.org/x/net"
   packages = [
@@ -159,14 +187,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:47a52ed81842d647114b9210719bb6d8e1595094a6cb23e70123bb1f109f3c80"
+  digest = "1:31d44814b45607afa77c6e8ef20ea8bacc1d1053fe084440c874f311732e7ec3"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "6ec70d6a5542cba804c6d16ebe8392601a0b7b60"
+  revision = "fae7ac547cb717d141c433a2a173315e216b64c4"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -199,7 +227,7 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "3bdd9d9f5532d75d09efb230bd767d265245cfe5"
+  revision = "c506a9f9061087022822e8da603a52fc387115a8"
 
 [[projects]]
   digest = "1:cf01ae0753310464677058b125fa31e74fd943781782ada503180ad784fc83d3"

@@ -1,9 +1,9 @@
-[[constraint]]
-  branch = "master"
+[[override]]
+  branch = "refcounter"
   name = "github.com/go-ocf/kit"
 
-[[constraint]]
-  branch = "master"
+[[override]]
+  branch = "dtls"
   name = "github.com/go-ocf/go-coap"
 
 [[constraint]]
