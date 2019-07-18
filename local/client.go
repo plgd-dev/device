@@ -26,7 +26,7 @@ type ResolveEndpointsFunc = func(ctx context.Context, href string, links schema.
 // Client an OCF local client.
 type Client struct {
 	tlsConfig            *TLSConfig
-	retryFuncFactory            RetryFuncFactory
+	retryFuncFactory     RetryFuncFactory
 	retrieveTimeout      time.Duration
 	resolveEndpointsFunc ResolveEndpointsFunc
 	errFunc              ErrFunc
@@ -51,7 +51,7 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 
 type config struct {
 	tlsConfig            *TLSConfig
-	retryFuncFactory            RetryFuncFactory
+	retryFuncFactory     RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
@@ -111,6 +111,14 @@ func NewClient(opts ...OptionFunc) *Client {
 			link, ok := links.GetResourceLink(href)
 			if !ok {
 				return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
+			}
+			if len(link.Endpoints) == 0 {
+				fmt.Println(links)
+				deviceLink, ok := links.GetResourceLink("/oic/d")
+				if !ok {
+					return nil, fmt.Errorf("cannot get resource link for %v: empty endpoints", href)
+				}
+				return deviceLink.Endpoints, nil
 			}
 			return link.Endpoints, nil
 		},
