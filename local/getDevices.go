@@ -27,23 +27,23 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, handler))
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, handler))
 }
 
 func newDiscoveryHandler(
 	tlsConfig *TLSConfig,
-	retryFunc RetryFunc,
+	retryFuncFactory RetryFuncFactory,
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
 	h DeviceHandler,
 ) *discoveryHandler {
-	return &discoveryHandler{tlsConfig: tlsConfig, retryFunc: retryFunc, retrieveTimeout: retrieveTimeout, errFunc: errFunc, resolveEndpointsFunc: resolveEndpointsFunc, handler: h}
+	return &discoveryHandler{tlsConfig: tlsConfig, retryFuncFactory: retryFuncFactory, retrieveTimeout: retrieveTimeout, errFunc: errFunc, resolveEndpointsFunc: resolveEndpointsFunc, handler: h}
 }
 
 type discoveryHandler struct {
 	tlsConfig            *TLSConfig
-	retryFunc            RetryFunc
+	retryFuncFactory            RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
@@ -73,7 +73,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		return
 	}
 
-	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
 	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
 		d.Close(ctx)

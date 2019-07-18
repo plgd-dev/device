@@ -17,7 +17,7 @@ type Device struct {
 	deviceTypes          []string
 	links                schema.ResourceLinks
 	tlsConfig            *TLSConfig
-	retryFunc            RetryFunc
+	retryFuncFactory            RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
@@ -39,7 +39,7 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
-func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.Duration, errFunc ErrFunc, resolveEndpointsFunc ResolveEndpointsFunc, deviceID string, deviceTypes []string, links schema.ResourceLinks) *Device {
+func NewDevice(tlsConfig *TLSConfig, retryFuncFactory RetryFuncFactory, retrieveTimeout time.Duration, errFunc ErrFunc, resolveEndpointsFunc ResolveEndpointsFunc, deviceID string, deviceTypes []string, links schema.ResourceLinks) *Device {
 	pool := make(map[string]*coap.ClientCloseHandler)
 
 	return &Device{
@@ -47,7 +47,7 @@ func NewDevice(tlsConfig *TLSConfig, retryFunc RetryFunc, retrieveTimeout time.D
 		deviceTypes:          deviceTypes,
 		links:                links,
 		tlsConfig:            tlsConfig,
-		retryFunc:            retryFunc,
+		retryFuncFactory:            retryFuncFactory,
 		retrieveTimeout:      retrieveTimeout,
 		conn:                 pool,
 		errFunc:              errFunc,
@@ -99,14 +99,11 @@ func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 	return coap.DialTCPSecure(ctx, addr, false, cert, cas, verifyPeerCertificate)
 }
 
-func (d *Device) getConn(addr string) *coap.ClientCloseHandler {
+func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	conn, ok := d.conn[addr]
-	if ok {
-		return conn
-	}
-	return nil
+	c, ok = d.conn[addr]
+	return
 }
 
 func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.ClientCloseHandler, error) {
@@ -116,8 +113,8 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		return nil, err
 	}
 
-	conn := d.getConn(addr.URL())
-	if conn != nil {
+	conn, ok := d.getConn(addr.URL())
+	if ok {
 		return conn, nil
 	}
 
@@ -145,7 +142,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	conn, ok := d.conn[addr.URL()]
+	conn, ok = d.conn[addr.URL()]
 	if ok {
 		c.Close()
 		return conn, nil
@@ -192,6 +189,3 @@ func (d *Device) connect(ctx context.Context, href string) (*coap.ClientCloseHan
 
 func (d *Device) DeviceID() string      { return d.deviceID }
 func (d *Device) DeviceTypes() []string { return d.deviceTypes }
-
-//func (d *Device) GetResourceLinks() []schema.ResourceLink { return d.Links }
-//func (d *Device) GetDeviceLinks() schema.DeviceLinks      { return d.DeviceLinks }

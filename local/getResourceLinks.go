@@ -42,8 +42,8 @@ func (d *Device) findBestClient() (net.Addr, *coap.ClientCloseHandler, error) {
 	return addr, client, nil
 }
 
-func operationWithRetries(parentCtx context.Context, retryFunc RetryFunc, operationTimeout time.Duration, op func(context.Context) error) error {
-	rf := retryFunc()
+func operationWithRetries(parentCtx context.Context, retryFuncFactory RetryFuncFactory, operationTimeout time.Duration, op func(context.Context) error) error {
+	rf := retryFuncFactory()
 	for {
 		ctx, cancel := context.WithTimeout(parentCtx, operationTimeout)
 		opErr := op(ctx)
@@ -114,11 +114,11 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 func (h *deviceDiscoveryHandler) Error(err error) {
 }
 
-func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout time.Duration, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
+func getResourceLinks(ctx context.Context, retryFuncFactory RetryFuncFactory, retrieveTimeout time.Duration, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	options = append(options, coap.WithAccept(gocoap.AppOcfCbor))
 	var links schema.ResourceLinks
 
-	err := operationWithRetries(ctx, retryFunc, retrieveTimeout, func(opCtx context.Context) error {
+	err := operationWithRetries(ctx, retryFuncFactory, retrieveTimeout, func(opCtx context.Context) error {
 		var codec DiscoverDeviceCodec
 		return client.GetResourceWithCodec(opCtx, "/oic/res", codec, &links, options...)
 	})
@@ -132,7 +132,7 @@ func getResourceLinks(ctx context.Context, retryFunc RetryFunc, retrieveTimeout 
 func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	addr, client, err := d.findBestClient()
 	if err == nil {
-		links, err := getResourceLinks(ctx, d.retryFunc, d.retrieveTimeout, addr, client, options...)
+		links, err := getResourceLinks(ctx, d.retryFuncFactory, d.retrieveTimeout, addr, client, options...)
 		if err != nil {
 			return links, fmt.Errorf("cannot get resource links for %v: %v", d.DeviceID(), err)
 		}

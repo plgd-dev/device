@@ -33,7 +33,7 @@ func (d *Device) GetResourceWithCodec(
 		return fmt.Errorf("cannot get resource with href %v: %v", href, err)
 	}
 
-	return operationWithRetries(ctx, d.retryFunc, d.retrieveTimeout, func(ctx context.Context) error {
+	return operationWithRetries(ctx, d.retryFuncFactory, d.retrieveTimeout, func(ctx context.Context) error {
 		return client.GetResourceWithCodec(ctx, href, codec, response, options...)
 	})
 }

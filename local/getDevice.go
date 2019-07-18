@@ -22,7 +22,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFunc, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, cancel)
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -37,7 +37,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 func newDeviceHandler(
 	deviceID string,
 	tlsConfig *TLSConfig,
-	retryFunc RetryFunc,
+	retryFuncFactory RetryFuncFactory,
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
@@ -46,7 +46,7 @@ func newDeviceHandler(
 	return &deviceHandler{
 		deviceID:             deviceID,
 		tlsConfig:            tlsConfig,
-		retryFunc:            retryFunc,
+		retryFuncFactory:            retryFuncFactory,
 		retrieveTimeout:      retrieveTimeout,
 		errFunc:              errFunc,
 		resolveEndpointsFunc: resolveEndpointsFunc,
@@ -57,7 +57,7 @@ func newDeviceHandler(
 type deviceHandler struct {
 	deviceID             string
 	tlsConfig            *TLSConfig
-	retryFunc            RetryFunc
+	retryFuncFactory            RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
@@ -103,7 +103,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.retryFunc, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
 
 	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {

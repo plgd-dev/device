@@ -11,8 +11,11 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
-// RetryFunc defines factor of policy to repeat GetResource on error.
-type RetryFunc = func() func() (when time.Time, err error)
+// RetryFunc defines policy to repeat GetResource on error.
+type RetryFunc = func() (when time.Time, err error)
+
+// RetryFuncFactory defines factory of policy to repeat GetResource on error.
+type RetryFuncFactory = func() RetryFunc
 
 // ErrFunc to log errors in goroutines
 type ErrFunc = func(err error)
@@ -23,7 +26,7 @@ type ResolveEndpointsFunc = func(ctx context.Context, href string, links schema.
 // Client an OCF local client.
 type Client struct {
 	tlsConfig            *TLSConfig
-	retryFunc            RetryFunc
+	retryFuncFactory            RetryFuncFactory
 	retrieveTimeout      time.Duration
 	resolveEndpointsFunc ResolveEndpointsFunc
 	errFunc              ErrFunc
@@ -48,7 +51,7 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 
 type config struct {
 	tlsConfig            *TLSConfig
-	retryFunc            RetryFunc
+	retryFuncFactory            RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
@@ -65,10 +68,10 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 	}
 }
 
-func WithRetryPolicy(retryFunc RetryFunc, retrieveTimeout time.Duration) OptionFunc {
+func WithRetryPolicy(retryFuncFactory RetryFuncFactory, retrieveTimeout time.Duration) OptionFunc {
 	return func(cfg config) config {
-		if retryFunc != nil {
-			cfg.retryFunc = retryFunc
+		if retryFuncFactory != nil {
+			cfg.retryFuncFactory = retryFuncFactory
 		}
 		if retrieveTimeout > 0 {
 			cfg.retrieveTimeout = retrieveTimeout
@@ -97,8 +100,8 @@ func WithResolveEndpoints(resolveEndpointsFunc ResolveEndpointsFunc) OptionFunc 
 
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
-		retryFunc: func() func() (time.Time, error) {
-			return func() (time.Time, error) { return time.Time{}, fmt.Errorf("retry reach limit") }
+		retryFuncFactory: func() func() (time.Time, error) {
+			return func() (time.Time, error) { return time.Time{}, fmt.Errorf("no retries configured") }
 		},
 		retrieveTimeout: time.Second,
 		errFunc: func(err error) {
@@ -117,5 +120,5 @@ func NewClient(opts ...OptionFunc) *Client {
 	}
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
-	return &Client{tlsConfig: cfg.tlsConfig, retryFunc: cfg.retryFunc, retrieveTimeout: cfg.retrieveTimeout, errFunc: cfg.errFunc, resolveEndpointsFunc: cfg.resolveEndpointsFunc}
+	return &Client{tlsConfig: cfg.tlsConfig, retryFuncFactory: cfg.retryFuncFactory, retrieveTimeout: cfg.retrieveTimeout, errFunc: cfg.errFunc, resolveEndpointsFunc: cfg.resolveEndpointsFunc}
 }

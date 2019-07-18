@@ -10,15 +10,15 @@
   version = "v1.1.1"
 
 [[projects]]
-  branch = "dtls"
-  digest = "1:7677e6694acc7ec9bd87d8070c106359ab8f56681652a73d428358f04870a9dd"
+  branch = "master"
+  digest = "1:54db90590501bc62881ae2d15f9ace4f0b4f9e119e357c1ddf4f8cbde7a4ff37"
   name = "github.com/go-ocf/go-coap"
   packages = [
     ".",
     "net",
   ]
   pruneopts = "UT"
-  revision = "159e43f36d23ad5648459f8386160071be08c52e"
+  revision = "6cb733c1b04ba02c412af95088c8aefcfe696272"
 
 [[projects]]
   branch = "master"
@@ -29,11 +29,12 @@
   revision = "b3e1821a18274ff0f74bd8b217f3dc8a25cfb37b"
 
 [[projects]]
-  branch = "refcounter"
-  digest = "1:cd727f636fe47c5c680707dd062e12ae8f166b6cb2d42174594780f1d05eedd5"
+  branch = "master"
+  digest = "1:a3ad2167750726fd239f905b43d0e8e235bfa65dbb49d2f65c390bbd173a079b"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
+    "codec/json",
     "codec/ocf",
     "log",
     "net",
@@ -43,7 +44,7 @@
     "strings",
   ]
   pruneopts = "UT"
-  revision = "d10447db136dabc2ba03f1ab4c7bb470b94df727"
+  revision = "6480d53b39c6a00d2252badae18c83a393abb904"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
