@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/go-ocf/kit/log"
@@ -98,6 +99,36 @@ func WithResolveEndpoints(resolveEndpointsFunc ResolveEndpointsFunc) OptionFunc 
 	}
 }
 
+type sortEndpointsByScheme []schema.Endpoint
+
+func (a sortEndpointsByScheme) Len() int      { return len(a) }
+func (a sortEndpointsByScheme) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a sortEndpointsByScheme) Less(i, j int) bool {
+	addr1, _ := a[i].GetAddr()
+	addr2, _ := a[j].GetAddr()
+	prio := map[schema.Scheme]int{
+		schema.TCPSecureScheme: 4,
+		schema.UDPSecureScheme: 3,
+		schema.UDPScheme:       2,
+		schema.TCPScheme:       1,
+	}
+
+	paddr1, _ := prio[schema.Scheme(addr1.GetScheme())]
+	paddr2, _ := prio[schema.Scheme(addr2.GetScheme())]
+
+	return paddr1 < paddr2
+}
+
+func sortEndpoints(endpoints []schema.Endpoint) []schema.Endpoint {
+	var eps []schema.Endpoint
+	for _, ep := range endpoints {
+		eps = append(eps, ep)
+	}
+	v := sortEndpointsByScheme(eps)
+	sort.Sort(v)
+	return eps
+}
+
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
 		retryFuncFactory: func() func() (time.Time, error) {
@@ -113,14 +144,13 @@ func NewClient(opts ...OptionFunc) *Client {
 				return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
 			}
 			if len(link.Endpoints) == 0 {
-				fmt.Println(links)
 				deviceLink, ok := links.GetResourceLink("/oic/d")
 				if !ok {
 					return nil, fmt.Errorf("cannot get resource link for %v: empty endpoints", href)
 				}
-				return deviceLink.Endpoints, nil
+				return sortEndpoints(deviceLink.Endpoints), nil
 			}
-			return link.Endpoints, nil
+			return sortEndpoints(link.Endpoints), nil
 		},
 	}
 	for _, o := range opts {
