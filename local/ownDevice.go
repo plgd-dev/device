@@ -8,107 +8,11 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"sync"
-
-	gocoap "github.com/go-ocf/go-coap"
 	kitNet "github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/resource"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
 )
-
-type deviceOwnershipClient struct {
-	*coapClient
-	ownership schema.Doxm
-}
-
-func (c *deviceOwnershipClient) GetOwnership() schema.Doxm {
-	return c.ownership
-}
-
-func (c *deviceOwnershipClient) GetTcpSecureAddress(ctx context.Context, deviceID string) (string, error) {
-	deviceLink, err := c.GetDeviceLinks(ctx, deviceID)
-	if err != nil {
-		return "", err
-	}
-	var resourceLink schema.ResourceLink
-	for _, link := range deviceLink.Links {
-		if link.HasType("oic.wk.d") {
-			resourceLink = link
-			break
-		}
-	}
-	tcpTLSAddr, err := resourceLink.GetTCPSecureAddr()
-	if err != nil {
-		return "", err
-	}
-	return tcpTLSAddr.String(), nil
-}
-
-type deviceOwnershipHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
-
-	client *deviceOwnershipClient
-	lock   sync.Mutex
-	err    error
-}
-
-func newDeviceOwnershipHandler(deviceID string, cancel context.CancelFunc) *deviceOwnershipHandler {
-	return &deviceOwnershipHandler{deviceID: deviceID, cancel: cancel}
-}
-
-func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, ownership schema.Doxm) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if ownership.DeviceId == h.deviceID && h.client == nil {
-		h.client = &deviceOwnershipClient{coapClient: NewCoapClient(clientConn, schema.UDPScheme), ownership: ownership}
-		h.cancel()
-	}
-}
-
-func (h *deviceOwnershipHandler) Error(err error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if h.err == nil {
-		h.err = err
-	}
-}
-
-func (h *deviceOwnershipHandler) Err() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.err
-}
-
-func (h *deviceOwnershipHandler) Client() *deviceOwnershipClient {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.client
-}
-
-func (c *Client) ownDeviceFindClient(ctx context.Context, deviceID string, status resource.DiscoverOwnershipStatus) (*deviceOwnershipClient, error) {
-	ctxOwn, cancel := context.WithCancel(ctx)
-	defer cancel()
-	h := newDeviceOwnershipHandler(deviceID, cancel)
-
-	err := c.GetDeviceOwnership(ctxOwn, status, h)
-	client := h.Client()
-
-	if client != nil {
-		return client, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	err = h.Err()
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, fmt.Errorf("device not found")
-}
 
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
@@ -138,7 +42,7 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 }
 
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error) {
-	switch addr.GetScheme() {
+	switch schema.Scheme(addr.GetScheme()) {
 	case schema.TCPSecureScheme:
 		return kitNetCoap.DialTcpTls(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
 	}
@@ -291,21 +195,38 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.Client, sdkID strin
 	return nil
 }
 
-// OwnDevice set ownership of device
-func (c *Client) OwnDevice(
-	ctx context.Context,
-	deviceID string,
-	otmClient OTMClient,
-) error {
-	const errMsg = "cannot own device %v: %v"
+type ownCfg struct {
+	iotivityHack bool
+}
 
-	client, err := c.ownDeviceFindClient(ctx, deviceID, resource.DiscoverAllDevices)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+type OwnOption = func(ownCfg) ownCfg
+
+// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
+func WithIotivityHack() OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.iotivityHack = true
+		return o
 	}
-	defer client.Close()
+}
 
-	ownership := client.GetOwnership()
+// Own set ownership of device
+func (d *Device) Own(
+	ctx context.Context,
+	otmClient OTMClient,
+	options ...OwnOption,
+) error {
+	var cfg ownCfg
+	const errMsg = "cannot own device: %v"
+	for _, opt := range options {
+		cfg = opt(cfg)
+	}
+
+	ownership, err := d.GetOwnership(ctx)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+
+	//ownership := d.ownership
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
 		if s == otmClient.Type() {
@@ -314,71 +235,70 @@ func (c *Client) OwnDevice(
 		}
 	}
 	if !supportOtm {
-		return fmt.Errorf(errMsg, deviceID, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
+		return fmt.Errorf(errMsg, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
 	selectOTM := schema.DoxmUpdate{
 		SelectOwnerTransferMethod: otmClient.Type(),
 	}
 
-	sdkID, err := c.GetSdkDeviceID()
+	sdkID, err := d.GetSdkDeviceID()
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = client.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
+	err = d.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
 	if err != nil {
 		if ownership.Owned {
 			if ownership.DeviceOwner == sdkID {
 				return nil
 			}
-			return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
+			return fmt.Errorf(errMsg, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
 		}
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot select OTM: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	deviceClient, err := c.GetDevice(ctx, deviceID, nil)
+	links, err := d.GetResourceLinks(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links %v", err))
 	}
-	links := deviceClient.GetResourceLinks()
 	if len(links) == 0 {
-		return fmt.Errorf(errMsg, deviceID, "device links are empty")
+		return fmt.Errorf(errMsg, "device links are empty")
 	}
 	var tlsAddr kitNet.Addr
 	var tlsAddrFound bool
-	for _, link := range deviceClient.GetResourceLinks() {
+	for _, link := range links {
 		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
 			tlsAddrFound = true
 			break
 		}
 	}
 	if !tlsAddrFound {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get tcp secure address: not found"))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get tcp secure address: not found"))
 	}
 
 	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot create TLS connection: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot create TLS connection: %v", err))
 	}
 
 	var provisionState schema.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/pstat", &provisionState)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot get provision state %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get provision state %v", err))
 	}
 
 	if provisionState.DeviceOnboardingState.Pending {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
+		return fmt.Errorf(errMsg, fmt.Errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
 	}
 
 	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != schema.OperationalState_RFOTM {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, schema.OperationalState_RFOTM))
+		return fmt.Errorf(errMsg, fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, schema.OperationalState_RFOTM))
 	}
 
 	if !provisionState.SupportedOperationalModes.Has(schema.OperationalMode_CLIENT_DIRECTED) {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, schema.OperationalMode_CLIENT_DIRECTED))
+		return fmt.Errorf(errMsg, fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, schema.OperationalMode_CLIENT_DIRECTED))
 	}
 
 	updateProvisionState := schema.ProvisionStatusUpdateRequest{
@@ -387,27 +307,23 @@ func (c *Client) OwnDevice(
 	/*pstat doesn't send any content for select OperationalMode*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", updateProvisionState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state %v", err))
 	}
 
 	/*setup credentials */
-	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, deviceID)
+	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, d.DeviceID())
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot provision owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot provision owner %v", err))
 	}
 
 	/*
 	 * THIS IS HACK FOR iotivity -> enables ciphers for TLS communication with signed certificates.
 	 * Tested with iotivity 2.0.1-RC0.
 	 */
-	isIotivity, err := IsIotivity(ctx, tlsClient)
-	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
-	}
-	if isIotivity {
+	if cfg.iotivityHack {
 		err = iotivityHack(ctx, tlsClient, sdkID)
 		if err != nil {
-			return fmt.Errorf(errMsg, deviceID, err)
+			return fmt.Errorf(errMsg, err)
 		}
 	}
 	// END OF HACK
@@ -419,29 +335,29 @@ func (c *Client) OwnDevice(
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
 	}
 
 	/*verify ownership*/
 	var verifyOwner schema.Doxm
 	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot verify owner: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot verify owner: %v", err))
 	}
 	if verifyOwner.DeviceOwner != sdkID {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	setDeviceOwned := schema.DoxmUpdate{
 		ResourceOwner: sdkID,
-		DeviceId:      deviceID,
+		DeviceId:      d.DeviceID(),
 		Owned:         true,
 	}
 
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot set device owned %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owned %v", err))
 	}
 
 	//For Servers based on OCF 1.0, PostOwnerAcl can be executed using
@@ -460,9 +376,9 @@ func (c *Client) OwnDevice(
 	}
 
 	/*pstat set owner of resource*/
-	err = c.UpdateResource(ctx, deviceID, "/oic/sec/pstat", setOwnerProvisionState, nil)
+	err = d.UpdateResource(ctx, "/oic/sec/pstat", setOwnerProvisionState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %v", err))
 	}
 
 	/*acl2 set owner of resource*/
@@ -481,19 +397,19 @@ func (c *Client) OwnDevice(
 		},
 	}
 
-	err = c.UpdateResource(ctx, deviceID, "/oic/sec/acl2", setOwnerAcl, nil)
+	err = d.UpdateResource(ctx, "/oic/sec/acl2", setOwnerAcl, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, fmt.Errorf("cannot update acl resource owner: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update acl resource owner: %v", err))
 	}
 
 	// Provision the device to switch back to normal operation.
-	p, err := c.ProvisionDevice(ctx, deviceID)
+	p, err := d.Provision(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 	err = p.Close(ctx)
 	if err != nil {
-		return fmt.Errorf(errMsg, deviceID, err)
+		return fmt.Errorf(errMsg, err)
 	}
 
 	return nil

@@ -5,46 +5,38 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"sync"
+	"sort"
+	"time"
 
-	gocoap "github.com/go-ocf/go-coap"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/resource"
-	"github.com/go-ocf/sdk/local/resource/link"
+	"github.com/go-ocf/kit/log"
 	"github.com/go-ocf/sdk/schema"
 )
 
+// RetryFunc defines policy to repeat GetResource on error.
+type RetryFunc = func() (when time.Time, err error)
+
+// RetryFuncFactory defines factory of policy to repeat GetResource on error.
+type RetryFuncFactory = func() RetryFunc
+
+// ErrFunc to log errors in goroutines
+type ErrFunc = func(err error)
+
+// ResolveEndpointsFunc gets endpoints to resource, order is determined by position at array (0-highest)
+type ResolveEndpointsFunc = func(ctx context.Context, href string, links schema.ResourceLinks) ([]schema.Endpoint, error)
+
 // Client an OCF local client.
 type Client struct {
-	observations *sync.Map
-	factory      ResourceClientFactory
-	conn         []*gocoap.MulticastClientConn
-
-	tlsConfig resource.TLSConfig
+	tlsConfig            *TLSConfig
+	retryFuncFactory     RetryFuncFactory
+	retrieveTimeout      time.Duration
+	resolveEndpointsFunc ResolveEndpointsFunc
+	errFunc              ErrFunc
 }
 
-// Config for the OCF local client.
-type Config struct {
-	Protocol  string
-	Resource  resource.Config
-	TLSConfig resource.TLSConfig
-}
-
-// NewClientFromConfig constructs a new OCF client.
-func NewClientFromConfig(cfg Config, errors func(error)) (*Client, error) {
-	conn := resource.DialDiscoveryAddresses(context.Background(), errors)
-	linkCache, err := resource.NewLinkCache(cfg.Resource, conn)
-	if err != nil {
-		return nil, err
+func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
+	if cfg == nil {
+		cfg = new(TLSConfig)
 	}
-
-	// Only TCP is supported at the moment.
-	f := NewResourceClientFactory(cfg, linkCache)
-
-	return NewClient(cfg.TLSConfig, f, conn), nil
-}
-
-func checkTLSConfig(cfg resource.TLSConfig) resource.TLSConfig {
 	if cfg.GetCertificate == nil {
 		cfg.GetCertificate = func() (tls.Certificate, error) {
 			return tls.Certificate{}, fmt.Errorf("not supported")
@@ -58,101 +50,113 @@ func checkTLSConfig(cfg resource.TLSConfig) resource.TLSConfig {
 	return cfg
 }
 
-func NewClient(TLSConfig resource.TLSConfig, f ResourceClientFactory, conn []*gocoap.MulticastClientConn) *Client {
-	TLSConfig = checkTLSConfig(TLSConfig)
-	return &Client{tlsConfig: TLSConfig, factory: f, conn: conn, observations: &sync.Map{}}
+type config struct {
+	tlsConfig            *TLSConfig
+	retryFuncFactory     RetryFuncFactory
+	retrieveTimeout      time.Duration
+	errFunc              ErrFunc
+	resolveEndpointsFunc ResolveEndpointsFunc
 }
 
-func NewResourceClientFactory(cfg Config, linkCache *link.Cache) ResourceClientFactory {
-	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
-	switch cfg.Protocol {
-	case "tcp":
-		return &tcpClientFactory{TCPClientFactory: resource.NewTCPClientFactory(cfg.TLSConfig, linkCache)}
-	case "udp":
-		return &udpClientFactory{UDPClientFactory: resource.NewUDPClientFactory(linkCache)}
-	default:
-		panic(fmt.Errorf("unsupported resource client protocol %s", cfg.Protocol))
-	}
-}
+type OptionFunc func(config) config
 
-type resourceClient interface {
-	Observe(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, handler kitNetCoap.ObservationHandler, options ...kitNetCoap.OptionFunc) (*gocoap.Observation, error)
-	Get(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, responseBody interface{}, options ...kitNetCoap.OptionFunc) error
-	Post(ctx context.Context, deviceID, href string, codec kitNetCoap.Codec, requestBody interface{}, responseBody interface{}, options ...kitNetCoap.OptionFunc) error
-}
-
-type ResourceClientFactory interface {
-	GetLinks() []schema.ResourceLink
-	NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error)
-	NewClientFromCache() (resourceClient, error)
-	CloseConnections(links schema.DeviceLinks)
-}
-
-// tcpClientFactory converts the return type from *TCPClient to resourceClient.
-type tcpClientFactory struct {
-	*resource.TCPClientFactory
-}
-
-func (w *tcpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
-	return w.TCPClientFactory.NewClient(c, links)
-}
-
-func (w *tcpClientFactory) NewClientFromCache() (resourceClient, error) {
-	return w.TCPClientFactory.NewClientFromCache()
-}
-
-// udpClientFactory converts the return type from *UDPClient to resourceClient.
-type udpClientFactory struct {
-	*resource.UDPClientFactory
-}
-
-func (w *udpClientFactory) NewClient(c *gocoap.ClientConn, links schema.DeviceLinks) (resourceClient, error) {
-	return w.UDPClientFactory.NewClient(c, links)
-}
-
-func (w *udpClientFactory) NewClientFromCache() (resourceClient, error) {
-	return w.UDPClientFactory.NewClientFromCache()
-}
-
-func (c *Client) GetCertificate() (res tls.Certificate, _ error) {
-	if c.tlsConfig.GetCertificate != nil {
-		return c.tlsConfig.GetCertificate()
-	}
-	return res, fmt.Errorf("Config.GetCertificate is not set")
-}
-
-func (c *Client) GetCertificateAuthorities() (res []*x509.Certificate, _ error) {
-	if c.tlsConfig.GetCertificateAuthorities != nil {
-		return c.tlsConfig.GetCertificateAuthorities()
-	}
-	return res, fmt.Errorf("Config.GetCertificateAuthorities is not set")
-}
-
-// GetSdkDeviceID returns sdk deviceID from identity certificate.
-func (c *Client) GetSdkDeviceID() (string, error) {
-	cert, err := c.GetCertificate()
-	if err != nil {
-		return "", fmt.Errorf("cannot get sdk id: %v", err)
-	}
-
-	var errors []error
-
-	for _, c := range cert.Certificate {
-		x509cert, err := x509.ParseCertificate(c)
-		if err != nil {
-			errors = append(errors, err)
-			continue
+func WithTLS(tlsConfig *TLSConfig) OptionFunc {
+	return func(cfg config) config {
+		if tlsConfig != nil {
+			cfg.tlsConfig = tlsConfig
 		}
-		deviceId, err := kitNetCoap.GetDeviceIDFromIndetityCertificate(x509cert)
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
-		return deviceId, nil
+		return cfg
 	}
-	return "", fmt.Errorf("cannot get sdk id: %v", errors)
 }
 
-func (c *Client) CloseConnections(links schema.DeviceLinks) {
-	c.factory.CloseConnections(links)
+func WithRetryPolicy(retryFuncFactory RetryFuncFactory, retrieveTimeout time.Duration) OptionFunc {
+	return func(cfg config) config {
+		if retryFuncFactory != nil {
+			cfg.retryFuncFactory = retryFuncFactory
+		}
+		if retrieveTimeout > 0 {
+			cfg.retrieveTimeout = retrieveTimeout
+		}
+		return cfg
+	}
+}
+
+func WithErr(errFunc ErrFunc) OptionFunc {
+	return func(cfg config) config {
+		if errFunc != nil {
+			cfg.errFunc = errFunc
+		}
+		return cfg
+	}
+}
+
+func WithResolveEndpoints(resolveEndpointsFunc ResolveEndpointsFunc) OptionFunc {
+	return func(cfg config) config {
+		if resolveEndpointsFunc != nil {
+			cfg.resolveEndpointsFunc = resolveEndpointsFunc
+		}
+		return cfg
+	}
+}
+
+type sortEndpointsByScheme []schema.Endpoint
+
+func (a sortEndpointsByScheme) Len() int      { return len(a) }
+func (a sortEndpointsByScheme) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a sortEndpointsByScheme) Less(i, j int) bool {
+	addr1, _ := a[i].GetAddr()
+	addr2, _ := a[j].GetAddr()
+	prio := map[schema.Scheme]int{
+		schema.TCPSecureScheme: 4,
+		schema.UDPSecureScheme: 3,
+		schema.UDPScheme:       2,
+		schema.TCPScheme:       1,
+	}
+
+	paddr1, _ := prio[schema.Scheme(addr1.GetScheme())]
+	paddr2, _ := prio[schema.Scheme(addr2.GetScheme())]
+
+	return paddr1 < paddr2
+}
+
+func sortEndpoints(endpoints []schema.Endpoint) []schema.Endpoint {
+	var eps []schema.Endpoint
+	for _, ep := range endpoints {
+		eps = append(eps, ep)
+	}
+	v := sortEndpointsByScheme(eps)
+	sort.Sort(v)
+	return eps
+}
+
+func NewClient(opts ...OptionFunc) *Client {
+	cfg := config{
+		retryFuncFactory: func() func() (time.Time, error) {
+			return func() (time.Time, error) { return time.Time{}, fmt.Errorf("no retries configured") }
+		},
+		retrieveTimeout: time.Second,
+		errFunc: func(err error) {
+			log.Error(err)
+		},
+		resolveEndpointsFunc: func(ctx context.Context, href string, links schema.ResourceLinks) ([]schema.Endpoint, error) {
+			link, ok := links.GetResourceLink(href)
+			if !ok {
+				return nil, fmt.Errorf("cannot get resource link for: %v: not found", href)
+			}
+			if len(link.Endpoints) == 0 {
+				deviceLink, ok := links.GetResourceLink("/oic/d")
+				if !ok {
+					return nil, fmt.Errorf("cannot get resource link for %v: empty endpoints", href)
+				}
+				return sortEndpoints(deviceLink.Endpoints), nil
+			}
+			return sortEndpoints(link.Endpoints), nil
+		},
+	}
+	for _, o := range opts {
+		cfg = o(cfg)
+	}
+
+	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
+	return &Client{tlsConfig: cfg.tlsConfig, retryFuncFactory: cfg.retryFuncFactory, retrieveTimeout: cfg.retrieveTimeout, errFunc: cfg.errFunc, resolveEndpointsFunc: cfg.resolveEndpointsFunc}
 }

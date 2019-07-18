@@ -24,21 +24,19 @@ func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
 	require.NoError(t, err)
 
-	testOwnCfg := testCfg
-	testOwnCfg.TLSConfig.GetCertificate = func() (tls.Certificate, error) {
-		return cert, nil
-	}
-	testOwnCfg.TLSConfig.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
-		return []*x509.Certificate{ca}, nil
-	}
-
 	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
 
 	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
 	require.NoError(t, err)
 
-	c, err := ocf.NewClientFromConfig(testOwnCfg, nil)
-	require.NoError(t, err)
+	c := ocf.NewClient(ocf.WithTLS(&ocf.TLSConfig{
+		GetCertificate: func() (tls.Certificate, error) {
+			return cert, nil
+		},
+		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
+			return []*x509.Certificate{ca}, nil
+		},
+	}))
 	return c, otm
 }
 
@@ -59,13 +57,18 @@ func TestClient_ownDevice(t *testing.T) {
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
-			err := c.OwnDevice(timeout, deviceId, otm)
+
+			device, _, err := c.GetDevice(timeout, deviceId)
+			require.NoError(err)
+			defer device.Close(timeout)
+
+			err = device.Own(timeout, otm)
 			if tt.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
 			}
-			err = c.DisownDevice(timeout, deviceId)
+			err = device.Disown(timeout)
 			if tt.wantErr {
 				require.Error(err)
 			} else {

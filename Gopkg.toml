@@ -1,8 +1,8 @@
-[[constraint]]
+[[override]]
   branch = "master"
   name = "github.com/go-ocf/kit"
 
-[[constraint]]
+[[override]]
   branch = "master"
   name = "github.com/go-ocf/go-coap"
 
