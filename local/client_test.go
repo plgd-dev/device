@@ -23,33 +23,56 @@ type Client struct {
 }
 
 func NewTestSecureClient() (*Client, error) {
-	cert, err := tls.X509KeyPair(CertPEMBlock, KeyPEMBlock)
+	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
 	if err != nil {
 		return nil, err
 	}
-	return NewTestSecureClientWithCert(cert)
+	return NewTestSecureClientWithCert(identityCert)
 }
 
 func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
-	derBlock, _ := pem.Decode(CARootPemBlock)
-	if derBlock == nil {
-		return nil, fmt.Errorf("invalid CARootPemBlock")
-	}
-	ca, err := x509.ParseCertificate(derBlock.Bytes)
+	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 	if err != nil {
 		return nil, err
 	}
-	derBlockKey, _ := pem.Decode(CARootKeyPemBlock)
-	if derBlockKey == nil {
-		return nil, fmt.Errorf("invalid CARootKeyPemBlock")
+	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
+	if mfgTrustedCABlock == nil {
+		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
 	}
-	caKey, err := x509.ParseECPrivateKey(derBlockKey.Bytes)
+	mfgCa, err := x509.ParseCertificate(mfgTrustedCABlock.Bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	signer := ocf.NewBasicCertificateSigner(ca, caKey, time.Hour*86400)
-	otm := ocf.NewManufacturerOTMClient(cert, ca, signer, []*x509.Certificate{ca})
+	identityIntermediateCABlock, _ := pem.Decode(MfgTrustedCA)
+	if identityIntermediateCABlock == nil {
+		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
+	}
+	identityIntermediateCA, err := x509.ParseCertificates(identityIntermediateCABlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	identityIntermediateCAKeyBlock, _ := pem.Decode(IdentityIntermediateCAKey)
+	if identityIntermediateCAKeyBlock == nil {
+		return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
+	}
+	identityIntermediateCAKey, err := x509.ParseECPrivateKey(identityIntermediateCAKeyBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
+	if identityTrustedCABlock == nil {
+		return nil, fmt.Errorf("identityTrustedCABlock is empty")
+	}
+	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	signer := ocf.NewBasicCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
+
+	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA)
 	if err != nil {
 		return nil, err
 	}
@@ -59,7 +82,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 			return cert, nil
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
-			return []*x509.Certificate{ca}, nil
+			return identityTrustedCA, nil
 		},
 	}))
 

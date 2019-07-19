@@ -16,24 +16,24 @@ import (
 
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error)
-	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.Client, ownerID, deviceID string) error
+	Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.ClientCloseHandler, error)
+	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
 }
 
 type ManufacturerOTMClient struct {
 	manufacturerCertificate tls.Certificate
 	manufacturerCA          *x509.Certificate
 
-	signer CertificateSigner
-	CAs    []*x509.Certificate
+	signer     CertificateSigner
+	trustedCAs []*x509.Certificate
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner, CAs []*x509.Certificate) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner, trustedCAs []*x509.Certificate) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
-		CAs:                     CAs,
+		trustedCAs:              trustedCAs,
 	}
 }
 
@@ -41,27 +41,22 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 	return schema.ManufacturerCertificate
 }
 
-func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.Client, error) {
+func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.TCPSecureScheme:
-		return kitNetCoap.DialTcpTls(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
+		return kitNetCoap.DialTCPSecure(ctx, addr.String(), false, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
 
-func encodeToDer(encoding schema.CertificateEncoding, data []byte) ([]byte, error) {
-	der := data
-	if encoding == schema.CertificateEncoding_PEM {
-		derBlock, _ := pem.Decode(data)
-		if derBlock == nil {
-			return nil, fmt.Errorf("invalid pem encoding")
-		}
-		der = derBlock.Bytes
+func encodeToPem(encoding schema.CertificateEncoding, data []byte) []byte {
+	if encoding == schema.CertificateEncoding_DER {
+		return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: data})
 	}
-	return der, nil
+	return data
 }
 
-func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.Client, ownerID, deviceID string) error {
+func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error {
 	/*setup credentials - PostOwnerCredential*/
 	var csr schema.CertificateSigningRequestResponse
 	err := tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
@@ -69,12 +64,9 @@ func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context
 		return fmt.Errorf("cannot get csr for setup device owner credentials: %v", err)
 	}
 
-	der, err := encodeToDer(csr.Encoding, csr.CertificateSigningRequest)
-	if err != nil {
-		return fmt.Errorf("cannot encode csr to der: %v", err)
-	}
+	pemCSR := encodeToPem(csr.Encoding, csr.CertificateSigningRequest)
 
-	signedCsr, err := otmc.signer.Sign(ctx, der)
+	signedCsr, err := otmc.signer.Sign(ctx, pemCSR)
 	if err != nil {
 		return fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err)
 	}
@@ -105,7 +97,7 @@ func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context
 				Usage:   schema.CredentialUsage_CERT,
 				PublicData: schema.CredentialPublicData{
 					Data:     string(signedCsr),
-					Encoding: schema.CredentialPublicDataEncoding_DER,
+					Encoding: schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
@@ -115,7 +107,7 @@ func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context
 		return fmt.Errorf("cannot set device identity credentials: %v", err)
 	}
 
-	for _, ca := range otmc.CAs {
+	for _, ca := range otmc.trustedCAs {
 		setCaCredential := schema.CredentialUpdateRequest{
 			ResourceOwner: ownerID,
 			Credentials: []schema.Credential{
@@ -142,21 +134,11 @@ func (otmc *ManufacturerOTMClient) SignCertificate(ctx context.Context, csr []by
 	return otmc.signer.Sign(ctx, csr)
 }
 
-func encodeToPem(encoding schema.CertificateEncoding, data []byte) string {
-	switch encoding {
-	case schema.CertificateEncoding_DER:
-		d := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: data})
-		d = append(d, []byte{0}...)
-		return string(d)
-	}
-	return string(data)
-}
-
 /*
  * iotivityHack sets credential with pair-wise and removes it. It's needed to
  * enable ciphers for TLS communication with signed certificates.
  */
-func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.Client, sdkID string) error {
+func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, sdkID string) error {
 	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
 
 	setDeviceOwner := schema.DoxmUpdate{
