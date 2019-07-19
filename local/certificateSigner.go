@@ -40,7 +40,7 @@ func createPemChain(intermedateCAs []*x509.Certificate, cert []byte) ([]byte, er
 	if err != nil {
 		return nil, err
 	}
-	// encode intermediate
+	// encode intermediates
 	for _, ca := range intermedateCAs {
 		if bytes.Equal(ca.RawIssuer, ca.RawSubject) {
 			continue
@@ -95,7 +95,7 @@ func (s *BasicCertificateSigner) Sign(ctx context.Context, csr []byte) (signedCs
 	if len(s.caCert) == 0 {
 		return nil, fmt.Errorf("cannot sign with empty signer CA certificates")
 	}
-	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.caCert[len(s.caCert)-1], certificateRequest.PublicKey, s.caKey)
+	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.caCert[0], certificateRequest.PublicKey, s.caKey)
 	if err != nil {
 		return
 	}
