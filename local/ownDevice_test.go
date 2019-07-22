@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
+	ocfSigner "github.com/go-ocf/kit/security/signer"
 	ocf "github.com/go-ocf/sdk/local"
-	ocfSigner "github.com/go-ocf/sdk/signer"
 	"github.com/stretchr/testify/require"
 )
 

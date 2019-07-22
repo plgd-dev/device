@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ocf "github.com/go-ocf/sdk/local"
-	ocfSigner "github.com/go-ocf/sdk/signer"
+	ocfSigner "github.com/go-ocf/kit/security/signer"
 )
 
 type Client struct {
