@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	ocf "github.com/go-ocf/sdk/local"
+	ocfSigner "github.com/go-ocf/sdk/signer"
 )
 
 type Client struct {
@@ -70,7 +71,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 		return nil, err
 	}
 
-	signer := ocf.NewBasicCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
+	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
 
 	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA)
 	if err != nil {

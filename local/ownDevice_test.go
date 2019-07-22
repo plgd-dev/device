@@ -9,6 +9,7 @@ import (
 	"time"
 
 	ocf "github.com/go-ocf/sdk/local"
+	ocfSigner "github.com/go-ocf/sdk/signer"
 	"github.com/stretchr/testify/require"
 )
 
@@ -37,7 +38,7 @@ func setupSecureClient(t *testing.T) (*ocf.Client, *ocf.ManufacturerOTMClient) {
 	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
 	require.NoError(t, err)
 
-	signer := ocf.NewBasicCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
+	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
 
 	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA)
 	require.NoError(t, err)
