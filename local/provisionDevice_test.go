@@ -27,7 +27,7 @@ func TestProvisioning(t *testing.T) {
 
 	require.NoError(t, pc.SetAccessControl(ctx, acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
 
-	derBlock, _ := pem.Decode(Cert2PEMBlock)
+	derBlock, _ := pem.Decode(IdentityTrustedCA)
 	require.NotEmpty(t, derBlock)
 	ca, err := x509.ParseCertificate(derBlock.Bytes)
 	require.NoError(t, err)
@@ -65,8 +65,8 @@ func TestSettingCloudResource(t *testing.T) {
 
 	r := schema.CloudUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:                   "testURL",
-		AuthorizationCode:     "testAuthorizationCode",
+		URL:               "testURL",
+		AuthorizationCode: "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)
