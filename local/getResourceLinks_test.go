@@ -29,8 +29,10 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, _ := setupSecureClient(t)
-			deviceId := testGetDeviceID(t, c, tt.args.secure)
+			c, err := NewTestSecureClient()
+			require.NoError(t, err)
+			defer c.Close()
+			deviceId := testGetDeviceID(t, c.Client, tt.args.secure)
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()

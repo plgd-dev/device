@@ -30,7 +30,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a3ad2167750726fd239f905b43d0e8e235bfa65dbb49d2f65c390bbd173a079b"
+  digest = "1:28952ef93dbc1a48caabc9255b7b5d482af4542c710d95f40044a6504de7fe41"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -41,10 +41,11 @@
     "net/coap",
     "net/grpc",
     "security",
+    "security/signer",
     "strings",
   ]
   pruneopts = "UT"
-  revision = "6480d53b39c6a00d2252badae18c83a393abb904"
+  revision = "11aa8b543d3e22481dc9b6a834b10a2631682226"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -284,6 +285,7 @@
     "github.com/go-ocf/kit/net/coap",
     "github.com/go-ocf/kit/net/grpc",
     "github.com/go-ocf/kit/security",
+    "github.com/go-ocf/kit/security/signer",
     "github.com/go-ocf/kit/strings",
     "github.com/gofrs/uuid",
     "github.com/stretchr/testify/require",
