@@ -45,7 +45,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 		return nil, err
 	}
 
-	identityIntermediateCABlock, _ := pem.Decode(MfgTrustedCA)
+	identityIntermediateCABlock, _ := pem.Decode(IdentityIntermediateCA)
 	if identityIntermediateCABlock == nil {
 		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
 	}
