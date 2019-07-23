@@ -11,8 +11,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ocf "github.com/go-ocf/sdk/local"
 	ocfSigner "github.com/go-ocf/kit/security/signer"
+	ocf "github.com/go-ocf/sdk/local"
 )
 
 type Client struct {
@@ -83,7 +83,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 			return cert, nil
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
-			return identityTrustedCA, nil
+			cas := identityTrustedCA
+			cas = append(cas, mfgCa)
+			return cas, nil
 		},
 	}))
 
