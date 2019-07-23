@@ -144,16 +144,18 @@ func TestClient_OnboardDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, otm := setupSecureClient(t)
+			c, err := NewTestSecureClient()
+			require.NoError(t, err)
+			defer c.Close()
 			require := require.New(t)
-			deviceId := testGetDeviceID(t, c, true)
+			deviceId := testGetDeviceID(t, c.Client, true)
 			timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
 			device, _, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 
-			err = device.Onboard(timeout, otm, tt.args.provision)
+			err = device.Onboard(timeout, c.otm, tt.args.provision)
 			if tt.wantErr {
 				require.Error(err)
 			} else {
@@ -166,10 +168,12 @@ func TestClient_OnboardDevice(t *testing.T) {
 }
 
 func TestClient_OnboardDevice2Times(t *testing.T) {
-	c, otm := setupSecureClient(t)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer c.Close()
 	require := require.New(t)
 
-	deviceId := testGetDeviceID(t, c, true)
+	deviceId := testGetDeviceID(t, c.Client, true)
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 
@@ -179,10 +183,10 @@ func TestClient_OnboardDevice2Times(t *testing.T) {
 
 	p := testGetProvisionDevice(t)
 
-	err = device.Onboard(timeout, otm, p)
+	err = device.Onboard(timeout, c.otm, p)
 	require.NoError(err)
 
-	err = device.Onboard(timeout, otm, p)
+	err = device.Onboard(timeout, c.otm, p)
 	require.NoError(err)
 
 	err = device.Offboard(timeout)
