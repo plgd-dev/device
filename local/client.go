@@ -8,6 +8,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/go-ocf/kit/net/coap"
+
 	"github.com/go-ocf/kit/log"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -31,6 +33,7 @@ type Client struct {
 	retrieveTimeout      time.Duration
 	resolveEndpointsFunc ResolveEndpointsFunc
 	errFunc              ErrFunc
+	dialOptions          []coap.DialOptionFunc
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -56,6 +59,7 @@ type config struct {
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
+	dialOptions          []coap.DialOptionFunc
 }
 
 type OptionFunc func(config) config
@@ -64,6 +68,15 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 	return func(cfg config) config {
 		if tlsConfig != nil {
 			cfg.tlsConfig = tlsConfig
+		}
+		return cfg
+	}
+}
+
+func WithDialOptions(opts ...coap.DialOptionFunc) OptionFunc {
+	return func(cfg config) config {
+		if len(opts) > 0 {
+			cfg.dialOptions = opts
 		}
 		return cfg
 	}
@@ -152,11 +165,21 @@ func NewClient(opts ...OptionFunc) *Client {
 			}
 			return sortEndpoints(link.Endpoints), nil
 		},
+		dialOptions: []coap.DialOptionFunc{
+			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
+		},
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
-	return &Client{tlsConfig: cfg.tlsConfig, retryFuncFactory: cfg.retryFuncFactory, retrieveTimeout: cfg.retrieveTimeout, errFunc: cfg.errFunc, resolveEndpointsFunc: cfg.resolveEndpointsFunc}
+	return &Client{
+		tlsConfig:            cfg.tlsConfig,
+		retryFuncFactory:     cfg.retryFuncFactory,
+		retrieveTimeout:      cfg.retrieveTimeout,
+		errFunc:              cfg.errFunc,
+		resolveEndpointsFunc: cfg.resolveEndpointsFunc,
+		dialOptions:          cfg.dialOptions,
+	}
 }

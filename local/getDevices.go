@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -27,7 +28,7 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, handler))
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, c.dialOptions, handler))
 }
 
 func newDiscoveryHandler(
@@ -36,17 +37,26 @@ func newDiscoveryHandler(
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
+	dialOptions []coap.DialOptionFunc,
 	h DeviceHandler,
 ) *discoveryHandler {
-	return &discoveryHandler{tlsConfig: tlsConfig, retryFuncFactory: retryFuncFactory, retrieveTimeout: retrieveTimeout, errFunc: errFunc, resolveEndpointsFunc: resolveEndpointsFunc, handler: h}
+	return &discoveryHandler{
+		tlsConfig:            tlsConfig,
+		retryFuncFactory:     retryFuncFactory,
+		retrieveTimeout:      retrieveTimeout,
+		errFunc:              errFunc,
+		resolveEndpointsFunc: resolveEndpointsFunc,
+		dialOptions:          dialOptions,
+		handler:              h}
 }
 
 type discoveryHandler struct {
 	tlsConfig            *TLSConfig
-	retryFuncFactory            RetryFuncFactory
+	retryFuncFactory     RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
+	dialOptions          []coap.DialOptionFunc
 	handler              DeviceHandler
 }
 
@@ -73,7 +83,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		return
 	}
 
-	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, h.dialOptions, deviceID, link.ResourceTypes, links)
 	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
 		d.Close(ctx)

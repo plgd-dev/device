@@ -11,14 +11,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:54db90590501bc62881ae2d15f9ace4f0b4f9e119e357c1ddf4f8cbde7a4ff37"
+  digest = "1:08c56a9321e118147e6f8e1ef18bb6647f5aefa611dbd73f9849efac653e245e"
   name = "github.com/go-ocf/go-coap"
   packages = [
     ".",
     "net",
   ]
   pruneopts = "UT"
-  revision = "6cb733c1b04ba02c412af95088c8aefcfe696272"
+  revision = "4d60089651dfdc4b0f0ff5011c121c53535dfd5b"
 
 [[projects]]
   branch = "master"
@@ -30,7 +30,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:28952ef93dbc1a48caabc9255b7b5d482af4542c710d95f40044a6504de7fe41"
+  digest = "1:cf08dad0d8a532cd165e1e734e905ba4177d0e8f6f66662c82d372f0755c660d"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -45,7 +45,7 @@
     "strings",
   ]
   pruneopts = "UT"
-  revision = "11aa8b543d3e22481dc9b6a834b10a2631682226"
+  revision = "250926528ed581597f1f7ef7b117fa75aa103a9a"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -169,7 +169,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c3c01cba37f390ea77bb129f5c4ad848de359b65d6e3e5a25b27fc5375524b28"
+  digest = "1:6b64013674c723397559a260427d8622843788c5d5c3248dc1aa3b268df7020a"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -185,7 +185,7 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "da137c7871d730100384dbcf36e6f8fa493aef5b"
+  revision = "ca1201d0de80cfde86cb01aea620983605dfe99b"
 
 [[projects]]
   branch = "master"
