@@ -165,6 +165,9 @@ func NewClient(opts ...OptionFunc) *Client {
 			}
 			return sortEndpoints(link.Endpoints), nil
 		},
+		dialOptions: []coap.DialOptionFunc{
+			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
+		},
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
