@@ -16,7 +16,7 @@ import (
 
 type OTMClient interface {
 	Type() schema.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.ClientCloseHandler, error)
+	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
 	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
 }
 
@@ -41,10 +41,10 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 	return schema.ManufacturerCertificate
 }
 
-func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr) (*kitNetCoap.ClientCloseHandler, error) {
+func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.TCPSecureScheme:
-		return kitNetCoap.DialTCPSecure(ctx, addr.String(), false, otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil })
+		return kitNetCoap.DialTCPSecure(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil }, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
@@ -260,7 +260,7 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot get tcp secure address: not found"))
 	}
 
-	tlsClient, err := otmClient.Dial(ctx, tlsAddr)
+	tlsClient, err := otmClient.Dial(ctx, tlsAddr, d.dialOptions...)
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot create TLS connection: %v", err))
 	}

@@ -6,6 +6,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-ocf/kit/net/coap"
+
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -22,7 +24,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, cancel)
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, c.dialOptions, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -41,15 +43,17 @@ func newDeviceHandler(
 	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
+	dialOptions []coap.DialOptionFunc,
 	cancel context.CancelFunc,
 ) *deviceHandler {
 	return &deviceHandler{
 		deviceID:             deviceID,
 		tlsConfig:            tlsConfig,
-		retryFuncFactory:            retryFuncFactory,
+		retryFuncFactory:     retryFuncFactory,
 		retrieveTimeout:      retrieveTimeout,
 		errFunc:              errFunc,
 		resolveEndpointsFunc: resolveEndpointsFunc,
+		dialOptions:          dialOptions,
 		cancel:               cancel,
 	}
 }
@@ -57,10 +61,11 @@ func newDeviceHandler(
 type deviceHandler struct {
 	deviceID             string
 	tlsConfig            *TLSConfig
-	retryFuncFactory            RetryFuncFactory
+	retryFuncFactory     RetryFuncFactory
 	retrieveTimeout      time.Duration
 	errFunc              ErrFunc
 	resolveEndpointsFunc ResolveEndpointsFunc
+	dialOptions          []coap.DialOptionFunc
 	cancel               context.CancelFunc
 
 	lock        sync.Mutex
@@ -103,7 +108,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, h.dialOptions, deviceID, link.ResourceTypes, links)
 
 	_, err = d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
