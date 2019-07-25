@@ -8,6 +8,7 @@ import (
 	"github.com/go-ocf/kit/strings"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
+	"github.com/go-ocf/sdk/schema/cloud"
 )
 
 func (d *Device) Provision(ctx context.Context) (*ProvisioningClient, error) {
@@ -70,7 +71,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 	return nil
 }
 
-func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.CloudUpdateRequest) error {
+func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.ConfigurationUpdateRequest) error {
 	switch {
 	case r.AuthorizationProvider == "":
 		return fmt.Errorf("invalid AuthorizationProvider")
@@ -86,7 +87,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r schema.Clou
 		return fmt.Errorf("cannot get resource links %v", err)
 	}
 	for _, l := range links {
-		if strings.SliceContains(l.ResourceTypes, schema.CloudResourceType) {
+		if strings.SliceContains(l.ResourceTypes, cloud.ConfigurationResourceType) {
 			href = l.Href
 			break
 		}

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
+	"github.com/go-ocf/sdk/schema/cloud"
 	"github.com/stretchr/testify/require"
 )
 
@@ -63,10 +63,10 @@ func TestSettingCloudResource(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	r := schema.CloudUpdateRequest{
+	r := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:               "testURL",
-		AuthorizationCode: "testAuthorizationCode",
+		URL:                   "testURL",
+		AuthorizationCode:     "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)
