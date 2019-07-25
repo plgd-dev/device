@@ -1,11 +1,11 @@
-package schema
+package cloud
 
 // Cloud Configuration Resource
 // https://github.com/openconnectivityfoundation/core-extensions/blob/master/swagger2.0/oic.r.coapcloudconf.swagger.json
 
-const CloudResourceType string = "oic.r.coapcloudconf"
+const ConfigurationResourceType string = "oic.r.coapcloudconf"
 
-type CloudResponse struct {
+type Configuration struct {
 	ResourceTypes         []string `codec:"rt"`
 	Interfaces            []string `codec:"if"`
 	Name                  string   `codec:"n"`
@@ -15,7 +15,7 @@ type CloudResponse struct {
 	LastErrorCode         int      `codec:"clec"`
 }
 
-type CloudUpdateRequest struct {
+type ConfigurationUpdateRequest struct {
 	AuthorizationProvider string `codec:"apn"`
 	URL                   string `codec:"cis"`
 	AuthorizationCode     string `codec:"at"`
