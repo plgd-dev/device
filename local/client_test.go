@@ -40,7 +40,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 	if mfgTrustedCABlock == nil {
 		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
 	}
-	mfgCa, err := x509.ParseCertificate(mfgTrustedCABlock.Bytes)
+	mfgCa, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +84,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
 			cas := identityTrustedCA
-			cas = append(cas, mfgCa)
+			cas = append(cas, mfgCa...)
 			return cas, nil
 		},
 	}))
