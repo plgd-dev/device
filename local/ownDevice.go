@@ -22,13 +22,13 @@ type OTMClient interface {
 
 type ManufacturerOTMClient struct {
 	manufacturerCertificate tls.Certificate
-	manufacturerCA          *x509.Certificate
+	manufacturerCA          []*x509.Certificate
 
 	signer     CertificateSigner
 	trustedCAs []*x509.Certificate
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA *x509.Certificate, signer CertificateSigner, trustedCAs []*x509.Certificate) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA []*x509.Certificate, signer CertificateSigner, trustedCAs []*x509.Certificate) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
@@ -44,7 +44,7 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.TCPSecureScheme:
-		return kitNetCoap.DialTCPSecure(ctx, addr.String(), otmc.manufacturerCertificate, []*x509.Certificate{otmc.manufacturerCA}, func(*x509.Certificate) error { return nil }, opts...)
+		return kitNetCoap.DialTCPSecure(ctx, addr.String(), otmc.manufacturerCertificate, otmc.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
