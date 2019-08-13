@@ -5,20 +5,12 @@ import (
 
 	"github.com/go-ocf/grpc-gateway/pb"
 	"github.com/go-ocf/kit/net/grpc"
-	"github.com/go-ocf/kit/security"
 	"github.com/go-ocf/kit/strings"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // NewClient constructs a new OCF cloud client.
-func NewClient(addr string, tls *security.TLSConfig) (*Client, error) {
-	conn, err := grpc.NewClientConn(addr, tls)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "could not create gateway client: %v", err)
-	}
-	client := Client{gateway: pb.NewGrpcGatewayClient(conn)}
-	return &client, nil
+func NewClient(gateway pb.GrpcGatewayClient) *Client {
+	return &Client{gateway: gateway}
 }
 
 // Client for communication with the OCF Cloud.
