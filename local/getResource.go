@@ -81,6 +81,15 @@ type ResourceIterator struct {
 // Next queries the next resource value.
 // Returns false when failed or having no more items.
 // Check it.Err for errors.
+// Usage:
+//	for {
+//		var v MyStruct
+//		if !it.Next(ctx, &v) {
+//			break
+//		}
+//	}
+//	if it.Err != nil {
+//	}
 func (it *ResourceIterator) Next(ctx context.Context, v interface{}) bool {
 	if it.i >= len(it.hrefs) {
 		return false
