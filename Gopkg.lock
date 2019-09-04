@@ -10,27 +10,35 @@
   version = "v1.1.1"
 
 [[projects]]
+  digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
+  name = "github.com/dgrijalva/jwt-go"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "06ea1031745cb8b3dab3f6a236daf2b0aa468b7e"
+  version = "v3.2.0"
+
+[[projects]]
   branch = "master"
-  digest = "1:08c56a9321e118147e6f8e1ef18bb6647f5aefa611dbd73f9849efac653e245e"
+  digest = "1:401568f93ef402bdfa92ee12f5de53e2818dbecead0f73a8e952adfe14919442"
   name = "github.com/go-ocf/go-coap"
   packages = [
     ".",
     "net",
   ]
   pruneopts = "UT"
-  revision = "4d60089651dfdc4b0f0ff5011c121c53535dfd5b"
+  revision = "d0a8af7f0e1459d17fbcd6e0c7a3f45d02fbdc78"
 
 [[projects]]
   branch = "master"
-  digest = "1:86b5d22fc75b65336f635a13db8d380a8de332d74248517210fb902e5e185e31"
+  digest = "1:96db71d51e68f1247427497ee4b4e9f78e1f50c77d4a16fba5037b6a359d567c"
   name = "github.com/go-ocf/grpc-gateway"
   packages = ["pb"]
   pruneopts = "UT"
-  revision = "b3e1821a18274ff0f74bd8b217f3dc8a25cfb37b"
+  revision = "a44912bb91ffd69c54908fb2f35481a6820e16fb"
 
 [[projects]]
   branch = "master"
-  digest = "1:cf08dad0d8a532cd165e1e734e905ba4177d0e8f6f66662c82d372f0755c660d"
+  digest = "1:2d65ec83137ea79e0c614434b9dcd21e5e0e23e420183c8cd480af35cd060ef7"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
@@ -41,11 +49,13 @@
     "net/coap",
     "net/grpc",
     "security",
+    "security/generateCertificate",
+    "security/jwt",
     "security/signer",
     "strings",
   ]
   pruneopts = "UT"
-  revision = "250926528ed581597f1f7ef7b117fa75aa103a9a"
+  revision = "8521a406a8bd874ed644ccedd4ec7d98ec37895c"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -56,7 +66,7 @@
   version = "v3.2.0"
 
 [[projects]]
-  digest = "1:4652941215f23c7ad6546bab86964c72248a1134baa53f0df618661344ba5cac"
+  digest = "1:877b9eedd8a92d456a213fe85fb8c6d178cb2bc499e86ec5b7f0bcc05d121e54"
   name = "github.com/gogo/protobuf"
   packages = [
     "gogoproto",
@@ -64,8 +74,8 @@
     "protoc-gen-gogo/descriptor",
   ]
   pruneopts = "UT"
-  revision = "ba06b47c162d49f2af050fb4c75bcbc86a159d5c"
-  version = "v1.2.1"
+  revision = "0ca988a254f991240804bf9821f3450d87ccbb1b"
+  version = "v1.3.0"
 
 [[projects]]
   digest = "1:f5ce1529abc1204444ec73779f44f94e2fa8fcdb7aca3c355b0c95947e4005c6"
@@ -82,7 +92,32 @@
   version = "v1.3.2"
 
 [[projects]]
-  digest = "1:00ba9fb5c14095829a3c738c8998b2e3d6019002291e41443ecb775f191e8ba2"
+  digest = "1:a93a4de7b00fb9cc952bc0483e9a32cd273adbbd7f3282bfe89656b2f88fb08c"
+  name = "github.com/grpc-ecosystem/go-grpc-middleware"
+  packages = [
+    ".",
+    "auth",
+    "util/metautils",
+  ]
+  pruneopts = "UT"
+  revision = "c250d6563d4d4c20252cd865923440e829844f4e"
+  version = "v1.0.0"
+
+[[projects]]
+  digest = "1:aea1c53d4757225e70d19ddd87e7843a25897b3c4f3901a2ab07e04586a5b76a"
+  name = "github.com/lestrrat-go/jwx"
+  packages = [
+    "internal/base64",
+    "internal/option",
+    "jwa",
+    "jwk",
+  ]
+  pruneopts = "UT"
+  revision = "5d60d87d07ddea9874404944870bec81aabcf574"
+  version = "v0.9.0"
+
+[[projects]]
+  digest = "1:f2e48504ac446aae46160fbcab65053eb4edaba0890cca991b73c68b171e216c"
   name = "github.com/pion/dtls"
   packages = [
     ".",
@@ -90,8 +125,8 @@
     "internal/udp",
   ]
   pruneopts = "UT"
-  revision = "bcc3927a53a8f925a2d30ee83cb319270a7bd667"
-  version = "v1.4.0"
+  revision = "91d652d3f91d6c08c193e4d297067f8f653775f9"
+  version = "v1.5.1"
 
 [[projects]]
   digest = "1:92d9305a35d7130172f46e095505cc56af49d073907ae52088c15e8c8ae3f519"
@@ -102,6 +137,14 @@
   version = "v0.2.2"
 
 [[projects]]
+  digest = "1:cf31692c14422fa27c83a05292eb5cbe0fb2775972e8f1f8446a71549bd8980b"
+  name = "github.com/pkg/errors"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ba968bfe8b2f7e042a574c888954fccecfa385b4"
+  version = "v0.8.1"
+
+[[projects]]
   digest = "1:0028cb19b2e4c3112225cd871870f2d9cf49b9b4276531f03438a88e94be86fe"
   name = "github.com/pmezard/go-difflib"
   packages = ["difflib"]
@@ -110,15 +153,15 @@
   version = "v1.0.0"
 
 [[projects]]
-  digest = "1:5da8ce674952566deae4dbc23d07c85caafc6cfa815b0b3e03e41979cedb8750"
+  digest = "1:99d32780e5238c2621fff621123997c3e3cca96db8be13179013aea77dfab551"
   name = "github.com/stretchr/testify"
   packages = [
     "assert",
     "require",
   ]
   pruneopts = "UT"
-  revision = "ffdc059bfe9ce6a4e144ba849dbedead332c6053"
-  version = "v1.3.0"
+  revision = "221dbe5ed46703ee255b1da0dec05086f5035f62"
+  version = "v1.4.0"
 
 [[projects]]
   digest = "1:5a1cf4e370bc86137b58da2ae065e76526d32b11f62a7665f36dbd5f41fa95ff"
@@ -165,14 +208,15 @@
   name = "golang.org/x/crypto"
   packages = ["curve25519"]
   pruneopts = "UT"
-  revision = "4def268fd1a49955bfb3dda92fe3db4f924f2285"
+  revision = "9756ffdc24725223350eb3266ffb92590d28f278"
 
 [[projects]]
   branch = "master"
-  digest = "1:6b64013674c723397559a260427d8622843788c5d5c3248dc1aa3b268df7020a"
+  digest = "1:e45985461cf85e747662f64fe3db26d68f3d68ca2becb713df391c6fc7abcd95"
   name = "golang.org/x/net"
   packages = [
     "bpf",
+    "context",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -185,18 +229,18 @@
     "trace",
   ]
   pruneopts = "UT"
-  revision = "ca1201d0de80cfde86cb01aea620983605dfe99b"
+  revision = "ba9fcec4b297b415637633c5a6e8fa592e4a16c3"
 
 [[projects]]
   branch = "master"
-  digest = "1:31d44814b45607afa77c6e8ef20ea8bacc1d1053fe084440c874f311732e7ec3"
+  digest = "1:4f9cc50343843f7c58c1a1aecf17c226ea0e855f4d3293e796701ae985111e0d"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "fae7ac547cb717d141c433a2a173315e216b64c4"
+  revision = "43c01164e93111c754a278ab423ba01063c44917"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -229,10 +273,10 @@
   name = "google.golang.org/genproto"
   packages = ["googleapis/rpc/status"]
   pruneopts = "UT"
-  revision = "c506a9f9061087022822e8da603a52fc387115a8"
+  revision = "24fa4b261c55da65468f2abfdae2b024eef27dfb"
 
 [[projects]]
-  digest = "1:cf01ae0753310464677058b125fa31e74fd943781782ada503180ad784fc83d3"
+  digest = "1:3b97661db2e5d4c87f7345e875ea28f911e54c715ba0a74be08e1649d67e05cd"
   name = "google.golang.org/grpc"
   packages = [
     ".",
@@ -270,8 +314,16 @@
     "tap",
   ]
   pruneopts = "UT"
-  revision = "1d89a3c832915b2314551c1d2a506874d62e53f7"
-  version = "v1.22.0"
+  revision = "6eaf6f47437a6b4e2153a190160ef39a92c7eceb"
+  version = "v1.23.0"
+
+[[projects]]
+  digest = "1:4d2e5a73dc1500038e504a8d78b986630e3626dc027bc030ba5c75da257cdb96"
+  name = "gopkg.in/yaml.v2"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "51d6538a90f86fe93ac480b35f37b2be17fef232"
+  version = "v2.2.2"
 
 [solve-meta]
   analyzer-name = "dep"
@@ -284,13 +336,10 @@
     "github.com/go-ocf/kit/net",
     "github.com/go-ocf/kit/net/coap",
     "github.com/go-ocf/kit/net/grpc",
-    "github.com/go-ocf/kit/security",
     "github.com/go-ocf/kit/security/signer",
     "github.com/go-ocf/kit/strings",
     "github.com/gofrs/uuid",
     "github.com/stretchr/testify/require",
-    "google.golang.org/grpc/codes",
-    "google.golang.org/grpc/status",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

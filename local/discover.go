@@ -13,23 +13,23 @@ import (
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 // https://iotivity.org/documentation/linux/programmers-guide
 var (
-	discoveryAddressUDP4 = []string{"224.0.1.187:5683"}
-	discoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
+	DiscoveryAddressUDP4 = []string{"224.0.1.187:5683"}
+	DiscoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
 )
 
 // DialDiscoveryAddresses connects to discovery endpoints.
-func DialDiscoveryAddresses(ctx context.Context, errors func(error)) []*gocoap.MulticastClientConn {
+func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*gocoap.MulticastClientConn {
 	var out []*gocoap.MulticastClientConn
-	for _, address := range discoveryAddressUDP4 {
-		client := gocoap.MulticastClient{Net: "udp4"}
+	for _, address := range cfg.MulticastAddressUDP4 {
+		client := gocoap.MulticastClient{Net: "udp4", MulticastHopLimit: cfg.MulticastHopLimit}
 		conn, err := client.DialWithContext(ctx, address)
 		if err != nil && errors != nil {
 			errors(err)
 		}
 		out = append(out, conn)
 	}
-	for _, address := range discoveryAddressUDP6 {
-		client := gocoap.MulticastClient{Net: "udp6"}
+	for _, address := range cfg.MulticastAddressUDP6 {
+		client := gocoap.MulticastClient{Net: "udp6", MulticastHopLimit: cfg.MulticastHopLimit}
 		conn, err := client.DialWithContext(ctx, address)
 		if err != nil && errors != nil {
 			errors(err)
