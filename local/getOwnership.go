@@ -51,7 +51,7 @@ func (d *Device) GetOwnership(ctx context.Context) (*schema.Doxm, error) {
 	ctxOwn, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(ctx, d.errFunc)
+	multicastConn := DialDiscoveryAddresses(ctx, d.discoveryConfiguration, d.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()

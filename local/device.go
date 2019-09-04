@@ -13,15 +13,16 @@ import (
 )
 
 type Device struct {
-	deviceID             string
-	deviceTypes          []string
-	links                schema.ResourceLinks
-	tlsConfig            *TLSConfig
-	retryFuncFactory     RetryFuncFactory
-	retrieveTimeout      time.Duration
-	errFunc              ErrFunc
-	resolveEndpointsFunc ResolveEndpointsFunc
-	dialOptions          []coap.DialOptionFunc
+	deviceID               string
+	deviceTypes            []string
+	links                  schema.ResourceLinks
+	tlsConfig              *TLSConfig
+	retryFuncFactory       RetryFuncFactory
+	retrieveTimeout        time.Duration
+	errFunc                ErrFunc
+	resolveEndpointsFunc   ResolveEndpointsFunc
+	dialOptions            []coap.DialOptionFunc
+	discoveryConfiguration DiscoveryConfiguration
 
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
@@ -47,6 +48,7 @@ func NewDevice(
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
 	dialOptions []coap.DialOptionFunc,
+	discoveryConfiguration DiscoveryConfiguration,
 	deviceID string,
 	deviceTypes []string,
 	links schema.ResourceLinks,
@@ -54,12 +56,13 @@ func NewDevice(
 	pool := make(map[string]*coap.ClientCloseHandler)
 
 	return &Device{
-		deviceID:             deviceID,
-		deviceTypes:          deviceTypes,
-		links:                links,
-		tlsConfig:            tlsConfig,
-		retryFuncFactory:     retryFuncFactory,
-		retrieveTimeout:      retrieveTimeout,
+		deviceID:               deviceID,
+		deviceTypes:            deviceTypes,
+		links:                  links,
+		tlsConfig:              tlsConfig,
+		retryFuncFactory:       retryFuncFactory,
+		retrieveTimeout:        retrieveTimeout,
+		discoveryConfiguration: discoveryConfiguration,
 		conn:                 pool,
 		errFunc:              errFunc,
 		resolveEndpointsFunc: resolveEndpointsFunc,

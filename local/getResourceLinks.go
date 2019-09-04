@@ -145,7 +145,7 @@ func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFun
 	var links schema.ResourceLinks
 	var ok bool
 
-	multicastConn := DialDiscoveryAddresses(ctx, d.errFunc)
+	multicastConn := DialDiscoveryAddresses(ctx, d.discoveryConfiguration, d.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()

@@ -28,12 +28,13 @@ type ResolveEndpointsFunc = func(ctx context.Context, href string, links schema.
 
 // Client an OCF local client.
 type Client struct {
-	tlsConfig            *TLSConfig
-	retryFuncFactory     RetryFuncFactory
-	retrieveTimeout      time.Duration
-	resolveEndpointsFunc ResolveEndpointsFunc
-	errFunc              ErrFunc
-	dialOptions          []coap.DialOptionFunc
+	tlsConfig              *TLSConfig
+	retryFuncFactory       RetryFuncFactory
+	retrieveTimeout        time.Duration
+	resolveEndpointsFunc   ResolveEndpointsFunc
+	errFunc                ErrFunc
+	dialOptions            []coap.DialOptionFunc
+	discoveryConfiguration DiscoveryConfiguration
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -54,12 +55,13 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 }
 
 type config struct {
-	tlsConfig            *TLSConfig
-	retryFuncFactory     RetryFuncFactory
-	retrieveTimeout      time.Duration
-	errFunc              ErrFunc
-	resolveEndpointsFunc ResolveEndpointsFunc
-	dialOptions          []coap.DialOptionFunc
+	tlsConfig              *TLSConfig
+	retryFuncFactory       RetryFuncFactory
+	retrieveTimeout        time.Duration
+	errFunc                ErrFunc
+	resolveEndpointsFunc   ResolveEndpointsFunc
+	dialOptions            []coap.DialOptionFunc
+	discoveryConfiguration DiscoveryConfiguration
 }
 
 type OptionFunc func(config) config
@@ -69,6 +71,19 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 		if tlsConfig != nil {
 			cfg.tlsConfig = tlsConfig
 		}
+		return cfg
+	}
+}
+
+type DiscoveryConfiguration struct {
+	MulticastHopLimit    int
+	MulticastAddressUDP4 []string
+	MulticastAddressUDP6 []string
+}
+
+func WithDiscoveryConfiguration(d DiscoveryConfiguration) OptionFunc {
+	return func(cfg config) config {
+		cfg.discoveryConfiguration = d
 		return cfg
 	}
 }
@@ -168,6 +183,11 @@ func NewClient(opts ...OptionFunc) *Client {
 		dialOptions: []coap.DialOptionFunc{
 			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
 		},
+		discoveryConfiguration: DiscoveryConfiguration{
+			MulticastHopLimit:    2,
+			MulticastAddressUDP4: DiscoveryAddressUDP4,
+			MulticastAddressUDP6: DiscoveryAddressUDP6,
+		},
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
@@ -175,11 +195,12 @@ func NewClient(opts ...OptionFunc) *Client {
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
 	return &Client{
-		tlsConfig:            cfg.tlsConfig,
-		retryFuncFactory:     cfg.retryFuncFactory,
-		retrieveTimeout:      cfg.retrieveTimeout,
-		errFunc:              cfg.errFunc,
-		resolveEndpointsFunc: cfg.resolveEndpointsFunc,
-		dialOptions:          cfg.dialOptions,
+		tlsConfig:              cfg.tlsConfig,
+		retryFuncFactory:       cfg.retryFuncFactory,
+		retrieveTimeout:        cfg.retrieveTimeout,
+		errFunc:                cfg.errFunc,
+		resolveEndpointsFunc:   cfg.resolveEndpointsFunc,
+		dialOptions:            cfg.dialOptions,
+		discoveryConfiguration: cfg.discoveryConfiguration,
 	}
 }

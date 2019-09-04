@@ -17,14 +17,14 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(ctx, c.errFunc)
+	multicastConn := DialDiscoveryAddresses(ctx, c.discoveryConfiguration, c.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, c.dialOptions, cancel)
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, c.dialOptions, c.discoveryConfiguration, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -44,29 +44,32 @@ func newDeviceHandler(
 	errFunc ErrFunc,
 	resolveEndpointsFunc ResolveEndpointsFunc,
 	dialOptions []coap.DialOptionFunc,
+	discoveryConfiguration DiscoveryConfiguration,
 	cancel context.CancelFunc,
 ) *deviceHandler {
 	return &deviceHandler{
-		deviceID:             deviceID,
-		tlsConfig:            tlsConfig,
-		retryFuncFactory:     retryFuncFactory,
-		retrieveTimeout:      retrieveTimeout,
-		errFunc:              errFunc,
-		resolveEndpointsFunc: resolveEndpointsFunc,
-		dialOptions:          dialOptions,
-		cancel:               cancel,
+		deviceID:               deviceID,
+		tlsConfig:              tlsConfig,
+		retryFuncFactory:       retryFuncFactory,
+		retrieveTimeout:        retrieveTimeout,
+		errFunc:                errFunc,
+		resolveEndpointsFunc:   resolveEndpointsFunc,
+		dialOptions:            dialOptions,
+		discoveryConfiguration: discoveryConfiguration,
+		cancel:                 cancel,
 	}
 }
 
 type deviceHandler struct {
-	deviceID             string
-	tlsConfig            *TLSConfig
-	retryFuncFactory     RetryFuncFactory
-	retrieveTimeout      time.Duration
-	errFunc              ErrFunc
-	resolveEndpointsFunc ResolveEndpointsFunc
-	dialOptions          []coap.DialOptionFunc
-	cancel               context.CancelFunc
+	deviceID               string
+	tlsConfig              *TLSConfig
+	retryFuncFactory       RetryFuncFactory
+	retrieveTimeout        time.Duration
+	errFunc                ErrFunc
+	resolveEndpointsFunc   ResolveEndpointsFunc
+	dialOptions            []coap.DialOptionFunc
+	cancel                 context.CancelFunc
+	discoveryConfiguration DiscoveryConfiguration
 
 	lock        sync.Mutex
 	device      *Device
@@ -103,19 +106,12 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
-	endpoints, err := h.resolveEndpointsFunc(ctx, "/oic/d", links)
+	_, err := h.resolveEndpointsFunc(ctx, "/oic/d", links)
 	if err != nil {
 		h.err = fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, h.dialOptions, deviceID, link.ResourceTypes, links)
-
-	_, err = d.connectToEndpoints(ctx, endpoints)
-	if err != nil {
-		d.Close(ctx)
-		h.err = fmt.Errorf("cannot connect to /oic/d for %v: %v", deviceID, err)
-		return
-	}
+	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes, links)
 
 	h.device = d
 	h.deviceLinks = links
