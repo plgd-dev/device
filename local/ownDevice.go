@@ -2,12 +2,14 @@ package local
 
 import (
 	"context"
+	"sync"
 
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 
+	gocoap "github.com/go-ocf/go-coap"
 	kitNet "github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -191,6 +193,118 @@ func WithIotivityHack() OwnOption {
 	}
 }
 
+type connUpdateResourcer interface {
+	UpdateResource(context.Context, string, interface{}, interface{}, ...kitNetCoap.OptionFunc) error
+}
+
+func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+	selectOTM := schema.DoxmUpdate{
+		SelectOwnerTransferMethod: selectOwnerTransferMethod,
+	}
+	/*doxm doesn't send any content for update*/
+	return conn.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
+}
+
+type selectOTMHandler struct {
+	deviceID string
+	cancel   context.CancelFunc
+
+	conn *kitNetCoap.Client
+	lock sync.Mutex
+	err  error
+}
+
+func newSelectOTMHandler(deviceID string, cancel context.CancelFunc) *selectOTMHandler {
+	return &selectOTMHandler{deviceID: deviceID, cancel: cancel}
+}
+
+func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, links schema.ResourceLinks) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	link, ok := links.GetResourceLink("/oic/d")
+	if !ok {
+		h.err = fmt.Errorf("cannot get link to /oic/d")
+		clientConn.Close()
+		return
+	}
+	deviceID := link.GetDeviceID()
+	if deviceID == "" {
+		clientConn.Close()
+		h.err = fmt.Errorf("cannot determine deviceID")
+		return
+	}
+	if h.conn != nil || deviceID != h.deviceID {
+		clientConn.Close()
+		return
+	}
+	h.conn = kitNetCoap.NewClient(clientConn)
+	h.cancel()
+}
+
+func (h *selectOTMHandler) Error(err error) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if h.err == nil {
+		h.err = err
+	}
+}
+
+func (h *selectOTMHandler) Err() error {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	return h.err
+}
+
+func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+	multicastConn := DialDiscoveryAddresses(ctx, d.discoveryConfiguration, d.errFunc)
+	defer func() {
+		for _, conn := range multicastConn {
+			conn.Close()
+		}
+	}()
+
+	ctxSelect, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	h := newSelectOTMHandler(d.DeviceID(), cancel)
+	err := DiscoverDevices(ctxSelect, multicastConn, h)
+	if h.conn != nil {
+		defer h.conn.Close()
+		return setOTM(ctx, h.conn, selectOwnerTransferMethod)
+	}
+	if err != nil {
+		return err
+	}
+	err = h.Err()
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf("device not found")
+}
+
+func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+	var coapAddr kitNet.Addr
+	var coapAddrFound bool
+	var err error
+	for _, link := range d.links {
+		if coapAddr, err = link.GetUDPAddr(); err == nil {
+			coapAddrFound = true
+			break
+		}
+	}
+	if coapAddrFound {
+		coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
+		if err != nil {
+			return fmt.Errorf("cannot connect to %v for select OTM: %v", coapAddr.URL(), err)
+		}
+		defer coapConn.Close()
+		return setOTM(ctx, coapConn, selectOwnerTransferMethod)
+	}
+	return d.selectOTMViaDiscovery(ctx, selectOwnerTransferMethod)
+}
+
 // Own set ownership of device
 func (d *Device) Own(
 	ctx context.Context,
@@ -208,6 +322,18 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, err)
 	}
 
+	sdkID, err := d.GetSdkDeviceID()
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
+	}
+
+	if ownership.Owned {
+		if ownership.DeviceOwner == sdkID {
+			return nil
+		}
+		return fmt.Errorf(errMsg, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
+	}
+
 	//ownership := d.ownership
 	var supportOtm bool
 	for _, s := range ownership.SupportedOwnerTransferMethods {
@@ -217,28 +343,7 @@ func (d *Device) Own(
 		}
 	}
 	if !supportOtm {
-		return fmt.Errorf(errMsg, fmt.Sprintf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
-	}
-
-	selectOTM := schema.DoxmUpdate{
-		SelectOwnerTransferMethod: otmClient.Type(),
-	}
-
-	sdkID, err := d.GetSdkDeviceID()
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
-	}
-
-	/*doxm doesn't send any content for select OTM*/
-	err = d.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
-	if err != nil {
-		if ownership.Owned {
-			if ownership.DeviceOwner == sdkID {
-				return nil
-			}
-			return fmt.Errorf(errMsg, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
-		}
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot select OTM: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
 	links, err := d.GetResourceLinks(ctx)
@@ -248,6 +353,12 @@ func (d *Device) Own(
 	if len(links) == 0 {
 		return fmt.Errorf(errMsg, "device links are empty")
 	}
+
+	err = d.selectOTM(ctx, otmClient.Type())
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
+	}
+
 	var tlsAddr kitNet.Addr
 	var tlsAddrFound bool
 	for _, link := range links {
