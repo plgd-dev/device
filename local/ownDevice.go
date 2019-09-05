@@ -284,7 +284,7 @@ func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferM
 	return fmt.Errorf("device not found")
 }
 
-func (d *Device) SelectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
 	var coapAddr kitNet.Addr
 	var coapAddrFound bool
 	var err error
@@ -354,7 +354,7 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, "device links are empty")
 	}
 
-	err = d.SelectOTM(ctx, otmClient.Type())
+	err = d.selectOTM(ctx, otmClient.Type())
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
 	}
