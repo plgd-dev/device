@@ -264,11 +264,11 @@ func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferM
 		}
 	}()
 
-	ctx, cancel := context.WithCancel(ctx)
+	ctxSelect, cancel := context.WithCancel(ctx)
 	defer cancel()
 
 	h := newSelectOTMHandler(d.DeviceID(), cancel)
-	err := DiscoverDevices(ctx, multicastConn, h)
+	err := DiscoverDevices(ctxSelect, multicastConn, h)
 	if h.conn != nil {
 		defer h.conn.Close()
 		return setOTM(ctx, h.conn, selectOwnerTransferMethod)
