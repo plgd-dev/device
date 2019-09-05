@@ -229,8 +229,32 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
 	}
 
+	links, err := d.GetResourceLinks(ctx)
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links %v", err))
+	}
+	if len(links) == 0 {
+		return fmt.Errorf(errMsg, "device links are empty")
+	}
+	var coapAddr kitNet.Addr
+	var coapAddrFound bool
+	for _, link := range links {
+		if coapAddr, err = link.GetUDPAddr(); err == nil {
+			coapAddrFound = true
+			break
+		}
+	}
+	if !coapAddrFound {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot find coap endpoint for select OTM: %v", err))
+	}
+
 	/*doxm doesn't send any content for select OTM*/
-	err = d.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
+	coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot connect to %v for select OTM: %v", coapAddr.URL(), err))
+	}
+	defer coapConn.Close()
+	err = coapConn.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
 	if err != nil {
 		if ownership.Owned {
 			if ownership.DeviceOwner == sdkID {
@@ -241,13 +265,6 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select OTM: %v", err))
 	}
 
-	links, err := d.GetResourceLinks(ctx)
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links %v", err))
-	}
-	if len(links) == 0 {
-		return fmt.Errorf(errMsg, "device links are empty")
-	}
 	var tlsAddr kitNet.Addr
 	var tlsAddrFound bool
 	for _, link := range links {
