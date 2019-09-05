@@ -201,7 +201,7 @@ func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMe
 	selectOTM := schema.DoxmUpdate{
 		SelectOwnerTransferMethod: selectOwnerTransferMethod,
 	}
-
+	/*doxm doesn't send any content for update*/
 	return conn.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
 }
 
@@ -256,32 +256,7 @@ func (h *selectOTMHandler) Err() error {
 	return h.err
 }
 
-func (d *Device) selectOTMViaDiscovery(ctx context.Context) {
-}
-
-func (d *Device) SelectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
-	var coapAddr kitNet.Addr
-	var coapAddrFound bool
-	var err error
-	for _, link := range d.links {
-		if coapAddr, err = link.GetUDPAddr(); err == nil {
-			coapAddrFound = true
-			break
-		}
-	}
-	if coapAddrFound {
-		/*doxm doesn't send any content for select OTM*/
-		coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
-		if err != nil {
-			return fmt.Errorf("cannot connect to %v for select OTM: %v", coapAddr.URL(), err)
-		}
-		defer coapConn.Close()
-		return setOTM(ctx, coapConn, selectOwnerTransferMethod)
-	}
-
-	ctxOwn, cancel := context.WithCancel(ctx)
-	defer cancel()
-
+func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
 	multicastConn := DialDiscoveryAddresses(ctx, d.discoveryConfiguration, d.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
@@ -289,8 +264,11 @@ func (d *Device) SelectOTM(ctx context.Context, selectOwnerTransferMethod schema
 		}
 	}()
 
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
 	h := newSelectOTMHandler(d.DeviceID(), cancel)
-	err = DiscoverDevices(ctxOwn, multicastConn, h)
+	err := DiscoverDevices(ctx, multicastConn, h)
 	if h.conn != nil {
 		defer h.conn.Close()
 		return setOTM(ctx, h.conn, selectOwnerTransferMethod)
@@ -304,6 +282,27 @@ func (d *Device) SelectOTM(ctx context.Context, selectOwnerTransferMethod schema
 	}
 
 	return fmt.Errorf("device not found")
+}
+
+func (d *Device) SelectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+	var coapAddr kitNet.Addr
+	var coapAddrFound bool
+	var err error
+	for _, link := range d.links {
+		if coapAddr, err = link.GetUDPAddr(); err == nil {
+			coapAddrFound = true
+			break
+		}
+	}
+	if coapAddrFound {
+		coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
+		if err != nil {
+			return fmt.Errorf("cannot connect to %v for select OTM: %v", coapAddr.URL(), err)
+		}
+		defer coapConn.Close()
+		return setOTM(ctx, coapConn, selectOwnerTransferMethod)
+	}
+	return d.selectOTMViaDiscovery(ctx, selectOwnerTransferMethod)
 }
 
 // Own set ownership of device
