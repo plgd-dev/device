@@ -76,18 +76,21 @@ func (c *Client) RetrieveResourcesByType(
 
 func (c *Client) GetDevices(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	auth := pb.AuthorizationContext{AccessToken: token}
+	ctx = grpc.CtxWithToken(ctx, token)
 	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.GetDevices(ctx, &r))
 }
 
 func (c *Client) GetResourceLinks(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	auth := pb.AuthorizationContext{AccessToken: token}
+	ctx = grpc.CtxWithToken(ctx, token)
 	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
 func (c *Client) RetrieveResources(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	auth := pb.AuthorizationContext{AccessToken: token}
+	ctx = grpc.CtxWithToken(ctx, token)
 	r := pb.RetrieveResourcesValuesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
 }
