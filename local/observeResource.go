@@ -8,17 +8,18 @@ import (
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	"github.com/go-ocf/sdk/schema"
 	"github.com/gofrs/uuid"
 )
 
 func (d *Device) ObserveResourceWithCodec(
 	ctx context.Context,
-	href string,
+	link schema.ResourceLink,
 	codec kitNetCoap.Codec,
 	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
-	return d.observeResource(ctx, href, codec, handler, options...)
+	return d.observeResource(ctx, link, codec, handler, options...)
 }
 
 type ObservationHandler interface {
@@ -29,12 +30,12 @@ type ObservationHandler interface {
 
 func (d *Device) ObserveResource(
 	ctx context.Context,
-	href string,
+	link schema.ResourceLink,
 	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 	codec := ocf.VNDOCFCBORCodec{}
-	return d.ObserveResourceWithCodec(ctx, href, codec, handler, options...)
+	return d.ObserveResourceWithCodec(ctx, link, codec, handler, options...)
 }
 
 func (d *Device) StopObservingResource(
@@ -114,13 +115,13 @@ func (o *observation) Stop(ctx context.Context) error {
 }
 
 func (d *Device) observeResource(
-	ctx context.Context, href string,
+	ctx context.Context, link schema.ResourceLink,
 	codec kitNetCoap.Codec,
 	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 
-	client, err := d.connect(ctx, href)
+	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 
 	if err != nil {
 		return "", err
@@ -145,7 +146,7 @@ func (d *Device) observeResource(
 		d.StopObservingResource(obsCtx, o.id)
 	})
 
-	obs, err := client.Observe(ctx, href, codec, &h, options...)
+	obs, err := client.Observe(ctx, link.Href, codec, &h, options...)
 	if err != nil {
 		client.UnregisterCloseHandler(o.onCloseID)
 		return "", err

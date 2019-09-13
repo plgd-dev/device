@@ -11,8 +11,11 @@ import (
 	"github.com/go-ocf/sdk/schema/cloud"
 )
 
-func (d *Device) Provision(ctx context.Context) (*ProvisioningClient, error) {
-	p := ProvisioningClient{d}
+func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks) (*ProvisioningClient, error) {
+	p := ProvisioningClient{
+		Device: d,
+		links:  links,
+	}
 	err := p.start(ctx)
 	if err != nil {
 		return nil, err
@@ -22,6 +25,7 @@ func (d *Device) Provision(ctx context.Context) (*ProvisioningClient, error) {
 
 type ProvisioningClient struct {
 	*Device
+	links schema.ResourceLinks
 }
 
 func (c *ProvisioningClient) start(ctx context.Context) error {
@@ -30,9 +34,15 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
 		},
 	}
-	err := c.UpdateResource(ctx, "/oic/sec/pstat", provisioningState, nil)
+	const errMsg = "could not start provisioning the device: %v"
+	link, err := getResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
-		return fmt.Errorf("could not start provisioning the device %s: %v", c.DeviceID(), err)
+		return fmt.Errorf(errMsg, err)
+	}
+
+	err = c.UpdateResource(ctx, link, provisioningState, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
 	return nil
 }
@@ -43,9 +53,15 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
 		},
 	}
-	err := c.UpdateResource(ctx, "/oic/sec/pstat", normalOperationState, nil)
+	const errMsg = "could not finalize provisioning the device: %v"
+	link, err := getResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
-		return fmt.Errorf("could not finalize provisioning the device %s: %v", c.DeviceID(), err)
+		return fmt.Errorf(errMsg, err)
+	}
+
+	err = c.UpdateResource(ctx, link, normalOperationState, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
 	return nil
 }
@@ -64,9 +80,14 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 			},
 		},
 	}
-	err := c.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
+	const errMsg = "could not add certificate to the device: %v"
+	link, err := getResourceLink(c.links, "/oic/sec/cred")
 	if err != nil {
-		return fmt.Errorf("could not add certificate to device %s: %v", c.DeviceID(), err)
+		return fmt.Errorf(errMsg, err)
+	}
+	err = c.UpdateResource(ctx, link, setCaCredential, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
 	return nil
 }
@@ -80,22 +101,18 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	case r.URL == "":
 		return fmt.Errorf("invalid URL")
 	}
-	var href string
+	var link schema.ResourceLink
 
-	links, err := c.GetResourceLinks(ctx)
-	if err != nil {
-		return fmt.Errorf("cannot get resource links %v", err)
-	}
-	for _, l := range links {
+	for _, l := range c.links {
 		if strings.SliceContains(l.ResourceTypes, cloud.ConfigurationResourceType) {
-			href = l.Href
+			link = l
 			break
 		}
 	}
-	if href == "" {
+	if link.Href == "" {
 		return fmt.Errorf("could not resolve cloud resource link of device %s", c.DeviceID())
 	}
-	err = c.UpdateResource(ctx, href, r, nil)
+	err := c.UpdateResource(ctx, link, r, nil)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %v", c.DeviceID(), err)
 	}
@@ -118,9 +135,14 @@ func (c *ProvisioningClient) SetAccessControl(
 			},
 		},
 	}
-	err := c.UpdateResource(ctx, "/oic/sec/acl2", setACL, nil)
+	const errMsg = "could not update ACL of the device: %v"
+	link, err := getResourceLink(c.links, "/oic/sec/acl2")
 	if err != nil {
-		return fmt.Errorf("could not update ACL of device %s: %v", c.DeviceID(), err)
+		return fmt.Errorf(errMsg, err)
+	}
+	err = c.UpdateResource(ctx, link, setACL, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
 	}
 	return nil
 }

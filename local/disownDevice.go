@@ -10,6 +10,7 @@ import (
 // DisownDevice remove ownership of device
 func (d *Device) Disown(
 	ctx context.Context,
+	links schema.ResourceLinks,
 ) error {
 	const errMsg = "cannot disown: %v"
 
@@ -33,7 +34,12 @@ func (d *Device) Disown(
 		},
 	}
 
-	err = d.UpdateResource(ctx, "/oic/sec/pstat", setResetProvisionState, nil)
+	link, err := getResourceLink(links, "/oic/sec/pstat")
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+
+	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

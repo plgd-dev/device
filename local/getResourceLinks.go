@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	"time"
 
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/net"
@@ -42,30 +41,6 @@ func (d *Device) findBestClient() (net.Addr, *coap.ClientCloseHandler, error) {
 	return addr, client, nil
 }
 
-func operationWithRetries(parentCtx context.Context, retryFuncFactory RetryFuncFactory, operationTimeout time.Duration, op func(context.Context) error) error {
-	rf := retryFuncFactory()
-	for {
-		ctx, cancel := context.WithTimeout(parentCtx, operationTimeout)
-		opErr := op(ctx)
-		cancel()
-		if opErr == nil {
-			return nil
-		}
-		when, err := rf()
-		if err != nil {
-			return fmt.Errorf("%v: %v", err, opErr)
-		}
-		sleep := when.Sub(time.Now())
-		if sleep > 0 {
-			select {
-			case <-parentCtx.Done():
-				return parentCtx.Err()
-			case <-time.After(sleep):
-			}
-		}
-	}
-}
-
 func newDeviceDiscoveryHandler(
 	deviceID string,
 	cancel context.CancelFunc,
@@ -99,8 +74,8 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 	if err != nil {
 		return
 	}
-	link, ok := links.GetResourceLink("/oic/d")
-	if !ok {
+	link, err := getResourceLink(links, "/oic/d")
+	if err != nil {
 		return
 	}
 	if h.ok || link.GetDeviceID() != h.deviceID {
@@ -114,14 +89,12 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 func (h *deviceDiscoveryHandler) Error(err error) {
 }
 
-func getResourceLinks(ctx context.Context, retryFuncFactory RetryFuncFactory, retrieveTimeout time.Duration, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
+func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	options = append(options, coap.WithAccept(gocoap.AppOcfCbor))
 	var links schema.ResourceLinks
 
-	err := operationWithRetries(ctx, retryFuncFactory, retrieveTimeout, func(opCtx context.Context) error {
-		var codec DiscoverDeviceCodec
-		return client.GetResourceWithCodec(opCtx, "/oic/res", codec, &links, options...)
-	})
+	var codec DiscoverDeviceCodec
+	err := client.GetResourceWithCodec(ctx, "/oic/res", codec, &links, options...)
 
 	if err != nil {
 		return nil, err
@@ -132,13 +105,12 @@ func getResourceLinks(ctx context.Context, retryFuncFactory RetryFuncFactory, re
 func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	addr, client, err := d.findBestClient()
 	if err == nil {
-		links, err := getResourceLinks(ctx, d.retryFuncFactory, d.retrieveTimeout, addr, client, options...)
+		links, err := getResourceLinks(ctx, addr, client, options...)
 		if err != nil {
 			return links, fmt.Errorf("cannot get resource links for %v: %v", d.DeviceID(), err)
 		}
 		return links, nil
 	}
-
 	resLinksCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -161,4 +133,12 @@ func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFun
 
 	return nil, fmt.Errorf("device %v not found", d.DeviceID())
 
+}
+
+func getResourceLink(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	link, ok := links.GetResourceLink(href)
+	if !ok {
+		return link, fmt.Errorf("resource \"%v\" not found", href)
+	}
+	return link, nil
 }

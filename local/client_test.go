@@ -23,6 +23,7 @@ type Client struct {
 
 	DeviceID string
 	*ocf.Device
+	DeviceLinks schema.ResourceLinks
 }
 
 func NewTestSecureClient() (*Client, error) {
@@ -99,12 +100,13 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, _, err := c.GetDevice(timeout, id)
+	device, links, err := c.GetDevice(timeout, id)
 	require.NoError(t, err)
-	err = device.Own(timeout, c.otm)
+	err = device.Own(timeout, links, c.otm)
 	require.NoError(t, err)
 	c.Device = device
 	c.DeviceID = id
+	c.DeviceLinks = links
 }
 
 func (c *Client) Close() {
@@ -113,7 +115,7 @@ func (c *Client) Close() {
 	}
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	err := c.Disown(timeout)
+	err := c.Disown(timeout, c.DeviceLinks)
 	if err != nil {
 		panic(err)
 	}
