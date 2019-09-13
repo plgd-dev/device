@@ -124,7 +124,7 @@ func (d *Device) observeResource(
 	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("cannot observe resource %v: %v", link.Href, err)
 	}
 
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))

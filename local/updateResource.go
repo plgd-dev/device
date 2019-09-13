@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
@@ -29,7 +30,7 @@ func (d *Device) UpdateResourceWithCodec(
 ) error {
 	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 	if err != nil {
-		return err
+		return fmt.Errorf("cannot update resource %v: %v", link.Href, err)
 	}
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
