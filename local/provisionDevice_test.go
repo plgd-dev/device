@@ -22,7 +22,7 @@ func TestProvisioning(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
-	pc, err := c.Provision(ctx)
+	pc, err := c.Provision(ctx, c.DeviceLinks)
 	require.NoError(t, err)
 
 	require.NoError(t, pc.SetAccessControl(ctx, acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
@@ -42,10 +42,12 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert)
 	require.NoError(t, err)
-	d, _, err := c2.GetDevice(ctx, c.DeviceID)
+	d, links, err := c2.GetDevice(ctx, c.DeviceID)
 	require.NoError(t, err)
 	defer d.Close(ctx)
-	err = d.GetResource(ctx, "/light/1", nil)
+	link, ok := links.GetResourceLink("/light/1")
+	require.True(t, ok)
+	err = d.GetResource(ctx, link, nil)
 	require.NoError(t, err)
 }
 
@@ -55,7 +57,7 @@ func TestSettingCloudResource(t *testing.T) {
 	defer c.Close()
 	c.SetUpTestDevice(t)
 
-	pc, err := c.Provision(context.Background())
+	pc, err := c.Provision(context.Background(), c.DeviceLinks)
 	require.NoError(t, err)
 
 	defer func() {

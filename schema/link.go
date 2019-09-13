@@ -2,9 +2,9 @@ package schema
 
 import (
 	"fmt"
-	"net"
 	"net/url"
 	"sort"
+	"strconv"
 	"strings"
 
 	kitNet "github.com/go-ocf/kit/net"
@@ -168,12 +168,22 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 			if err != nil {
 				continue
 			}
-			ip := net.ParseIP(url.Hostname())
+			ip, zone := kitNet.ParseIPZone(url.Hostname())
 			if ip == nil {
 				continue
 			}
-			if ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-				continue
+			if ip.To4() == nil && zone == "" && ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+				if !strings.Contains(addr.URL(), ip.String()) {
+					continue
+				}
+				port, err := strconv.Atoi(url.Port())
+				if err != nil {
+					continue
+				}
+				endpoint = Endpoint{
+					URI:      addr.SetScheme(url.Scheme).SetPort(uint16(port)).URL(),
+					Priority: endpoint.Priority,
+				}
 			}
 			endpoints = append(endpoints, endpoint)
 		}

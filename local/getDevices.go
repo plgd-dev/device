@@ -3,7 +3,6 @@ package local
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -28,25 +27,19 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.retryFuncFactory, c.retrieveTimeout, c.errFunc, c.resolveEndpointsFunc, c.dialOptions, c.discoveryConfiguration, handler))
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.errFunc, c.dialOptions, c.discoveryConfiguration, handler))
 }
 
 func newDiscoveryHandler(
 	tlsConfig *TLSConfig,
-	retryFuncFactory RetryFuncFactory,
-	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
-	resolveEndpointsFunc ResolveEndpointsFunc,
 	dialOptions []coap.DialOptionFunc,
 	discoveryConfiguration DiscoveryConfiguration,
 	h DeviceHandler,
 ) *discoveryHandler {
 	return &discoveryHandler{
 		tlsConfig:              tlsConfig,
-		retryFuncFactory:       retryFuncFactory,
-		retrieveTimeout:        retrieveTimeout,
 		errFunc:                errFunc,
-		resolveEndpointsFunc:   resolveEndpointsFunc,
 		dialOptions:            dialOptions,
 		discoveryConfiguration: discoveryConfiguration,
 		handler:                h}
@@ -54,10 +47,7 @@ func newDiscoveryHandler(
 
 type discoveryHandler struct {
 	tlsConfig              *TLSConfig
-	retryFuncFactory       RetryFuncFactory
-	retrieveTimeout        time.Duration
 	errFunc                ErrFunc
-	resolveEndpointsFunc   ResolveEndpointsFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
 	handler                DeviceHandler
@@ -66,9 +56,9 @@ type discoveryHandler struct {
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
 	conn.Close()
 
-	link, ok := links.GetResourceLink("/oic/d")
-	if !ok {
-		h.handler.Error(fmt.Errorf("cannot get link to /oic/d"))
+	link, err := getResourceLink(links, "/oic/d")
+	if err != nil {
+		h.handler.Error(err)
 		return
 	}
 	deviceID := link.GetDeviceID()
@@ -80,13 +70,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	_, err := h.resolveEndpointsFunc(ctx, "/oic/d", links)
-	if err != nil {
-		h.handler.Error(fmt.Errorf("cannot resolve endpoints for href %v  of %v : %v ", link.Href, deviceID, err))
-		return
-	}
-
-	d := NewDevice(h.tlsConfig, h.retryFuncFactory, h.retrieveTimeout, h.errFunc, h.resolveEndpointsFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes, links)
 
 	h.handler.Handle(ctx, d, links)
 }

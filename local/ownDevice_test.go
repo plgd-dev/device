@@ -28,17 +28,17 @@ func TestClient_ownDevice(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
 
-			device, _, err := c.GetDevice(timeout, deviceId)
+			device, links, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 
-			err = device.Own(timeout, c.otm)
+			err = device.Own(timeout, links, c.otm)
 			if tt.wantErr {
 				require.Error(err)
 			} else {
 				require.NoError(err)
 			}
-			err = device.Disown(timeout)
+			err = device.Disown(timeout, links)
 			if tt.wantErr {
 				require.Error(err)
 			} else {

@@ -222,9 +222,9 @@ func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *gocoap.Client
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	link, ok := links.GetResourceLink("/oic/d")
-	if !ok {
-		h.err = fmt.Errorf("cannot get link to /oic/d")
+	link, err := getResourceLink(links, "/oic/d")
+	if err != nil {
+		h.err = err
 		clientConn.Close()
 		return
 	}
@@ -305,9 +305,48 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema
 	return d.selectOTMViaDiscovery(ctx, selectOwnerTransferMethod)
 }
 
+func (d *Device) setProvisionResourceOwner(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
+	link, err := getResourceLink(links, "/oic/sec/pstat")
+	if err != nil {
+		return err
+	}
+	setOwnerProvisionState := schema.ProvisionStatusUpdateRequest{
+		ResourceOwner: ownerID,
+	}
+
+	/*pstat set owner of resource*/
+	return d.UpdateResource(ctx, link, setOwnerProvisionState, nil)
+}
+
+func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
+	link, err := getResourceLink(links, "/oic/sec/acl2")
+	if err != nil {
+		return err
+	}
+
+	/*acl2 set owner of resource*/
+	setOwnerAcl := acl.UpdateRequest{
+		ResourceOwner: ownerID,
+		AccessControlList: []acl.AccessControl{
+			acl.AccessControl{
+				Permission: acl.AllPermissions,
+				Subject: acl.Subject{
+					Subject_Device: &acl.Subject_Device{
+						DeviceId: ownerID,
+					},
+				},
+				Resources: acl.AllResources,
+			},
+		},
+	}
+
+	return d.UpdateResource(ctx, link, setOwnerAcl, nil)
+}
+
 // Own set ownership of device
 func (d *Device) Own(
 	ctx context.Context,
+	links schema.ResourceLinks,
 	otmClient OTMClient,
 	options ...OwnOption,
 ) error {
@@ -344,14 +383,6 @@ func (d *Device) Own(
 	}
 	if !supportOtm {
 		return fmt.Errorf(errMsg, fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
-	}
-
-	links, err := d.GetResourceLinks(ctx)
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links %v", err))
-	}
-	if len(links) == 0 {
-		return fmt.Errorf(errMsg, "device links are empty")
 	}
 
 	err = d.selectOTM(ctx, otmClient.Type())
@@ -464,39 +495,20 @@ func (d *Device) Own(
 
 	tlsClient.Close()
 
-	setOwnerProvisionState := schema.ProvisionStatusUpdateRequest{
-		ResourceOwner: sdkID,
-	}
-
 	/*pstat set owner of resource*/
-	err = d.UpdateResource(ctx, "/oic/sec/pstat", setOwnerProvisionState, nil)
+	err = d.setProvisionResourceOwner(ctx, links, sdkID)
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %v", err))
 	}
 
 	/*acl2 set owner of resource*/
-	setOwnerAcl := acl.UpdateRequest{
-		ResourceOwner: sdkID,
-		AccessControlList: []acl.AccessControl{
-			acl.AccessControl{
-				Permission: acl.AllPermissions,
-				Subject: acl.Subject{
-					Subject_Device: &acl.Subject_Device{
-						DeviceId: sdkID,
-					},
-				},
-				Resources: acl.AllResources,
-			},
-		},
-	}
-
-	err = d.UpdateResource(ctx, "/oic/sec/acl2", setOwnerAcl, nil)
+	err = d.setOwnerACL(ctx, links, sdkID)
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot update acl resource owner: %v", err))
 	}
 
 	// Provision the device to switch back to normal operation.
-	p, err := d.Provision(ctx)
+	p, err := d.Provision(ctx, links)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

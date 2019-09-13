@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -17,10 +16,7 @@ type Device struct {
 	deviceTypes            []string
 	links                  schema.ResourceLinks
 	tlsConfig              *TLSConfig
-	retryFuncFactory       RetryFuncFactory
-	retrieveTimeout        time.Duration
 	errFunc                ErrFunc
-	resolveEndpointsFunc   ResolveEndpointsFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
 
@@ -43,10 +39,7 @@ type TLSConfig struct {
 
 func NewDevice(
 	tlsConfig *TLSConfig,
-	retryFuncFactory RetryFuncFactory,
-	retrieveTimeout time.Duration,
 	errFunc ErrFunc,
-	resolveEndpointsFunc ResolveEndpointsFunc,
 	dialOptions []coap.DialOptionFunc,
 	discoveryConfiguration DiscoveryConfiguration,
 	deviceID string,
@@ -60,14 +53,11 @@ func NewDevice(
 		deviceTypes:            deviceTypes,
 		links:                  links,
 		tlsConfig:              tlsConfig,
-		retryFuncFactory:       retryFuncFactory,
-		retrieveTimeout:        retrieveTimeout,
 		discoveryConfiguration: discoveryConfiguration,
-		conn:                 pool,
-		errFunc:              errFunc,
-		resolveEndpointsFunc: resolveEndpointsFunc,
-		observations:         &sync.Map{},
-		dialOptions:          dialOptions,
+		conn:                   pool,
+		errFunc:                errFunc,
+		observations:           &sync.Map{},
+		dialOptions:            dialOptions,
 	}
 }
 
@@ -186,20 +176,6 @@ func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endp
 		return nil, fmt.Errorf("%v", errors)
 	}
 	return nil, fmt.Errorf("cannot connect to empty endpoints")
-}
-
-// connect gets or creates a connection based on the resource link
-func (d *Device) connect(ctx context.Context, href string) (*coap.ClientCloseHandler, error) {
-	links, err := d.GetResourceLinks(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("cannot get resource links: %v", err)
-	}
-
-	endpoints, err := d.resolveEndpointsFunc(ctx, href, links)
-	if err != nil {
-		return nil, fmt.Errorf("cannot resolve endpoints: %v", err)
-	}
-	return d.connectToEndpoints(ctx, endpoints)
 }
 
 func (d *Device) DeviceID() string      { return d.deviceID }
