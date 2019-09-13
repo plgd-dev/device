@@ -131,7 +131,7 @@ type testFindDeviceHandler struct {
 }
 
 func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
-	secured, err := d.IsSecured(ctx)
+	secured, err := d.IsSecured(ctx, links)
 	require.NoError(h.t, err)
 	defer d.Close(ctx)
 	if secured != h.secured {
