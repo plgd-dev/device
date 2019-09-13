@@ -78,7 +78,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	link, err := getResourceLink(links, "/oic/d")
+	link, err := GetResourceLink(links, "/oic/d")
 	if err != nil {
 		h.err = err
 		return

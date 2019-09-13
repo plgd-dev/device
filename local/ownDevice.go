@@ -222,7 +222,7 @@ func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *gocoap.Client
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	link, err := getResourceLink(links, "/oic/d")
+	link, err := GetResourceLink(links, "/oic/d")
 	if err != nil {
 		h.err = err
 		clientConn.Close()
@@ -306,7 +306,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema
 }
 
 func (d *Device) setProvisionResourceOwner(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
-	link, err := getResourceLink(links, "/oic/sec/pstat")
+	link, err := GetResourceLink(links, "/oic/sec/pstat")
 	if err != nil {
 		return err
 	}
@@ -319,7 +319,7 @@ func (d *Device) setProvisionResourceOwner(ctx context.Context, links schema.Res
 }
 
 func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
-	link, err := getResourceLink(links, "/oic/sec/acl2")
+	link, err := GetResourceLink(links, "/oic/sec/acl2")
 	if err != nil {
 		return err
 	}

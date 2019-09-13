@@ -35,7 +35,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 		},
 	}
 	const errMsg = "could not start provisioning the device: %v"
-	link, err := getResourceLink(c.links, "/oic/sec/pstat")
+	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -54,7 +54,7 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 		},
 	}
 	const errMsg = "could not finalize provisioning the device: %v"
-	link, err := getResourceLink(c.links, "/oic/sec/pstat")
+	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -81,7 +81,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 		},
 	}
 	const errMsg = "could not add certificate to the device: %v"
-	link, err := getResourceLink(c.links, "/oic/sec/cred")
+	link, err := GetResourceLink(c.links, "/oic/sec/cred")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -136,7 +136,7 @@ func (c *ProvisioningClient) SetAccessControl(
 		},
 	}
 	const errMsg = "could not update ACL of the device: %v"
-	link, err := getResourceLink(c.links, "/oic/sec/acl2")
+	link, err := GetResourceLink(c.links, "/oic/sec/acl2")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

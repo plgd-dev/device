@@ -74,7 +74,7 @@ func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.Client
 	if err != nil {
 		return
 	}
-	link, err := getResourceLink(links, "/oic/d")
+	link, err := GetResourceLink(links, "/oic/d")
 	if err != nil {
 		return
 	}
@@ -135,7 +135,7 @@ func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFun
 
 }
 
-func getResourceLink(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+func GetResourceLink(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 	link, ok := links.GetResourceLink(href)
 	if !ok {
 		return link, fmt.Errorf("resource \"%v\" not found", href)
