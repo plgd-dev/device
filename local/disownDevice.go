@@ -34,7 +34,7 @@ func (d *Device) Disown(
 		},
 	}
 
-	link, err := getResourceLink(links, "/oic/sec/pstat")
+	link, err := GetResourceLink(links, "/oic/sec/pstat")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

@@ -56,7 +56,7 @@ type discoveryHandler struct {
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
 	conn.Close()
 
-	link, err := getResourceLink(links, "/oic/d")
+	link, err := GetResourceLink(links, "/oic/d")
 	if err != nil {
 		h.handler.Error(err)
 		return
