@@ -284,11 +284,11 @@ func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferM
 	return fmt.Errorf("device not found")
 }
 
-func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod, links schema.ResourceLinks) error {
 	var coapAddr kitNet.Addr
 	var coapAddrFound bool
 	var err error
-	for _, link := range d.links {
+	for _, link := range links {
 		if coapAddr, err = link.GetUDPAddr(); err == nil {
 			coapAddrFound = true
 			break
@@ -385,7 +385,7 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
-	err = d.selectOTM(ctx, otmClient.Type())
+	err = d.selectOTM(ctx, otmClient.Type(), links)
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
 	}

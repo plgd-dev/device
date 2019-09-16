@@ -14,7 +14,6 @@ import (
 type Device struct {
 	deviceID               string
 	deviceTypes            []string
-	links                  schema.ResourceLinks
 	tlsConfig              *TLSConfig
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
@@ -44,20 +43,18 @@ func NewDevice(
 	discoveryConfiguration DiscoveryConfiguration,
 	deviceID string,
 	deviceTypes []string,
-	links schema.ResourceLinks,
 ) *Device {
 	pool := make(map[string]*coap.ClientCloseHandler)
 
 	return &Device{
 		deviceID:               deviceID,
 		deviceTypes:            deviceTypes,
-		links:                  links,
 		tlsConfig:              tlsConfig,
 		discoveryConfiguration: discoveryConfiguration,
-		conn:                   pool,
-		errFunc:                errFunc,
-		observations:           &sync.Map{},
-		dialOptions:            dialOptions,
+		conn:         pool,
+		errFunc:      errFunc,
+		observations: &sync.Map{},
+		dialOptions:  dialOptions,
 	}
 }
 

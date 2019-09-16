@@ -70,7 +70,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes, links)
+	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes)
 
 	h.handler.Handle(ctx, d, links)
 }
