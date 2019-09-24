@@ -1,41 +1,47 @@
-default: test
+SHELL = /bin/bash
+SERVICE_NAME = $(notdir $(CURDIR))
+LATEST_TAG = vnext
+VERSION_TAG = vnext-$(shell git rev-parse --short=7 --verify HEAD)
+DOCKER_NET = devsimnet-${TRAVIS_JOB_ID}-${TRAVIS_BUILD_ID}
 
-dep:
-	dep ensure -v -vendor-only
-.PHONY: dep
+default: build
 
-secure:
-	go generate ./vendor/github.com/go-ocf/kit/security
-.PHONY: secure
+define build-docker-image
+	docker build \
+		--network=host \
+		--tag ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
+		--tag ocfcloud/$(SERVICE_NAME):$(LATEST_TAG) \
+		--target $(1) \
+		.
+endef
 
-insecure:
-	OCF_INSECURE=TRUE go generate ./vendor/github.com/go-ocf/kit/security
-.PHONY: insecure
+build-testcontainer:
+	$(call build-docker-image,build)
 
-simulator: simulator.stop
+build: build-testcontainer
+
+test: clean build-testcontainer
+	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
+		sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'; \
+	fi
 	docker build ./test --network=host -t device-simulator --target service
 	docker build ./test -f ./test/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
-	docker network create devsimnet
-	docker run -d --name devsim --network=devsimnet device-simulator /device-simulator
-	docker run -d --name devsim-insecure --network=devsimnet device-simulator-insecure /device-simulator
-.PHONY: simulator
+	docker network create $(DOCKER_NET)
+	docker run -d --name devsim --network=$(DOCKER_NET) device-simulator /device-simulator
+	docker run -d --name devsim-insecure --network=$(DOCKER_NET) device-simulator-insecure /device-simulator
+	docker run \
+		--network=$(DOCKER_NET) \
+		--mount type=bind,source="$(shell pwd)",target=/shared \
+		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
+		go test -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
+	echo "---DEVSIM---"
+	docker logs devsim
+	echo "---DEVSIM-INSECURE---"
+	docker logs devsim-insecure
 
-simulator.stop:
+clean:
 	docker rm -f devsim || true
 	docker rm -f devsim-insecure || true
-	docker network rm devsimnet || true
-.PHONY: simulator.stop
+	docker network rm $(DOCKER_NET) || true
 
-build: build
-	docker build . --network=host -t sdk:build
-.PHONY: build
-
-docker: build simulator
-	docker run -it --rm --mount type=bind,source="$(shell pwd)",target=/go/src/github.com/go-ocf/sdk --network=devsimnet sdk:build
-
-.PHONY: docker
-
-test: build simulator
-	docker run --network=devsimnet sdk:build go test ./...
-.PHONY: test
-
+.PHONY: build-testcontainer build test clean
