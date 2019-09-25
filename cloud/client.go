@@ -3,6 +3,8 @@ package cloud
 import (
 	"context"
 
+	"github.com/go-ocf/resource-aggregate/cqrs"
+
 	"github.com/go-ocf/grpc-gateway/pb"
 	"github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/kit/strings"
@@ -60,7 +62,7 @@ func (c *Client) RetrieveResourcesByType(
 		resourceTypes = append(resourceTypes, c.Type)
 	}
 
-	it := c.RetrieveResources(ctx, token, deviceIDs, resourceTypes...)
+	it := c.RetrieveResources(ctx, token, nil, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceValue
 	for it.Next(&v) {
@@ -88,9 +90,61 @@ func (c *Client) GetResourceLinks(ctx context.Context, token string, deviceIDs [
 	return grpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
-func (c *Client) RetrieveResources(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
+func (c *Client) RetrieveResources(ctx context.Context, token string, resourceIDs []*pb.ResourceId, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	auth := pb.AuthorizationContext{AccessToken: token}
 	ctx = grpc.CtxWithToken(ctx, token)
-	r := pb.RetrieveResourcesValuesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
+	r := pb.RetrieveResourcesValuesRequest{ResourceIdsFilter: resourceIDs, DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes, AuthorizationContext: &auth}
 	return grpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
+}
+
+type ResourceIDCallback struct {
+	ResourceID *pb.ResourceId
+	Callback   func(pb.ResourceValue)
+}
+
+func MakeResourceIDCallback(deviceID, href string, callback func(pb.ResourceValue)) ResourceIDCallback {
+	return ResourceIDCallback{ResourceID: &pb.ResourceId{
+		DeviceId:         deviceID,
+		ResourceLinkHref: href,
+	}, Callback: callback}
+}
+
+func (c *Client) RetrieveResourcesByResourceIDs(
+	ctx context.Context,
+	token string,
+	resourceIDsCallbacks ...ResourceIDCallback,
+) error {
+	tc := make(map[string]func(pb.ResourceValue), len(resourceIDsCallbacks))
+	resourceIDs := make([]*pb.ResourceId, 0, len(resourceIDsCallbacks))
+	for _, c := range resourceIDsCallbacks {
+		tc[cqrs.MakeResourceId(c.ResourceID.DeviceId, c.ResourceID.ResourceLinkHref)] = c.Callback
+		resourceIDs = append(resourceIDs, c.ResourceID)
+	}
+
+	it := c.RetrieveResources(ctx, token, resourceIDs, nil)
+	defer it.Close()
+	var v pb.ResourceValue
+	for it.Next(&v) {
+		c, ok := tc[cqrs.MakeResourceId(v.GetResourceId().GetDeviceId(), v.GetResourceId().GetResourceLinkHref())]
+		if ok {
+			c(v)
+		}
+	}
+	return it.Err
+}
+
+func (c *Client) UpdateResource(
+	ctx context.Context,
+	token string,
+	resourceID pb.ResourceId,
+	content pb.Content,
+) (*pb.UpdateResourceValuesResponse, error) {
+	auth := pb.AuthorizationContext{AccessToken: token}
+	ctx = grpc.CtxWithToken(ctx, token)
+	r := pb.UpdateResourceValuesRequest{
+		ResourceId:           &resourceID,
+		Content:              &content,
+		AuthorizationContext: &auth,
+	}
+	return c.gateway.UpdateResourcesValues(ctx, &r)
 }

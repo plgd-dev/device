@@ -19,6 +19,19 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:820b387f7dcd4db6860f1c224a79ad5275ea9c449dcdd1f43ce0039c5f7dfff2"
+  name = "github.com/go-ocf/cqrs"
+  packages = [
+    ".",
+    "event",
+    "eventbus",
+    "eventstore",
+  ]
+  pruneopts = "UT"
+  revision = "3c501311326cc4549fceb9c5af6dd97344dc89ea"
+
+[[projects]]
+  branch = "master"
   digest = "1:c2c15c33cf57ca4a10d1f25a1cbea122c8919b483bd8aa375f796ed73c29fe39"
   name = "github.com/go-ocf/go-coap"
   packages = [
@@ -34,16 +47,19 @@
   name = "github.com/go-ocf/grpc-gateway"
   packages = ["pb"]
   pruneopts = "UT"
-  revision = "df9a35b4d130410e7717d62566c9dbf62edb8955"
+  revision = "bdd3f480febf9a77e30e9e61e838f4adc591cc6b"
 
 [[projects]]
   branch = "master"
-  digest = "1:26c64447e87312aab86e4f0e355e7080947365186d67f4b242cf96d0b4d7fd66"
+  digest = "1:a784caedcb872b9d4f6fca90b631c3fbfd69edf66afa3e7fb60a9a008245acc3"
   name = "github.com/go-ocf/kit"
   packages = [
     "codec/cbor",
     "codec/json",
     "codec/ocf",
+    "cqrs",
+    "cqrs/pb",
+    "http",
     "log",
     "net",
     "net/coap",
@@ -55,6 +71,18 @@
   ]
   pruneopts = "UT"
   revision = "c977e9454f349d44ce4b7f93ad79af33483e008c"
+
+[[projects]]
+  branch = "master"
+  digest = "1:6530ad7285ba565fa47c9d1ecdeb23b6d7ebcb9f3fb6f17601aad3de3a54d9bf"
+  name = "github.com/go-ocf/resource-aggregate"
+  packages = [
+    "cqrs",
+    "cqrs/events",
+    "pb",
+  ]
+  pruneopts = "UT"
+  revision = "a33905068656b656644231fc7fd9bdd8bf7e6aca"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -91,6 +119,14 @@
   version = "v1.3.2"
 
 [[projects]]
+  branch = "master"
+  digest = "1:700b1e527116332847452edf9febc0c252c026785a8c3cfa3f68a8eeffb09ee8"
+  name = "github.com/golang/snappy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "ff6b7dc882cf4cfba7ee0b9f7dcc1ac096c554aa"
+
+[[projects]]
   digest = "1:9b4853ee7eda0a9904a81c8d2e5b497b4ac7a6c5c8bbb03b867e541bae1f45cf"
   name = "github.com/grpc-ecosystem/go-grpc-middleware"
   packages = [
@@ -101,6 +137,26 @@
   pruneopts = "UT"
   revision = "dd15ed025b6054e5253963e355991f3070d4e593"
   version = "v1.1.0"
+
+[[projects]]
+  digest = "1:caa1da085cc12cd39d3ddb267434902f621050e1b46f7e9477b2b933df680193"
+  name = "github.com/klauspost/compress"
+  packages = [
+    "flate",
+    "gzip",
+    "zlib",
+  ]
+  pruneopts = "UT"
+  revision = "dbe23c5a61c1539a54e8a2927ca1a2e7bcc92caf"
+  version = "v1.8.4"
+
+[[projects]]
+  digest = "1:923c4d7194b42e054b2eb8a6c62824ac55e23ececc1c7e48d4da69c971c55954"
+  name = "github.com/klauspost/cpuid"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "05a8198c0f5a27739aec358908d7e12c64ce6eb7"
+  version = "v1.2.1"
 
 [[projects]]
   digest = "1:aea1c53d4757225e70d19ddd87e7843a25897b3c4f3901a2ab07e04586a5b76a"
@@ -171,6 +227,26 @@
   version = "v1.1.7"
 
 [[projects]]
+  digest = "1:c468422f334a6b46a19448ad59aaffdfc0a36b08fdcc1c749a0b29b6453d7e59"
+  name = "github.com/valyala/bytebufferpool"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "e746df99fe4a3986f4d4f79e13c1e0117ce9c2f7"
+  version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:56b897e231882e1a4a7cebdd7e1a1175eb9a99876241f7036612aa6aa4d0b143"
+  name = "github.com/valyala/fasthttp"
+  packages = [
+    ".",
+    "fasthttputil",
+    "stackless",
+  ]
+  pruneopts = "UT"
+  revision = "be93fbd21b9cb2641736175bb76c7d929079141c"
+
+[[projects]]
   digest = "1:a5158647b553c61877aa9ae74f4015000294e47981e6b8b07525edcbb0747c81"
   name = "go.uber.org/atomic"
   packages = ["."]
@@ -231,14 +307,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f98730f2c29ef11e0cfb3e9df50bbdda8682e584f00e789e93258874fdb5d12d"
+  digest = "1:84aa29f57ad15b7344340348606996a4251bca7b1f8c5fa5370eea3a44e8ed07"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "98129a5cf4a0207f7e2202f458737deeaca0514a"
+  revision = "2837fb4f24fee082b8c39b1a6dc9e0ed9f3fbd4f"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -336,6 +412,7 @@
     "github.com/go-ocf/kit/net/grpc",
     "github.com/go-ocf/kit/security/signer",
     "github.com/go-ocf/kit/strings",
+    "github.com/go-ocf/resource-aggregate/cqrs",
     "github.com/gofrs/uuid",
     "github.com/stretchr/testify/require",
   ]
