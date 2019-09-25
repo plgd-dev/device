@@ -34,7 +34,7 @@
   name = "github.com/go-ocf/grpc-gateway"
   packages = ["pb"]
   pruneopts = "UT"
-  revision = "df9a35b4d130410e7717d62566c9dbf62edb8955"
+  revision = "bdd3f480febf9a77e30e9e61e838f4adc591cc6b"
 
 [[projects]]
   branch = "master"
@@ -55,6 +55,14 @@
   ]
   pruneopts = "UT"
   revision = "c977e9454f349d44ce4b7f93ad79af33483e008c"
+
+[[projects]]
+  digest = "1:7ec90c0121d728513363c0a8c905376496c3f705acf8bc92fe6514f2126f7ab3"
+  name = "github.com/go-ocf/resource-aggregate"
+  packages = ["cqrs"]
+  pruneopts = "UT"
+  revision = "fe109e9234def01b607d8d2d4223be436fbfe90a"
+  version = "v0.1-alpha-kistler.0"
 
 [[projects]]
   digest = "1:bed9d72d596f94e65fff37f4d6c01398074a6bb1c3f3ceff963516bd01db6ff5"
@@ -231,14 +239,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f98730f2c29ef11e0cfb3e9df50bbdda8682e584f00e789e93258874fdb5d12d"
+  digest = "1:84aa29f57ad15b7344340348606996a4251bca7b1f8c5fa5370eea3a44e8ed07"
   name = "golang.org/x/sys"
   packages = [
     "unix",
     "windows",
   ]
   pruneopts = "UT"
-  revision = "98129a5cf4a0207f7e2202f458737deeaca0514a"
+  revision = "2837fb4f24fee082b8c39b1a6dc9e0ed9f3fbd4f"
 
 [[projects]]
   digest = "1:8d8faad6b12a3a4c819a3f9618cb6ee1fa1cfc33253abeeea8b55336721e3405"
@@ -336,6 +344,7 @@
     "github.com/go-ocf/kit/net/grpc",
     "github.com/go-ocf/kit/security/signer",
     "github.com/go-ocf/kit/strings",
+    "github.com/go-ocf/resource-aggregate/cqrs",
     "github.com/gofrs/uuid",
     "github.com/stretchr/testify/require",
   ]
