@@ -66,6 +66,19 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 	return nil
 }
 
+func (c *ProvisioningClient) AddCredential(ctx context.Context, credential schema.CredentialUpdateRequest) error {
+	const errMsg = "could not add credential to the device: %v"
+	link, err := GetResourceLink(c.links, "/oic/sec/cred")
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+	err = c.UpdateResource(ctx, link, credential, nil)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+	return nil
+}
+
 func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subject string, cert *x509.Certificate) error {
 	setCaCredential := schema.CredentialUpdateRequest{
 		Credentials: []schema.Credential{
@@ -80,16 +93,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 			},
 		},
 	}
-	const errMsg = "could not add certificate to the device: %v"
-	link, err := GetResourceLink(c.links, "/oic/sec/cred")
-	if err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	err = c.UpdateResource(ctx, link, setCaCredential, nil)
-	if err != nil {
-		return fmt.Errorf(errMsg, err)
-	}
-	return nil
+	return c.AddCredential(ctx, setCaCredential)
 }
 
 func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.ConfigurationUpdateRequest) error {
