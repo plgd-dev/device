@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
+	"sync/atomic"
 
 	"github.com/go-ocf/grpc-gateway/pb"
 	"github.com/go-ocf/kit/net/grpc"
@@ -21,6 +23,9 @@ type ResourceContentChangedSubscription struct {
 	client         pb.GrpcGateway_SubscribeForEventsClient
 	subscriptionID string
 	handle         ResourceContentChangedSubscriptionHandler
+	wg             sync.WaitGroup
+
+	canceled uint32
 }
 
 // NewResourceContentChangedSubscription creates new resource content changed subscription.
@@ -64,6 +69,7 @@ func (c *Client) NewResourceContentChangedSubscription(ctx context.Context, toke
 		handle:         handle,
 		subscriptionID: ev.GetSubscriptionId(),
 	}
+	sub.wg.Add(1)
 	go sub.runRecv()
 
 	return sub, nil
@@ -71,7 +77,15 @@ func (c *Client) NewResourceContentChangedSubscription(ctx context.Context, toke
 
 // Cancel cancels subscription.
 func (s *ResourceContentChangedSubscription) Cancel() error {
-	return s.client.CloseSend()
+	if !atomic.CompareAndSwapUint32(&s.canceled, s.canceled, 1) {
+		return fmt.Errorf("subscription is already cancelled")
+	}
+	err := s.client.CloseSend()
+	if err != nil {
+		return err
+	}
+	s.wg.Wait()
+	return nil
 }
 
 // ID returns subscription id.
@@ -80,6 +94,7 @@ func (s *ResourceContentChangedSubscription) ID() string {
 }
 
 func (s *ResourceContentChangedSubscription) runRecv() {
+	defer s.wg.Done()
 	for {
 		ev, err := s.client.Recv()
 		if err == io.EOF {
