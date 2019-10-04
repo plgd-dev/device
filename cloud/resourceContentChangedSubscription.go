@@ -90,6 +90,15 @@ func (s *ResourceContentChangedSubscription) runRecv() {
 			s.handle.Error(err)
 			return
 		}
+		cancel := ev.GetSubscriptionCanceled()
+		if cancel != nil {
+			reason := cancel.GetReason()
+			if reason == "" {
+				s.handle.OnClose()
+			}
+			s.handle.Error(fmt.Errorf(reason))
+			return
+		}
 		ct := ev.GetResourceContentChanged()
 		if ct == nil {
 			s.Cancel()
