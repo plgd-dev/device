@@ -78,7 +78,7 @@ func (c *Client) NewResourceContentChangedSubscription(ctx context.Context, toke
 // Cancel cancels subscription.
 func (s *ResourceContentChangedSubscription) Cancel() error {
 	if !atomic.CompareAndSwapUint32(&s.canceled, s.canceled, 1) {
-		return fmt.Errorf("subscription is already cancelled")
+		return nil
 	}
 	err := s.client.CloseSend()
 	if err != nil {
