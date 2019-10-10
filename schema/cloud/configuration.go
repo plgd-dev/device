@@ -10,7 +10,7 @@ type Configuration struct {
 	Interfaces            []string `codec:"if"`
 	Name                  string   `codec:"n"`
 	AuthorizationProvider string   `codec:"apn"`
-	CloudId               string   `codec:"sid"`
+	CloudID               string   `codec:"sid"`
 	URL                   string   `codec:"cis"`
 	LastErrorCode         int      `codec:"clec"`
 }
@@ -19,4 +19,5 @@ type ConfigurationUpdateRequest struct {
 	AuthorizationProvider string `codec:"apn"`
 	URL                   string `codec:"cis"`
 	AuthorizationCode     string `codec:"at"`
+	CloudID               string `codec:"sid"`
 }
