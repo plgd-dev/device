@@ -40,12 +40,13 @@ func (c *Client) GetResourceLinksViaCallback(ctx context.Context, token string, 
 	return it.Err
 }
 
+// TypeCallback calls callback for type, if callback returns false iterator over resource values will be terminated.
 type TypeCallback struct {
 	Type     string
-	Callback func(pb.ResourceValue)
+	Callback func(pb.ResourceValue) bool
 }
 
-func MakeTypeCallback(resourceType string, callback func(pb.ResourceValue)) TypeCallback {
+func MakeTypeCallback(resourceType string, callback func(pb.ResourceValue) bool) TypeCallback {
 	return TypeCallback{Type: resourceType, Callback: callback}
 }
 
@@ -55,7 +56,7 @@ func (c *Client) RetrieveResourcesByType(
 	deviceIDs []string,
 	typeCallbacks ...TypeCallback,
 ) error {
-	tc := make(map[string]func(pb.ResourceValue), len(typeCallbacks))
+	tc := make(map[string]func(pb.ResourceValue) bool, len(typeCallbacks))
 	resourceTypes := make([]string, 0, len(typeCallbacks))
 	for _, c := range typeCallbacks {
 		tc[c.Type] = c.Callback
@@ -68,7 +69,9 @@ func (c *Client) RetrieveResourcesByType(
 	for it.Next(&v) {
 		for _, rt := range resourceTypes {
 			if strings.SliceContains(v.Types, rt) {
-				tc[rt](v)
+				if !tc[rt](v) {
+					return nil
+				}
 				break
 			}
 		}
