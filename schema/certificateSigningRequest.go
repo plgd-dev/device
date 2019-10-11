@@ -13,5 +13,5 @@ type CertificateEncoding string
 
 const (
 	CertificateEncoding_PEM CertificateEncoding = "oic.sec.encoding.pem"
-	CertificateEncoding_DER CertificateEncoding = "oic.sec.encoding.der"
+	CertificateEncoding_DER CertificateEncoding = "oic.sec.encoding.der" // iotivity-lite doesn't support it
 )
