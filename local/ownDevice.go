@@ -118,8 +118,8 @@ func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context
 					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 					Usage:   schema.CredentialUsage_TRUST_CA,
 					PublicData: schema.CredentialPublicData{
-						Data:     string(ca.Raw),
-						Encoding: schema.CredentialPublicDataEncoding_DER,
+						Data:     string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
+						Encoding: schema.CredentialPublicDataEncoding_PEM,
 					},
 				},
 			},
