@@ -59,9 +59,6 @@ func (c *Client) NewResourceSubscription(ctx context.Context, token string, reso
 				FilterEvents: filterEvents,
 			},
 		},
-		AuthorizationContext: &pb.AuthorizationContext{
-			AccessToken: token,
-		},
 	})
 	if err != nil {
 		return nil, err
