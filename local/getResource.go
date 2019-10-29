@@ -37,11 +37,11 @@ func (d *Device) GetResourceWithCodec(
 }
 
 // GetResources resolves URIs and returns an iterator for querying resources of given resource types.
-func (d *Device) GetResources(ctx context.Context, links schema.ResourceLinks) (*ResourceIterator, error) {
+func (d *Device) GetResources(ctx context.Context, links schema.ResourceLinks) *ResourceIterator {
 	return &ResourceIterator{
 		device: d,
 		links:  links,
-	}, nil
+	}
 }
 
 // ResourceIterator queries resource values.
@@ -65,7 +65,7 @@ type ResourceIterator struct {
 //	if it.Err != nil {
 //	}
 func (it *ResourceIterator) Next(ctx context.Context, v interface{}) bool {
-	if it.i >= len(it.links) {
+	if it.Err != nil || it.i >= len(it.links) {
 		return false
 	}
 
