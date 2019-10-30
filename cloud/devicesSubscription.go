@@ -51,7 +51,7 @@ type DevicesSubscription struct {
 }
 
 // NewDevicesSubscription creates new devices subscriptions to listen events: device online, device offline, device registered, device unregistered.
-func (c *Client) NewDevicesSubscription(ctx context.Context, token string, resourceID pb.ResourceId, handle SubscriptionHandler) (*DevicesSubscription, error) {
+func (c *Client) NewDevicesSubscription(ctx context.Context, token string, handle SubscriptionHandler) (*DevicesSubscription, error) {
 	var deviceOnlineHandler DeviceOnlineHandler
 	var deviceOfflineHandler DeviceOfflineHandler
 	var deviceRegisteredHandler DeviceRegisteredHandler
