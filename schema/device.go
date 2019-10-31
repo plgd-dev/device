@@ -1,7 +1,7 @@
 package schema
 
 // Device info.
-// https://github.com/openconnectivityfoundation/core/blob/master/schemas/oic.wk.d-schema.json
+// https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.d.swagger.json
 type Device struct {
 	ID               string            `codec:"di"`
 	ResourceTypes    []string          `codec:"rt"`

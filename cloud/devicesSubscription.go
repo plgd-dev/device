@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/go-ocf/grpc-gateway/pb"
-	"github.com/go-ocf/kit/net/grpc"
 )
 
 // DeviceOnlineHandler handler of events.
@@ -51,7 +50,7 @@ type DevicesSubscription struct {
 }
 
 // NewDevicesSubscription creates new devices subscriptions to listen events: device online, device offline, device registered, device unregistered.
-func (c *Client) NewDevicesSubscription(ctx context.Context, token string, handle SubscriptionHandler) (*DevicesSubscription, error) {
+func (c *Client) NewDevicesSubscription(ctx context.Context, handle SubscriptionHandler) (*DevicesSubscription, error) {
 	var deviceOnlineHandler DeviceOnlineHandler
 	var deviceOfflineHandler DeviceOfflineHandler
 	var deviceRegisteredHandler DeviceRegisteredHandler
@@ -77,7 +76,6 @@ func (c *Client) NewDevicesSubscription(ctx context.Context, token string, handl
 	if deviceOnlineHandler == nil && deviceOfflineHandler == nil && deviceRegisteredHandler == nil && deviceUnregisteredHandler == nil {
 		return nil, fmt.Errorf("invalid handler - it's supports: ResourceContentChangedHandler")
 	}
-	ctx = grpc.CtxWithToken(ctx, token)
 	client, err := c.gateway.SubscribeForEvents(ctx)
 	if err != nil {
 		return nil, err

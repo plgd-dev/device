@@ -2,10 +2,13 @@ package cloud
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-ocf/resource-aggregate/cqrs"
 
 	"github.com/go-ocf/grpc-gateway/pb"
+	codecOcf "github.com/go-ocf/kit/codec/ocf"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/kit/strings"
 )
@@ -20,8 +23,8 @@ type Client struct {
 	gateway pb.GrpcGatewayClient
 }
 
-func (c *Client) GetDevicesViaCallback(ctx context.Context, token string, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
-	it := c.GetDevices(ctx, token, deviceIDs, resourceTypes...)
+func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
+	it := c.GetDevices(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.Device
 	for it.Next(&v) {
@@ -30,8 +33,8 @@ func (c *Client) GetDevicesViaCallback(ctx context.Context, token string, device
 	return it.Err
 }
 
-func (c *Client) GetResourceLinksViaCallback(ctx context.Context, token string, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
-	it := c.GetResourceLinks(ctx, token, deviceIDs, resourceTypes...)
+func (c *Client) GetResourceLinksViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
+	it := c.GetResourceLinks(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceLink
 	for it.Next(&v) {
@@ -51,7 +54,6 @@ func MakeTypeCallback(resourceType string, callback func(pb.ResourceValue)) Type
 
 func (c *Client) RetrieveResourcesByType(
 	ctx context.Context,
-	token string,
 	deviceIDs []string,
 	typeCallbacks ...TypeCallback,
 ) error {
@@ -62,7 +64,7 @@ func (c *Client) RetrieveResourcesByType(
 		resourceTypes = append(resourceTypes, c.Type)
 	}
 
-	it := c.RetrieveResources(ctx, token, nil, deviceIDs, resourceTypes...)
+	it := c.RetrieveResources(ctx, nil, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceValue
 	for it.Next(&v) {
@@ -76,20 +78,17 @@ func (c *Client) RetrieveResourcesByType(
 	return it.Err
 }
 
-func (c *Client) GetDevices(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	ctx = grpc.CtxWithToken(ctx, token)
+func (c *Client) GetDevices(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.GetDevices(ctx, &r))
 }
 
-func (c *Client) GetResourceLinks(ctx context.Context, token string, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	ctx = grpc.CtxWithToken(ctx, token)
+func (c *Client) GetResourceLinks(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
-func (c *Client) RetrieveResources(ctx context.Context, token string, resourceIDs []*pb.ResourceId, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
-	ctx = grpc.CtxWithToken(ctx, token)
+func (c *Client) RetrieveResources(ctx context.Context, resourceIDs []*pb.ResourceId, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.RetrieveResourcesValuesRequest{ResourceIdsFilter: resourceIDs, DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
 }
@@ -108,7 +107,6 @@ func MakeResourceIDCallback(deviceID, href string, callback func(pb.ResourceValu
 
 func (c *Client) RetrieveResourcesByResourceIDs(
 	ctx context.Context,
-	token string,
 	resourceIDsCallbacks ...ResourceIDCallback,
 ) error {
 	tc := make(map[string]func(pb.ResourceValue), len(resourceIDsCallbacks))
@@ -118,7 +116,7 @@ func (c *Client) RetrieveResourcesByResourceIDs(
 		resourceIDs = append(resourceIDs, c.ResourceID)
 	}
 
-	it := c.RetrieveResources(ctx, token, resourceIDs, nil)
+	it := c.RetrieveResources(ctx, resourceIDs, nil)
 	defer it.Close()
 	var v pb.ResourceValue
 	for it.Next(&v) {
@@ -130,16 +128,54 @@ func (c *Client) RetrieveResourcesByResourceIDs(
 	return it.Err
 }
 
-func (c *Client) UpdateResource(
+func (c *Client) UpdateResourceWithContent(
 	ctx context.Context,
-	token string,
 	resourceID pb.ResourceId,
 	content pb.Content,
 ) (*pb.UpdateResourceValuesResponse, error) {
-	ctx = grpc.CtxWithToken(ctx, token)
 	r := pb.UpdateResourceValuesRequest{
 		ResourceId: &resourceID,
 		Content:    &content,
 	}
 	return c.gateway.UpdateResourcesValues(ctx, &r)
+}
+
+// UpdateResourceWithCodec update resource with codec.
+func (c *Client) UpdateResourceWithCodec(
+	ctx context.Context,
+	resourceID pb.ResourceId,
+	interfaceFilter string,
+	codec kitNetCoap.Codec,
+	request interface{},
+	response interface{},
+) error {
+	if interfaceFilter != "" {
+		return fmt.Errorf("interface is not supported")
+	}
+	data, err := codec.Encode(request)
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.UpdateResourceWithContent(ctx, resourceID, pb.Content{
+		Data:        data,
+		ContentType: codec.ContentFormat().String(),
+	})
+	if err != nil {
+		return fmt.Errorf("cannot update resource %+v: %v", resourceID, err)
+	}
+
+	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)
+}
+
+// UpdateResource updates content vic OCF-CBOR format.
+func (c *Client) UpdateResource(
+	ctx context.Context,
+	resourceID pb.ResourceId,
+	interfaceFilter string,
+	request interface{},
+	response interface{},
+) error {
+	var codec codecOcf.VNDOCFCBORCodec
+	return c.UpdateResourceWithCodec(ctx, resourceID, interfaceFilter, codec, request, response)
 }
