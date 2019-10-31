@@ -13,7 +13,7 @@ import (
 	"github.com/go-ocf/kit/strings"
 )
 
-// NewClient constructs a new OCF cloud client.
+// NewClient constructs a new OCF cloud client. For every call there is expected jwt token for grpc stored in context.
 func NewClient(gateway pb.GrpcGatewayClient) *Client {
 	return &Client{gateway: gateway}
 }
@@ -23,6 +23,7 @@ type Client struct {
 	gateway pb.GrpcGatewayClient
 }
 
+// GetDevicesViaCallback returns devices. JWT token must be stored in context for grpc call.
 func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
 	it := c.GetDevices(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
@@ -33,6 +34,7 @@ func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceT
 	return it.Err
 }
 
+// GetResourceLinksViaCallback returns resource links of devices. JWT token must be stored in context for grpc call.
 func (c *Client) GetResourceLinksViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
 	it := c.GetResourceLinks(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
@@ -52,6 +54,7 @@ func MakeTypeCallback(resourceType string, callback func(pb.ResourceValue)) Type
 	return TypeCallback{Type: resourceType, Callback: callback}
 }
 
+// RetrieveResourcesByType gets contents of resources by resource types. JWT token must be stored in context for grpc call.
 func (c *Client) RetrieveResourcesByType(
 	ctx context.Context,
 	deviceIDs []string,
@@ -78,16 +81,19 @@ func (c *Client) RetrieveResourcesByType(
 	return it.Err
 }
 
+// GetDevices gets devices. JWT token must be stored in context for grpc call.
 func (c *Client) GetDevices(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.GetDevices(ctx, &r))
 }
 
+// GetResourceLinks gets devices. JWT token must be stored in context for grpc call.
 func (c *Client) GetResourceLinks(ctx context.Context, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
+// RetrieveResources gets resources contents. JWT token must be stored in context for grpc call.
 func (c *Client) RetrieveResources(ctx context.Context, resourceIDs []*pb.ResourceId, deviceIDs []string, resourceTypes ...string) *grpc.Iterator {
 	r := pb.RetrieveResourcesValuesRequest{ResourceIdsFilter: resourceIDs, DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return grpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
@@ -105,6 +111,7 @@ func MakeResourceIDCallback(deviceID, href string, callback func(pb.ResourceValu
 	}, Callback: callback}
 }
 
+// RetrieveResourcesByResourceIDs gets resources contents by resourceIDs. JWT token must be stored in context for grpc call.
 func (c *Client) RetrieveResourcesByResourceIDs(
 	ctx context.Context,
 	resourceIDsCallbacks ...ResourceIDCallback,
@@ -128,6 +135,7 @@ func (c *Client) RetrieveResourcesByResourceIDs(
 	return it.Err
 }
 
+// UpdateResourceWithContent updates resource with content. JWT token must be stored in context for grpc call.
 func (c *Client) UpdateResourceWithContent(
 	ctx context.Context,
 	resourceID pb.ResourceId,
@@ -140,7 +148,7 @@ func (c *Client) UpdateResourceWithContent(
 	return c.gateway.UpdateResourcesValues(ctx, &r)
 }
 
-// UpdateResourceWithCodec update resource with codec.
+// UpdateResourceWithCodec update resource with codec. JWT token must be stored in context for grpc call.
 func (c *Client) UpdateResourceWithCodec(
 	ctx context.Context,
 	resourceID pb.ResourceId,
@@ -168,7 +176,7 @@ func (c *Client) UpdateResourceWithCodec(
 	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)
 }
 
-// UpdateResource updates content vic OCF-CBOR format.
+// UpdateResource updates content vic OCF-CBOR format. JWT token must be stored in context for grpc call.
 func (c *Client) UpdateResource(
 	ctx context.Context,
 	resourceID pb.ResourceId,

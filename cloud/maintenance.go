@@ -9,6 +9,7 @@ import (
 	"github.com/go-ocf/sdk/schema/maintenance"
 )
 
+// Reboot makes reboot on device. JWT token must be stored in context for grpc call.
 func (c *Client) Reboot(
 	ctx context.Context,
 	deviceID string,
@@ -18,6 +19,7 @@ func (c *Client) Reboot(
 	})
 }
 
+// FactoryReset makes factory reset on device. JWT token must be stored in context for grpc call.
 func (c *Client) FactoryReset(
 	ctx context.Context,
 	deviceID string,

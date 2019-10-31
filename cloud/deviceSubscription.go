@@ -36,6 +36,7 @@ type DeviceSubscription struct {
 }
 
 // NewDeviceSubscription creates new devices subscriptions to listen events: resource published, resource unpublished.
+// JWT token must be stored in context for grpc call.
 func (c *Client) NewDeviceSubscription(ctx context.Context, deviceID string, handle SubscriptionHandler) (*DeviceSubscription, error) {
 	var resourcePublishedHandler ResourcePublishedHandler
 	var resourceUnpublishedHandler ResourceUnpublishedHandler
