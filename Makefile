@@ -20,7 +20,7 @@ build-testcontainer:
 
 build: build-testcontainer
 
-env:
+env: clean
 	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
 		sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'; \
 	fi
@@ -30,7 +30,7 @@ env:
 	docker run -d --name devsim --network=$(DOCKER_NET) device-simulator /device-simulator
 	docker run -d --name devsim-insecure --network=$(DOCKER_NET) device-simulator-insecure /device-simulator
 
-test: clean build-testcontainer env
+test: env build-testcontainer 
 	docker run \
 		--network=$(DOCKER_NET) \
 		--mount type=bind,source="$(shell pwd)",target=/shared \
