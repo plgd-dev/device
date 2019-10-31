@@ -34,6 +34,7 @@ type ResourceSubscription struct {
 }
 
 // NewResourceSubscription creates new resource content changed subscription.
+// JWT token must be stored in context for grpc call.
 func (c *Client) NewResourceSubscription(ctx context.Context, resourceID pb.ResourceId, handle SubscriptionHandler) (*ResourceSubscription, error) {
 	var resourceContentChangedHandler ResourceContentChangedHandler
 	filterEvents := make([]pb.SubscribeForEvents_ResourceEventFilter_Event, 0, 1)
