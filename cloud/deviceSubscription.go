@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/go-ocf/grpc-gateway/pb"
-	"github.com/go-ocf/kit/net/grpc"
 )
 
 // ResourcePublishedHandler handler of events.
@@ -37,7 +36,7 @@ type DeviceSubscription struct {
 }
 
 // NewDeviceSubscription creates new devices subscriptions to listen events: resource published, resource unpublished.
-func (c *Client) NewDeviceSubscription(ctx context.Context, token, deviceID string, handle SubscriptionHandler) (*DeviceSubscription, error) {
+func (c *Client) NewDeviceSubscription(ctx context.Context, deviceID string, handle SubscriptionHandler) (*DeviceSubscription, error) {
 	var resourcePublishedHandler ResourcePublishedHandler
 	var resourceUnpublishedHandler ResourceUnpublishedHandler
 	filterEvents := make([]pb.SubscribeForEvents_DeviceEventFilter_Event, 0, 1)
@@ -53,7 +52,6 @@ func (c *Client) NewDeviceSubscription(ctx context.Context, token, deviceID stri
 	if resourcePublishedHandler == nil && resourceUnpublishedHandler == nil {
 		return nil, fmt.Errorf("invalid handler - it's supports: ResourceContentChangedHandler")
 	}
-	ctx = grpc.CtxWithToken(ctx, token)
 	client, err := c.gateway.SubscribeForEvents(ctx)
 	if err != nil {
 		return nil, err
