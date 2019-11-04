@@ -1,0 +1,160 @@
+diff --git a/api/cloud/oc_cloud_resource.c b/api/cloud/oc_cloud_resource.c
+index 3b6097c6..db17b6ac 100644
+--- a/api/cloud/oc_cloud_resource.c
++++ b/api/cloud/oc_cloud_resource.c
+@@ -143,7 +143,7 @@ post_cloud(oc_request_t *request, oc_interface_mask_t interface,
+   }
+   OC_DBG("POST request received");
+   (void)interface;
+-
++/*
+   switch (ctx->cps) {
+   case OC_CPS_UNINITIALIZED:
+   case OC_CPS_READYTOREGISTER:
+@@ -154,7 +154,7 @@ post_cloud(oc_request_t *request, oc_interface_mask_t interface,
+     return;
+   }
+   }
+-
++*/
+   char *cps;
+   size_t cps_len = 0;
+   if (oc_rep_get_string(request->request_payload, "cps", &cps, &cps_len)) {
+diff --git a/apps/cloud_server.c b/apps/cloud_server.c
+index c5186aac..2091bb81 100644
+--- a/apps/cloud_server.c
++++ b/apps/cloud_server.c
+@@ -18,6 +18,8 @@
+  ****************************************************************************/
+ 
+ #include "oc_api.h"
++#include "oc_pki.h"
++#include "oc_core_res.h"
+ #include <signal.h>
+ #include <inttypes.h>
+ 
+@@ -179,12 +181,80 @@ cloud_status_handler(oc_cloud_context_t *ctx, oc_cloud_status_t status,
+   }
+ }
+ 
++static oc_uuid_t device_id;
++
++void
++factory_presets_cb(size_t device, void *data)
++{
++  (void)device;
++  (void)data;
++#if defined(OC_SECURITY) && defined(OC_PKI)
++  PRINT("factory_presets_cb: %d\n", (int) device);
++
++	const char* cert = "-----BEGIN CERTIFICATE-----\n"
++"MIIB9zCCAZygAwIBAgIRAOwIWPAt19w7DswoszkVIEIwCgYIKoZIzj0EAwIwEzER\n"
++"MA8GA1UEChMIVGVzdCBPUkcwHhcNMTkwNTAyMjAwNjQ4WhcNMjkwMzEwMjAwNjQ4\n"
++"WjBHMREwDwYDVQQKEwhUZXN0IE9SRzEyMDAGA1UEAxMpdXVpZDpiNWEyYTQyZS1i\n"
++"Mjg1LTQyZjEtYTM2Yi0wMzRjOGZjOGVmZDUwWTATBgcqhkjOPQIBBggqhkjOPQMB\n"
++"BwNCAAQS4eiM0HNPROaiAknAOW08mpCKDQmpMUkywdcNKoJv1qnEedBhWne7Z0jq\n"
++"zSYQbyqyIVGujnI3K7C63NRbQOXQo4GcMIGZMA4GA1UdDwEB/wQEAwIDiDAzBgNV\n"
++"HSUELDAqBggrBgEFBQcDAQYIKwYBBQUHAwIGCCsGAQUFBwMBBgorBgEEAYLefAEG\n"
++"MAwGA1UdEwEB/wQCMAAwRAYDVR0RBD0wO4IJbG9jYWxob3N0hwQAAAAAhwR/AAAB\n"
++"hxAAAAAAAAAAAAAAAAAAAAAAhxAAAAAAAAAAAAAAAAAAAAABMAoGCCqGSM49BAMC\n"
++"A0kAMEYCIQDuhl6zj6gl2YZbBzh7Th0uu5izdISuU/ESG+vHrEp7xwIhANCA7tSt\n"
++"aBlce+W76mTIhwMFXQfyF3awWIGjOcfTV8pU\n"
++"-----END CERTIFICATE-----\n";
++
++	const char* key = "-----BEGIN EC PRIVATE KEY-----\n"
++"MHcCAQEEIMPeADszZajrkEy4YvACwcbR0pSdlKG+m8ALJ6lj/ykdoAoGCCqGSM49\n"
++"AwEHoUQDQgAEEuHojNBzT0TmogJJwDltPJqQig0JqTFJMsHXDSqCb9apxHnQYVp3\n"
++"u2dI6s0mEG8qsiFRro5yNyuwutzUW0Dl0A==\n"
++"-----END EC PRIVATE KEY-----\n";
++
++	const char* root_ca = "-----BEGIN CERTIFICATE-----\n"
++"MIIBaTCCAQ+gAwIBAgIQR33gIB75I7Vi/QnMnmiWvzAKBggqhkjOPQQDAjATMREw\n"
++"DwYDVQQKEwhUZXN0IE9SRzAeFw0xOTA1MDIyMDA1MTVaFw0yOTAzMTAyMDA1MTVa\n"
++"MBMxETAPBgNVBAoTCFRlc3QgT1JHMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE\n"
++"xbwMaS8jcuibSYJkCmuVHfeV3xfYVyUq8Iroz7YlXaTayspW3K4hVdwIsy/5U+3U\n"
++"vM/vdK5wn2+NrWy45vFAJqNFMEMwDgYDVR0PAQH/BAQDAgEGMBMGA1UdJQQMMAoG\n"
++"CCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMBAf8wCwYDVR0RBAQwAoIAMAoGCCqGSM49\n"
++"BAMCA0gAMEUCIBWkxuHKgLSp6OXDJoztPP7/P5VBZiwLbfjTCVRxBvwWAiEAnzNu\n"
++"6gKPwtKmY0pBxwCo3NNmzNpA6KrEOXE56PkiQYQ=\n"
++"-----END CERTIFICATE-----\n";
++
++  int ee_credid = oc_pki_add_mfg_cert(0, (const unsigned char *)cert, strlen(cert),
++                                      (const unsigned char *)key, strlen(key));
++  if (ee_credid < 0) {
++    PRINT("ERROR installing manufacturer EE cert\n");
++    return;
++  }
++
++  int rootca_credid =
++    oc_pki_add_mfg_trust_anchor(0, (const unsigned char *)root_ca, strlen(root_ca));
++  if (rootca_credid < 0) {
++    PRINT("ERROR installing root cert\n");
++    return;
++  }
++
++  oc_pki_set_security_profile(0, OC_SP_BLACK, OC_SP_BLACK, ee_credid);
++#endif /* OC_SECURITY && OC_PKI */
++}
++
+ static int
+ app_init(void)
+ {
+   int ret = oc_init_platform(manufacturer, NULL, NULL);
+-  ret |= oc_add_device("/oic/d", device_rt, device_name, spec_version,
+-                       data_model_version, NULL, NULL);
++  oc_device_info_t* device = oc_core_add_new_device("/oic/d", device_rt, device_name, spec_version,
++                        data_model_version, NULL, NULL);
++  if (!device) {
++    return 1;
++  }
++  oc_uuid_t empty_uuid;
++  memset(&empty_uuid, 0, sizeof(empty_uuid));
++
++  if (memcmp(&empty_uuid, &device_id, sizeof(device_id))) {
++    oc_set_immutable_device_identifier(0, &device_id);
++  }
+   return ret;
+ }
+ 
+@@ -285,8 +355,13 @@ register_resources(void)
+ }
+ 
+ int
+-main(void)
++main(int argc, const char** argv)
+ {
++  if (argc > 1) {
++    oc_str_to_uuid(argv[1], &device_id);
++    PRINT("\t\tDevice ID: %s\n", argv[1]);
++  }
++
+   int ret = init();
+   if (ret < 0) {
+     return ret;
+@@ -297,6 +372,7 @@ main(void)
+                                         .register_resources =
+                                           register_resources };
+   oc_storage_config("./cloud_server_creds/");
++  oc_set_factory_presets_cb(factory_presets_cb, NULL);
+ 
+   ret = oc_main_init(&handler);
+   if (ret < 0)
+@@ -304,6 +380,18 @@ main(void)
+ 
+   oc_cloud_context_t *ctx = oc_cloud_get_context(0);
+   if (ctx) {
++    if (argc > 2) {
++      oc_new_string(&ctx->store.ci_server, argv[2], strlen(argv[2]));
++      PRINT("\t\tCloud ci_server: %s\n", argv[2]);
++    }
++    if (argc > 3) {
++      oc_new_string(&ctx->store.auth_provider, argv[3], strlen(argv[3]));
++      PRINT("\t\tCloud auth_provider: %s\n", argv[3]);
++    }
++    if (argc > 4) {
++      oc_new_string(&ctx->store.access_token, argv[4], strlen(argv[4]));
++      PRINT("\t\tCloud access_token: %s\n", argv[4]);
++    }
+     oc_cloud_manager_start(ctx, cloud_status_handler, NULL);
+   }
+ 

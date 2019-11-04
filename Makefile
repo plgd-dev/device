@@ -24,8 +24,8 @@ env: clean
 	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
 		sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'; \
 	fi
-	docker build ./test --network=host -t device-simulator --target service
-	docker build ./test -f ./test/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
+	docker build ./device-simulator --network=host -t device-simulator --target service
+	docker build ./device-simulator -f ./device-simulator/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
 	docker network create $(DOCKER_NET)
 	docker run -d --name devsim --network=$(DOCKER_NET) device-simulator /device-simulator
 	docker run -d --name devsim-insecure --network=$(DOCKER_NET) device-simulator-insecure /device-simulator
