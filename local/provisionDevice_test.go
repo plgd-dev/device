@@ -65,6 +65,24 @@ func TestSettingCloudResource(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
+	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
+	cloudResources := make([]acl.Resource, 0, 1)
+	for _, href := range c.DeviceLinks.GetResourceHrefs(cloud.ConfigurationResourceType) {
+		cloudResources = append(cloudResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
+
+	sdkID, err := c.GetSdkDeviceID()
+	require.NoError(t, err)
+
+	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.Subject{
+		Subject_Device: &acl.Subject_Device{
+			DeviceId: sdkID,
+		},
+	}, cloudResources...))
+
 	r := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
 		URL:                   "testURL",

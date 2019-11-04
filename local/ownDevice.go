@@ -516,6 +516,10 @@ func (d *Device) Own(
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+	err = d.Close(ctx)
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot close OTM connection: %v", err))
+	}
 
 	return nil
 }
