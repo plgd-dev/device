@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"crypto/x509"
+	"encoding/pem"
 	"fmt"
 
 	"github.com/go-ocf/kit/strings"
@@ -87,8 +88,8 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
 				PublicData: schema.CredentialPublicData{
-					Data:     string(cert.Raw),
-					Encoding: schema.CredentialPublicDataEncoding_DER,
+					Data:     string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})),
+					Encoding: schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
