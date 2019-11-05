@@ -19,7 +19,7 @@ func TestProvisioning(t *testing.T) {
 	c.SetUpTestDevice(t)
 	defer c.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	defer cancel()
 
 	pc, err := c.Provision(ctx, c.DeviceLinks)
@@ -66,27 +66,11 @@ func TestSettingCloudResource(t *testing.T) {
 	}()
 
 	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
-	cloudResources := make([]acl.Resource, 0, 1)
-	for _, href := range c.DeviceLinks.GetResourceHrefs(cloud.ConfigurationResourceType) {
-		cloudResources = append(cloudResources, acl.Resource{
-			Href:       href,
-			Interfaces: []string{"*"},
-		})
-	}
-
-	sdkID, err := c.GetSdkDeviceID()
-	require.NoError(t, err)
-
-	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.Subject{
-		Subject_Device: &acl.Subject_Device{
-			DeviceId: sdkID,
-		},
-	}, cloudResources...))
 
 	r := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: "testAuthorizationProvider",
-		URL:                   "testURL",
-		AuthorizationCode:     "testAuthorizationCode",
+		URL:               "testURL",
+		AuthorizationCode: "testAuthorizationCode",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)

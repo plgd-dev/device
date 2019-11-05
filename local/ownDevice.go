@@ -14,6 +14,7 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
+	"github.com/go-ocf/sdk/schema/cloud"
 )
 
 type OTMClient interface {
@@ -324,6 +325,14 @@ func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ow
 		return err
 	}
 
+	cloudResources := make([]acl.Resource, 0, 1)
+	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
+		cloudResources = append(cloudResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
+
 	/*acl2 set owner of resource*/
 	setOwnerAcl := acl.UpdateRequest{
 		ResourceOwner: ownerID,
@@ -336,6 +345,15 @@ func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ow
 					},
 				},
 				Resources: acl.AllResources,
+			},
+			acl.AccessControl{
+				Permission: acl.AllPermissions,
+				Subject: acl.Subject{
+					Subject_Device: &acl.Subject_Device{
+						DeviceId: ownerID,
+					},
+				},
+				Resources: cloudResources,
 			},
 		},
 	}
@@ -516,10 +534,7 @@ func (d *Device) Own(
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
-	err = d.Close(ctx)
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot close OTM connection: %v", err))
-	}
+	d.Close(ctx)
 
 	return nil
 }

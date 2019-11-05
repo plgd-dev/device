@@ -77,7 +77,7 @@ type Resource struct {
 	Href          string           `codec:"href,omitempty"`
 	Interfaces    []string         `codec:"if,omitempty"`
 	ResourceTypes []string         `codec:"rt,omitempty"`
-	Wildcard      ResourceWildcard `codec:"w,omitempty"`
+	Wildcard      ResourceWildcard `codec:"wc,omitempty"`
 }
 
 var AllResources = []Resource{Resource{
