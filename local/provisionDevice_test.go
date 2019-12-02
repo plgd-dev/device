@@ -14,7 +14,7 @@ import (
 )
 
 func TestProvisioning(t *testing.T) {
-	c, err := NewTestSecureClient()
+	c, err := NewTestSecureClientWithTLS(true, true)
 	require.NoError(t, err)
 	c.SetUpTestDevice(t)
 	defer c.Close()
@@ -40,7 +40,7 @@ func TestProvisioning(t *testing.T) {
 
 	cert, err := tls.X509KeyPair(Cert2PEMBlock, Cert2KeyPEMBlock)
 	require.NoError(t, err)
-	c2, err := NewTestSecureClientWithCert(cert)
+	c2, err := NewTestSecureClientWithCert(cert, false, true)
 	require.NoError(t, err)
 	d, links, err := c2.GetDevice(ctx, c.DeviceID)
 	require.NoError(t, err)

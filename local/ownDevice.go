@@ -26,17 +26,28 @@ type OTMClient interface {
 type ManufacturerOTMClient struct {
 	manufacturerCertificate tls.Certificate
 	manufacturerCA          []*x509.Certificate
+	disableDTLS             bool
+	disableTCPTLS           bool
 
 	signer     CertificateSigner
 	trustedCAs []*x509.Certificate
 }
 
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA []*x509.Certificate, signer CertificateSigner, trustedCAs []*x509.Certificate) *ManufacturerOTMClient {
+func NewManufacturerOTMClient(
+	manufacturerCertificate tls.Certificate,
+	manufacturerCA []*x509.Certificate,
+	signer CertificateSigner,
+	trustedCAs []*x509.Certificate,
+	disableDTLS bool,
+	disableTCPTLS bool,
+) *ManufacturerOTMClient {
 	return &ManufacturerOTMClient{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
 		trustedCAs:              trustedCAs,
+		disableDTLS:             disableDTLS,
+		disableTCPTLS:           disableTCPTLS,
 	}
 }
 
@@ -46,7 +57,15 @@ func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
 
 func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
+	case schema.UDPSecureScheme:
+		if otmc.disableDTLS {
+			return nil, fmt.Errorf("dtls is disabled")
+		}
+		return kitNetCoap.DialUDPSecure(ctx, addr.String(), otmc.manufacturerCertificate, otmc.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
 	case schema.TCPSecureScheme:
+		if otmc.disableTCPTLS {
+			return nil, fmt.Errorf("tcp-tls is disabled")
+		}
 		return kitNetCoap.DialTCPSecure(ctx, addr.String(), otmc.manufacturerCertificate, otmc.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
@@ -408,21 +427,29 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
 	}
 
-	var tlsAddr kitNet.Addr
-	var tlsAddrFound bool
+	var tlsClient *kitNetCoap.ClientCloseHandler
+	var errors []error
 	for _, link := range links {
-		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
-			tlsAddrFound = true
-			break
+		if tlsAddr, err := link.GetUDPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.dialOptions...)
+			if err == nil {
+				break
+			}
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
+		}
+		if tlsAddr, err := link.GetTCPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.dialOptions...)
+			if err == nil {
+				break
+			}
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
 		}
 	}
-	if !tlsAddrFound {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get tcp secure address: not found"))
-	}
-
-	tlsClient, err := otmClient.Dial(ctx, tlsAddr, d.dialOptions...)
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot create TLS connection: %v", err))
+	if tlsClient == nil {
+		if len(errors) == 0 {
+			return fmt.Errorf(errMsg, fmt.Errorf("cannot get udp/tcp secure address: not found"))
+		}
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get udp/tcp secure address: %+v", errors))
 	}
 
 	var provisionState schema.ProvisionStatusResponse

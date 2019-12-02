@@ -31,10 +31,18 @@ func NewTestSecureClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTestSecureClientWithCert(identityCert)
+	return NewTestSecureClientWithCert(identityCert, true, true)
 }
 
-func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
+func NewTestSecureClientWithTLS(enableDTLS, enableTCPTLS bool) (*Client, error) {
+	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
+	if err != nil {
+		return nil, err
+	}
+	return NewTestSecureClientWithCert(identityCert, enableDTLS, enableTCPTLS)
+}
+
+func NewTestSecureClientWithCert(cert tls.Certificate, enableDTLS, enableTCPTLS bool) (*Client, error) {
 	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 	if err != nil {
 		return nil, err
@@ -76,12 +84,19 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 
 	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
 
-	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA)
+	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA, !enableDTLS, !enableTCPTLS)
 	if err != nil {
 		return nil, err
 	}
 
-	c := ocf.NewClient(ocf.WithTLS(&ocf.TLSConfig{
+	var opts []ocf.OptionFunc
+	if !enableDTLS {
+		opts = append(opts, ocf.WithoutDTLS())
+	}
+	if !enableTCPTLS {
+		opts = append(opts, ocf.WithoutTCPTLS())
+	}
+	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{
 		GetCertificate: func() (tls.Certificate, error) {
 			return cert, nil
 		},
@@ -89,8 +104,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate) (*Client, error) {
 			cas := identityTrustedCA
 			cas = append(cas, mfgCa...)
 			return cas, nil
-		},
-	}))
+		}}))
+
+	c := ocf.NewClient(opts...)
 
 	return &Client{Client: c, otm: otm}, nil
 }
@@ -135,6 +151,17 @@ func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links
 	require.NoError(h.t, err)
 	defer d.Close(ctx)
 	if secured != h.secured {
+		return
+	}
+	var found bool
+	for _, l := range links {
+		for _, t := range l.ResourceTypes {
+			if t == "oic.d.cloudDevice" {
+				found = true
+			}
+		}
+	}
+	if !found {
 		return
 	}
 	h.lock.Lock()

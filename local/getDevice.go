@@ -23,7 +23,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.errFunc, c.dialOptions, c.discoveryConfiguration, cancel)
+	h := newDeviceHandler(deviceID, c.tlsConfig, c.errFunc, c.dialOptions, c.discoveryConfiguration, c.enableDTLS, c.enableTCPTLS, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -41,6 +41,8 @@ func newDeviceHandler(
 	errFunc ErrFunc,
 	dialOptions []coap.DialOptionFunc,
 	discoveryConfiguration DiscoveryConfiguration,
+	enableDTLS bool,
+	enableTCPTLS bool,
 	cancel context.CancelFunc,
 ) *deviceHandler {
 	return &deviceHandler{
@@ -49,6 +51,8 @@ func newDeviceHandler(
 		errFunc:                errFunc,
 		dialOptions:            dialOptions,
 		discoveryConfiguration: discoveryConfiguration,
+		enableDTLS:             enableDTLS,
+		enableTCPTLS:           enableTCPTLS,
 		cancel:                 cancel,
 	}
 }
@@ -60,6 +64,8 @@ type deviceHandler struct {
 	dialOptions            []coap.DialOptionFunc
 	cancel                 context.CancelFunc
 	discoveryConfiguration DiscoveryConfiguration
+	enableDTLS             bool
+	enableTCPTLS           bool
 
 	lock        sync.Mutex
 	device      *Device
@@ -96,7 +102,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes)
+	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, h.enableDTLS, h.enableTCPTLS, deviceID, link.ResourceTypes)
 
 	h.device = d
 	h.deviceLinks = links

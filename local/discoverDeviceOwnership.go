@@ -1,6 +1,7 @@
 package local
 
 import (
+	"github.com/go-ocf/go-coap/codes"
 	"context"
 	"fmt"
 
@@ -55,7 +56,7 @@ func DiscoverDeviceOwnership(
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(req *gocoap.Request) {
 	return func(req *gocoap.Request) {
-		if req.Msg.Code() != gocoap.Content {
+		if req.Msg.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req.Msg)))
 			return
 		}

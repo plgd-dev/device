@@ -18,6 +18,8 @@ type Device struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
+	enableDTLS             bool
+	enableTCPTLS           bool
 
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
@@ -41,6 +43,8 @@ func NewDevice(
 	errFunc ErrFunc,
 	dialOptions []coap.DialOptionFunc,
 	discoveryConfiguration DiscoveryConfiguration,
+	enableDTLS bool,
+	enableTCPTLS bool,
 	deviceID string,
 	deviceTypes []string,
 ) *Device {
@@ -55,6 +59,8 @@ func NewDevice(
 		errFunc:      errFunc,
 		observations: &sync.Map{},
 		dialOptions:  dialOptions,
+		enableDTLS:   enableDTLS,
+		enableTCPTLS: enableTCPTLS,
 	}
 }
 
@@ -101,6 +107,18 @@ func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 	return coap.DialTCPSecure(ctx, addr, cert, cas, verifyPeerCertificate, dialOptions...)
 }
 
+func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+	cert, err := tlsConfig.GetCertificate()
+	if err != nil {
+		return nil, err
+	}
+	cas, err := tlsConfig.GetCertificateAuthorities()
+	if err != nil {
+		return nil, err
+	}
+	return coap.DialUDPSecure(ctx, addr, cert, cas, verifyPeerCertificate, dialOptions...)
+}
+
 func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
@@ -128,13 +146,22 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.UDPSecureScheme:
-		return nil, fmt.Errorf(errMsg, addr.URL(), "not supported")
+		if !d.enableDTLS {
+			return nil, fmt.Errorf(errMsg, addr.URL(), "dtls is disabled by client option")
+		}
+		c, err = DialUDPSecure(ctx, addr.String(), d.tlsConfig, coap.VerifyIndetityCertificate, d.dialOptions...)
+		if err != nil {
+			return nil, fmt.Errorf(errMsg, addr.URL(), err)
+		}
 	case schema.TCPScheme:
 		c, err = coap.DialTCP(ctx, addr.String(), d.dialOptions...)
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.TCPSecureScheme:
+		if !d.enableTCPTLS {
+			return nil, fmt.Errorf(errMsg, addr.URL(), "tcp-tls is disabled by client option")
+		}
 		c, err = DialTCPSecure(ctx, addr.String(), d.tlsConfig, coap.VerifyIndetityCertificate, d.dialOptions...)
 		if err != nil {
 			return nil, fmt.Errorf(errMsg, addr.URL(), err)

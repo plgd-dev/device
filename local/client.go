@@ -19,6 +19,8 @@ type Client struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
+	enableDTLS             bool
+	enableTCPTLS           bool
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -43,6 +45,8 @@ type config struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
+	enableTCPTLS           bool
+	enableDTLS             bool
 }
 
 type OptionFunc func(config) config
@@ -52,6 +56,20 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 		if tlsConfig != nil {
 			cfg.tlsConfig = tlsConfig
 		}
+		return cfg
+	}
+}
+
+func WithoutTCPTLS() OptionFunc {
+	return func(cfg config) config {
+		cfg.enableTCPTLS = false
+		return cfg
+	}
+}
+
+func WithoutDTLS() OptionFunc {
+	return func(cfg config) config {
+		cfg.enableDTLS = false
 		return cfg
 	}
 }
@@ -102,6 +120,8 @@ func NewClient(opts ...OptionFunc) *Client {
 			MulticastAddressUDP4: DiscoveryAddressUDP4,
 			MulticastAddressUDP6: DiscoveryAddressUDP6,
 		},
+		enableDTLS:   true,
+		enableTCPTLS: true,
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
@@ -113,5 +133,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		errFunc:                cfg.errFunc,
 		dialOptions:            cfg.dialOptions,
 		discoveryConfiguration: cfg.discoveryConfiguration,
+		enableDTLS:             cfg.enableDTLS,
+		enableTCPTLS:           cfg.enableTCPTLS,
 	}
 }
