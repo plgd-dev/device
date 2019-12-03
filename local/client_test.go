@@ -32,7 +32,7 @@ func NewTestSecureClient() (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewTestSecureClientWithCert(identityCert, true, true)
+	return NewTestSecureClientWithCert(identityCert, false, false)
 }
 
 func NewTestSecureClientWithTLS(disableDTLS, disableTCPTLS bool) (*Client, error) {
