@@ -19,8 +19,8 @@ type Client struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
-	enableDTLS             bool
-	enableTCPTLS           bool
+	disableDTLS            bool
+	disableTCPTLS          bool
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -45,8 +45,8 @@ type config struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
-	enableTCPTLS           bool
-	enableDTLS             bool
+	disableTCPTLS          bool
+	disableDTLS            bool
 }
 
 type OptionFunc func(config) config
@@ -62,14 +62,14 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 
 func WithoutTCPTLS() OptionFunc {
 	return func(cfg config) config {
-		cfg.enableTCPTLS = false
+		cfg.disableTCPTLS = false
 		return cfg
 	}
 }
 
 func WithoutDTLS() OptionFunc {
 	return func(cfg config) config {
-		cfg.enableDTLS = false
+		cfg.disableDTLS = false
 		return cfg
 	}
 }
@@ -107,6 +107,17 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 	}
 }
 
+func (c *Client) getDeviceConfiguration() deviceConfiguration {
+	return deviceConfiguration{
+		tlsConfig:              c.tlsConfig,
+		errFunc:                c.errFunc,
+		dialOptions:            c.dialOptions,
+		discoveryConfiguration: c.discoveryConfiguration,
+		disableDTLS:            c.disableDTLS,
+		disableTCPTLS:          c.disableTCPTLS,
+	}
+}
+
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
 		errFunc: func(err error) {
@@ -120,8 +131,8 @@ func NewClient(opts ...OptionFunc) *Client {
 			MulticastAddressUDP4: DiscoveryAddressUDP4,
 			MulticastAddressUDP6: DiscoveryAddressUDP6,
 		},
-		enableDTLS:   true,
-		enableTCPTLS: true,
+		disableDTLS:   true,
+		disableTCPTLS: true,
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
@@ -133,7 +144,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		errFunc:                cfg.errFunc,
 		dialOptions:            cfg.dialOptions,
 		discoveryConfiguration: cfg.discoveryConfiguration,
-		enableDTLS:             cfg.enableDTLS,
-		enableTCPTLS:           cfg.enableTCPTLS,
+		disableDTLS:            cfg.disableDTLS,
+		disableTCPTLS:          cfg.disableTCPTLS,
 	}
 }

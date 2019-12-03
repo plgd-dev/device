@@ -14,12 +14,13 @@ import (
 
 	ocfSigner "github.com/go-ocf/kit/security/signer"
 	ocf "github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/local/otm/manufacturer"
 	"github.com/go-ocf/sdk/schema"
 )
 
 type Client struct {
 	*ocf.Client
-	otm *ocf.ManufacturerOTMClient
+	otm *manufacturer.Client
 
 	DeviceID string
 	*ocf.Device
@@ -34,15 +35,15 @@ func NewTestSecureClient() (*Client, error) {
 	return NewTestSecureClientWithCert(identityCert, true, true)
 }
 
-func NewTestSecureClientWithTLS(enableDTLS, enableTCPTLS bool) (*Client, error) {
+func NewTestSecureClientWithTLS(disableDTLS, disableTCPTLS bool) (*Client, error) {
 	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
 	if err != nil {
 		return nil, err
 	}
-	return NewTestSecureClientWithCert(identityCert, enableDTLS, enableTCPTLS)
+	return NewTestSecureClientWithCert(identityCert, disableDTLS, disableTCPTLS)
 }
 
-func NewTestSecureClientWithCert(cert tls.Certificate, enableDTLS, enableTCPTLS bool) (*Client, error) {
+func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTLS bool) (*Client, error) {
 	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 	if err != nil {
 		return nil, err
@@ -84,16 +85,24 @@ func NewTestSecureClientWithCert(cert tls.Certificate, enableDTLS, enableTCPTLS 
 
 	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
 
-	otm := ocf.NewManufacturerOTMClient(mfgCert, mfgCa, signer, identityTrustedCA, !enableDTLS, !enableTCPTLS)
+	var manOpts []manufacturer.OptionFunc
+	if disableDTLS {
+		manOpts = append(manOpts, manufacturer.WithoutDTLS())
+	}
+	if disableTCPTLS {
+		manOpts = append(manOpts, manufacturer.WithoutTCPTLS())
+	}
+
+	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, identityTrustedCA, manOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	var opts []ocf.OptionFunc
-	if !enableDTLS {
+	if disableDTLS {
 		opts = append(opts, ocf.WithoutDTLS())
 	}
-	if !enableTCPTLS {
+	if disableTCPTLS {
 		opts = append(opts, ocf.WithoutTCPTLS())
 	}
 	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{

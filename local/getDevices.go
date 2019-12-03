@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -27,36 +26,22 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.tlsConfig, c.errFunc, c.dialOptions, c.discoveryConfiguration, c.enableDTLS, c.enableTCPTLS, handler))
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.getDeviceConfiguration(), handler))
 }
 
 func newDiscoveryHandler(
-	tlsConfig *TLSConfig,
-	errFunc ErrFunc,
-	dialOptions []coap.DialOptionFunc,
-	discoveryConfiguration DiscoveryConfiguration,
-	enableDTLS bool,
-	enableTCPTLS bool,
+	deviceCfg deviceConfiguration,
 	h DeviceHandler,
 ) *discoveryHandler {
 	return &discoveryHandler{
-		tlsConfig:              tlsConfig,
-		errFunc:                errFunc,
-		dialOptions:            dialOptions,
-		discoveryConfiguration: discoveryConfiguration,
-		enableDTLS:             enableDTLS,
-		enableTCPTLS:           enableTCPTLS,
-		handler:                h}
+		deviceCfg: deviceCfg,
+		handler:   h,
+	}
 }
 
 type discoveryHandler struct {
-	tlsConfig              *TLSConfig
-	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
-	discoveryConfiguration DiscoveryConfiguration
-	enableDTLS             bool
-	enableTCPTLS           bool
-	handler                DeviceHandler
+	deviceCfg deviceConfiguration
+	handler   DeviceHandler
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
@@ -76,7 +61,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, 
 		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, h.enableDTLS, h.enableTCPTLS, deviceID, link.ResourceTypes)
+	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)
 
 	h.handler.Handle(ctx, d, links)
 }
