@@ -19,6 +19,8 @@ type Client struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
+	disableDTLS            bool
+	disableTCPTLS          bool
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -43,6 +45,8 @@ type config struct {
 	errFunc                ErrFunc
 	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
+	disableTCPTLS          bool
+	disableDTLS            bool
 }
 
 type OptionFunc func(config) config
@@ -52,6 +56,20 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 		if tlsConfig != nil {
 			cfg.tlsConfig = tlsConfig
 		}
+		return cfg
+	}
+}
+
+func WithoutTCPTLS() OptionFunc {
+	return func(cfg config) config {
+		cfg.disableTCPTLS = true
+		return cfg
+	}
+}
+
+func WithoutDTLS() OptionFunc {
+	return func(cfg config) config {
+		cfg.disableDTLS = true
 		return cfg
 	}
 }
@@ -89,6 +107,17 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 	}
 }
 
+func (c *Client) getDeviceConfiguration() deviceConfiguration {
+	return deviceConfiguration{
+		tlsConfig:              c.tlsConfig,
+		errFunc:                c.errFunc,
+		dialOptions:            c.dialOptions,
+		discoveryConfiguration: c.discoveryConfiguration,
+		disableDTLS:            c.disableDTLS,
+		disableTCPTLS:          c.disableTCPTLS,
+	}
+}
+
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
 		errFunc: func(err error) {
@@ -113,5 +142,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		errFunc:                cfg.errFunc,
 		dialOptions:            cfg.dialOptions,
 		discoveryConfiguration: cfg.discoveryConfiguration,
+		disableDTLS:            cfg.disableDTLS,
+		disableTCPTLS:          cfg.disableTCPTLS,
 	}
 }

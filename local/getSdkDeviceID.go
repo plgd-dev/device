@@ -9,7 +9,7 @@ import (
 
 // GetSdkDeviceID returns sdk deviceID from identity certificate.
 func (d *Device) GetSdkDeviceID() (string, error) {
-	cert, err := d.tlsConfig.GetCertificate()
+	cert, err := d.cfg.tlsConfig.GetCertificate()
 	if err != nil {
 		return "", fmt.Errorf("cannot get sdk id: %v", err)
 	}

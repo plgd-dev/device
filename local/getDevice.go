@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-ocf/kit/net/coap"
-
 	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -23,7 +21,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 		}
 	}()
 
-	h := newDeviceHandler(deviceID, c.tlsConfig, c.errFunc, c.dialOptions, c.discoveryConfiguration, cancel)
+	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
@@ -36,30 +34,21 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 }
 
 func newDeviceHandler(
+	deviceCfg deviceConfiguration,
 	deviceID string,
-	tlsConfig *TLSConfig,
-	errFunc ErrFunc,
-	dialOptions []coap.DialOptionFunc,
-	discoveryConfiguration DiscoveryConfiguration,
 	cancel context.CancelFunc,
 ) *deviceHandler {
 	return &deviceHandler{
-		deviceID:               deviceID,
-		tlsConfig:              tlsConfig,
-		errFunc:                errFunc,
-		dialOptions:            dialOptions,
-		discoveryConfiguration: discoveryConfiguration,
-		cancel:                 cancel,
+		deviceCfg: deviceCfg,
+		deviceID:  deviceID,
+		cancel:    cancel,
 	}
 }
 
 type deviceHandler struct {
-	deviceID               string
-	tlsConfig              *TLSConfig
-	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
-	cancel                 context.CancelFunc
-	discoveryConfiguration DiscoveryConfiguration
+	deviceCfg deviceConfiguration
+	deviceID  string
+	cancel    context.CancelFunc
 
 	lock        sync.Mutex
 	device      *Device
@@ -96,7 +85,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, lin
 		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
 		return
 	}
-	d := NewDevice(h.tlsConfig, h.errFunc, h.dialOptions, h.discoveryConfiguration, deviceID, link.ResourceTypes)
+	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)
 
 	h.device = d
 	h.deviceLinks = links

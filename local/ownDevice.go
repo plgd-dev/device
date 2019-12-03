@@ -4,9 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"crypto/tls"
-	"crypto/x509"
-	"encoding/pem"
 	"fmt"
 
 	gocoap "github.com/go-ocf/go-coap"
@@ -21,120 +18,6 @@ type OTMClient interface {
 	Type() schema.OwnerTransferMethod
 	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
 	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
-}
-
-type ManufacturerOTMClient struct {
-	manufacturerCertificate tls.Certificate
-	manufacturerCA          []*x509.Certificate
-
-	signer     CertificateSigner
-	trustedCAs []*x509.Certificate
-}
-
-func NewManufacturerOTMClient(manufacturerCertificate tls.Certificate, manufacturerCA []*x509.Certificate, signer CertificateSigner, trustedCAs []*x509.Certificate) *ManufacturerOTMClient {
-	return &ManufacturerOTMClient{
-		manufacturerCertificate: manufacturerCertificate,
-		manufacturerCA:          manufacturerCA,
-		signer:                  signer,
-		trustedCAs:              trustedCAs,
-	}
-}
-
-func (*ManufacturerOTMClient) Type() schema.OwnerTransferMethod {
-	return schema.ManufacturerCertificate
-}
-
-func (otmc *ManufacturerOTMClient) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
-	switch schema.Scheme(addr.GetScheme()) {
-	case schema.TCPSecureScheme:
-		return kitNetCoap.DialTCPSecure(ctx, addr.String(), otmc.manufacturerCertificate, otmc.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
-	}
-	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
-}
-
-func encodeToPem(encoding schema.CertificateEncoding, data []byte) []byte {
-	if encoding == schema.CertificateEncoding_DER {
-		return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: data})
-	}
-	return data
-}
-
-func (otmc *ManufacturerOTMClient) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error {
-	/*setup credentials - PostOwnerCredential*/
-	var csr schema.CertificateSigningRequestResponse
-	err := tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
-	if err != nil {
-		return fmt.Errorf("cannot get csr for setup device owner credentials: %v", err)
-	}
-
-	pemCSR := encodeToPem(csr.Encoding, csr.CertificateSigningRequest)
-
-	signedCsr, err := otmc.signer.Sign(ctx, pemCSR)
-	if err != nil {
-		return fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err)
-	}
-
-	var deviceCredential schema.CredentialResponse
-	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
-	if err != nil {
-		return fmt.Errorf("cannot get device credential to setup device owner credentials: %v", err)
-	}
-
-	for _, cred := range deviceCredential.Credentials {
-		switch {
-		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialId(cred.ID))
-			if err != nil {
-				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err)
-			}
-		}
-	}
-
-	setIdentityDeviceCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: ownerID,
-		Credentials: []schema.Credential{
-			schema.Credential{
-				Subject: deviceID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_CERT,
-				PublicData: schema.CredentialPublicData{
-					Data:     string(signedCsr),
-					Encoding: schema.CredentialPublicDataEncoding_PEM,
-				},
-			},
-		},
-	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
-	if err != nil {
-		return fmt.Errorf("cannot set device identity credentials: %v", err)
-	}
-
-	for _, ca := range otmc.trustedCAs {
-		setCaCredential := schema.CredentialUpdateRequest{
-			ResourceOwner: ownerID,
-			Credentials: []schema.Credential{
-				schema.Credential{
-					Subject: ownerID,
-					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: schema.CredentialPublicData{
-						Data:     string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
-						Encoding: schema.CredentialPublicDataEncoding_PEM,
-					},
-				},
-			},
-		}
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
-		if err != nil {
-			return fmt.Errorf("cannot set device CA credentials: %v", err)
-		}
-	}
-	return nil
-}
-
-func (otmc *ManufacturerOTMClient) SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
-	return otmc.signer.Sign(ctx, csr)
 }
 
 /*
@@ -258,7 +141,7 @@ func (h *selectOTMHandler) Err() error {
 }
 
 func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
-	multicastConn := DialDiscoveryAddresses(ctx, d.discoveryConfiguration, d.errFunc)
+	multicastConn := DialDiscoveryAddresses(ctx, d.cfg.discoveryConfiguration, d.cfg.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -408,21 +291,29 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
 	}
 
-	var tlsAddr kitNet.Addr
-	var tlsAddrFound bool
+	var tlsClient *kitNetCoap.ClientCloseHandler
+	var errors []error
 	for _, link := range links {
-		if tlsAddr, err = link.GetTCPSecureAddr(); err == nil {
-			tlsAddrFound = true
-			break
+		if tlsAddr, err := link.GetUDPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.cfg.dialOptions...)
+			if err == nil {
+				break
+			}
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
+		}
+		if tlsAddr, err := link.GetTCPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.cfg.dialOptions...)
+			if err == nil {
+				break
+			}
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
 		}
 	}
-	if !tlsAddrFound {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get tcp secure address: not found"))
-	}
-
-	tlsClient, err := otmClient.Dial(ctx, tlsAddr, d.dialOptions...)
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot create TLS connection: %v", err))
+	if tlsClient == nil {
+		if len(errors) == 0 {
+			return fmt.Errorf(errMsg, fmt.Errorf("cannot get udp/tcp secure address: not found"))
+		}
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get udp/tcp secure address: %+v", errors))
 	}
 
 	var provisionState schema.ProvisionStatusResponse

@@ -1,6 +1,7 @@
 package local
 
 import (
+	"github.com/go-ocf/go-coap/codes"
 	"context"
 	"fmt"
 
@@ -35,7 +36,7 @@ func DiscoverDevices(
 
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(req *gocoap.Request) {
 	return func(req *gocoap.Request) {
-		if req.Msg.Code() != gocoap.Content {
+		if req.Msg.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req.Msg)))
 			return
 		}

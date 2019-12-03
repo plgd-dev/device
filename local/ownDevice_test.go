@@ -20,7 +20,7 @@ func TestClient_ownDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c, err := NewTestSecureClient()
+			c, err := NewTestSecureClientWithTLS(false, true)
 			require.NoError(t, err)
 			defer c.Close()
 			deviceId := testGetDeviceID(t, c.Client, true)

@@ -43,7 +43,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 
 	err = c.UpdateResource(ctx, link, provisioningState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, err)
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisionin state %+v: %v", link, err))
 	}
 	return nil
 }
