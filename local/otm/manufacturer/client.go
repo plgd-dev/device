@@ -31,14 +31,14 @@ type OptionFunc func(Client) Client
 
 func WithoutTCPTLS() OptionFunc {
 	return func(cfg Client) Client {
-		cfg.disableTCPTLS = false
+		cfg.disableTCPTLS = true
 		return cfg
 	}
 }
 
 func WithoutDTLS() OptionFunc {
 	return func(cfg Client) Client {
-		cfg.disableDTLS = false
+		cfg.disableDTLS = true
 		return cfg
 	}
 }

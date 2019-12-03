@@ -62,14 +62,14 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 
 func WithoutTCPTLS() OptionFunc {
 	return func(cfg config) config {
-		cfg.disableTCPTLS = false
+		cfg.disableTCPTLS = true
 		return cfg
 	}
 }
 
 func WithoutDTLS() OptionFunc {
 	return func(cfg config) config {
-		cfg.disableDTLS = false
+		cfg.disableDTLS = true
 		return cfg
 	}
 }
@@ -131,8 +131,6 @@ func NewClient(opts ...OptionFunc) *Client {
 			MulticastAddressUDP4: DiscoveryAddressUDP4,
 			MulticastAddressUDP6: DiscoveryAddressUDP6,
 		},
-		disableDTLS:   true,
-		disableTCPTLS: true,
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
