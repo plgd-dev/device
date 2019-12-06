@@ -65,7 +65,7 @@ func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDevice
 		var codec ocf.VNDOCFCBORCodec
 		err := codec.Decode(req.Msg, &doxm)
 		if err != nil {
-			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
+			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req.Msg), err))
 			return
 		}
 		handler.Handle(ctx, req.Client, doxm)

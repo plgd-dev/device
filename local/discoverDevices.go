@@ -46,12 +46,12 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(re
 
 		err := codec.Decode(req.Msg, &links)
 		if err != nil {
-			handler.Error(fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(req.Msg)))
+			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req.Msg), err))
 			return
 		}
 		addr, err := net.Parse(string(schema.UDPScheme), req.Client.RemoteAddr())
 		if err != nil {
-			handler.Error(fmt.Errorf("invalid address %v: %v", req.Client.RemoteAddr(), err))
+			handler.Error(fmt.Errorf("invalid address %v: %w", req.Client.RemoteAddr(), err))
 			return
 		}
 		links = links.PatchEndpoint(addr)

@@ -119,7 +119,7 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 }
 
 func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.ClientCloseHandler, error) {
-	const errMsg = "cannot connect to %v: %v"
+	const errMsg = "cannot connect to %v: %w"
 	addr, err := endpoint.GetAddr()
 	if err != nil {
 		return nil, err
@@ -139,7 +139,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		}
 	case schema.UDPSecureScheme:
 		if d.cfg.disableDTLS {
-			return nil, fmt.Errorf(errMsg, addr.URL(), "dtls is disabled by client option")
+			return nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("dtls is disabled by client option"))
 		}
 		c, err = DialUDPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
 		if err != nil {
@@ -152,7 +152,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		}
 	case schema.TCPSecureScheme:
 		if d.cfg.disableTCPTLS {
-			return nil, fmt.Errorf(errMsg, addr.URL(), "tcp-tls is disabled by client option")
+			return nil, fmt.Errorf(errMsg, addr.URL(),  fmt.Errorf("tcp-tls is disabled by client option"))
 		}
 		c, err = DialTCPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
 		if err != nil {

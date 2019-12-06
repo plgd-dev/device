@@ -12,7 +12,7 @@ func (d *Device) Disown(
 	ctx context.Context,
 	links schema.ResourceLinks,
 ) error {
-	const errMsg = "cannot disown: %v"
+	const errMsg = "cannot disown: %w"
 
 	ownership, err := d.GetOwnership(ctx)
 	if err != nil {
@@ -25,7 +25,7 @@ func (d *Device) Disown(
 	}
 
 	if ownership.DeviceOwner != sdkID {
-		return fmt.Errorf(errMsg, fmt.Sprintf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
+		return fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{

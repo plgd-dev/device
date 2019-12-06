@@ -107,7 +107,7 @@ func (d *Device) GetResourceLinks(ctx context.Context, options ...coap.OptionFun
 	if err == nil {
 		links, err := getResourceLinks(ctx, addr, client, options...)
 		if err != nil {
-			return links, fmt.Errorf("cannot get resource links for %v: %v", d.DeviceID(), err)
+			return links, fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err)
 		}
 		return links, nil
 	}

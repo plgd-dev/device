@@ -33,7 +33,7 @@ func decodeDiscoverDevices(msg gocoap.Message, resources *schema.ResourceLinks) 
 	var devices []deviceLink
 
 	if err := codec.Decode(msg, &devices); err != nil {
-		return fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(msg))
+		return fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err)
 	}
 	var resourceLinks schema.ResourceLinks
 	for _, device := range devices {
@@ -68,7 +68,7 @@ func (c DiscoverDeviceCodec) Decode(msg gocoap.Message, v interface{}) error {
 	case gocoap.AppOcfCbor:
 		codec := ocf.VNDOCFCBORCodec{}
 		if err := codec.Decode(msg, resources); err != nil {
-			return fmt.Errorf("decoding failed: %v: %s", err, ocf.DumpHeader(msg))
+			return fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err)
 		}
 		return nil
 	case gocoap.AppCBOR:

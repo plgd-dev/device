@@ -170,7 +170,7 @@ func (c *Client) UpdateResourceWithCodec(
 		ContentType: codec.ContentFormat().String(),
 	})
 	if err != nil {
-		return fmt.Errorf("cannot update resource %+v: %v", resourceID, err)
+		return fmt.Errorf("cannot update resource %+v: %w", resourceID, err)
 	}
 
 	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)

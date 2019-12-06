@@ -34,7 +34,7 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	/*doxm doesn't send any content for select OTM*/
 	err := tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return fmt.Errorf("cannot set device hackid as owner %v", err)
+		return fmt.Errorf("cannot set device hackid as owner %w", err)
 	}
 
 	iotivityHackCredential := schema.CredentialUpdateRequest{
@@ -52,12 +52,12 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
 	if err != nil {
-		return fmt.Errorf("cannot set iotivity-hack credential: %v", err)
+		return fmt.Errorf("cannot set iotivity-hack credential: %w", err)
 	}
 
 	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialSubject(hackId))
 	if err != nil {
-		return fmt.Errorf("cannot delete iotivity-hack credential: %v", err)
+		return fmt.Errorf("cannot delete iotivity-hack credential: %w", err)
 	}
 
 	return nil
@@ -181,7 +181,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema
 	if coapAddrFound {
 		coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
 		if err != nil {
-			return fmt.Errorf("cannot connect to %v for select OTM: %v", coapAddr.URL(), err)
+			return fmt.Errorf("cannot connect to %v for select OTM: %w", coapAddr.URL(), err)
 		}
 		defer coapConn.Close()
 		return setOTM(ctx, coapConn, selectOwnerTransferMethod)
@@ -252,7 +252,7 @@ func (d *Device) Own(
 	options ...OwnOption,
 ) error {
 	var cfg ownCfg
-	const errMsg = "cannot own device: %v"
+	const errMsg = "cannot own device: %w"
 	for _, opt := range options {
 		cfg = opt(cfg)
 	}
@@ -264,7 +264,7 @@ func (d *Device) Own(
 
 	sdkID, err := d.GetSdkDeviceID()
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	if ownership.Owned {
@@ -288,7 +288,7 @@ func (d *Device) Own(
 
 	err = d.selectOTM(ctx, otmClient.Type(), links)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot select otm: %w", err))
 	}
 
 	var tlsClient *kitNetCoap.ClientCloseHandler
@@ -299,14 +299,14 @@ func (d *Device) Own(
 			if err == nil {
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", tlsAddr.URL(), err))
 		}
 		if tlsAddr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.cfg.dialOptions...)
 			if err == nil {
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %v", tlsAddr.URL(), err))
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", tlsAddr.URL(), err))
 		}
 	}
 	if tlsClient == nil {
@@ -319,7 +319,7 @@ func (d *Device) Own(
 	var provisionState schema.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/pstat", &provisionState)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get provision state %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get provision state %w", err))
 	}
 
 	if provisionState.DeviceOnboardingState.Pending {
@@ -340,13 +340,13 @@ func (d *Device) Own(
 	/*pstat doesn't send any content for select OperationalMode*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", updateProvisionState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state %w", err))
 	}
 
 	/*setup credentials */
 	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, d.DeviceID())
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot provision owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot provision owner %w", err))
 	}
 
 	/*
@@ -368,14 +368,14 @@ func (d *Device) Own(
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	/*verify ownership*/
 	var verifyOwner schema.Doxm
 	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot verify owner: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot verify owner: %w", err))
 	}
 	if verifyOwner.DeviceOwner != sdkID {
 		return fmt.Errorf(errMsg, err)
@@ -390,7 +390,7 @@ func (d *Device) Own(
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owned %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owned %w", err))
 	}
 
 	//For Servers based on OCF 1.0, PostOwnerAcl can be executed using
@@ -407,13 +407,13 @@ func (d *Device) Own(
 	/*pstat set owner of resource*/
 	err = d.setProvisionResourceOwner(ctx, links, sdkID)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update provision state resource owner to setup device owner ACLs: %w", err))
 	}
 
 	/*acl2 set owner of resource*/
 	err = d.setOwnerACL(ctx, links, sdkID)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot update acl resource owner: %v", err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update acl resource owner: %w", err))
 	}
 
 	// Provision the device to switch back to normal operation.

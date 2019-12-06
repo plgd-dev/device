@@ -24,7 +24,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	err := DiscoverDevices(ctx, multicastConn, h)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not get the device %s: %v", deviceID, err)
+		return nil, nil, fmt.Errorf("could not get the device %s: %w", deviceID, err)
 	}
 	d, dlinks := h.Device()
 	if d == nil {
