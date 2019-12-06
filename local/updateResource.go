@@ -30,7 +30,7 @@ func (d *Device) UpdateResourceWithCodec(
 ) error {
 	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 	if err != nil {
-		return fmt.Errorf("cannot update resource %v: %v", link.Href, err)
+		return fmt.Errorf("cannot update resource %v: %w", link.Href, err)
 	}
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
