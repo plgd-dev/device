@@ -35,7 +35,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
 		},
 	}
-	const errMsg = "could not start provisioning the device: %v"
+	const errMsg = "could not start provisioning the device: %w"
 	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
@@ -43,7 +43,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 
 	err = c.UpdateResource(ctx, link, provisioningState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisionin state %+v: %v", link, err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisionin state %+v: %w", link, err))
 	}
 	return nil
 }
@@ -54,7 +54,7 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
 		},
 	}
-	const errMsg = "could not finalize provisioning the device: %v"
+	const errMsg = "could not finalize provisioning the device: %w"
 	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
@@ -68,7 +68,7 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 }
 
 func (c *ProvisioningClient) AddCredentials(ctx context.Context, credential schema.CredentialUpdateRequest) error {
-	const errMsg = "could not add credentials to the device: %v"
+	const errMsg = "could not add credentials to the device: %w"
 	link, err := GetResourceLink(c.links, "/oic/sec/cred")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
@@ -119,7 +119,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	}
 	err := c.UpdateResource(ctx, link, r, nil)
 	if err != nil {
-		return fmt.Errorf("could not set cloud resource of device %s: %v", c.DeviceID(), err)
+		return fmt.Errorf("could not set cloud resource of device %s: %w", c.DeviceID(), err)
 	}
 	return nil
 }
@@ -140,7 +140,7 @@ func (c *ProvisioningClient) SetAccessControl(
 			},
 		},
 	}
-	const errMsg = "could not update ACL of the device: %v"
+	const errMsg = "could not update ACL of the device: %w"
 	link, err := GetResourceLink(c.links, "/oic/sec/acl2")
 	if err != nil {
 		return fmt.Errorf(errMsg, err)

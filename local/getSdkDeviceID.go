@@ -11,7 +11,7 @@ import (
 func (d *Device) GetSdkDeviceID() (string, error) {
 	cert, err := d.cfg.tlsConfig.GetCertificate()
 	if err != nil {
-		return "", fmt.Errorf("cannot get sdk id: %v", err)
+		return "", fmt.Errorf("cannot get sdk id: %w", err)
 	}
 
 	var errors []error

@@ -86,7 +86,7 @@ func runDiscovery(
 
 			req, err := conn.NewGetRequest(href)
 			if err != nil {
-				errors <- fmt.Errorf("device discovery request creation failed: %v", err)
+				errors <- fmt.Errorf("device discovery request creation failed: %w", err)
 				return
 			}
 
@@ -97,7 +97,7 @@ func runDiscovery(
 			waiter, err := conn.PublishMsgWithContext(ctx, req, handler)
 			if err != nil {
 				select {
-				case errors <- fmt.Errorf("device discovery multicast request failed: %v", err):
+				case errors <- fmt.Errorf("device discovery multicast request failed: %w", err):
 				case <-ctx.Done():
 				}
 				return

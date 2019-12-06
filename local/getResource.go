@@ -31,7 +31,7 @@ func (d *Device) GetResourceWithCodec(
 	options = append(options, coap.WithAccept(codec.ContentFormat()))
 	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 	if err != nil {
-		return fmt.Errorf("cannot get resource %v: %v", link.Href, err)
+		return fmt.Errorf("cannot get resource %v: %w", link.Href, err)
 	}
 	return client.GetResourceWithCodec(ctx, link.Href, codec, response, options...)
 }
@@ -71,7 +71,7 @@ func (it *ResourceIterator) Next(ctx context.Context, v interface{}) bool {
 
 	err := it.device.GetResource(ctx, it.links[it.i], v)
 	if err != nil {
-		it.Err = fmt.Errorf("could not get a resource value for the device %s: %v", it.device.DeviceID(), err)
+		it.Err = fmt.Errorf("could not get a resource value for the device %s: %w", it.device.DeviceID(), err)
 		return false
 	}
 

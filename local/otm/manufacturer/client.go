@@ -94,20 +94,20 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 	var csr schema.CertificateSigningRequestResponse
 	err := tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
 	if err != nil {
-		return fmt.Errorf("cannot get csr for setup device owner credentials: %v", err)
+		return fmt.Errorf("cannot get csr for setup device owner credentials: %w", err)
 	}
 
 	pemCSR := encodeToPem(csr.Encoding, csr.CertificateSigningRequest)
 
 	signedCsr, err := c.signer.Sign(ctx, pemCSR)
 	if err != nil {
-		return fmt.Errorf("cannot sign csr for setup device owner credentials: %v", err)
+		return fmt.Errorf("cannot sign csr for setup device owner credentials: %w", err)
 	}
 
 	var deviceCredential schema.CredentialResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
 	if err != nil {
-		return fmt.Errorf("cannot get device credential to setup device owner credentials: %v", err)
+		return fmt.Errorf("cannot get device credential to setup device owner credentials: %w", err)
 	}
 
 	for _, cred := range deviceCredential.Credentials {
@@ -116,7 +116,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
 			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialId(cred.ID))
 			if err != nil {
-				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %v", cred.ID, cred.Usage, err)
+				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %w", cred.ID, cred.Usage, err)
 			}
 		}
 	}
@@ -137,7 +137,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
 	if err != nil {
-		return fmt.Errorf("cannot set device identity credentials: %v", err)
+		return fmt.Errorf("cannot set device identity credentials: %w", err)
 	}
 
 	for _, ca := range c.trustedCAs {
@@ -157,7 +157,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		}
 		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
 		if err != nil {
-			return fmt.Errorf("cannot set device CA credentials: %v", err)
+			return fmt.Errorf("cannot set device CA credentials: %w", err)
 		}
 	}
 	return nil
