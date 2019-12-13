@@ -8,5 +8,6 @@ require (
 	github.com/go-ocf/kit v0.0.0-20191206140702-358b1a66b382
 	github.com/go-ocf/resource-aggregate v0.0.0-20191125125100-ca23376cc48b
 	github.com/gofrs/uuid v3.2.0+incompatible
+	github.com/pion/dtls/v2 v2.0.0-rc.3.0.20191209112724-b4351bb3aded // indirect
 	github.com/stretchr/testify v1.4.0
 )

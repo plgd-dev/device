@@ -158,38 +158,3 @@ index c5186aa..2091bb8 100644
      oc_cloud_manager_start(ctx, cloud_status_handler, NULL);
    }
  
-diff --git a/security/oc_tls.c b/security/oc_tls.c
-index 8b6221e..9d62303 100644
---- a/security/oc_tls.c
-+++ b/security/oc_tls.c
-@@ -139,12 +139,13 @@ static int *ciphers = NULL;
- #ifdef OC_PKI
- static int selected_mfg_cred = -1;
- static int selected_id_cred = -1;
--static const int default_priority[6] = {
-+static const int default_priority[7] = {
- #else  /* OC_PKI */
- static const int default_priority[2] = {
- #endif /* !OC_PKI */
-   MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256,
- #ifdef OC_PKI
-+  MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8,
-@@ -164,13 +165,14 @@ static const int anon_ecdh_priority[2] = {
- #endif /* OC_CLIENT */
- 
- #ifdef OC_PKI
--static const int otm_priority[7] = {
-+static const int otm_priority[8] = {
- #else  /* OC_PKI */
- static const int otm_priority[3] = {
- #endif /* !OC_PKI */
-   MBEDTLS_TLS_ECDH_ANON_WITH_AES_128_CBC_SHA256,
-   MBEDTLS_TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256,
- #ifdef OC_PKI
-+  MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_128_CCM,
-   MBEDTLS_TLS_ECDHE_ECDSA_WITH_AES_256_CCM_8,
