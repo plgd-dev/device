@@ -31,16 +31,11 @@ func TestGetOwnerships(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverAllDevices, false)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, true)
+	testGetOwnerShips(ctx, t, c, ocf.DiscoverAllDevices, true)
+	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
+	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
 	deviceID := testGetDeviceID(t, c.Client, true)
-
-	var hDisowned testOwnerShipHandler
-	err = c.GetOwnerships(ctx, ocf.DiscoverDisownedDevices, &hDisowned)
-	assert.NoError(t, err)
-
 	device, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)
@@ -48,8 +43,8 @@ func TestGetOwnerships(t *testing.T) {
 	err = device.Own(ctx, links, c.otm)
 	require.NoError(t, err)
 
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
+	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)
+	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, true)
 
 	err = device.Disown(ctx, links)
 	require.NoError(t, err)
