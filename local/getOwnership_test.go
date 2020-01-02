@@ -38,9 +38,4 @@ func TestGetOwnership(t *testing.T) {
 
 	err = device.Disown(ctx, links)
 	require.NoError(t, err)
-	
-	// after disown
-	got, err = device.GetOwnership(ctx)
-	require.NoError(t, err)
-	assert.False(t, got.Owned)
 }
