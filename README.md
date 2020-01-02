@@ -9,6 +9,6 @@
 The **local SDK** enables interacting with devices in a local network:
 - Listing devices 
 - Retrieving and updating resources
-- Secure ownership transfer via coaps+tcp
+- Secure ownership transfer via coaps+tcp(only for iotivity) and coaps
 - Onboard and offboard device
 - Provisioning cloud resource and credentials
