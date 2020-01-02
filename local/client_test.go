@@ -219,7 +219,7 @@ func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
 }
 
 var (
-	CertIdentity = "b5a2a42e-b285-42f1-a36b-034c8fc8efd5"
+	CertIdentity = "00000000-0000-0000-0000-000000000001"
 
 	MfgCert = []byte(`-----BEGIN CERTIFICATE-----
 MIIB9zCCAZygAwIBAgIRAOwIWPAt19w7DswoszkVIEIwCgYIKoZIzj0EAwIwEzER

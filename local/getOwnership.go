@@ -13,7 +13,8 @@ type deviceOwnershipHandler struct {
 	deviceID string
 	cancel   context.CancelFunc
 
-	ownership *schema.Doxm
+	isSet     bool
+	ownership schema.Doxm
 	lock      sync.Mutex
 	err       error
 }
@@ -26,10 +27,11 @@ func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	defer clientConn.Close()
-	if h.ownership != nil || ownership.DeviceId != h.deviceID {
+	if h.isSet || ownership.DeviceId != h.deviceID {
 		return
 	}
-	h.ownership = &ownership
+	h.ownership = ownership
+	h.isSet = true
 	h.cancel()
 }
 
@@ -47,7 +49,8 @@ func (h *deviceOwnershipHandler) Err() error {
 	return h.err
 }
 
-func (d *Device) GetOwnership(ctx context.Context) (*schema.Doxm, error) {
+// GetOwnership gets device's ownership resource.
+func (d *Device) GetOwnership(ctx context.Context) (schema.Doxm, error) {
 	ctxOwn, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -60,16 +63,16 @@ func (d *Device) GetOwnership(ctx context.Context) (*schema.Doxm, error) {
 
 	h := newDeviceOwnershipHandler(d.DeviceID(), cancel)
 	err := DiscoverDeviceOwnership(ctxOwn, multicastConn, DiscoverAllDevices, h)
-	if h.ownership != nil {
+	if h.isSet {
 		return h.ownership, nil
 	}
 	if err != nil {
-		return nil, err
+		return schema.Doxm{}, err
 	}
 	err = h.Err()
 	if err != nil {
-		return nil, err
+		return schema.Doxm{}, err
 	}
 
-	return nil, fmt.Errorf("device not found")
+	return schema.Doxm{}, fmt.Errorf("device not found")
 }
