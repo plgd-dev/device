@@ -32,7 +32,6 @@ const (
 
 // DiscoverDeviceOwnership discovers devices using a CoAP multicast request via UDP.
 // It waits for device responses until the context is canceled.
-// Note: len(typeFilter) > 1 does not work with Iotivity 1.3 which responds with BadRequest.
 func DiscoverDeviceOwnership(
 	ctx context.Context,
 	conn []*gocoap.MulticastClientConn,
