@@ -36,10 +36,6 @@ test: env build-testcontainer
 		--mount type=bind,source="$(shell pwd)",target=/shared \
 		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
 		go test -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
-	echo "---DEVSIM---"
-	docker logs devsim
-	echo "---DEVSIM-INSECURE---"
-	docker logs devsim-insecure
 
 clean:
 	docker rm -f devsim || true
