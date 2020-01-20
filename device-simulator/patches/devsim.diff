@@ -157,7 +157,7 @@ index c5186aa..2091bb8 100644
 +    }
      oc_cloud_manager_start(ctx, cloud_status_handler, NULL);
    }
- diff --git a/messaging/coap/coap.c b/messaging/coap/coap.c
+diff --git a/messaging/coap/coap.c b/messaging/coap/coap.c
 index 9fc7851..8e7c08d 100644
 --- a/messaging/coap/coap.c
 +++ b/messaging/coap/coap.c
