@@ -2,6 +2,7 @@ package local_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -25,7 +26,18 @@ type testDeviceHandler struct {
 
 func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
 	defer d.Close(ctx)
+
+	fmt.Printf("Device %v: %+v\n", d.DeviceID(), links)
+	/*
+		for _, t := range d.DeviceTypes() {
+			if t == "oic.d.cloudDevice" {
+
+				return
+			}
+		}
+	*/
 }
 
 func (h *testDeviceHandler) Error(err error) {
+	fmt.Printf("testDeviceHandler.Error: %v\n", err)
 }
