@@ -63,6 +63,8 @@ github.com/go-ocf/go-coap v0.0.0-20191202082900-28b53dd37265/go.mod h1:54s0jDaba
 github.com/go-ocf/go-coap v0.0.0-20191205091034-1fba24d18397/go.mod h1:54s0jDaba7/rZ2/EoOxWF/5OIE4XuKjtsRTr9greoA0=
 github.com/go-ocf/go-coap v0.0.0-20200102085052-de56d321b864 h1:hbkUpwDhKJVoAQaXDGzX71bw/PqmiORIrGsspeKv+UQ=
 github.com/go-ocf/go-coap v0.0.0-20200102085052-de56d321b864/go.mod h1:4M5psGWXKgBr5EEiHBE4goezyqfCSAqk9C1UaKi5t+Y=
+github.com/go-ocf/go-coap v0.0.0-20200110075231-40e35a4cacdf h1:OuHIYjcUc8QFEie31K/W2ZT5V7HrpjQsyUkDy0dLKdo=
+github.com/go-ocf/go-coap v0.0.0-20200110075231-40e35a4cacdf/go.mod h1:4M5psGWXKgBr5EEiHBE4goezyqfCSAqk9C1UaKi5t+Y=
 github.com/go-ocf/grpc-gateway v0.0.0-20191029150757-8ed2b7d67a67/go.mod h1:GuVJZHmSz7KGATOk0tqLPkgBJq2H12hZnG74CTJXOtI=
 github.com/go-ocf/grpc-gateway v0.0.0-20191128115804-9c2e8f77af08 h1:0Nt4tnayZKdyhB6seG1Q6Z57x1JBviMkuHPeGu7QxK4=
 github.com/go-ocf/grpc-gateway v0.0.0-20191128115804-9c2e8f77af08/go.mod h1:XBVeqnt2JEx0Z6SLEdjnjQ53jEpbAvcx+/CAC43eAb4=
@@ -304,6 +306,7 @@ golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 h1:SVwTIAaPC2U/AvvLNZ2a7O
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c h1:HjRaKPaiWks0f5tA6ELVF7ZfqSppfPwOEEAvsrKUTO4=
 golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
+golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 h1:pE8b58s1HRDMi8RDc79m0HISf9D4TzseP40cEA6IGfs=
 golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
