@@ -5,6 +5,7 @@ github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ
 github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
 github.com/DataDog/zstd v1.3.6-0.20190409195224-796139022798/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/DataDog/zstd v1.4.0/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
+github.com/DataDog/zstd v1.4.4/go.mod h1:1jcaCB/ufaK+sKp1NBhlGmpz41jOoPQ35bpF36t7BBo=
 github.com/Shopify/sarama v1.23.0/go.mod h1:XLH1GYJnLVE0XCr6KdJGVJRTwY30moWNJ4sERjXX6fs=
 github.com/Shopify/sarama v1.24.0 h1:99vo5VAgQybHwZwiOy/RX/S3i0somjGxur3pLeheqzI=
 github.com/Shopify/sarama v1.24.0/go.mod h1:fGP8eQ6PugKEI0iUETYYtnP6d1pH/bdDMTel1X5ajsU=
@@ -45,6 +46,7 @@ github.com/go-ocf/authorization v0.0.0-20191029080559-c0f072d9ae27/go.mod h1:HMI
 github.com/go-ocf/authorization v0.0.0-20191029114330-d7b2a94275a1/go.mod h1:HMIKVo6NWv3GIif0rYDx6UTK+DqRj3Ha7c8qoE7beGI=
 github.com/go-ocf/authorization v0.0.0-20191128112604-67b1046cd475/go.mod h1:W7ESga/U+98jLyVy8p3Ibl1vm3rrBSos80zits5r2L8=
 github.com/go-ocf/authorization v0.0.0-20200102120905-44194ad01b6b/go.mod h1:sCsmb265KRxPlRHG5X6zgF8z2thckD6ReOKpdCcyido=
+github.com/go-ocf/authorization v0.0.0-20200127150932-76f9ee40d6c6/go.mod h1:Ku446n9HbFWHXWhaYyHGIaPFQ3oG0baxhYbl+iS3lM4=
 github.com/go-ocf/coap-gateway v0.0.0-20191029135134-f6d64e927f2d/go.mod h1:nATrHRzqOGUkWP99R/66FoXGIVOIAuC6NiGW/5OoIQ8=
 github.com/go-ocf/coap-gateway v0.0.0-20191128113433-bf8268a9145d/go.mod h1:jgZuHpW4wW0kdrOa0jy/AgtA5otvkBMGxfraUruQ5gE=
 github.com/go-ocf/coap-gateway v0.0.0-20200102141824-70a140cb7d9b/go.mod h1:mMVcoY8HhEgcDdSCU/jENKfxZ3vDyLXToqdQX7W6uvQ=
@@ -79,6 +81,9 @@ github.com/go-ocf/kit v0.0.0-20191209150955-2f87120f125d/go.mod h1:tjohpoVCgliI6
 github.com/go-ocf/kit v0.0.0-20191216085136-f42ca1346f3f/go.mod h1:dHlj9aqxutSECzZmKC5sBazcrMTihdxTSGQrOMvMUiU=
 github.com/go-ocf/kit v0.0.0-20200102091224-8f9117ed4c1a h1:o4JaL+cIvaaInJNn71VDylQJ/Tn2Ul0aQqydOweh2iY=
 github.com/go-ocf/kit v0.0.0-20200102091224-8f9117ed4c1a/go.mod h1:s46+yZh+k7KpY7VuTZiSjK4MaDpkPEHrbwZZCQk9NHE=
+github.com/go-ocf/kit v0.0.0-20200127130135-cbf12801499b/go.mod h1:s46+yZh+k7KpY7VuTZiSjK4MaDpkPEHrbwZZCQk9NHE=
+github.com/go-ocf/kit v0.0.0-20200206131038-d8a52e4df383 h1:DPu44dtESZDUsh8qaNL1LRUsCqmFRNwtGtC7skpB6yw=
+github.com/go-ocf/kit v0.0.0-20200206131038-d8a52e4df383/go.mod h1:s46+yZh+k7KpY7VuTZiSjK4MaDpkPEHrbwZZCQk9NHE=
 github.com/go-ocf/resource-aggregate v0.0.0-20190610073816-ff5194c51d2a/go.mod h1:5G1FgzxCnQhETxlFMh2DYtGJrl82AK3MvHXW4MYpO08=
 github.com/go-ocf/resource-aggregate v0.0.0-20191001194720-f5aade86d89a/go.mod h1:5G1FgzxCnQhETxlFMh2DYtGJrl82AK3MvHXW4MYpO08=
 github.com/go-ocf/resource-aggregate v0.0.0-20191029083107-ed77cacca426/go.mod h1:8KjjOJsevWFUzQ5UhD/tybREQhW05HeQsuGJ449X5qM=
@@ -89,6 +94,8 @@ github.com/go-ocf/resource-aggregate v0.0.0-20191125125100-ca23376cc48b/go.mod h
 github.com/go-ocf/resource-aggregate v0.0.0-20191216085155-b66d12c15739/go.mod h1:BO3kL7NAyUHWBQdBVA62kMblkn60Fv4Un9dvpgxVp6Q=
 github.com/go-ocf/resource-aggregate v0.0.0-20200102132204-a31b8e1496db h1:GmoBDNhyp4mGVrWGunqjxRAXY16OLko7vRpQNEJ35Fk=
 github.com/go-ocf/resource-aggregate v0.0.0-20200102132204-a31b8e1496db/go.mod h1:ulUliWNV3f2cxZSBi5XA9f8H4ia9txdYWAVplP8z3Kg=
+github.com/go-ocf/resource-aggregate v0.0.0-20200206134526-98a7e94bdd4d h1:eFqm3kuNdZnNIp5clve+WNHtpylRZ5/o2L937orQHfQ=
+github.com/go-ocf/resource-aggregate v0.0.0-20200206134526-98a7e94bdd4d/go.mod h1:copBrVc8C9SqyvAZ7rCOVR/cMeJ8tE3qAZUbS1Cm4mo=
 github.com/go-ocf/resource-directory v0.0.0-20191029084211-59afab3faf54/go.mod h1:AyZwgRfDRRg9vQMxW66NUq5/O5vwd1+gOgPAtVA7xdc=
 github.com/go-ocf/resource-directory v0.0.0-20191029134203-3e2a985c36e2/go.mod h1:AyZwgRfDRRg9vQMxW66NUq5/O5vwd1+gOgPAtVA7xdc=
 github.com/go-ocf/resource-directory v0.0.0-20191122211635-a96a97864227/go.mod h1:HbLJmgwxFnBg+ehdMiuiQla3MEmXxFXwjN4LXKKZVJY=
@@ -304,6 +311,7 @@ golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 h1:SVwTIAaPC2U/AvvLNZ2a7O
 golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c h1:HjRaKPaiWks0f5tA6ELVF7ZfqSppfPwOEEAvsrKUTO4=
 golang.org/x/oauth2 v0.0.0-20191122200657-5d9234df094c/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
+golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6 h1:pE8b58s1HRDMi8RDc79m0HISf9D4TzseP40cEA6IGfs=
 golang.org/x/oauth2 v0.0.0-20191202225959-858c2ad4c8b6/go.mod h1:gOpvHmFTYa4IltrdGE7lF6nIHvwfUNPOp7c8zoXwtLw=
 golang.org/x/sync v0.0.0-20180314180146-1d60e4601c6f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
 golang.org/x/sync v0.0.0-20181108010431-42b317875d0f/go.mod h1:RxMgew5VJxzue5/jJTE5uejpjVlOe/izrB70Jof72aM=
