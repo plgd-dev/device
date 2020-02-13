@@ -7,7 +7,6 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
-
 func ContentTypeToMediaType(contentType string) (coap.MediaType, error) {
 	switch contentType {
 	case coap.TextPlain.String():
