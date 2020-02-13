@@ -120,16 +120,15 @@ func (c *Client) NewDevicesSubscription(ctx context.Context, handle Subscription
 }
 
 // Cancel cancels subscription.
-func (s *DevicesSubscription) Cancel() error {
+func (s *DevicesSubscription) Cancel() (wait func(), err error) {
 	if !atomic.CompareAndSwapUint32(&s.canceled, s.canceled, 1) {
-		return nil
+		return func() {}, nil
 	}
-	err := s.client.CloseSend()
+	err = s.client.CloseSend()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	s.wg.Wait()
-	return nil
+	return s.wg.Wait, nil
 }
 
 // ID returns subscription id.
