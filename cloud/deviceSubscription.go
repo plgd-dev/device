@@ -30,8 +30,7 @@ type DeviceSubscription struct {
 	resourcePublishedHandler   ResourcePublishedHandler
 	resourceUnpublishedHandler ResourceUnpublishedHandler
 
-	wg sync.WaitGroup
-
+	wait     func()
 	canceled uint32
 }
 
@@ -81,30 +80,34 @@ func (c *Client) NewDeviceSubscription(ctx context.Context, deviceID string, han
 		return nil, fmt.Errorf(op.GetErrorStatus().GetMessage())
 	}
 
+	var wg sync.WaitGroup
 	sub := &DeviceSubscription{
 		client:                     client,
 		handle:                     handle,
 		subscriptionID:             ev.GetSubscriptionId(),
 		resourcePublishedHandler:   resourcePublishedHandler,
 		resourceUnpublishedHandler: resourceUnpublishedHandler,
+		wait:                       wg.Wait,
 	}
-	sub.wg.Add(1)
-	go sub.runRecv()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		sub.runRecv()
+	}()
 
 	return sub, nil
 }
 
 // Cancel cancels subscription.
-func (s *DeviceSubscription) Cancel() error {
+func (s *DeviceSubscription) Cancel() (wait func(), err error) {
 	if !atomic.CompareAndSwapUint32(&s.canceled, s.canceled, 1) {
-		return nil
+		return s.wait, nil
 	}
-	err := s.client.CloseSend()
+	err = s.client.CloseSend()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	s.wg.Wait()
-	return nil
+	return s.wait, nil
 }
 
 // ID returns subscription id.
@@ -113,19 +116,21 @@ func (s *DeviceSubscription) ID() string {
 }
 
 func (s *DeviceSubscription) runRecv() {
-	defer s.wg.Done()
 	for {
 		ev, err := s.client.Recv()
 		if err == io.EOF {
+			s.Cancel()
 			s.handle.OnClose()
 			return
 		}
 		if err != nil {
+			s.Cancel()
 			s.handle.Error(err)
 			return
 		}
 		cancel := ev.GetSubscriptionCanceled()
 		if cancel != nil {
+			s.Cancel()
 			reason := cancel.GetReason()
 			if reason == "" {
 				s.handle.OnClose()

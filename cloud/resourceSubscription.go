@@ -28,8 +28,8 @@ type ResourceSubscription struct {
 	subscriptionID                string
 	handle                        SubscriptionHandler
 	resourceContentChangedHandler ResourceContentChangedHandler
-	wg                            sync.WaitGroup
 
+	wait     func()
 	canceled uint32
 }
 
@@ -74,29 +74,33 @@ func (c *Client) NewResourceSubscription(ctx context.Context, resourceID pb.Reso
 		return nil, fmt.Errorf(op.GetErrorStatus().GetMessage())
 	}
 
+	var wg sync.WaitGroup
 	sub := &ResourceSubscription{
 		client:                        client,
 		handle:                        handle,
 		subscriptionID:                ev.GetSubscriptionId(),
 		resourceContentChangedHandler: resourceContentChangedHandler,
+		wait:                          wg.Wait,
 	}
-	sub.wg.Add(1)
-	go sub.runRecv()
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		sub.runRecv()
+	}()
 
 	return sub, nil
 }
 
 // Cancel cancels subscription.
-func (s *ResourceSubscription) Cancel() error {
+func (s *ResourceSubscription) Cancel() (wait func(), err error) {
 	if !atomic.CompareAndSwapUint32(&s.canceled, s.canceled, 1) {
-		return nil
+		return s.wait, nil
 	}
-	err := s.client.CloseSend()
+	err = s.client.CloseSend()
 	if err != nil {
-		return err
+		return nil, err
 	}
-	s.wg.Wait()
-	return nil
+	return s.wait, nil
 }
 
 // ID returns subscription id.
@@ -105,19 +109,21 @@ func (s *ResourceSubscription) ID() string {
 }
 
 func (s *ResourceSubscription) runRecv() {
-	defer s.wg.Done()
 	for {
 		ev, err := s.client.Recv()
 		if err == io.EOF {
+			s.Cancel()
 			s.handle.OnClose()
 			return
 		}
 		if err != nil {
+			s.Cancel()
 			s.handle.Error(err)
 			return
 		}
 		cancel := ev.GetSubscriptionCanceled()
 		if cancel != nil {
+			s.Cancel()
 			reason := cancel.GetReason()
 			if reason == "" {
 				s.handle.OnClose()
