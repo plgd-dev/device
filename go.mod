@@ -8,5 +8,5 @@ require (
 	github.com/go-ocf/kit v0.0.0-20200211064654-cb54e57dd411
 	github.com/go-ocf/resource-aggregate v0.0.0-20200206134526-98a7e94bdd4d
 	github.com/gofrs/uuid v3.2.0+incompatible
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 )
