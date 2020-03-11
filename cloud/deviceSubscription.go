@@ -60,7 +60,7 @@ func (c *Client) NewDeviceSubscription(ctx context.Context, deviceID string, han
 	err = client.Send(&pb.SubscribeForEvents{
 		FilterBy: &pb.SubscribeForEvents_DeviceEvent{
 			DeviceEvent: &pb.SubscribeForEvents_DeviceEventFilter{
-				DeviceId:     deviceID,
+				DeviceID:     deviceID,
 				FilterEvents: filterEvents,
 			},
 		},

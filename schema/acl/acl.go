@@ -94,7 +94,7 @@ const (
 )
 
 type Subject_Device struct {
-	DeviceId string `codec:"uuid,omitempty"`
+	DeviceID string `codec:"uuid,omitempty"`
 }
 
 type Subject_Role struct {

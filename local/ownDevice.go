@@ -224,7 +224,7 @@ func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ow
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
-						DeviceId: ownerID,
+						DeviceID: ownerID,
 					},
 				},
 				Resources: acl.AllResources,
@@ -233,7 +233,7 @@ func (d *Device) setOwnerACL(ctx context.Context, links schema.ResourceLinks, ow
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
-						DeviceId: ownerID,
+						DeviceID: ownerID,
 					},
 				},
 				Resources: cloudResources,
@@ -383,7 +383,7 @@ func (d *Device) Own(
 
 	setDeviceOwned := schema.DoxmUpdate{
 		ResourceOwner: sdkID,
-		DeviceId:      d.DeviceID(),
+		DeviceID:      d.DeviceID(),
 		Owned:         true,
 	}
 

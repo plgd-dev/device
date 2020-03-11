@@ -8,10 +8,10 @@ type Doxm struct {
 	ResourceOwner                 string                `codec:"rowneruuid"`
 	SupportedOwnerTransferMethods []OwnerTransferMethod `codec:"oxms"`
 	DeviceOwner                   string                `codec:"devowneruuid"`
-	DeviceId                      string                `codec:"deviceuuid"`
+	DeviceID                      string                `codec:"deviceuuid"`
 	Owned                         bool                  `codec:"owned"`
 	Name                          string                `codec:"n"`
-	InstanceId                    string                `codec:"id"`
+	InstanceID                    string                `codec:"id"`
 	SupportedCredentialTypes      CredentialType        `codec:"sct"`
 	SelectedOwnerTransferMethod   OwnerTransferMethod   `codec:"oxmsel"`
 	Interfaces                    []string              `codec:"if"`
@@ -21,7 +21,7 @@ type Doxm struct {
 type DoxmUpdate struct {
 	ResourceOwner             string              `codec:"rowneruuid,omitempty"`
 	DeviceOwner               string              `codec:"devowneruuid,omitempty"`
-	DeviceId                  string              `codec:"deviceuuid,omitempty"`
+	DeviceID                  string              `codec:"deviceuuid,omitempty"`
 	Owned                     bool                `codec:"owned,omitempty"`
 	SelectOwnerTransferMethod OwnerTransferMethod `codec:"oxmsel,omitempty"`
 }

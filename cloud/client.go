@@ -106,7 +106,7 @@ type ResourceIDCallback struct {
 
 func MakeResourceIDCallback(deviceID, href string, callback func(pb.ResourceValue)) ResourceIDCallback {
 	return ResourceIDCallback{ResourceID: &pb.ResourceId{
-		DeviceId:         deviceID,
+		DeviceID:         deviceID,
 		ResourceLinkHref: href,
 	}, Callback: callback}
 }
@@ -119,7 +119,7 @@ func (c *Client) RetrieveResourcesByResourceIDs(
 	tc := make(map[string]func(pb.ResourceValue), len(resourceIDsCallbacks))
 	resourceIDs := make([]*pb.ResourceId, 0, len(resourceIDsCallbacks))
 	for _, c := range resourceIDsCallbacks {
-		tc[cqrs.MakeResourceId(c.ResourceID.DeviceId, c.ResourceID.ResourceLinkHref)] = c.Callback
+		tc[cqrs.MakeResourceId(c.ResourceID.DeviceID, c.ResourceID.ResourceLinkHref)] = c.Callback
 		resourceIDs = append(resourceIDs, c.ResourceID)
 	}
 

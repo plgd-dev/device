@@ -27,7 +27,7 @@ func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	defer clientConn.Close()
-	if h.isSet || ownership.DeviceId != h.deviceID {
+	if h.isSet || ownership.DeviceID != h.deviceID {
 		return
 	}
 	h.ownership = ownership

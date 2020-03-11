@@ -40,7 +40,7 @@ func (c *Client) updateMaintenanceResource(
 	for it.Next(&v) {
 		var resp maintenance.Maintenance
 		err := c.UpdateResource(ctx, pb.ResourceId{
-			DeviceId:         v.GetDeviceId(),
+			DeviceID:         v.GetDeviceId(),
 			ResourceLinkHref: v.GetHref(),
 		}, "", req, &resp)
 		if err != nil {

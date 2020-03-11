@@ -23,7 +23,7 @@ func (d *Device) ObserveResourceWithCodec(
 }
 
 type ObservationHandler interface {
-	Handle(ctx context.Context, body []byte)
+	Handle(ctx context.Context, body kitNetCoap.DecodeFunc)
 	OnClose()
 	Error(err error)
 }
@@ -163,12 +163,7 @@ type observationHandler struct {
 }
 
 func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientConn, body kitNetCoap.DecodeFunc) {
-	var b []byte
-	if err := body(&b); err != nil {
-		h.handler.Error(err)
-		return
-	}
-	h.handler.Handle(ctx, b)
+	h.handler.Handle(ctx, body)
 }
 
 func (h *observationHandler) Error(err error) {
