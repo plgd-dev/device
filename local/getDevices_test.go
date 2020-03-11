@@ -28,14 +28,6 @@ func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links sch
 	defer d.Close(ctx)
 
 	fmt.Printf("Device %v: %+v\n", d.DeviceID(), links)
-	/*
-		for _, t := range d.DeviceTypes() {
-			if t == "oic.d.cloudDevice" {
-
-				return
-			}
-		}
-	*/
 }
 
 func (h *testDeviceHandler) Error(err error) {

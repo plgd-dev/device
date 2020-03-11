@@ -16,6 +16,7 @@ import (
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/local/otm/manufacturer"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 )
 
 type Client struct {
@@ -121,16 +122,16 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
-	id := testGetDeviceID(t, c.Client, true)
+	deviceId := test.TestSecureDeviceID
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, links, err := c.GetDevice(timeout, id)
+	device, links, err := c.GetDevice(timeout, deviceId)
 	require.NoError(t, err)
 	err = device.Own(timeout, links, c.otm)
 	require.NoError(t, err)
 	c.Device = device
-	c.DeviceID = id
+	c.DeviceID = deviceId
 	c.DeviceLinks = links
 }
 
@@ -145,6 +146,8 @@ func (c *Client) Close() {
 		panic(err)
 	}
 	c.Device.Close(timeout)
+	time.Sleep(time.Second)
+	test.TestSecureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 }
 
 type testFindDeviceHandler struct {

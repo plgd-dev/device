@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/test"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,10 +16,10 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 	defer c.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	deviceID := testGetDeviceID(t, c.Client, true)
+	deviceID := test.TestSecureDeviceID
 	device, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)
@@ -31,7 +33,7 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 
 	// after own
-	got,err = device.GetOwnership(ctx)
+	got, err = device.GetOwnership(ctx)
 	require.NoError(t, err)
 	assert.True(t, got.Owned)
 	assert.Equal(t, CertIdentity, got.DeviceOwner)

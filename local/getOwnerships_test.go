@@ -1,14 +1,16 @@
 package local_test
 
 import (
-	"fmt"
-	"github.com/stretchr/testify/assert"
 	"context"
+	"fmt"
 	"testing"
 	"time"
-	
+
+	"github.com/stretchr/testify/assert"
+
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )
@@ -16,7 +18,7 @@ import (
 func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus ocf.DiscoverOwnershipStatus, found bool) {
 	timeout, cancel := context.WithTimeout(ctx, 1*time.Second)
 	defer cancel()
-	
+
 	var h testOwnerShipHandler
 	err := c.GetOwnerships(timeout, ownStatus, &h)
 	require.NoError(t, err)
@@ -28,14 +30,14 @@ func TestGetOwnerships(t *testing.T) {
 	require.NoError(t, err)
 	defer c.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
 	defer cancel()
 
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverAllDevices, true)
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
-	deviceID := testGetDeviceID(t, c.Client, true)
+	deviceID := test.TestSecureDeviceID
 	device, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)

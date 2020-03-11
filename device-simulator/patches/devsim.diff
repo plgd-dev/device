@@ -21,25 +21,28 @@ index ece67a1..7678153 100644
    size_t cps_len = 0;
    if (oc_rep_get_string(request->request_payload, "cps", &cps, &cps_len)) {
 diff --git a/apps/cloud_server.c b/apps/cloud_server.c
-index c5186aa..c7ec4c4 100644
+index c5186aa..36e26d1 100644
 --- a/apps/cloud_server.c
 +++ b/apps/cloud_server.c
-@@ -18,6 +18,7 @@
+@@ -18,6 +18,8 @@
   ****************************************************************************/
  
  #include "oc_api.h"
 +#include "oc_pki.h"
++#include "oc_core_res.h"
  #include <signal.h>
  #include <inttypes.h>
  
-@@ -284,9 +285,71 @@ register_resources(void)
+@@ -284,9 +286,73 @@ register_resources(void)
    oc_add_resource(res2);
  }
  
 +void
 +factory_presets_cb(size_t device, void *data)
 +{
-+  (void)device;
++  oc_device_info_t* dev = oc_core_get_device_info(device);
++  oc_free_string(&dev->name);
++  oc_new_string(&dev->name, device_name, strlen(device_name));
 +  (void)data;
 +#if defined(OC_SECURITY) && defined(OC_PKI)
 +  PRINT("factory_presets_cb: %d\n", (int) device);
@@ -105,7 +108,7 @@ index c5186aa..c7ec4c4 100644
    int ret = init();
    if (ret < 0) {
      return ret;
-@@ -297,6 +360,7 @@ main(void)
+@@ -297,6 +363,7 @@ main(void)
                                          .register_resources =
                                            register_resources };
    oc_storage_config("./cloud_server_creds/");
@@ -113,7 +116,7 @@ index c5186aa..c7ec4c4 100644
  
    ret = oc_main_init(&handler);
    if (ret < 0)
-@@ -304,6 +368,18 @@ main(void)
+@@ -304,6 +371,18 @@ main(void)
  
    oc_cloud_context_t *ctx = oc_cloud_get_context(0);
    if (ctx) {

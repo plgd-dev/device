@@ -7,6 +7,7 @@ import (
 
 	ocf "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +40,7 @@ func TestDevice_Reboot(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := testGetDeviceID(t, c.Client, false)
+			deviceId := test.TestDeviceID
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()

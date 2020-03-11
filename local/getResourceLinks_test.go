@@ -5,12 +5,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/test"
+
 	"github.com/stretchr/testify/require"
 )
 
 func TestDevice_GetResourceLinks(t *testing.T) {
 	type args struct {
-		secure bool
+		deviceID string
 	}
 	tests := []struct {
 		name    string
@@ -20,11 +22,14 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 		{
 			name: "secure",
 			args: args{
-				secure: true,
+				deviceID: test.TestSecureDeviceID,
 			},
 		},
 		{
 			name: "insecure",
+			args: args{
+				deviceID: test.TestDeviceID,
+			},
 		},
 	}
 	for _, tt := range tests {
@@ -32,9 +37,9 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := testGetDeviceID(t, c.Client, tt.args.secure)
+			deviceId := tt.args.deviceID
 			require := require.New(t)
-			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
 			device, _, err := c.GetDevice(timeout, deviceId)

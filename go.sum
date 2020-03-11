@@ -80,6 +80,7 @@ github.com/go-ocf/grpc-gateway v0.0.0-20191029150757-8ed2b7d67a67/go.mod h1:GuVJ
 github.com/go-ocf/grpc-gateway v0.0.0-20191128115804-9c2e8f77af08/go.mod h1:XBVeqnt2JEx0Z6SLEdjnjQ53jEpbAvcx+/CAC43eAb4=
 github.com/go-ocf/grpc-gateway v0.0.0-20200206140756-f2e98d630ed6 h1:1czEtkxvOTXbeE43XbyoTAwQ2FTsiF7eVN6Rm+6mymc=
 github.com/go-ocf/grpc-gateway v0.0.0-20200206140756-f2e98d630ed6/go.mod h1:UmskFCqe00ISEBHTZJbWIeyvvHcIuVsS/5c5FFEHF8s=
+github.com/go-ocf/grpc-gateway v0.0.0-20200310075614-c0c9a30f07f8 h1:ArMCj87kWRoS/nua3gHw2Eo9ZXTxMhIHmryGC9UxMB0=
 github.com/go-ocf/kit v0.0.0-20190627123507-31d82dceaba0/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191028131320-a13f1309c964/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191121115122-d51c9ca11d08/go.mod h1:PyZjU7p8U5oXiCuTYfufjEsFwePni3eMr5l5qU2nkZ8=

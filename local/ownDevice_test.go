@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,9 +24,9 @@ func TestClient_ownDevice(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := testGetDeviceID(t, c.Client, true)
+			deviceId := test.TestSecureDeviceID
 			require := require.New(t)
-			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
 			device, links, err := c.GetDevice(timeout, deviceId)
@@ -43,6 +44,9 @@ func TestClient_ownDevice(t *testing.T) {
 				require.Error(err)
 			} else {
 				require.NoError(err)
+				time.Sleep(time.Second)
+				// deviceID is changed after disown
+				test.TestSecureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 			}
 		})
 	}

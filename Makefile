@@ -34,7 +34,7 @@ test: env build-testcontainer
 		--network=host \
 		--mount type=bind,source="$(shell pwd)",target=/shared \
 		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
-		go test -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
+		go test -p 1 -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
 
 clean:
 	docker rm -f devsimsec || true
