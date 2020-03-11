@@ -2,7 +2,6 @@ SHELL = /bin/bash
 SERVICE_NAME = $(notdir $(CURDIR))
 LATEST_TAG = vnext
 VERSION_TAG = vnext-$(shell git rev-parse --short=7 --verify HEAD)
-DOCKER_NET = devsimnet-${TRAVIS_JOB_ID}-${TRAVIS_BUILD_ID}
 SIMULATOR_NAME_SUFFIX ?= $(shell hostname)
 
 default: build
@@ -32,7 +31,7 @@ env: clean
 
 test: env build-testcontainer 
 	docker run \
-		--network=$(DOCKER_NET) \
+		--network=host \
 		--mount type=bind,source="$(shell pwd)",target=/shared \
 		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
 		go test -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
@@ -40,6 +39,5 @@ test: env build-testcontainer
 clean:
 	docker rm -f devsimsec || true
 	docker rm -f devsim|| true
-	docker network rm $(DOCKER_NET) || true
 
 .PHONY: build-testcontainer build test clean env
