@@ -2,7 +2,6 @@ package local_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -26,18 +25,19 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus o
 }
 
 func TestGetOwnerships(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 7*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverAllDevices, true)
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
-	deviceID := test.TestSecureDeviceID
+	deviceID := secureDeviceID
 	device, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)
@@ -57,9 +57,7 @@ type testOwnerShipHandler struct {
 }
 
 func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm schema.Doxm) {
-	fmt.Printf("testOwnerShipHandler.Handle: %+v\n", doxm)
 	h.anyFound = true
 }
 
-func (h *testOwnerShipHandler) Error(err error) {
-}
+func (h *testOwnerShipHandler) Error(err error) {}

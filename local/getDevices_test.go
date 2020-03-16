@@ -26,8 +26,6 @@ type testDeviceHandler struct {
 
 func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
 	defer d.Close(ctx)
-
-	fmt.Printf("Device %v: %+v\n", d.DeviceID(), links)
 }
 
 func (h *testDeviceHandler) Error(err error) {

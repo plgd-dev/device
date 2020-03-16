@@ -11,6 +11,7 @@ import (
 )
 
 func TestClient_UpdateResource(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		deviceID string
 		href     string
@@ -26,7 +27,7 @@ func TestClient_UpdateResource(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/oc/con",
 				data: map[string]interface{}{
 					"n": t.Name() + "-valid",
@@ -39,7 +40,7 @@ func TestClient_UpdateResource(t *testing.T) {
 		{
 			name: "valid with interface",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/oc/con",
 				data: map[string]interface{}{
 					"n": t.Name() + "-valid with interface",
@@ -53,7 +54,7 @@ func TestClient_UpdateResource(t *testing.T) {
 		{
 			name: "valid - revert update",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/oc/con",
 				data: map[string]interface{}{
 					"n": test.TestDeviceName,
@@ -66,7 +67,7 @@ func TestClient_UpdateResource(t *testing.T) {
 		{
 			name: "invalid href",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/invalid/href",
 				data: map[string]interface{}{
 					"n": "devsim",

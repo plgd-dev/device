@@ -11,6 +11,8 @@ import (
 )
 
 func TestDevice_GetResourceLinks(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -22,13 +24,13 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 		{
 			name: "secure",
 			args: args{
-				deviceID: test.TestSecureDeviceID,
+				deviceID: secureDeviceID,
 			},
 		},
 		{
 			name: "insecure",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 			},
 		},
 	}

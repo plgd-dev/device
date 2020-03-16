@@ -122,7 +122,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
-	deviceId := test.TestSecureDeviceID
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceId := secureDeviceID
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -146,8 +147,6 @@ func (c *Client) Close() {
 		panic(err)
 	}
 	c.Device.Close(timeout)
-	time.Sleep(time.Second)
-	test.TestSecureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 }
 
 type testFindDeviceHandler struct {

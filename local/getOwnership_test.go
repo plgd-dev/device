@@ -12,6 +12,7 @@ import (
 )
 
 func TestGetOwnership(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
@@ -19,7 +20,7 @@ func TestGetOwnership(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
-	deviceID := test.TestSecureDeviceID
+	deviceID := secureDeviceID
 	device, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)

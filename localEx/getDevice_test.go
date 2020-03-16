@@ -28,11 +28,12 @@ func sortResources(s []schema.ResourceLink) []schema.ResourceLink {
 	return v
 }
 
-var TestDeviceSimulator = localEx.DeviceDetails{
-	ID: test.TestDeviceID,
+func NewTestDeviceSimulator(deviceID, deviceName string) localEx.DeviceDetails {
+	return localEx.DeviceDetails{
+	ID: deviceID,
 	Device: schema.Device{
-		ID:   test.TestDeviceID,
-		Name: test.TestDeviceName,
+		ID:   deviceID,
+		Name: deviceName,
 	},
 	CloudConfiguration: &cloud.Configuration{
 		ResourceTypes:      cloud.ConfigurationResourceTypes,
@@ -44,25 +45,28 @@ var TestDeviceSimulator = localEx.DeviceDetails{
 	},
 	Resources: sortResources(append(test.TestDevsimResources, test.TestDevsimPrivateResources...)),
 }
+}
 
-var TestSecureDeviceSimulator = localEx.DeviceDetails{
-	ID: test.TestSecureDeviceID,
+func NewTestSecureDeviceSimulator(deviceID, deviceName string) localEx.DeviceDetails {
+	return localEx.DeviceDetails{
+	ID: deviceID,
 	Device: schema.Device{
-		ID:   test.TestSecureDeviceID,
-		Name: test.TestSecureDeviceName,
+		ID:   deviceID,
+		Name: deviceName,
 	},
 	IsSecured: true,
 	Ownership: &schema.Doxm{
 		ResourceOwner:                 "00000000-0000-0000-0000-000000000000",
 		SupportedOwnerTransferMethods: []schema.OwnerTransferMethod{schema.JustWorks, schema.ManufacturerCertificate},
 		DeviceOwner:                   "00000000-0000-0000-0000-000000000000",
-		DeviceID:                      test.TestSecureDeviceID,
+		DeviceID:                      deviceID,
 		SupportedCredentialTypes:      schema.CredentialType(schema.CredentialType_SYMMETRIC_PAIR_WISE | schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE),
 		SelectedOwnerTransferMethod:   schema.JustWorks,
 		Interfaces:                    []string{"oic.if.baseline"},
 		ResourceTypes:                 []string{"oic.r.doxm"},
 	},
 	Resources: sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
+}
 }
 
 func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
@@ -77,6 +81,8 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 }
 
 func TestClient_GetDevice(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -89,16 +95,16 @@ func TestClient_GetDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 			},
-			want: TestDeviceSimulator,
+			want: NewTestDeviceSimulator(deviceID, test.TestDeviceName),
 		},
 		{
 			name: "valid - secure",
 			args: args{
-				deviceID: test.TestSecureDeviceID,
+				deviceID: secureDeviceID,
 			},
-			want: TestSecureDeviceSimulator,
+			want: NewTestSecureDeviceSimulator(secureDeviceID, test.TestSecureDeviceName),
 		},
 		{
 			name: "not-found",

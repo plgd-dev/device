@@ -10,6 +10,8 @@ import (
 )
 
 func TestClient_FactoryReset(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+
 	type args struct {
 		deviceID string
 	}
@@ -21,7 +23,7 @@ func TestClient_FactoryReset(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 			},
 		},
 		{
@@ -55,6 +57,7 @@ func TestClient_FactoryReset(t *testing.T) {
 
 /* TODO: not supported by iotivity-lite devsim
 func TestClient_Reboot(t *testing.T) {
+	deviceID = test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -66,7 +69,7 @@ func TestClient_Reboot(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 			},
 		},
 		{

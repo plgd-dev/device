@@ -10,6 +10,7 @@ import (
 )
 
 func TestClient_OwnDevice(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -21,7 +22,7 @@ func TestClient_OwnDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestSecureDeviceID,
+				deviceID: secureDeviceID,
 			},
 		},
 	}
@@ -45,9 +46,6 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 			err = c.DisownDevice(ctx, tt.args.deviceID)
 			require.NoError(t, err)
-			time.Sleep(time.Second)
-			// deviceID is changed after disown
-			test.TestSecureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 		})
 	}
 

@@ -13,6 +13,7 @@ import (
 )
 
 func TestObservingResource(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -22,14 +23,14 @@ func TestObservingResource(t *testing.T) {
 	h := makeObservationHandler()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	id, err := c.ObserveResource(ctx, test.TestDeviceID, "/light/1", h)
+	id, err := c.ObserveResource(ctx, deviceID, "/light/1", h)
 	require.NoError(t, err)
 	defer func() {
 		err := c.StopObservingResource(ctx, id)
 		require.NoError(t, err)
 	}()
 
-	err = c.UpdateResource(ctx, test.TestDeviceID, "/light/1", map[string]interface{}{
+	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
 		"power": uint64(123),
 	}, nil)
 	require.NoError(t, err)
@@ -44,7 +45,7 @@ func TestObservingResource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint64(123), d["power"].(uint64))
 
-	err = c.UpdateResource(ctx, test.TestDeviceID, "/light/1", map[string]interface{}{
+	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
 		"power": uint64(0),
 	}, nil)
 	assert.NoError(t, err)

@@ -18,7 +18,6 @@ LOOP:
 	for {
 		select {
 		case devs := <-chanDevs:
-			fmt.Printf("devs %+v\n", devs)
 			if devs.DeviceID == expectedEvent.DeviceID {
 				require.Equal(t, expectedEvent, devs)
 				break LOOP
@@ -31,6 +30,7 @@ LOOP:
 }
 
 func TestObserveDevices(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -49,20 +49,20 @@ func TestObserveDevices(t *testing.T) {
 	}()
 
 	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
-		DeviceID: test.TestDeviceID,
+		DeviceID: deviceID,
 		Event:    localEx.DevicesObservationEvent_ONLINE,
 	})
 
 	/* TODO: add support for reboot to iotivity-lite
-	err = c.Reboot(ctx, test.TestDeviceID)
+	err = c.Reboot(ctx, deviceID)
 	require.NoError(t, err)
 
 	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
-		DeviceID: test.TestDeviceID,
+		DeviceID: deviceID,
 		Event:    localEx.DevicesObservationEvent_OFFLINE,
 	})
 	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
-		DeviceID: test.TestDeviceID,
+		DeviceID: deviceID,
 		Event:    localEx.DevicesObservationEvent_ONLINE,
 	})
 	*/

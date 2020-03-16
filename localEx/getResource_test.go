@@ -11,6 +11,7 @@ import (
 )
 
 func TestClient_GetResource(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		deviceID string
 		href     string
@@ -25,7 +26,7 @@ func TestClient_GetResource(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/oc/con",
 			},
 			want: map[string]interface{}{
@@ -35,7 +36,7 @@ func TestClient_GetResource(t *testing.T) {
 		{
 			name: "valid with interface",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/oc/con",
 				opts:     []kitNetCoap.OptionFunc{kitNetCoap.WithInterface("oic.if.baseline")},
 			},
@@ -49,7 +50,7 @@ func TestClient_GetResource(t *testing.T) {
 		{
 			name: "invalid href",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 				href:     "/invalid/href",
 			},
 			wantErr: true,

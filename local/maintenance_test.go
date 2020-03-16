@@ -40,11 +40,11 @@ func TestDevice_Reboot(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := test.TestDeviceID
+			deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
-			device, links, err := c.GetDevice(timeout, deviceId)
+			device, links, err := c.GetDevice(timeout, deviceID)
 			require.NoError(err)
 			defer device.Close(timeout)
 
@@ -61,36 +61,19 @@ func TestDevice_Reboot(t *testing.T) {
 }
 
 func TestDevice_FactoryReset(t *testing.T) {
-	tests := []struct {
-		name    string
-		wantErr bool
-	}{
-		{
-			name: "valid",
-		},
-	}
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer c.Close()
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	require := require.New(t)
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancelTimeout()
+	device, links, err := c.GetDevice(timeout, deviceID)
+	require.NoError(err)
+	defer device.Close(timeout)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c, err := NewTestSecureClient()
-			require.NoError(t, err)
-			defer c.Close()
-			deviceId := testGetDeviceID(t, c.Client, false)
-			require := require.New(t)
-			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancelTimeout()
-			device, links, err := c.GetDevice(timeout, deviceId)
-			require.NoError(err)
-			defer device.Close(timeout)
+	links = sepEpToLinks(t, links)
 
-			links = sepEpToLinks(t, links)
-
-			err = device.FactoryReset(timeout, links)
-			if tt.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-			}
-		})
-	}
+	err = device.FactoryReset(timeout, links)
+	require.NoError(err)
 }

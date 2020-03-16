@@ -14,6 +14,7 @@ import (
 )
 
 func TestObserveDeviceResources(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -23,7 +24,7 @@ func TestObserveDeviceResources(t *testing.T) {
 	h := makeTestDeviceResourcesObservationHandler()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	ID, err := c.ObserveDeviceResources(ctx, test.TestDeviceID, h)
+	ID, err := c.ObserveDeviceResources(ctx, deviceID, h)
 	require.NoError(t, err)
 	defer func() {
 		c.StopObservingDeviceResources(ctx, ID)
@@ -33,7 +34,6 @@ LOOP:
 	for {
 		select {
 		case res := <-h.res:
-			fmt.Printf("res %+v\n", res)
 			if res.Link.Href == "/oic/d" {
 				res.Link.Endpoints = nil
 				require.Equal(t, localEx.DeviceResourcesObservationEvent{
@@ -41,7 +41,7 @@ LOOP:
 						Href:          "/oic/d",
 						ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
 						Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
-						Anchor:        "ocf://" + test.TestDeviceID,
+						Anchor:        "ocf://" + deviceID,
 						Policy: schema.Policy{
 							BitMask: schema.Discoverable,
 						},

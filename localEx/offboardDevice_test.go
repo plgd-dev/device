@@ -10,6 +10,7 @@ import (
 )
 
 func TestClient_OffboardDevice(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		token    string
 		deviceID string
@@ -22,7 +23,7 @@ func TestClient_OffboardDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: test.TestDeviceID,
+				deviceID: deviceID,
 			},
 			wantErr: false,
 		},

@@ -7,10 +7,8 @@ import (
 
 var (
 	TestDeviceName string
-	TestDeviceID   string
 
 	TestSecureDeviceName string
-	TestSecureDeviceID   string
 
 	TestDevsimResources        []schema.ResourceLink
 	TestDevsimBackendResources []schema.ResourceLink
@@ -20,9 +18,7 @@ var (
 
 func init() {
 	TestDeviceName = "devsim-" + MustGetHostname()
-	TestDeviceID = MustFindDeviceByName(TestDeviceName)
 	TestSecureDeviceName = "devsimsec-" + MustGetHostname()
-	TestSecureDeviceID = MustFindDeviceByName(TestSecureDeviceName)
 	TestDevsimResources = []schema.ResourceLink{
 		{
 			Href:          "/oic/p",

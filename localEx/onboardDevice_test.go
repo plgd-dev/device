@@ -13,6 +13,7 @@ import (
 )
 
 func TestClient_OnboardDevice(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		token                 string
 		deviceID              string
@@ -29,7 +30,7 @@ func TestClient_OnboardDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID:              test.TestDeviceID,
+				deviceID:              deviceID,
 				authorizationProvider: "authorizationProvider",
 				authorizationCode:     "authorizationCode",
 				cloudURL:              "coap+tcp://test:5684",

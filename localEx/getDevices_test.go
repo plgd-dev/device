@@ -12,6 +12,8 @@ import (
 )
 
 func TestDeviceDiscovery(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	h := func(err error) { fmt.Println(err) }
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -25,11 +27,11 @@ func TestDeviceDiscovery(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	d := devices[test.TestDeviceID]
+	d := devices[deviceID]
 	require.NotEmpty(t, d)
 	assert.Equal(t, test.TestDeviceName, d.Device.Name)
 
-	d = devices[test.TestSecureDeviceID]
+	d = devices[secureDeviceID]
 	fmt.Println(d)
 	require.NotNil(t, d)
 	assert.Equal(t, test.TestSecureDeviceName, d.Device.Name)
@@ -38,6 +40,7 @@ func TestDeviceDiscovery(t *testing.T) {
 }
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	h := func(err error) {}
 	c := NewTestClient()
 	defer func() {
@@ -49,7 +52,7 @@ func TestDeviceDiscoveryWithFilter(t *testing.T) {
 	defer cancel()
 	devices, err := c.GetDevices(ctx, []string{"oic.wk.d"}, h)
 	require.NoError(t, err)
-	assert.NotEmpty(t, devices[test.TestSecureDeviceID], "unreachable test device")
+	assert.NotEmpty(t, devices[secureDeviceID], "unreachable test device")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
