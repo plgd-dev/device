@@ -4,6 +4,7 @@ go 1.13
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/go-ocf/authorization v0.0.0-20200206133225-884a7e831bb1
 	github.com/go-ocf/certificate-authority v0.0.0-20200306090447-ff501f1cf29a
 	github.com/go-ocf/go-coap v0.0.0-20200302101636-d137010769dc
 	github.com/go-ocf/grpc-gateway v0.0.0-20200206140756-f2e98d630ed6

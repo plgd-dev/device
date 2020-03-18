@@ -1,4 +1,4 @@
-package cloud
+package backend
 
 import (
 	"context"
@@ -34,15 +34,12 @@ func (c *Client) updateMaintenanceResource(
 	deviceID string,
 	req maintenance.MaintenanceUpdateRequest,
 ) (ret error) {
-	it := c.GetResourceLinks(ctx, []string{deviceID}, maintenance.MaintenanceResourceType)
+	it := c.GetResourceLinksIterator(ctx, []string{deviceID}, maintenance.MaintenanceResourceType)
 	defer it.Close()
 	var v pb.ResourceLink
 	for it.Next(&v) {
 		var resp maintenance.Maintenance
-		err := c.UpdateResource(ctx, pb.ResourceId{
-			DeviceId:         v.GetDeviceId(),
-			ResourceLinkHref: v.GetHref(),
-		}, "", req, &resp)
+		err := c.UpdateResource(ctx, v.GetDeviceId(), v.GetHref(), req, &resp)
 		if err != nil {
 			return err
 		}
