@@ -8,10 +8,9 @@ import (
 // GetDevice retrieves device details from the backend.
 func (c *Client) GetDevice(
 	ctx context.Context,
-
 	deviceID string,
 ) (DeviceDetails, error) {
-	devices, err := c.GetDevices(ctx, []string{deviceID}, nil)
+	devices, err := c.GetDevices(ctx, WithDeviceIDs(deviceID))
 	if err != nil {
 		return DeviceDetails{}, err
 	}

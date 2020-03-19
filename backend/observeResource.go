@@ -6,17 +6,24 @@ import (
 	"github.com/go-ocf/grpc-gateway/pb"
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	ocf "github.com/go-ocf/sdk/local"
+	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/gofrs/uuid"
 )
 
-func (c *Client) ObserveResourceWithCodec(
+func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID string,
 	href string,
-	codec kitNetCoap.Codec,
 	handler ocf.ObservationHandler,
+	opts ...ObserveOption,
 ) (observationID string, _ error) {
+	cfg := observeOptions{
+		codec: codecOcf.VNDOCFCBORCodec{},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnObserve(cfg)
+	}
+
 	ID, err := uuid.NewV4()
 	if err != nil {
 		return "", err
@@ -26,7 +33,7 @@ func (c *Client) ObserveResourceWithCodec(
 		DeviceId:         deviceID,
 		ResourceLinkHref: href,
 	}, &observationHandler{
-		codec: codec,
+		codec: cfg.codec,
 		obs:   handler,
 		removeSubscription: func() {
 			c.stopObservingResource(ID.String())
@@ -38,16 +45,6 @@ func (c *Client) ObserveResourceWithCodec(
 	c.insertSubscription(ID.String(), sub)
 
 	return ID.String(), err
-}
-
-func (c *Client) ObserveResource(
-	ctx context.Context,
-	deviceID string,
-	href string,
-	handler ocf.ObservationHandler,
-) (observationID string, _ error) {
-	var codec codecOcf.VNDOCFCBORCodec
-	return c.ObserveResourceWithCodec(ctx, deviceID, href, codec, handler)
 }
 
 func (c *Client) stopObservingResource(observationID string) (wait func(), err error) {

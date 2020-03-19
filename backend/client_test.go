@@ -4,13 +4,11 @@ import (
 	"context"
 	"testing"
 
-	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/kiconnect/resource/types"
-	"github.com/go-ocf/sdk/kiconnect/schema"
-	"github.com/go-ocf/sdk/test"
 	"github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/cbor"
 	kit "github.com/go-ocf/kit/net/grpc"
+	"github.com/go-ocf/sdk/backend"
+	"github.com/go-ocf/sdk/schema"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -49,12 +47,14 @@ func NewGateway(addr string) (*kit.Server, error) {
 }
 
 type gatewayHandler struct {
+	deviceID   string
+	deviceName string
 }
 
 func (h *gatewayHandler) GetDevices(req *pb.GetDevicesRequest, srv pb.GrpcGateway_GetDevicesServer) error {
 	v := pb.Device{
-		Id:               test.TestDeviceID,
-		Name:             test.TestDeviceName,
+		Id:               h.deviceID,
+		Name:             h.deviceName,
 		IsOnline:         true,
 		ManufacturerName: []*pb.LocalizedString{&pb.LocalizedString{Value: TestManufacturer, Language: "en"}},
 	}
@@ -66,11 +66,11 @@ func (h *gatewayHandler) GetDevices(req *pb.GetDevicesRequest, srv pb.GrpcGatewa
 }
 
 func (h *gatewayHandler) GetResourceLinks(req *pb.GetResourceLinksRequest, srv pb.GrpcGateway_GetResourceLinksServer) error {
-	err := srv.Send(&pb.ResourceLink{Href: "excluded", Types: []string{types.Device}, DeviceId: test.TestDeviceID})
+	err := srv.Send(&pb.ResourceLink{Href: "excluded", Types: []string{schema.DeviceResourceType}, DeviceId: h.deviceID})
 	if err != nil {
 		return status.Errorf(status.Convert(err).Code(), "sending failed: %v", err)
 	}
-	err = srv.Send(&pb.ResourceLink{Href: TestHref, Types: []string{"x.com.test.type"}, DeviceId: test.TestDeviceID})
+	err = srv.Send(&pb.ResourceLink{Href: TestHref, Types: []string{"x.com.test.type"}, DeviceId: h.deviceID})
 	if err != nil {
 		return status.Errorf(status.Convert(err).Code(), "sending failed: %v", err)
 	}
@@ -78,15 +78,13 @@ func (h *gatewayHandler) GetResourceLinks(req *pb.GetResourceLinksRequest, srv p
 }
 
 func (h *gatewayHandler) RetrieveResourcesValues(req *pb.RetrieveResourcesValuesRequest, srv pb.GrpcGateway_RetrieveResourcesValuesServer) error {
-	err := sendResourceValue(srv, test.TestDeviceID, types.Device, schema.Device{
-		SerialNumber: TestSerialNumber,
+	err := sendResourceValue(srv, h.deviceID, schema.DeviceResourceType, schema.Device{
+		ID:   h.deviceID,
+		Name: h.deviceName,
 	})
 	if err != nil {
 		return err
 	}
-	err = sendResourceValue(srv, test.TestDeviceID, types.DataSource, schema.DataSource{
-		ID: test.TestDataSourceID,
-	})
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/test"
 
 	authTest "github.com/go-ocf/authorization/provider"
 	"github.com/go-ocf/grpc-gateway/pb"
@@ -17,7 +16,7 @@ import (
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 	ctx = kitNetGrpc.CtxWithToken(ctx, authTest.UserToken)
@@ -27,7 +26,7 @@ func TestObserveDeviceResources(t *testing.T) {
 
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	h := makeTestDeviceResourcesObservationHandler()
@@ -48,7 +47,7 @@ LOOP:
 					Link: pb.ResourceLink{
 						Href:       "/oic/d",
 						Types:      []string{"oic.d.cloudDevice", "oic.wk.d"},
-						Interfaces: []string{"oic.if.baseline", "oic.if.r"},
+						Interfaces: []string{"oic.if.r", "oic.if.baseline"},
 						DeviceId:   deviceID,
 					},
 					Event: backend.DeviceResourcesObservationEvent_ADDED,

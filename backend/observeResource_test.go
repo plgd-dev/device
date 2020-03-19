@@ -9,13 +9,12 @@ import (
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestObservingResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 	ctx = kitNetGrpc.CtxWithToken(ctx, authTest.UserToken)
@@ -25,11 +24,11 @@ func TestObservingResource(t *testing.T) {
 
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	h := makeTestObservationHandler()
-	id, err := c.ObserveResource(ctx, deviceID, "/kic/con", h)
+	id, err := c.ObserveResource(ctx, deviceID, "/oc/con", h)
 	require.NoError(t, err)
 	defer func() {
 		err := c.StopObservingResource(ctx, id)
@@ -37,20 +36,20 @@ func TestObservingResource(t *testing.T) {
 	}()
 
 	name := "observe simulator"
-	err = c.UpdateResource(ctx, deviceID, "/kic/con", map[string]interface{}{"n": name}, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oc/con", map[string]interface{}{"n": name}, nil)
 	require.NoError(t, err)
 
 	var d OcCon
 	res := <-h.res
 	err = res(&d)
 	require.NoError(t, err)
-	assert.Equal(t, test.TestDeviceName, d.Name)
+	assert.Equal(t, grpcTest.TestDeviceName, d.Name)
 	res = <-h.res
 	err = res(&d)
 	require.NoError(t, err)
 	require.Equal(t, name, d.Name)
 
-	err = c.UpdateResource(ctx, deviceID, "/kic/con", map[string]interface{}{"n": test.TestDeviceName}, nil)
+	err = c.UpdateResource(ctx, deviceID, "/oc/con", map[string]interface{}{"n": grpcTest.TestDeviceName}, nil)
 	assert.NoError(t, err)
 }
 

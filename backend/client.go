@@ -186,7 +186,7 @@ func (c *Client) RetrieveResourcesByType(
 		resourceTypes = append(resourceTypes, c.Type)
 	}
 
-	it := c.RetrieveResources(ctx, nil, deviceIDs, resourceTypes...)
+	it := c.RetrieveResourcesIterator(ctx, nil, deviceIDs, resourceTypes...)
 	defer it.Close()
 	var v pb.ResourceValue
 	for it.Next(&v) {

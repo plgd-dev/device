@@ -3,7 +3,6 @@ package backend_test
 import (
 	"context"
 	"crypto/x509"
-	"sort"
 	"testing"
 	"time"
 
@@ -13,27 +12,11 @@ import (
 	"github.com/go-ocf/grpc-gateway/pb"
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
-const TestTimeout = time.Second * 8
+const TestTimeout = time.Second * 20
 const DeviceSimulatorIdNotFound = "00000000-0000-0000-0000-000000000111"
-
-type sortResourcesByHref []pb.ResourceLink
-
-func (a sortResourcesByHref) Len() int      { return len(a) }
-func (a sortResourcesByHref) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a sortResourcesByHref) Less(i, j int) bool {
-	return a[i].Href < a[j].Href
-}
-
-func sortResources(s []pb.ResourceLink) []pb.ResourceLink {
-	v := sortResourcesByHref(s)
-	sort.Sort(v)
-	return v
-}
 
 type testApplication struct {
 	cas []*x509.Certificate
@@ -43,32 +26,20 @@ func (a *testApplication) GetRootCertificateAuthorities() ([]*x509.Certificate, 
 	return a.cas, nil
 }
 
-func convertSchemaToPb(deviceID string, s []schema.ResourceLink) []pb.ResourceLink {
-	r := make([]pb.ResourceLink, 0, len(s))
-	for _, l := range s {
-		r = append(r, pb.ResourceLink{
-			Href:       l.Href,
-			DeviceId:   deviceID,
-			Types:      l.ResourceTypes,
-			Interfaces: l.Interfaces,
-		})
-	}
-	return r
-}
-
 func NewTestDeviceSimulator(deviceID, deviceName string) backend.DeviceDetails {
 	return backend.DeviceDetails{
 		ID: deviceID,
 		Device: pb.Device{
-			Id:   deviceID,
-			Name: deviceName,
+			Id:       deviceID,
+			Name:     deviceName,
+			IsOnline: true,
 		},
-		Resources: sortResources(convertSchemaToPb(deviceID, test.TestDevsimResources)),
+		Resources: grpcTest.SortResources(grpcTest.ConvertSchemaToPb(deviceID, grpcTest.GetAllBackendResourceLinks())),
 	}
 }
 
 func TestClient_GetDevice(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
 		token    string
 		deviceID string
@@ -85,7 +56,7 @@ func TestClient_GetDevice(t *testing.T) {
 				token:    authTest.UserToken,
 				deviceID: deviceID,
 			},
-			want: NewTestDeviceSimulator(deviceID, test.TestDeviceName),
+			want: NewTestDeviceSimulator(deviceID, grpcTest.TestDeviceName),
 		},
 		{
 			name: "not-found",
@@ -107,7 +78,7 @@ func TestClient_GetDevice(t *testing.T) {
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
 
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {
@@ -120,7 +91,9 @@ func TestClient_GetDevice(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			got.Resources = sortResources(got.Resources)
+			require.NotEmpty(t, got.DeviceRaw)
+			got.DeviceRaw = nil
+			got.Resources = grpcTest.SortResources(got.Resources)
 			require.Equal(t, tt.want, got)
 		})
 	}

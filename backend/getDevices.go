@@ -17,12 +17,17 @@ type DeviceDetails struct {
 // GetDevices retrieves device details from the backend.
 func (c *Client) GetDevices(
 	ctx context.Context,
-	deviceIDs, resourceTypes []string,
+	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
-	devices := make(map[string]DeviceDetails, len(deviceIDs))
-	ids := make([]string, 0, len(deviceIDs))
+	var cfg getDevicesOptions
+	for _, o := range opts {
+		cfg = o.applyOnGetDevices(cfg)
+	}
 
-	err := c.GetDevicesViaCallback(ctx, deviceIDs, resourceTypes, func(v pb.Device) {
+	devices := make(map[string]DeviceDetails, len(cfg.deviceIDs))
+	ids := make([]string, 0, len(cfg.deviceIDs))
+
+	err := c.GetDevicesViaCallback(ctx, cfg.deviceIDs, cfg.resourceTypes, func(v pb.Device) {
 		devices[v.GetId()] = DeviceDetails{
 			ID:     v.GetId(),
 			Device: v,

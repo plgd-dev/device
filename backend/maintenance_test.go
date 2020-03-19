@@ -8,7 +8,6 @@ import (
 	authTest "github.com/go-ocf/authorization/provider"
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +15,7 @@ const RebootTakes = time.Second * 8 // for reboot
 const RebootTimeout = TestTimeout + RebootTakes
 
 func TestClient_FactoryReset(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -26,7 +25,7 @@ func TestClient_FactoryReset(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid",
+			name: "factory reset - maintenance resource is not published",
 			args: args{
 				deviceID: deviceID,
 			},
@@ -50,7 +49,7 @@ func TestClient_FactoryReset(t *testing.T) {
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
 
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {
@@ -66,7 +65,7 @@ func TestClient_FactoryReset(t *testing.T) {
 }
 
 func TestClient_Reboot(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -76,10 +75,11 @@ func TestClient_Reboot(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid",
+			name: "reboot - maintenance resource is not published",
 			args: args{
 				deviceID: deviceID,
 			},
+			wantErr: true,
 		},
 		{
 			name: "not found",
@@ -100,7 +100,7 @@ func TestClient_Reboot(t *testing.T) {
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
 
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {

@@ -9,13 +9,13 @@ import (
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
 func sortDevices(s map[string]backend.DeviceDetails) map[string]backend.DeviceDetails {
 	for key, x := range s {
-		x.Resources = sortResources(x.Resources)
+		x.DeviceRaw = nil
+		x.Resources = grpcTest.SortResources(x.Resources)
 		s[key] = x
 	}
 
@@ -23,11 +23,10 @@ func sortDevices(s map[string]backend.DeviceDetails) map[string]backend.DeviceDe
 }
 
 func TestClient_GetDevices(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
-		token      string
-		deviceIDs  []string
-		typeFilter []string
+		token string
+		opts  []backend.GetDevicesOption
 	}
 	tests := []struct {
 		name    string
@@ -41,15 +40,16 @@ func TestClient_GetDevices(t *testing.T) {
 				token: authTest.UserToken,
 			},
 			want: map[string]backend.DeviceDetails{
-				deviceID: NewTestDeviceSimulator(deviceID, test.TestDeviceName),
+				deviceID: NewTestDeviceSimulator(deviceID, grpcTest.TestDeviceName),
 			},
 		},
 		{
 			name: "not-found - OK",
 			args: args{
-				token:      authTest.UserToken,
-				typeFilter: []string{"not-found"},
+				token: authTest.UserToken,
+				opts:  []backend.GetDevicesOption{backend.WithResourceTypes("not-found")},
 			},
+			want: map[string]backend.DeviceDetails{},
 		},
 	}
 
@@ -63,14 +63,14 @@ func TestClient_GetDevices(t *testing.T) {
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
 
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			got, err := c.GetDevices(ctx, tt.args.deviceIDs, tt.args.typeFilter)
+			got, err := c.GetDevices(ctx, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

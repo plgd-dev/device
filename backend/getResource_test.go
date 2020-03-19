@@ -10,17 +10,16 @@ import (
 	authTest "github.com/go-ocf/authorization/provider"
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_GetResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
 		token    string
 		deviceID string
 		href     string
-		opts     []backend.ResourceOption
+		opts     []backend.GetOption
 	}
 	tests := []struct {
 		name    string
@@ -33,18 +32,10 @@ func TestClient_GetResource(t *testing.T) {
 			args: args{
 				token:    authTest.UserToken,
 				deviceID: deviceID,
-				href:     "/light/1",
+				href:     "/oc/con",
 			},
 			want: map[interface{}]interface{}{
-				"fr":       false,
-				"identify": false,
-				"if": []interface{}{
-					"oic.if.r", "oic.if.rw", "oic.if.baseline",
-				},
-				"rb": false,
-				"rt": []interface{}{
-					"oic.wk.mnt", "x.com.kistler.kiconnect.identify",
-				},
+				"n": grpcTest.TestDeviceName,
 			},
 		},
 		{
@@ -52,19 +43,11 @@ func TestClient_GetResource(t *testing.T) {
 			args: args{
 				token:    authTest.UserToken,
 				deviceID: deviceID,
-				href:     "/light/1",
-				opts:     []backend.ResourceOption{backend.WithSkipShadow()},
+				href:     "/oc/con",
+				opts:     []backend.GetOption{backend.WithSkipShadow()},
 			},
 			want: map[interface{}]interface{}{
-				"fr":       false,
-				"identify": false,
-				"if": []interface{}{
-					"oic.if.r", "oic.if.rw", "oic.if.baseline",
-				},
-				"rb": false,
-				"rt": []interface{}{
-					"oic.wk.mnt", "x.com.kistler.kiconnect.identify",
-				},
+				"n": grpcTest.TestDeviceName,
 			},
 		},
 		{
@@ -72,14 +55,14 @@ func TestClient_GetResource(t *testing.T) {
 			args: args{
 				token:    authTest.UserToken,
 				deviceID: deviceID,
-				href:     "/light/1",
-				opts:     []backend.ResourceOption{backend.WithInterface("oic.if.rw")},
+				href:     "/oc/con",
+				opts:     []backend.GetOption{backend.WithInterface("oic.if.baseline")},
 			},
 			wantErr: false,
 			want: map[interface{}]interface{}{
-				"fr":       false,
-				"identify": false,
-				"rb":       false,
+				"n":  grpcTest.TestDeviceName,
+				"if": []interface{}{"oic.if.rw", "oic.if.baseline"},
+				"rt": []interface{}{"oic.wk.con"},
 			},
 		},
 		{
@@ -87,14 +70,14 @@ func TestClient_GetResource(t *testing.T) {
 			args: args{
 				token:    authTest.UserToken,
 				deviceID: deviceID,
-				href:     "/light/1",
-				opts:     []backend.ResourceOption{backend.WithSkipShadow(), backend.WithInterface("oic.if.rw")},
+				href:     "/oc/con",
+				opts:     []backend.GetOption{backend.WithSkipShadow(), backend.WithInterface("oic.if.baseline")},
 			},
 			wantErr: false,
 			want: map[interface{}]interface{}{
-				"fr":       false,
-				"identify": false,
-				"rb":       false,
+				"n":  grpcTest.TestDeviceName,
+				"if": []interface{}{"oic.if.rw", "oic.if.baseline"},
+				"rt": []interface{}{"oic.wk.con"},
 			},
 		},
 		{
@@ -118,7 +101,7 @@ func TestClient_GetResource(t *testing.T) {
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
 
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {

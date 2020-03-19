@@ -17,7 +17,15 @@ func (c *Client) UpdateResourceWithCodec(
 	codec kitNetCoap.Codec,
 	request interface{},
 	response interface{},
+	opts ...UpdateOption,
 ) error {
+	cfg := updateOptions{
+		codec: codecOcf.VNDOCFCBORCodec{},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnUpdate(cfg)
+	}
+
 	data, err := codec.Encode(request)
 	if err != nil {
 		return err
@@ -48,7 +56,8 @@ func (c *Client) UpdateResource(
 	href string,
 	request interface{},
 	response interface{},
+	opts ...UpdateOption,
 ) error {
 	var codec codecOcf.VNDOCFCBORCodec
-	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response)
+	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response, opts...)
 }

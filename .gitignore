@@ -1,6 +1,8 @@
 # go CLI
 *.test
 coverage.txt
+step-ca/
+mongo/
 
 # CGO
 *.h

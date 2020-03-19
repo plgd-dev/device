@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/test"
 
 	authTest "github.com/go-ocf/authorization/provider"
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
@@ -15,7 +14,7 @@ import (
 )
 
 func TestObserveDevices(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 	ctx = kitNetGrpc.CtxWithToken(ctx, authTest.UserToken)
@@ -25,7 +24,7 @@ func TestObserveDevices(t *testing.T) {
 
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 
 	h := makeTestDevicesObservationHandler()
 	id, err := c.ObserveDevices(ctx, h)

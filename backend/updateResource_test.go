@@ -6,24 +6,21 @@ import (
 	"time"
 
 	authTest "github.com/go-ocf/authorization/provider"
-	"github.com/go-ocf/go-coap"
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/sdk/backend"
-	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_UpdateResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
-		token             string
-		deviceID          string
-		href              string
-		resourceInterface string
-		data              []byte
-		coapContentFormat uint16
+		token    string
+		deviceID string
+		href     string
+		data     interface{}
+		opts     []backend.UpdateOption
 	}
 	tests := []struct {
 		name    string
@@ -34,62 +31,50 @@ func TestClient_UpdateResource(t *testing.T) {
 		{
 			name: "valid - update value",
 			args: args{
-				token: authTest.UserToken,
-				href:  "/" + TestDeviceSimulator.GetId() + "/kic/con",
-				data: test.EncodeToCbor(t, map[string]interface{}{
+				token:    authTest.UserToken,
+				deviceID: deviceID,
+				href:     "/oc/con",
+				data: map[string]interface{}{
 					"n": "devsim - valid update value",
-				}),
-				coapContentFormat: uint16(coap.AppCBOR),
+				},
 			},
 			want: map[interface{}]interface{}{
-				"if": []interface{}{
-					"oic.if.r", "oic.if.rw", "oic.if.baseline",
-				},
 				"n": "devsim - valid update value",
-				"rt": []interface{}{
-					"oic.wk.con",
-				},
 			},
 		},
 		{
 			name: "valid - revert update",
 			args: args{
-				token: authTest.UserToken,
-				href:  "/" + TestDeviceSimulator.GetId() + "/kic/con",
-				data: test.EncodeToCbor(t, map[string]interface{}{
-					"n": test.TestDeviceName,
-				}),
-				coapContentFormat: uint16(coap.AppCBOR),
+				token:    authTest.UserToken,
+				deviceID: deviceID,
+				href:     "/oc/con",
+				data: map[string]interface{}{
+					"n": grpcTest.TestDeviceName,
+				},
 			},
 			want: map[interface{}]interface{}{
-				"if": []interface{}{
-					"oic.if.r", "oic.if.rw", "oic.if.baseline",
-				},
-				"n": test.TestDeviceName,
-				"rt": []interface{}{
-					"oic.wk.con",
-				},
+				"n": grpcTest.TestDeviceName,
 			},
 		},
 		{
 			name: "resourceInterface not supported",
 			args: args{
-				token:             authTest.UserToken,
-				href:              "/" + TestDeviceSimulator.GetId() + "/kic/con",
-				coapContentFormat: uint16(coap.AppCBOR),
-				resourceInterface: "oic.if.r",
+				token:    authTest.UserToken,
+				deviceID: deviceID,
+				href:     "/oc/con",
+				opts:     []backend.UpdateOption{backend.WithInterface("oic.if.baseline")},
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid href",
 			args: args{
-				token:             authTest.UserToken,
-				href:              "/" + TestDeviceSimulator.GetId() + "/invalid/href",
-				coapContentFormat: uint16(coap.AppCBOR),
-				data: test.EncodeToCbor(t, map[string]interface{}{
+				token:    authTest.UserToken,
+				deviceID: deviceID,
+				href:     "/invalid/href",
+				data: map[string]interface{}{
 					"n": "devsim",
-				}),
+				},
 			},
 			wantErr: true,
 		},
@@ -103,20 +88,21 @@ func TestClient_UpdateResource(t *testing.T) {
 
 	c := NewTestClient(t)
 	defer c.Close(context.Background())
-	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST)
+	shutdownDevSim := grpcTest.OnboardDevSim(ctx, t, c.GrpcGatewayClient(), deviceID, grpcTest.GW_HOST, grpcTest.GetAllBackendResourceLinks())
 	defer shutdownDevSim()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			got, err := c.UpdateResource(ctx, tt.args.href, tt.args.data, tt.args.coapContentFormat, backend.WithInterface(tt.args.resourceInterface))
+			var got interface{}
+			err := c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			require.Equal(t, tt.want, test.DecodeCbor(t, got))
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
