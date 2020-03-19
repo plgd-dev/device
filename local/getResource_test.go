@@ -6,7 +6,7 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	local "github.com/go-ocf/sdk/local"
 	"github.com/stretchr/testify/require"
 )
 
@@ -15,7 +15,7 @@ func TestClient_GetResource(t *testing.T) {
 	type args struct {
 		deviceID string
 		href     string
-		opts     []kitNetCoap.OptionFunc
+		opts     []local.GetOption
 	}
 	tests := []struct {
 		name    string
@@ -38,7 +38,7 @@ func TestClient_GetResource(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 				href:     "/oc/con",
-				opts:     []kitNetCoap.OptionFunc{kitNetCoap.WithInterface("oic.if.baseline")},
+				opts:     []local.GetOption{local.WithInterface("oic.if.baseline")},
 			},
 			wantErr: false,
 			want: map[string]interface{}{

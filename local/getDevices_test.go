@@ -7,6 +7,7 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	"github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,13 +16,12 @@ import (
 func TestDeviceDiscovery(t *testing.T) {
 	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
-	h := func(err error) { fmt.Println(err) }
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	devices, err := c.GetDevices(ctx, nil, h)
+	devices, err := c.GetDevices(ctx)
 	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
@@ -42,7 +42,6 @@ func TestDeviceDiscovery(t *testing.T) {
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {
 	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
-	h := func(err error) {}
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -51,13 +50,13 @@ func TestDeviceDiscoveryWithFilter(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
-	devices, err := c.GetDevices(ctx, []string{"oic.wk.d"}, h)
+	devices, err := c.GetDevices(ctx, local.WithResourceTypes("oic.wk.d"))
 	require.NoError(t, err)
 	assert.NotEmpty(t, devices[secureDeviceID], "unreachable test device")
 
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	devices, err = c.GetDevices(ctx, []string{"x.com.device"}, h)
+	devices, err = c.GetDevices(ctx, local.WithResourceTypes("x.com.device"))
 	require.NoError(t, err)
 	assert.Empty(t, devices, "test device not filtered out")
 }

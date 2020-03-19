@@ -10,13 +10,19 @@ import (
 	ocf "github.com/go-ocf/sdk/local/core"
 )
 
-func (c *Client) ObserveResourceWithCodec(
+func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID string,
 	href string,
-	codec kitNetCoap.Codec,
 	handler ocf.ObservationHandler,
+	opts ...ObserveOption,
 ) (observationID string, _ error) {
+	cfg := observeOptions{
+		codec: codecOcf.VNDOCFCBORCodec{},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnObserve(cfg)
+	}
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return "", err
@@ -32,7 +38,7 @@ func (c *Client) ObserveResourceWithCodec(
 		return "", err
 	}
 
-	observationID, err = d.ObserveResourceWithCodec(ctx, link, codec, obsHandler)
+	observationID, err = d.ObserveResourceWithCodec(ctx, link, cfg.codec, obsHandler)
 	if err != nil {
 		return "", err
 	}
@@ -49,16 +55,6 @@ func (c *Client) ObserveResourceWithCodec(
 	c.observeDeviceCache[observationID] = d
 
 	return observationID, err
-}
-
-func (c *Client) ObserveResource(
-	ctx context.Context,
-	deviceID string,
-	href string,
-	handler ocf.ObservationHandler,
-) (observationID string, _ error) {
-	var codec codecOcf.VNDOCFCBORCodec
-	return c.ObserveResourceWithCodec(ctx, deviceID, href, codec, handler)
 }
 
 func (c *Client) popObserveDevice(ctx context.Context, observationID string) (*refDevice, error) {

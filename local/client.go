@@ -20,8 +20,6 @@ type ApplicationCallback = interface {
 	GetManufacturerCertificate() (tls.Certificate, error)
 }
 
-type OnAuthorizationRequestFunc = func(authCodeURL string)
-
 type subscription = interface {
 	Cancel()
 	Wait()
@@ -73,11 +71,11 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	if err != nil {
 		return nil, err
 	}
-	return NewLocalClient(app, deviceOwner, cacheExpiration, observerPollingInterval, cfg.DisableUDPEndpoints, errors, opts...)
+	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, cfg.DisableUDPEndpoints, errors, opts...)
 }
 
-// NewLocalClient constructs a new local client.
-func NewLocalClient(
+// NewClient constructs a new local client.
+func NewClient(
 	app ApplicationCallback,
 	deviceOwner DeviceOwner,
 	cacheExpiration time.Duration,

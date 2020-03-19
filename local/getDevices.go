@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-ocf/kit/codec/cbor"
+	"github.com/go-ocf/kit/log"
 
 	"github.com/go-ocf/go-coap"
 
@@ -21,10 +22,15 @@ import (
 // The deviceResourceType is applied on the client side, because len(deviceResourceType) > 1 does not work with Iotivity 1.3.
 func (c *Client) GetDevices(
 	ctx context.Context,
-
-	typeFilter []string,
-	errors func(error),
+	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
+	cfg := getDevicesOptions{
+		err: func(err error) { log.Error(err) },
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetDevices(cfg)
+	}
+
 	var m sync.Mutex
 	var res []DeviceDetails
 	devices := func(d DeviceDetails) {
@@ -43,10 +49,10 @@ func (c *Client) GetDevices(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, errors, ownerships)
+	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
 	go c.client.GetOwnerships(ctx, ocf.DiscoverAllDevices, ownershipsHandler)
 
-	handler := newDiscoveryHandler(ctx, typeFilter, errors, devices)
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices)
 	if err := c.client.GetDevices(ctx, handler); err != nil {
 		return nil, err
 	}
@@ -67,11 +73,16 @@ func (c *Client) GetDevicesWithHandler(ctx context.Context, handler ocf.DeviceHa
 // and provides their details via callback.
 func (c *Client) GetDeviceDetails(
 	ctx context.Context,
-	typeFilter []string,
-	errors func(error),
 	devices func(DeviceDetails),
+	opts ...GetDevicesOption,
 ) error {
-	handler := newDiscoveryHandler(ctx, typeFilter, errors, devices)
+	cfg := getDevicesOptions{
+		err: func(err error) { log.Error(err) },
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetDevices(cfg)
+	}
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices)
 
 	return c.client.GetDevices(ctx, handler)
 }

@@ -4,19 +4,24 @@ import (
 	"context"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	ocf "github.com/go-ocf/sdk/local/core"
 )
 
-func (c *Client) UpdateResourceWithCodec(
+func (c *Client) UpdateResource(
 	ctx context.Context,
 	deviceID string,
 	href string,
-	codec kitNetCoap.Codec,
 	request interface{},
 	response interface{},
-	options ...kitNetCoap.OptionFunc,
+	opts ...UpdateOption,
 ) error {
+	cfg := updateOptions{
+		codec: codecOcf.VNDOCFCBORCodec{},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnUpdate(cfg)
+	}
+
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return err
@@ -28,17 +33,5 @@ func (c *Client) UpdateResourceWithCodec(
 		return err
 	}
 
-	return d.UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
-}
-
-func (c *Client) UpdateResource(
-	ctx context.Context,
-	deviceID string,
-	href string,
-	request interface{},
-	response interface{},
-	options ...kitNetCoap.OptionFunc,
-) error {
-	var codec codecOcf.VNDOCFCBORCodec
-	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response, options...)
+	return d.UpdateResourceWithCodec(ctx, link, cfg.codec, request, response, cfg.opts...)
 }
