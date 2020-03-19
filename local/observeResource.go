@@ -5,167 +5,122 @@ import (
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
-	"github.com/go-ocf/kit/codec/ocf"
+	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/gofrs/uuid"
+	ocf "github.com/go-ocf/sdk/local/core"
 )
 
-func (d *Device) ObserveResourceWithCodec(
+func (c *Client) ObserveResourceWithCodec(
 	ctx context.Context,
-	link schema.ResourceLink,
+	deviceID string,
+	href string,
 	codec kitNetCoap.Codec,
-	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
+	handler ocf.ObservationHandler,
 ) (observationID string, _ error) {
-	return d.observeResource(ctx, link, codec, handler, options...)
-}
-
-type ObservationHandler interface {
-	Handle(ctx context.Context, body kitNetCoap.DecodeFunc)
-	OnClose()
-	Error(err error)
-}
-
-func (d *Device) ObserveResource(
-	ctx context.Context,
-	link schema.ResourceLink,
-	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
-) (observationID string, _ error) {
-	codec := ocf.VNDOCFCBORCodec{}
-	return d.ObserveResourceWithCodec(ctx, link, codec, handler, options...)
-}
-
-func (d *Device) StopObservingResource(
-	ctx context.Context,
-	observationID string,
-) error {
-	v, ok := d.observations.Load(observationID)
-	if !ok {
-		return fmt.Errorf("unknown observation %s", observationID)
-	}
-	d.observations.Delete(observationID)
-	o := v.(*observation)
-	err := o.Stop(ctx)
+	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
-		return fmt.Errorf("could not cancel observation %s: %w", observationID, err)
+		return "", err
+	}
+	defer d.Release(ctx)
+	obsHandler := &observationHandler{
+		obs:    handler,
+		client: c,
 	}
 
-	return nil
-}
-
-func (d *Device) stopObservations(ctx context.Context) error {
-	obs := make([]string, 0, 12)
-	d.observations.Range(func(key, value interface{}) bool {
-		observationID := key.(string)
-		obs = append(obs, observationID)
-		return false
-	})
-	var errors []error
-	for _, observationID := range obs {
-		err := d.StopObservingResource(ctx, observationID)
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
-	if len(errors) > 0 {
-		return fmt.Errorf("%v", errors)
-	}
-	return nil
-}
-
-type observation struct {
-	id      string
-	handler ObservationHandler
-	client  *kitNetCoap.ClientCloseHandler
-
-	lock      sync.Mutex
-	onCloseID int
-	obs       *gocoap.Observation
-}
-
-func (o *observation) Set(onCloseID int, obs *gocoap.Observation) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-
-	o.onCloseID = onCloseID
-	o.obs = obs
-}
-
-func (o *observation) Get() (onCloseID int, obs *gocoap.Observation) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-
-	return o.onCloseID, o.obs
-}
-
-func (o *observation) Stop(ctx context.Context) error {
-	onCloseID, obs := o.Get()
-	o.client.UnregisterCloseHandler(onCloseID)
-	if obs != nil {
-		err := obs.CancelWithContext(ctx)
-		if err != nil {
-			return fmt.Errorf("cannot cancel observation %s: %w", o.id, err)
-		}
-		return err
-	}
-	return nil
-}
-
-func (d *Device) observeResource(
-	ctx context.Context, link schema.ResourceLink,
-	codec kitNetCoap.Codec,
-	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
-) (observationID string, _ error) {
-
-	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
-
+	link, err := ocf.GetResourceLink(links, href)
 	if err != nil {
-		return "", fmt.Errorf("cannot observe resource %v: %w", link.Href, err)
-	}
-
-	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
-
-	id, err := uuid.NewV4()
-	if err != nil {
-		return "", fmt.Errorf("observation id generation failed: %w", err)
-	}
-	h := observationHandler{handler: handler}
-	o := &observation{
-		id:      id.String(),
-		handler: handler,
-		client:  client,
-	}
-	onCloseID := client.RegisterCloseHandler(func(err error) {
-		o.handler.OnClose()
-		obsCtx, cancel := context.WithCancel(context.Background())
-		cancel()
-		d.StopObservingResource(obsCtx, o.id)
-	})
-
-	obs, err := client.Observe(ctx, link.Href, codec, &h, options...)
-	if err != nil {
-		client.UnregisterCloseHandler(o.onCloseID)
 		return "", err
 	}
 
-	o.Set(onCloseID, obs)
+	observationID, err = d.ObserveResourceWithCodec(ctx, link, codec, obsHandler)
+	if err != nil {
+		return "", err
+	}
 
-	d.observations.Store(o.id, o)
-	return o.id, nil
+	err = c.deviceCache.StoreDeviceToPermanentCache(d)
+	if err != nil {
+		return "", err
+	}
+
+	d.Acquire()
+	obsHandler.Set(observationID)
+	c.observeDeviceCacheLock.Lock()
+	defer c.observeDeviceCacheLock.Unlock()
+	c.observeDeviceCache[observationID] = d
+
+	return observationID, err
+}
+
+func (c *Client) ObserveResource(
+	ctx context.Context,
+	deviceID string,
+	href string,
+	handler ocf.ObservationHandler,
+) (observationID string, _ error) {
+	var codec codecOcf.VNDOCFCBORCodec
+	return c.ObserveResourceWithCodec(ctx, deviceID, href, codec, handler)
+}
+
+func (c *Client) popObserveDevice(ctx context.Context, observationID string) (*refDevice, error) {
+	c.observeDeviceCacheLock.Lock()
+	defer c.observeDeviceCacheLock.Unlock()
+	device, ok := c.observeDeviceCache[observationID]
+	if !ok {
+		return nil, fmt.Errorf("cannot find observation %v", observationID)
+	}
+	delete(c.observeDeviceCache, observationID)
+	return device, nil
+}
+
+func (c *Client) StopObservingResource(ctx context.Context, observationID string) error {
+	device, err := c.popObserveDevice(ctx, observationID)
+	if err != nil {
+		return err
+	}
+	defer device.Release(ctx)
+
+	err = device.StopObservingResource(ctx, observationID)
+	err2 := c.deviceCache.RemoveDeviceFromPermanentCache(ctx, device)
+	if err != nil {
+		return err2
+	}
+	return err
 }
 
 type observationHandler struct {
-	handler ObservationHandler
+	obs    ocf.ObservationHandler
+	client *Client
+
+	lock          sync.Mutex
+	observationID string
 }
 
-func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientConn, body kitNetCoap.DecodeFunc) {
-	h.handler.Handle(ctx, body)
+func (o *observationHandler) Set(observationID string) {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	o.observationID = observationID
 }
 
-func (h *observationHandler) Error(err error) {
-	h.handler.Error(err)
+func (o *observationHandler) Get() string {
+	o.lock.Lock()
+	defer o.lock.Unlock()
+	return o.observationID
+}
+
+func (o *observationHandler) Handle(ctx context.Context, body kitNetCoap.DecodeFunc) {
+	o.obs.Handle(ctx, body)
+}
+
+func (o *observationHandler) OnClose() {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	o.client.StopObservingResource(ctx, o.Get())
+	o.obs.OnClose()
+}
+
+func (o *observationHandler) Error(err error) {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	o.client.StopObservingResource(ctx, o.Get())
+	o.obs.Error(err)
 }

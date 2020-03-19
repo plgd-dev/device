@@ -6,28 +6,58 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/schema"
-
+	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	"github.com/go-ocf/sdk/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeviceDiscovery(t *testing.T) {
-	c := ocf.NewClient()
-	timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
-	defer cancel()
-	h := testDeviceHandler{}
-	err := c.GetDevices(timeout, &h)
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	h := func(err error) { fmt.Println(err) }
+	c, err := NewTestSecureClient()
 	require.NoError(t, err)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	devices, err := c.GetDevices(ctx, nil, h)
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+
+	d := devices[deviceID]
+	require.NotEmpty(t, d)
+	assert.Equal(t, grpcTest.TestDeviceName, d.Device.Name)
+
+	d = devices[secureDeviceID]
+	fmt.Println(d)
+	require.NotNil(t, d)
+	assert.Equal(t, test.TestSecureDeviceName, d.Device.Name)
+	require.NotNil(t, d.Ownership)
+	assert.Equal(t, d.Ownership.DeviceOwner, "00000000-0000-0000-0000-000000000000")
 }
 
-type testDeviceHandler struct {
-}
+func TestDeviceDiscoveryWithFilter(t *testing.T) {
+	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	h := func(err error) {}
+	c := NewTestClient()
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
 
-func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
-	defer d.Close(ctx)
-}
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	devices, err := c.GetDevices(ctx, []string{"oic.wk.d"}, h)
+	require.NoError(t, err)
+	assert.NotEmpty(t, devices[secureDeviceID], "unreachable test device")
 
-func (h *testDeviceHandler) Error(err error) {
-	fmt.Printf("testDeviceHandler.Error: %v\n", err)
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	devices, err = c.GetDevices(ctx, []string{"x.com.device"}, h)
+	require.NoError(t, err)
+	assert.Empty(t, devices, "test device not filtered out")
 }

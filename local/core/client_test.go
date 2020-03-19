@@ -1,4 +1,4 @@
-package local_test
+package core_test
 
 import (
 	"context"
@@ -6,63 +6,55 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"sync"
+	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/app"
-	local "github.com/go-ocf/sdk/local"
+	"github.com/stretchr/testify/require"
+
+	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	ocfSigner "github.com/go-ocf/kit/security/signer"
+	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core/otm/manufacturer"
+	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 )
 
-const TestTimeout = time.Second * 8
+type Client struct {
+	*ocf.Client
+	otm *manufacturer.Client
 
-type testSetupSecureClient struct {
-	ca      []*x509.Certificate
-	mfgCA   []*x509.Certificate
-	mfgCert tls.Certificate
+	DeviceID string
+	*ocf.Device
+	DeviceLinks schema.ResourceLinks
 }
 
-func (c *testSetupSecureClient) GetManufacturerCertificate() (tls.Certificate, error) {
-	if c.mfgCert.PrivateKey == nil {
-		return c.mfgCert, fmt.Errorf("not set")
-	}
-	return c.mfgCert, nil
-}
-
-func (c *testSetupSecureClient) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
-	if len(c.mfgCA) == 0 {
-		return nil, fmt.Errorf("not set")
-	}
-	return c.mfgCA, nil
-}
-
-func (c *testSetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
-	if len(c.ca) == 0 {
-		return nil, fmt.Errorf("not set")
-	}
-	return c.ca, nil
-}
-
-func NewTestClient() *local.Client {
-	appCallback, err := app.NewApp(nil)
+func NewTestSecureClient() (*Client, error) {
+	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-	c, err := local.NewClientFromConfig(&local.Config{
-		DisablePeerTCPSignalMessageCSMs:   true,
-		KeepAliveConnectionTimeoutSeconds: 1,
-		ObserverPollingIntervalSeconds:    1,
-	}, appCallback, func(error) {})
-	if err != nil {
-		panic(err)
-	}
-	return c
+	return NewTestSecureClientWithCert(identityCert, false, false)
 }
 
-func NewTestSecureClient() (*local.Client, error) {
+func NewTestSecureClientWithTLS(disableDTLS, disableTCPTLS bool) (*Client, error) {
+	identityCert, err := tls.X509KeyPair(IdentityCert, IdentityKey)
+	if err != nil {
+		return nil, err
+	}
+	return NewTestSecureClientWithCert(identityCert, disableDTLS, disableTCPTLS)
+}
+
+func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTLS bool) (*Client, error) {
+	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
+	if err != nil {
+		return nil, err
+	}
 	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
 	if mfgTrustedCABlock == nil {
 		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
 	}
-	mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+	mfgCa, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -71,9 +63,17 @@ func NewTestSecureClient() (*local.Client, error) {
 	if identityIntermediateCABlock == nil {
 		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
 	}
+	identityIntermediateCA, err := x509.ParseCertificates(identityIntermediateCABlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
 	identityIntermediateCAKeyBlock, _ := pem.Decode(IdentityIntermediateCAKey)
 	if identityIntermediateCAKeyBlock == nil {
 		return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
+	}
+	identityIntermediateCAKey, err := x509.ParseECPrivateKey(identityIntermediateCAKeyBlock.Bytes)
+	if err != nil {
+		return nil, err
 	}
 
 	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
@@ -82,36 +82,143 @@ func NewTestSecureClient() (*local.Client, error) {
 	}
 	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
 	if err != nil {
-		return nil, fmt.Errorf("cannot parse cert: %w", err)
+		return nil, err
 	}
-	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
+
+	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
+
+	var manOpts []manufacturer.OptionFunc
+	if disableDTLS {
+		manOpts = append(manOpts, manufacturer.WithoutDTLS())
+	}
+	if disableTCPTLS {
+		manOpts = append(manOpts, manufacturer.WithoutTCPTLS())
+	}
+
+	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, identityTrustedCA, manOpts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
+		return nil, err
 	}
-	cfg := local.Config{
-		DisablePeerTCPSignalMessageCSMs: true,
-		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-			ID:      CertIdentity,
-			Cert:    IdentityIntermediateCA,
-			CertKey: IdentityIntermediateCAKey,
+
+	var opts []ocf.OptionFunc
+	if disableDTLS {
+		opts = append(opts, ocf.WithoutDTLS())
+	}
+	if disableTCPTLS {
+		opts = append(opts, ocf.WithoutTCPTLS())
+	}
+	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{
+		GetCertificate: func() (tls.Certificate, error) {
+			return cert, nil
 		},
-	}
+		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
+			cas := identityTrustedCA
+			cas = append(cas, mfgCa...)
+			return cas, nil
+		}}))
 
-	client, err := local.NewClientFromConfig(&cfg, &testSetupSecureClient{
-		mfgCA:   mfgCA,
-		mfgCert: mfgCert,
-		ca:      append(identityTrustedCA),
-	}, func(err error) { fmt.Print(err) },
-	)
-	if err != nil {
-		return nil, err
-	}
-	err = client.Initialization(context.Background())
-	if err != nil {
-		return nil, err
-	}
+	c := ocf.NewClient(opts...)
 
-	return client, nil
+	return &Client{Client: c, otm: otm}, nil
+}
+
+func (c *Client) SetUpTestDevice(t *testing.T) {
+	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceId := secureDeviceID
+
+	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	device, links, err := c.GetDevice(timeout, deviceId)
+	require.NoError(t, err)
+	err = device.Own(timeout, links, c.otm)
+	require.NoError(t, err)
+	c.Device = device
+	c.DeviceID = deviceId
+	c.DeviceLinks = links
+}
+
+func (c *Client) Close() {
+	if c.DeviceID == "" {
+		return
+	}
+	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	err := c.Disown(timeout, c.DeviceLinks)
+	if err != nil {
+		panic(err)
+	}
+	c.Device.Close(timeout)
+}
+
+type testFindDeviceHandler struct {
+	secured bool
+	t       *testing.T
+
+	lock      sync.Mutex
+	deviceIds map[string]bool
+}
+
+func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
+	secured, err := d.IsSecured(ctx, links)
+	require.NoError(h.t, err)
+	defer d.Close(ctx)
+	if secured != h.secured {
+		return
+	}
+	var found bool
+	for _, l := range links {
+		for _, t := range l.ResourceTypes {
+			if t == "oic.d.cloudDevice" {
+				found = true
+			}
+		}
+	}
+	if !found {
+		return
+	}
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if h.deviceIds == nil {
+		h.deviceIds = make(map[string]bool)
+	}
+	h.deviceIds[d.DeviceID()] = true
+}
+
+func (h *testFindDeviceHandler) PopDeviceIds() map[string]bool {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	tmp := h.deviceIds
+	h.deviceIds = nil
+	return tmp
+}
+
+func (h *testFindDeviceHandler) DeviceIDs() []string {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+
+	out := make([]string, 0, len(h.deviceIds))
+	for id, _ := range h.deviceIds {
+		out = append(out, id)
+	}
+	return out
+}
+
+func (h *testFindDeviceHandler) Error(err error) {
+}
+
+func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
+	timeout, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	defer cancel()
+	h := testFindDeviceHandler{secured: secured, t: t}
+	err := c.GetDevices(timeout, &h)
+	require.NoError(t, err)
+	deviceIds := h.PopDeviceIds()
+	require.NotEmpty(t, deviceIds)
+	require.Len(t, deviceIds, 1)
+	for key, _ := range deviceIds {
+		return key
+	}
+	return ""
 }
 
 var (

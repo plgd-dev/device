@@ -6,13 +6,13 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
-	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_OwnDevice(t *testing.T) {
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+func TestClient_OffboardDevice(t *testing.T) {
+	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
 	type args struct {
+		token    string
 		deviceID string
 	}
 	tests := []struct {
@@ -23,13 +23,13 @@ func TestClient_OwnDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: secureDeviceID,
+				deviceID: deviceID,
 			},
+			wantErr: false,
 		},
 	}
 
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
+	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
@@ -37,17 +37,14 @@ func TestClient_OwnDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
-			err := c.OwnDevice(ctx, tt.args.deviceID)
+			err := c.OffboardDevice(ctx, tt.args.deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
-				return
+			} else {
+				require.NoError(t, err)
 			}
-			require.NoError(t, err)
-			err = c.DisownDevice(ctx, tt.args.deviceID)
-			require.NoError(t, err)
 		})
 	}
-
 }

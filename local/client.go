@@ -1,148 +1,210 @@
 package local
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"sync"
+	"time"
 
 	"github.com/go-ocf/kit/net/coap"
 
-	"github.com/go-ocf/kit/log"
+	ocf "github.com/go-ocf/sdk/local/core"
+	cache "github.com/patrickmn/go-cache"
 )
 
-// ErrFunc to log errors in goroutines
-type ErrFunc = func(err error)
-
-// Client an OCF local client.
-type Client struct {
-	tlsConfig              *TLSConfig
-	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
-	discoveryConfiguration DiscoveryConfiguration
-	disableDTLS            bool
-	disableTCPTLS          bool
+type ApplicationCallback = interface {
+	GetRootCertificateAuthorities() ([]*x509.Certificate, error)
+	GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error)
+	GetManufacturerCertificate() (tls.Certificate, error)
 }
 
-func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
-	if cfg == nil {
-		cfg = new(TLSConfig)
+type OnAuthorizationRequestFunc = func(authCodeURL string)
+
+type subscription = interface {
+	Cancel()
+	Wait()
+}
+
+type Config struct {
+	DeviceCacheExpirationSeconds      int64
+	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
+	ObserverPollingIntervalSeconds    uint64 // 0 means 3 seconds
+	DisableDTLS                       bool
+	DisablePeerTCPSignalMessageCSMs   bool
+	DisableUDPEndpoints               bool
+
+	// specify one of:
+	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
+	DeviceOwnershipBackend *DeviceOwnershipBackendConfig `yaml:",omitempty"`
+}
+
+// NewClientFromConfig constructs a new local client from the proto configuration.
+func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
+	var cacheExpiration time.Duration
+	if cfg.DeviceCacheExpirationSeconds < 0 {
+		cacheExpiration = cache.NoExpiration
+	} else {
+		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
 	}
-	if cfg.GetCertificate == nil {
-		cfg.GetCertificate = func() (tls.Certificate, error) {
-			return tls.Certificate{}, fmt.Errorf("not supported")
-		}
+
+	observerPollingInterval := time.Second * 3
+	if cfg.ObserverPollingIntervalSeconds > 0 {
+		observerPollingInterval = time.Second * time.Duration(cfg.ObserverPollingIntervalSeconds)
 	}
-	if cfg.GetCertificateAuthorities == nil {
-		cfg.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
-			return nil, fmt.Errorf("not supported")
-		}
+
+	opts := make([]ocf.OptionFunc, 0, 1)
+	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
+		opts = append(opts, ocf.WithDialOptions(
+			coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)),
+		))
 	}
-	return cfg
-}
-
-type config struct {
-	tlsConfig              *TLSConfig
-	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
-	discoveryConfiguration DiscoveryConfiguration
-	disableTCPTLS          bool
-	disableDTLS            bool
-}
-
-type OptionFunc func(config) config
-
-func WithTLS(tlsConfig *TLSConfig) OptionFunc {
-	return func(cfg config) config {
-		if tlsConfig != nil {
-			cfg.tlsConfig = tlsConfig
-		}
-		return cfg
+	if cfg.DisableDTLS {
+		opts = append(opts, ocf.WithoutDTLS())
 	}
-}
-
-func WithoutTCPTLS() OptionFunc {
-	return func(cfg config) config {
-		cfg.disableTCPTLS = true
-		return cfg
-	}
-}
-
-func WithoutDTLS() OptionFunc {
-	return func(cfg config) config {
-		cfg.disableDTLS = true
-		return cfg
-	}
-}
-
-// DiscoveryConfiguration setup discovery configuration
-type DiscoveryConfiguration struct {
-	MulticastHopLimit    int      // default: 2, min value: 1 - don't pass through router, max value: 255, https://tools.ietf.org/html/rfc2460#section-3
-	MulticastAddressUDP4 []string // default: "[224.0.1.187:5683] (local.DiscoveryAddressUDP4), empty: don't use ipv4 multicast"
-	MulticastAddressUDP6 []string // default: "[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683]"] (local.DiscoveryAddressUDP6), empty: don't use ipv6 multicast"
-}
-
-// WithDiscoveryConfiguration override default DiscoveryConfiguration
-func WithDiscoveryConfiguration(d DiscoveryConfiguration) OptionFunc {
-	return func(cfg config) config {
-		cfg.discoveryConfiguration = d
-		return cfg
-	}
-}
-
-func WithDialOptions(opts ...coap.DialOptionFunc) OptionFunc {
-	return func(cfg config) config {
-		if len(opts) > 0 {
-			cfg.dialOptions = opts
-		}
-		return cfg
-	}
-}
-
-func WithErr(errFunc ErrFunc) OptionFunc {
-	return func(cfg config) config {
-		if errFunc != nil {
-			cfg.errFunc = errFunc
-		}
-		return cfg
-	}
-}
-
-func (c *Client) getDeviceConfiguration() deviceConfiguration {
-	return deviceConfiguration{
-		tlsConfig:              c.tlsConfig,
-		errFunc:                c.errFunc,
-		dialOptions:            c.dialOptions,
-		discoveryConfiguration: c.discoveryConfiguration,
-		disableDTLS:            c.disableDTLS,
-		disableTCPTLS:          c.disableTCPTLS,
-	}
-}
-
-func NewClient(opts ...OptionFunc) *Client {
-	cfg := config{
-		errFunc: func(err error) {
-			log.Error(err)
-		},
-		dialOptions: []coap.DialOptionFunc{
+	if cfg.DisablePeerTCPSignalMessageCSMs {
+		opts = append(opts, ocf.WithDialOptions(
 			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
-		},
-		discoveryConfiguration: DiscoveryConfiguration{
-			MulticastHopLimit:    2,
-			MulticastAddressUDP4: DiscoveryAddressUDP4,
-			MulticastAddressUDP6: DiscoveryAddressUDP6,
-		},
-	}
-	for _, o := range opts {
-		cfg = o(cfg)
+		))
 	}
 
-	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
-	return &Client{
-		tlsConfig:              cfg.tlsConfig,
-		errFunc:                cfg.errFunc,
-		dialOptions:            cfg.dialOptions,
-		discoveryConfiguration: cfg.discoveryConfiguration,
-		disableDTLS:            cfg.disableDTLS,
-		disableTCPTLS:          cfg.disableTCPTLS,
+	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, app, errors)
+	if err != nil {
+		return nil, err
+	}
+	return NewLocalClient(app, deviceOwner, cacheExpiration, observerPollingInterval, cfg.DisableUDPEndpoints, errors, opts...)
+}
+
+// NewLocalClient constructs a new local client.
+func NewLocalClient(
+	app ApplicationCallback,
+	deviceOwner DeviceOwner,
+	cacheExpiration time.Duration,
+	observerPollingInterval time.Duration,
+	disableUDPEndpoints bool,
+	errors func(error),
+	opt ...ocf.OptionFunc,
+) (*Client, error) {
+	if app == nil {
+		return nil, fmt.Errorf("missing application callback")
+	}
+	if deviceOwner == nil {
+		return nil, fmt.Errorf("missing device owner callback")
+	}
+	tls := ocf.TLSConfig{
+		GetCertificate:            deviceOwner.GetIdentityCertificate,
+		GetCertificateAuthorities: app.GetRootCertificateAuthorities,
+	}
+	opt = append(
+		[]ocf.OptionFunc{
+			ocf.WithTLS(&tls),
+		},
+		opt...,
+	)
+	oc := ocf.NewClient(opt...)
+	client := Client{
+		client:                  oc,
+		app:                     app,
+		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
+		observeDeviceCache:      make(map[string]*refDevice),
+		deviceOwner:             deviceOwner,
+		subscriptions:           make(map[string]subscription),
+		observerPollingInterval: observerPollingInterval,
+		disableUDPEndpoints:     disableUDPEndpoints,
+	}
+	return &client, nil
+}
+
+type ownFunc = func(ctx context.Context, deviceID string, otmClient ocf.OTMClient, opts ...ocf.OwnOption) error
+
+type DeviceOwner interface {
+	Initialization(ctx context.Context) error
+	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...ocf.OwnOption) error
+
+	GetAccessTokenURL(ctx context.Context) (string, error)
+	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)
+	GetIdentityCertificate() (tls.Certificate, error)
+	Close(ctx context.Context) error
+}
+
+// Client uses the underlying OCF local client.
+type Client struct {
+	app    ApplicationCallback
+	client *ocf.Client
+
+	deviceCache *refDeviceCache
+
+	observeDeviceCache      map[string]*refDevice
+	observeDeviceCacheLock  sync.Mutex
+	observerPollingInterval time.Duration
+
+	deviceOwner         DeviceOwner
+	grpcCertificate     tls.Certificate
+	identityCertificate tls.Certificate
+	rootCA              []*x509.Certificate
+
+	subscriptionsLock sync.Mutex
+	subscriptions     map[string]subscription
+
+	disableUDPEndpoints bool
+}
+
+func (c *Client) popSubscriptions() map[string]subscription {
+	c.subscriptionsLock.Lock()
+	defer c.subscriptionsLock.Unlock()
+	s := c.subscriptions
+	c.subscriptions = make(map[string]subscription)
+	return s
+}
+
+func (c *Client) popSubscription(ID string) (subscription, error) {
+	c.subscriptionsLock.Lock()
+	defer c.subscriptionsLock.Unlock()
+	v, ok := c.subscriptions[ID]
+	if !ok {
+		return nil, fmt.Errorf("cannot find observation %v", ID)
+	}
+	delete(c.subscriptions, ID)
+	return v, nil
+}
+
+func (c *Client) insertSubscription(ID string, s subscription) {
+	c.subscriptionsLock.Lock()
+	defer c.subscriptionsLock.Unlock()
+	c.subscriptions[ID] = s
+}
+
+// Close clears all connections and spawned goroutines by client.
+func (c *Client) Close(ctx context.Context) error {
+	var errors []error
+	for _, s := range c.popSubscriptions() {
+		s.Cancel()
+	}
+	err := c.deviceCache.Close(ctx)
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	// observeDeviceCache will be removed by cleaned by close deviceCache
+
+	return nil
+}
+
+func NewDeviceOwnerFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
+	if cfg.DeviceOwnershipSDK != nil {
+		c, err := NewDeviceOwnershipSDKFromConfig(app, cfg.DeviceOwnershipSDK, cfg.DisableDTLS)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
+		}
+		return c, nil
+	} else if cfg.DeviceOwnershipBackend != nil {
+		c, err := NewDeviceOwnershipBackendFromConfig(app, cfg.DeviceOwnershipBackend, cfg.DisableDTLS, errors)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create server signers: %w", err)
+		}
+		return c, nil
+	} else {
+		return NewDeviceOwnershipNone(), nil
 	}
 }

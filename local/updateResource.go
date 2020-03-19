@@ -2,37 +2,43 @@ package local
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/go-ocf/kit/codec/ocf"
+	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
+	ocf "github.com/go-ocf/sdk/local/core"
 )
 
-func (d *Device) UpdateResource(
+func (c *Client) UpdateResourceWithCodec(
 	ctx context.Context,
-	link schema.ResourceLink,
-	request interface{},
-	response interface{},
-	options ...kitNetCoap.OptionFunc,
-) error {
-	codec := ocf.VNDOCFCBORCodec{}
-	return d.UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
-}
-
-func (d *Device) UpdateResourceWithCodec(
-	ctx context.Context,
-	link schema.ResourceLink,
+	deviceID string,
+	href string,
 	codec kitNetCoap.Codec,
 	request interface{},
 	response interface{},
 	options ...kitNetCoap.OptionFunc,
 ) error {
-	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
+	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
-		return fmt.Errorf("cannot update resource %v: %w", link.Href, err)
+		return err
 	}
-	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
+	defer d.Release(ctx)
 
-	return client.UpdateResourceWithCodec(ctx, link.Href, codec, request, response, options...)
+	link, err := ocf.GetResourceLink(links, href)
+	if err != nil {
+		return err
+	}
+
+	return d.UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
+}
+
+func (c *Client) UpdateResource(
+	ctx context.Context,
+	deviceID string,
+	href string,
+	request interface{},
+	response interface{},
+	options ...kitNetCoap.OptionFunc,
+) error {
+	var codec codecOcf.VNDOCFCBORCodec
+	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response, options...)
 }
