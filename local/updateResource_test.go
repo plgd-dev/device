@@ -11,7 +11,7 @@ import (
 )
 
 func TestClient_UpdateResource(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	type args struct {
 		deviceID string
 		href     string
@@ -57,11 +57,11 @@ func TestClient_UpdateResource(t *testing.T) {
 				deviceID: deviceID,
 				href:     "/oc/con",
 				data: map[string]interface{}{
-					"n": grpcTest.TestDeviceName,
+					"n": TestDeviceName,
 				},
 			},
 			want: map[interface{}]interface{}{
-				"n": grpcTest.TestDeviceName,
+				"n": TestDeviceName,
 			},
 		},
 		{

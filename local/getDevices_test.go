@@ -13,7 +13,7 @@ import (
 )
 
 func TestDeviceDiscovery(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
 	h := func(err error) { fmt.Println(err) }
 	c, err := NewTestSecureClient()
@@ -30,7 +30,7 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
-	assert.Equal(t, grpcTest.TestDeviceName, d.Device.Name)
+	assert.Equal(t, TestDeviceName, d.Device.Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)

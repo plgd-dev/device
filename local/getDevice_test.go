@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	local "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema/cloud"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
@@ -28,8 +29,8 @@ func sortResources(s []schema.ResourceLink) []schema.ResourceLink {
 	return v
 }
 
-func NewTestDeviceSimulator(deviceID, deviceName string) localEx.DeviceDetails {
-	return localEx.DeviceDetails{
+func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
+	return local.DeviceDetails{
 		ID: deviceID,
 		Device: schema.Device{
 			ID:   deviceID,
@@ -47,8 +48,8 @@ func NewTestDeviceSimulator(deviceID, deviceName string) localEx.DeviceDetails {
 	}
 }
 
-func NewTestSecureDeviceSimulator(deviceID, deviceName string) localEx.DeviceDetails {
-	return localEx.DeviceDetails{
+func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
+	return local.DeviceDetails{
 		ID: deviceID,
 		Device: schema.Device{
 			ID:   deviceID,
@@ -81,7 +82,7 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 }
 
 func TestClient_GetDevice(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
@@ -89,7 +90,7 @@ func TestClient_GetDevice(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    localEx.DeviceDetails
+		want    local.DeviceDetails
 		wantErr bool
 	}{
 		{
@@ -97,7 +98,7 @@ func TestClient_GetDevice(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
-			want: NewTestDeviceSimulator(deviceID, grpcTest.TestDeviceName),
+			want: NewTestDeviceSimulator(deviceID, TestDeviceName),
 		},
 		{
 			name: "valid - secure",

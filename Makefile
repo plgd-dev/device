@@ -71,10 +71,18 @@ env: clean make-ca make-nats make-mongo
 	docker build ./device-simulator -f ./device-simulator/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
 	docker run -d --name devsimsec --network=host device-simulator devsimsec-$(SIMULATOR_NAME_SUFFIX)
 	docker run -d --name devsim --network=host device-simulator-insecure devsim-$(SIMULATOR_NAME_SUFFIX)
+	docker run -d --name devsim-local --network=host device-simulator-insecure devsim-local-$(SIMULATOR_NAME_SUFFIX)
 
 test: env build-testcontainer 
 	docker run \
 		--network=host \
+		-v $(shell pwd)/test/step-ca/data/certs/root_ca.crt:/root_ca.crt \
+		-e DIAL_ACME_CA_POOL=/root_ca.crt \
+		-e DIAL_ACME_DOMAINS="localhost" \
+		-e DIAL_ACME_DIRECTORY_URL="https://localhost:10443/acme/acme/directory" \
+		-e LISTEN_ACME_CA_POOL=/root_ca.crt \
+		-e LISTEN_ACME_DOMAINS="localhost" \
+		-e LISTEN_ACME_DIRECTORY_URL="https://localhost:10443/acme/acme/directory" \
 		--mount type=bind,source="$(shell pwd)",target=/shared \
 		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
 		go test -p 1 -v ./... -covermode=atomic -coverprofile=/shared/coverage.txt
@@ -82,6 +90,7 @@ test: env build-testcontainer
 clean:
 	docker rm -f devsimsec || true
 	docker rm -f devsim|| true
+	docker rm -f devsim-local || true
 	docker rm -f step-ca-test || true
 	docker rm -f mongo || true
 	docker rm -f nats || true

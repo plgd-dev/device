@@ -8,11 +8,12 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	local "github.com/go-ocf/sdk/local"
 
 	"github.com/stretchr/testify/require"
 )
 
-func waitForDevicesObservationEvent(ctx context.Context, t *testing.T, chanDevs <-chan localEx.DevicesObservationEvent, expectedEvent localEx.DevicesObservationEvent) {
+func waitForDevicesObservationEvent(ctx context.Context, t *testing.T, chanDevs <-chan local.DevicesObservationEvent, expectedEvent local.DevicesObservationEvent) {
 LOOP:
 	for {
 		select {
@@ -29,7 +30,7 @@ LOOP:
 }
 
 func TestObserveDevices(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -47,35 +48,35 @@ func TestObserveDevices(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
-	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
+	waitForDevicesObservationEvent(ctx, t, h.devs, local.DevicesObservationEvent{
 		DeviceID: deviceID,
-		Event:    localEx.DevicesObservationEvent_ONLINE,
+		Event:    local.DevicesObservationEvent_ONLINE,
 	})
 
 	/* TODO: add support for reboot to iotivity-lite
 	err = c.Reboot(ctx, deviceID)
 	require.NoError(t, err)
 
-	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
+	waitForDevicesObservationEvent(ctx, t, h.devs, local.DevicesObservationEvent{
 		DeviceID: deviceID,
-		Event:    localEx.DevicesObservationEvent_OFFLINE,
+		Event:    local.DevicesObservationEvent_OFFLINE,
 	})
-	waitForDevicesObservationEvent(ctx, t, h.devs, localEx.DevicesObservationEvent{
+	waitForDevicesObservationEvent(ctx, t, h.devs, local.DevicesObservationEvent{
 		DeviceID: deviceID,
-		Event:    localEx.DevicesObservationEvent_ONLINE,
+		Event:    local.DevicesObservationEvent_ONLINE,
 	})
 	*/
 }
 
 func makeTestDevicesObservationHandler() *testDevicesObservationHandler {
-	return &testDevicesObservationHandler{devs: make(chan localEx.DevicesObservationEvent, 100)}
+	return &testDevicesObservationHandler{devs: make(chan local.DevicesObservationEvent, 100)}
 }
 
 type testDevicesObservationHandler struct {
-	devs chan localEx.DevicesObservationEvent
+	devs chan local.DevicesObservationEvent
 }
 
-func (h *testDevicesObservationHandler) Handle(ctx context.Context, body localEx.DevicesObservationEvent) error {
+func (h *testDevicesObservationHandler) Handle(ctx context.Context, body local.DevicesObservationEvent) error {
 	h.devs <- body
 	return nil
 }

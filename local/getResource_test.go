@@ -11,7 +11,7 @@ import (
 )
 
 func TestClient_GetResource(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	type args struct {
 		deviceID string
 		href     string
@@ -30,7 +30,7 @@ func TestClient_GetResource(t *testing.T) {
 				href:     "/oc/con",
 			},
 			want: map[string]interface{}{
-				"n": grpcTest.TestDeviceName,
+				"n": TestDeviceName,
 			},
 		},
 		{
@@ -43,7 +43,7 @@ func TestClient_GetResource(t *testing.T) {
 			wantErr: false,
 			want: map[string]interface{}{
 				"if": []interface{}{"oic.if.rw", "oic.if.baseline"},
-				"n":  grpcTest.TestDeviceName,
+				"n":  TestDeviceName,
 				"rt": []interface{}{"oic.wk.con"},
 			},
 		},

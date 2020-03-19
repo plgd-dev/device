@@ -10,7 +10,7 @@ import (
 )
 
 func TestClient_OffboardDevice(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	type args struct {
 		token    string
 		deviceID string

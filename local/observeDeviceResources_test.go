@@ -7,13 +7,14 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	local "github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())
@@ -35,7 +36,7 @@ LOOP:
 		case res := <-h.res:
 			if res.Link.Href == "/oic/d" {
 				res.Link.Endpoints = nil
-				require.Equal(t, localEx.DeviceResourcesObservationEvent{
+				require.Equal(t, local.DeviceResourcesObservationEvent{
 					Link: schema.ResourceLink{
 						Href:          "/oic/d",
 						ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
@@ -45,7 +46,7 @@ LOOP:
 							BitMask: schema.Discoverable,
 						},
 					},
-					Event: localEx.DeviceResourcesObservationEvent_ADDED,
+					Event: local.DeviceResourcesObservationEvent_ADDED,
 				}, res)
 				break LOOP
 			}
@@ -57,14 +58,14 @@ LOOP:
 }
 
 func makeTestDeviceResourcesObservationHandler() *testDeviceResourcesObservationHandler {
-	return &testDeviceResourcesObservationHandler{res: make(chan localEx.DeviceResourcesObservationEvent, 100)}
+	return &testDeviceResourcesObservationHandler{res: make(chan local.DeviceResourcesObservationEvent, 100)}
 }
 
 type testDeviceResourcesObservationHandler struct {
-	res chan localEx.DeviceResourcesObservationEvent
+	res chan local.DeviceResourcesObservationEvent
 }
 
-func (h *testDeviceResourcesObservationHandler) Handle(ctx context.Context, body localEx.DeviceResourcesObservationEvent) error {
+func (h *testDeviceResourcesObservationHandler) Handle(ctx context.Context, body local.DeviceResourcesObservationEvent) error {
 	h.res <- body
 	return nil
 }

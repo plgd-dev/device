@@ -13,7 +13,7 @@ import (
 )
 
 func TestObservingResource(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())

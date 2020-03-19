@@ -29,6 +29,7 @@ func TestClient_FactoryReset(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
+			wantErr: true,
 		},
 		{
 			name: "not found",
