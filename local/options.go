@@ -1,6 +1,9 @@
 package local
 
-import kitNetCoap "github.com/go-ocf/kit/net/coap"
+import (
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	ocf "github.com/go-ocf/sdk/local/core"
+)
 
 // WithInterface updates/gets resource with interface directly from a device.
 func WithInterface(resourceInterface string) ResourceInterfaceOption {
@@ -119,4 +122,25 @@ type observeOptions struct {
 // ObserveOption option definition.
 type ObserveOption = interface {
 	applyOnObserve(opts observeOptions) observeOptions
+}
+
+type ownOptions struct {
+	opts []ocf.OwnOption
+}
+
+// OwnOption option definition.
+type OwnOption = interface {
+	applyOnOwn(opts ownOptions) ownOptions
+}
+
+// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
+func WithIotivityHack() IotivityHackOption {
+	return IotivityHackOption{}
+}
+
+type IotivityHackOption struct{}
+
+func (r IotivityHackOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.opts = append(opts.opts, ocf.WithIotivityHack())
+	return opts
 }

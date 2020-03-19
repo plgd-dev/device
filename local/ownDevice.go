@@ -69,7 +69,11 @@ func configureDeviceInProvsion(ctx context.Context, d *refDevice, links ocfSchem
 	return nil
 }
 
-func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...ocf.OwnOption) error {
+func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) error {
+	var cfg ownOptions
+	for _, o := range opts {
+		cfg = o.applyOnOwn(cfg)
+	}
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return err
@@ -84,7 +88,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...ocf.Own
 		return nil
 	}
 
-	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, opts...)
+	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, cfg.opts...)
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient ocf.OTMClient, opts ...ocf.OwnOption) error {
