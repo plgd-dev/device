@@ -29,7 +29,7 @@ func (c *Client) GetResource(
 	return c.getResource(ctx, deviceID, href, cfg.codec, response)
 }
 
-// GetResource retrieves content of a resource from the KiConnect backend.
+// GetResource retrieves content of a resource from the backend.
 func (c *Client) getResource(
 	ctx context.Context,
 	deviceID string,
