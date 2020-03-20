@@ -31,15 +31,15 @@ func (d *refDevice) Release(ctx context.Context) error {
 }
 
 func (d *refDevice) DeviceID() string {
-	return d.device().DeviceID()
+	return d.Device().DeviceID()
 }
 
-func (d *refDevice) device() *ocf.Device {
+func (d *refDevice) Device() *ocf.Device {
 	return d.obj.Data().(*ocf.Device)
 }
 
 func (d *refDevice) GetDeviceDetails(ctx context.Context, links ocfschema.ResourceLinks) (out DeviceDetails, _ error) {
-	return getDeviceDetails(ctx, d.device(), links)
+	return getDeviceDetails(ctx, d.Device(), links)
 }
 
 func (d *refDevice) GetResourceWithCodec(
@@ -48,7 +48,7 @@ func (d *refDevice) GetResourceWithCodec(
 	codec coap.Codec,
 	response interface{},
 	options ...coap.OptionFunc) error {
-	return d.device().GetResourceWithCodec(ctx, link, codec, response, options...)
+	return d.Device().GetResourceWithCodec(ctx, link, codec, response, options...)
 }
 
 func (d *refDevice) ObserveResourceWithCodec(
@@ -58,7 +58,7 @@ func (d *refDevice) ObserveResourceWithCodec(
 	handler ocf.ObservationHandler,
 	options ...coap.OptionFunc,
 ) (observationID string, _ error) {
-	return d.device().ObserveResourceWithCodec(ctx, link, codec, handler, options...)
+	return d.Device().ObserveResourceWithCodec(ctx, link, codec, handler, options...)
 }
 
 func (d *refDevice) ObserveResource(
@@ -67,18 +67,18 @@ func (d *refDevice) ObserveResource(
 	handler ocf.ObservationHandler,
 	options ...coap.OptionFunc,
 ) (observationID string, _ error) {
-	return d.device().ObserveResource(ctx, link, handler, options...)
+	return d.Device().ObserveResource(ctx, link, handler, options...)
 }
 
 func (d *refDevice) StopObservingResource(
 	ctx context.Context,
 	observationID string,
 ) error {
-	return d.device().StopObservingResource(ctx, observationID)
+	return d.Device().StopObservingResource(ctx, observationID)
 }
 
 func (d *refDevice) IsSecured(ctx context.Context, links ocfschema.ResourceLinks) (bool, error) {
-	return d.device().IsSecured(ctx, links)
+	return d.Device().IsSecured(ctx, links)
 }
 
 func (d *refDevice) UpdateResource(
@@ -88,7 +88,7 @@ func (d *refDevice) UpdateResource(
 	response interface{},
 	options ...coap.OptionFunc,
 ) error {
-	return d.device().UpdateResource(ctx, link, request, response, options...)
+	return d.Device().UpdateResource(ctx, link, request, response, options...)
 }
 
 func (d *refDevice) UpdateResourceWithCodec(
@@ -99,7 +99,7 @@ func (d *refDevice) UpdateResourceWithCodec(
 	response interface{},
 	options ...coap.OptionFunc,
 ) error {
-	return d.device().UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
+	return d.Device().UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
 }
 
 func (d *refDevice) Own(
@@ -108,32 +108,32 @@ func (d *refDevice) Own(
 	otmClient ocf.OTMClient,
 	ownOptions ...ocf.OwnOption,
 ) error {
-	return d.device().Own(ctx, links, otmClient, ownOptions...)
+	return d.Device().Own(ctx, links, otmClient, ownOptions...)
 }
 
 func (d *refDevice) Disown(
 	ctx context.Context,
 	links ocfschema.ResourceLinks,
 ) error {
-	return d.device().Disown(ctx, links)
+	return d.Device().Disown(ctx, links)
 }
 
 func (d *refDevice) Provision(ctx context.Context, links ocfschema.ResourceLinks) (*ocf.ProvisioningClient, error) {
-	return d.device().Provision(ctx, links)
+	return d.Device().Provision(ctx, links)
 }
 
 func (d *refDevice) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (ocfschema.ResourceLinks, error) {
-	return d.device().GetResourceLinks(ctx, options...)
+	return d.Device().GetResourceLinks(ctx, options...)
 }
 
 func (d *refDevice) FactoryReset(ctx context.Context, links ocfschema.ResourceLinks) error {
-	return d.device().FactoryReset(ctx, links)
+	return d.Device().FactoryReset(ctx, links)
 }
 
 func (d *refDevice) Reboot(ctx context.Context, links ocfschema.ResourceLinks) error {
-	return d.device().Reboot(ctx, links)
+	return d.Device().Reboot(ctx, links)
 }
 
 func (d *refDevice) GetOwnership(ctx context.Context) (ocfschema.Doxm, error) {
-	return d.device().GetOwnership(ctx)
+	return d.Device().GetOwnership(ctx)
 }
