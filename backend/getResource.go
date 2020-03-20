@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"fmt"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
@@ -42,6 +43,9 @@ func (c *Client) getResource(
 	}))
 	if err != nil {
 		return err
+	}
+	if resp == nil {
+		return fmt.Errorf("not found")
 	}
 
 	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)

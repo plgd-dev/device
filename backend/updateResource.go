@@ -6,15 +6,13 @@ import (
 
 	"github.com/go-ocf/grpc-gateway/pb"
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
-// UpdateResourceWithCodec update resource with codec.
-func (c *Client) UpdateResourceWithCodec(
+// UpdateResource updates content in OCF-CBOR format.
+func (c *Client) UpdateResource(
 	ctx context.Context,
 	deviceID string,
 	href string,
-	codec kitNetCoap.Codec,
 	request interface{},
 	response interface{},
 	opts ...UpdateOption,
@@ -26,7 +24,7 @@ func (c *Client) UpdateResourceWithCodec(
 		cfg = o.applyOnUpdate(cfg)
 	}
 
-	data, err := codec.Encode(request)
+	data, err := cfg.codec.Encode(request)
 	if err != nil {
 		return err
 	}
@@ -37,7 +35,7 @@ func (c *Client) UpdateResourceWithCodec(
 		},
 		Content: &pb.Content{
 			Data:        data,
-			ContentType: codec.ContentFormat().String(),
+			ContentType: cfg.codec.ContentFormat().String(),
 		},
 	}
 
@@ -46,18 +44,5 @@ func (c *Client) UpdateResourceWithCodec(
 		return fmt.Errorf("cannot update resource /%v/%v: %w", deviceID, href, err)
 	}
 
-	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)
-}
-
-// UpdateResource updates content in OCF-CBOR format.
-func (c *Client) UpdateResource(
-	ctx context.Context,
-	deviceID string,
-	href string,
-	request interface{},
-	response interface{},
-	opts ...UpdateOption,
-) error {
-	var codec codecOcf.VNDOCFCBORCodec
-	return c.UpdateResourceWithCodec(ctx, deviceID, href, codec, request, response, opts...)
+	return DecodeContentWithCodec(cfg.codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)
 }
