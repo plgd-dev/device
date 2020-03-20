@@ -173,6 +173,10 @@ func (c *Client) insertSubscription(ID string, s subscription) {
 	c.subscriptions[ID] = s
 }
 
+func (c *Client) CoreClient() *ocf.Client {
+	return c.client
+}
+
 // Close clears all connections and spawned goroutines by client.
 func (c *Client) Close(ctx context.Context) error {
 	var errors []error
