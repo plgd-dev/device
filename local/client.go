@@ -105,7 +105,7 @@ func NewClient(
 		client:                  oc,
 		app:                     app,
 		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
-		observeDeviceCache:      make(map[string]*refDevice),
+		observeDeviceCache:      make(map[string]*RefDevice),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
@@ -133,7 +133,7 @@ type Client struct {
 
 	deviceCache *refDeviceCache
 
-	observeDeviceCache      map[string]*refDevice
+	observeDeviceCache      map[string]*RefDevice
 	observeDeviceCacheLock  sync.Mutex
 	observerPollingInterval time.Duration
 

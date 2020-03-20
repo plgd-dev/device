@@ -11,7 +11,7 @@ import (
 func (c *Client) GetRefDevice(
 	ctx context.Context,
 	deviceID string,
-) (*refDevice, schema.ResourceLinks, error) {
+) (*RefDevice, schema.ResourceLinks, error) {
 	refDev, ok := c.deviceCache.GetDevice(ctx, deviceID)
 	if ok {
 		links, err := refDev.GetResourceLinks(ctx)

@@ -23,8 +23,8 @@ type refCacheDevice struct {
 	*kitSync.RefCounter
 }
 
-func (r *refCacheDevice) device() *refDevice {
-	return r.Data().(*refDevice)
+func (r *refCacheDevice) device() *RefDevice {
+	return r.Data().(*RefDevice)
 }
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
@@ -32,7 +32,7 @@ func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDe
 	cache.OnEvicted(func(key string, d interface{}) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		err := d.(*refDevice).Release(ctx)
+		err := d.(*RefDevice).Release(ctx)
 		if err != nil {
 			errors(err)
 		}
@@ -53,7 +53,7 @@ func (c *refDeviceCache) getFromPermanentCache(deviceID string) (_ *refCacheDevi
 	return refCacheDev, ok
 }
 
-func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, deviceID string) (*refDevice, bool) {
+func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, deviceID string) (*RefDevice, bool) {
 	refCacheDev, ok := c.getFromPermanentCache(deviceID)
 	if !ok {
 		return nil, false
@@ -64,19 +64,19 @@ func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, device
 	return dev, true
 }
 
-func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*refDevice, bool) {
+func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, bool) {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	d, ok := c.temporaryCache.Get(deviceID)
 	if !ok {
 		return nil, false
 	}
-	dev := d.(*refDevice)
+	dev := d.(*RefDevice)
 	dev.Acquire()
 	return dev, true
 }
 
-func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*refDevice, bool) {
+func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDevice, bool) {
 	dev, ok := c.getDeviceFromPermanentCache(ctx, deviceID)
 	if ok {
 		return dev, true
@@ -88,14 +88,14 @@ func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*refDe
 	return nil, false
 }
 
-func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *refDevice) (*refDevice, bool, error) {
+func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*RefDevice, bool, error) {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	deviceID := device.DeviceID()
 	d, ok := c.temporaryCache.Get(deviceID)
 	if ok {
 		// record is already in cache
-		dev := d.(*refDevice)
+		dev := d.(*RefDevice)
 		dev.Acquire()
 		return dev, false, nil
 	}
@@ -107,7 +107,7 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *refDevice) (*ref
 	return device, true, err
 }
 
-func (c *refDeviceCache) StoreDeviceToPermanentCache(device *refDevice) error {
+func (c *refDeviceCache) StoreDeviceToPermanentCache(device *RefDevice) error {
 	c.permanentCacheLock.Lock()
 	defer c.permanentCacheLock.Unlock()
 	deviceID := device.DeviceID()
@@ -123,7 +123,7 @@ func (c *refDeviceCache) StoreDeviceToPermanentCache(device *refDevice) error {
 	device.Acquire()
 	c.permanentCache[deviceID] = &refCacheDevice{
 		RefCounter: kitSync.NewRefCounter(device, func(ctx context.Context, data interface{}) error {
-			dev := data.(*refDevice)
+			dev := data.(*RefDevice)
 			deviceID := device.DeviceID()
 			err := dev.Release(ctx)
 			c.permanentCacheLock.Lock()
@@ -135,7 +135,7 @@ func (c *refDeviceCache) StoreDeviceToPermanentCache(device *refDevice) error {
 	return nil
 }
 
-func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, device *refDevice) error {
+func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, device *RefDevice) error {
 	deviceID := device.DeviceID()
 	refCacheDev, ok := c.getFromPermanentCache(deviceID)
 	if !ok {
@@ -176,7 +176,7 @@ func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
 func (c *refDeviceCache) Close(ctx context.Context) error {
 	var errors []error
 	for _, val := range c.popTemporaryCache() {
-		d := val.Object.(*refDevice)
+		d := val.Object.(*RefDevice)
 		err := d.Release(ctx)
 		if err != nil {
 			errors = append(errors)

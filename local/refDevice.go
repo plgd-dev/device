@@ -9,12 +9,12 @@ import (
 	ocfschema "github.com/go-ocf/sdk/schema"
 )
 
-type refDevice struct {
+type RefDevice struct {
 	obj *sync.RefCounter
 }
 
-func NewRefDevice(dev *ocf.Device) *refDevice {
-	return &refDevice{obj: sync.NewRefCounter(dev, releaseOcfDevice)}
+func NewRefDevice(dev *ocf.Device) *RefDevice {
+	return &RefDevice{obj: sync.NewRefCounter(dev, releaseOcfDevice)}
 }
 
 func releaseOcfDevice(ctx context.Context, data interface{}) error {
@@ -22,27 +22,27 @@ func releaseOcfDevice(ctx context.Context, data interface{}) error {
 	return dev.Close(ctx)
 }
 
-func (d *refDevice) Acquire() {
+func (d *RefDevice) Acquire() {
 	d.obj.Acquire()
 }
 
-func (d *refDevice) Release(ctx context.Context) error {
+func (d *RefDevice) Release(ctx context.Context) error {
 	return d.obj.Release(ctx)
 }
 
-func (d *refDevice) DeviceID() string {
+func (d *RefDevice) DeviceID() string {
 	return d.Device().DeviceID()
 }
 
-func (d *refDevice) Device() *ocf.Device {
+func (d *RefDevice) Device() *ocf.Device {
 	return d.obj.Data().(*ocf.Device)
 }
 
-func (d *refDevice) GetDeviceDetails(ctx context.Context, links ocfschema.ResourceLinks) (out DeviceDetails, _ error) {
+func (d *RefDevice) GetDeviceDetails(ctx context.Context, links ocfschema.ResourceLinks) (out DeviceDetails, _ error) {
 	return getDeviceDetails(ctx, d.Device(), links)
 }
 
-func (d *refDevice) GetResourceWithCodec(
+func (d *RefDevice) GetResourceWithCodec(
 	ctx context.Context,
 	link ocfschema.ResourceLink,
 	codec coap.Codec,
@@ -51,7 +51,7 @@ func (d *refDevice) GetResourceWithCodec(
 	return d.Device().GetResourceWithCodec(ctx, link, codec, response, options...)
 }
 
-func (d *refDevice) ObserveResourceWithCodec(
+func (d *RefDevice) ObserveResourceWithCodec(
 	ctx context.Context,
 	link ocfschema.ResourceLink,
 	codec coap.Codec,
@@ -61,7 +61,7 @@ func (d *refDevice) ObserveResourceWithCodec(
 	return d.Device().ObserveResourceWithCodec(ctx, link, codec, handler, options...)
 }
 
-func (d *refDevice) ObserveResource(
+func (d *RefDevice) ObserveResource(
 	ctx context.Context,
 	link ocfschema.ResourceLink,
 	handler ocf.ObservationHandler,
@@ -70,18 +70,18 @@ func (d *refDevice) ObserveResource(
 	return d.Device().ObserveResource(ctx, link, handler, options...)
 }
 
-func (d *refDevice) StopObservingResource(
+func (d *RefDevice) StopObservingResource(
 	ctx context.Context,
 	observationID string,
 ) error {
 	return d.Device().StopObservingResource(ctx, observationID)
 }
 
-func (d *refDevice) IsSecured(ctx context.Context, links ocfschema.ResourceLinks) (bool, error) {
+func (d *RefDevice) IsSecured(ctx context.Context, links ocfschema.ResourceLinks) (bool, error) {
 	return d.Device().IsSecured(ctx, links)
 }
 
-func (d *refDevice) UpdateResource(
+func (d *RefDevice) UpdateResource(
 	ctx context.Context,
 	link ocfschema.ResourceLink,
 	request interface{},
@@ -91,7 +91,7 @@ func (d *refDevice) UpdateResource(
 	return d.Device().UpdateResource(ctx, link, request, response, options...)
 }
 
-func (d *refDevice) UpdateResourceWithCodec(
+func (d *RefDevice) UpdateResourceWithCodec(
 	ctx context.Context,
 	link ocfschema.ResourceLink,
 	codec coap.Codec,
@@ -102,7 +102,7 @@ func (d *refDevice) UpdateResourceWithCodec(
 	return d.Device().UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
 }
 
-func (d *refDevice) Own(
+func (d *RefDevice) Own(
 	ctx context.Context,
 	links ocfschema.ResourceLinks,
 	otmClient ocf.OTMClient,
@@ -111,29 +111,29 @@ func (d *refDevice) Own(
 	return d.Device().Own(ctx, links, otmClient, ownOptions...)
 }
 
-func (d *refDevice) Disown(
+func (d *RefDevice) Disown(
 	ctx context.Context,
 	links ocfschema.ResourceLinks,
 ) error {
 	return d.Device().Disown(ctx, links)
 }
 
-func (d *refDevice) Provision(ctx context.Context, links ocfschema.ResourceLinks) (*ocf.ProvisioningClient, error) {
+func (d *RefDevice) Provision(ctx context.Context, links ocfschema.ResourceLinks) (*ocf.ProvisioningClient, error) {
 	return d.Device().Provision(ctx, links)
 }
 
-func (d *refDevice) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (ocfschema.ResourceLinks, error) {
+func (d *RefDevice) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (ocfschema.ResourceLinks, error) {
 	return d.Device().GetResourceLinks(ctx, options...)
 }
 
-func (d *refDevice) FactoryReset(ctx context.Context, links ocfschema.ResourceLinks) error {
+func (d *RefDevice) FactoryReset(ctx context.Context, links ocfschema.ResourceLinks) error {
 	return d.Device().FactoryReset(ctx, links)
 }
 
-func (d *refDevice) Reboot(ctx context.Context, links ocfschema.ResourceLinks) error {
+func (d *RefDevice) Reboot(ctx context.Context, links ocfschema.ResourceLinks) error {
 	return d.Device().Reboot(ctx, links)
 }
 
-func (d *refDevice) GetOwnership(ctx context.Context) (ocfschema.Doxm, error) {
+func (d *RefDevice) GetOwnership(ctx context.Context) (ocfschema.Doxm, error) {
 	return d.Device().GetOwnership(ctx)
 }

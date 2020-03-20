@@ -50,7 +50,7 @@ func setACLForCloudResources(ctx context.Context, p *ocf.ProvisioningClient, lin
 	return p.UpdateResource(ctx, link, obACL, nil)
 }
 
-func configureDeviceInProvsion(ctx context.Context, d *refDevice, links ocfSchema.ResourceLinks, certAuthorities []*x509.Certificate) (rerr error) {
+func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links ocfSchema.ResourceLinks, certAuthorities []*x509.Certificate) (rerr error) {
 	p, err := d.Provision(ctx, links)
 	if err != nil {
 		return err

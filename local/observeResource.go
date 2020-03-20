@@ -57,7 +57,7 @@ func (c *Client) ObserveResource(
 	return observationID, err
 }
 
-func (c *Client) popObserveDevice(ctx context.Context, observationID string) (*refDevice, error) {
+func (c *Client) popObserveDevice(ctx context.Context, observationID string) (*RefDevice, error) {
 	c.observeDeviceCacheLock.Lock()
 	defer c.observeDeviceCacheLock.Unlock()
 	device, ok := c.observeDeviceCache[observationID]

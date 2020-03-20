@@ -8,7 +8,7 @@ import (
 	cloud "github.com/go-ocf/sdk/schema/cloud"
 )
 
-func setCloudResource(ctx context.Context, links ocfSchema.ResourceLinks, d *refDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
+func setCloudResource(ctx context.Context, links ocfSchema.ResourceLinks, d *RefDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
 	ob := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: authorizationProvider,
 		AuthorizationCode:     authorizationCode,
