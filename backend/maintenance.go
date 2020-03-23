@@ -36,10 +36,11 @@ func (c *Client) updateMaintenanceResource(
 ) (ret error) {
 	it := c.GetResourceLinksIterator(ctx, []string{deviceID}, maintenance.MaintenanceResourceType)
 	defer it.Close()
-	var v pb.ResourceLink
-	var found bool
-	for it.Next(&v) {
-		found = true
+	for {
+		var v pb.ResourceLink
+		if !it.Next(&v) {
+			break
+		}
 		var resp maintenance.Maintenance
 		err := c.UpdateResource(ctx, v.GetDeviceId(), v.GetHref(), req, &resp)
 		if err != nil {
@@ -55,9 +56,6 @@ func (c *Client) updateMaintenanceResource(
 			return fmt.Errorf(str)
 		}
 		return it.Err
-	}
-	if !found {
-		return fmt.Errorf("cannot find maintenance resource(%v)", maintenance.MaintenanceResourceType)
 	}
 	return it.Err
 }

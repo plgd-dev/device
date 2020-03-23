@@ -146,8 +146,12 @@ func (c *Client) GetAccessTokenURL(ctx context.Context) (string, error) {
 func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.Device)) error {
 	it := c.GetDevicesIterator(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
-	var v pb.Device
-	for it.Next(&v) {
+
+	for {
+		var v pb.Device
+		if !it.Next(&v) {
+			break
+		}
 		callback(v)
 	}
 	return it.Err
@@ -157,8 +161,11 @@ func (c *Client) GetDevicesViaCallback(ctx context.Context, deviceIDs, resourceT
 func (c *Client) GetResourceLinksViaCallback(ctx context.Context, deviceIDs, resourceTypes []string, callback func(pb.ResourceLink)) error {
 	it := c.GetResourceLinksIterator(ctx, deviceIDs, resourceTypes...)
 	defer it.Close()
-	var v pb.ResourceLink
-	for it.Next(&v) {
+	for {
+		var v pb.ResourceLink
+		if !it.Next(&v) {
+			break
+		}
 		callback(v)
 	}
 	return it.Err
@@ -188,8 +195,12 @@ func (c *Client) RetrieveResourcesByType(
 
 	it := c.RetrieveResourcesIterator(ctx, nil, deviceIDs, resourceTypes...)
 	defer it.Close()
-	var v pb.ResourceValue
-	for it.Next(&v) {
+
+	for {
+		var v pb.ResourceValue
+		if !it.Next(&v) {
+			break
+		}
 		for _, rt := range resourceTypes {
 			if strings.SliceContains(v.Types, rt) {
 				tc[rt](v)
@@ -200,19 +211,55 @@ func (c *Client) RetrieveResourcesByType(
 	return it.Err
 }
 
-// GetDevices gets devices. JWT token must be stored in context for grpc call.
+// GetDevicesIterator gets devices. JWT token must be stored in context for grpc call.
+// Next queries the next resource value.
+// Returns false when failed or having no more items.
+// Check it.Err for errors.
+// Usage:
+//	for {
+//		var v MyStruct
+//		if !it.Next(ctx, &v) {
+//			break
+//		}
+//	}
+//	if it.Err != nil {
+//	}
 func (c *Client) GetDevicesIterator(ctx context.Context, deviceIDs []string, resourceTypes ...string) *kitNetGrpc.Iterator {
 	r := pb.GetDevicesRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return kitNetGrpc.NewIterator(c.gateway.GetDevices(ctx, &r))
 }
 
-// GetResourceLinks gets devices. JWT token must be stored in context for grpc call.
+// GetResourceLinksIterator gets devices. JWT token must be stored in context for grpc call.
+// Next queries the next resource value.
+// Returns false when failed or having no more items.
+// Check it.Err for errors.
+// Usage:
+//	for {
+//		var v MyStruct
+//		if !it.Next(ctx, &v) {
+//			break
+//		}
+//	}
+//	if it.Err != nil {
+//	}
 func (c *Client) GetResourceLinksIterator(ctx context.Context, deviceIDs []string, resourceTypes ...string) *kitNetGrpc.Iterator {
 	r := pb.GetResourceLinksRequest{DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return kitNetGrpc.NewIterator(c.gateway.GetResourceLinks(ctx, &r))
 }
 
-// RetrieveResources gets resources contents. JWT token must be stored in context for grpc call.
+// RetrieveResourcesIterator gets resources contents. JWT token must be stored in context for grpc call.
+// Next queries the next resource value.
+// Returns false when failed or having no more items.
+// Check it.Err for errors.
+// Usage:
+//	for {
+//		var v MyStruct
+//		if !it.Next(ctx, &v) {
+//			break
+//		}
+//	}
+//	if it.Err != nil {
+//	}
 func (c *Client) RetrieveResourcesIterator(ctx context.Context, resourceIDs []*pb.ResourceId, deviceIDs []string, resourceTypes ...string) *kitNetGrpc.Iterator {
 	r := pb.RetrieveResourcesValuesRequest{ResourceIdsFilter: resourceIDs, DeviceIdsFilter: deviceIDs, TypeFilter: resourceTypes}
 	return kitNetGrpc.NewIterator(c.gateway.RetrieveResourcesValues(ctx, &r))
@@ -245,7 +292,10 @@ func (c *Client) RetrieveResourcesByResourceIDs(
 	it := c.RetrieveResourcesIterator(ctx, resourceIDs, nil)
 	defer it.Close()
 	var v pb.ResourceValue
-	for it.Next(&v) {
+	for {
+		if !it.Next(&v) {
+			break
+		}
 		c, ok := tc[cqrs.MakeResourceId(v.GetResourceId().GetDeviceId(), v.GetResourceId().GetResourceLinkHref())]
 		if ok {
 			c(v)
