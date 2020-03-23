@@ -3,7 +3,11 @@ package cloud
 // Cloud Configuration Resource
 // https://github.com/openconnectivityfoundation/cloud-services/blob/master/swagger2.0/oic.r.coapcloudconf.swagger.json
 
-const ConfigurationResourceType string = "oic.r.coapcloudconf"
+const ConfigurationResourceHref = "/CoapCloudConfResURI"
+
+const ConfigurationResourceType = "oic.r.coapcloudconf"
+
+var ConfigurationResourceTypes = []string{ConfigurationResourceType}
 
 // ProvisioningStatus indicates the Cloud Provisioning status of the Device.
 type ProvisioningStatus string

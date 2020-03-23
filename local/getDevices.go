@@ -3,69 +3,222 @@ package local
 import (
 	"context"
 	"fmt"
+	"sort"
+	"sync"
 
+	"github.com/go-ocf/kit/log"
+
+	codecOcf "github.com/go-ocf/kit/codec/ocf"
+	kitStrings "github.com/go-ocf/kit/strings"
+	"github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/schema"
-
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/sdk/schema/cloud"
 )
 
-// DeviceHandler conveys device connections and errors during discovery.
-type DeviceHandler interface {
-	// Handle gets a device connection and is responsible for closing it.
-	Handle(ctx context.Context, device *Device, deviceLinks schema.ResourceLinks)
-	// Error gets errors during discovery.
-	Error(err error)
+// GetDevices discovers devices in the local mode.
+// The deviceResourceType is applied on the client side, because len(deviceResourceType) > 1 does not work with Iotivity 1.3.
+func (c *Client) GetDevices(
+	ctx context.Context,
+	opts ...GetDevicesOption,
+) (map[string]DeviceDetails, error) {
+	cfg := getDevicesOptions{
+		err: func(err error) { log.Error(err) },
+		getDetails: func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
+			return nil, nil
+		},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetDevices(cfg)
+	}
+
+	var m sync.Mutex
+	var res []DeviceDetails
+	devices := func(d DeviceDetails) {
+		m.Lock()
+		defer m.Unlock()
+		res = append(res, d)
+	}
+
+	resOwnerships := make(map[string]schema.Doxm)
+	ownerships := func(d schema.Doxm) {
+		m.Lock()
+		defer m.Unlock()
+		resOwnerships[d.DeviceID] = d
+	}
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
+	go c.client.GetOwnerships(ctx, core.DiscoverAllDevices, ownershipsHandler)
+
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, cfg.getDetails)
+	if err := c.client.GetDevices(ctx, handler); err != nil {
+		return nil, err
+	}
+
+	m.Lock()
+	defer m.Unlock()
+
+	return setOwnership(mergeDevices(res), resOwnerships), nil
 }
 
-// GetDevices discovers devices using a CoAP multicast request via UDP.
+// GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
-	multicastConn := DialDiscoveryAddresses(ctx, c.discoveryConfiguration, c.errFunc)
-	defer func() {
-		for _, conn := range multicastConn {
-			conn.Close()
-		}
-	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.getDeviceConfiguration(), handler))
+func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandler) error {
+	return c.client.GetDevices(ctx, handler)
+}
+
+type DeviceDetails struct {
+	ID        string
+	Device    schema.Device
+	Details   interface{}
+	IsSecured bool
+	Ownership *schema.Doxm
+	Resources []schema.ResourceLink
+	Endpoints []schema.Endpoint
 }
 
 func newDiscoveryHandler(
-	deviceCfg deviceConfiguration,
-	h DeviceHandler,
+	ctx context.Context,
+	typeFilter []string,
+	errors func(error),
+	devices func(DeviceDetails),
+	getDetails GetDetailsFunc,
 ) *discoveryHandler {
-	return &discoveryHandler{
-		deviceCfg: deviceCfg,
-		handler:   h,
-	}
+	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails}
 }
 
 type discoveryHandler struct {
-	deviceCfg deviceConfiguration
-	handler   DeviceHandler
+	typeFilter []string
+	errors     func(error)
+	devices    func(DeviceDetails)
+	getDetails GetDetailsFunc
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
-	conn.Close()
+func (h *discoveryHandler) Error(err error) { h.errors(err) }
 
-	link, err := GetResourceLink(links, "/oic/d")
+func getCloudConfiguration(ctx context.Context, d *core.Device, links schema.ResourceLinks) (*cloud.Configuration, error) {
+	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
+		var ob cloud.Configuration
+		var codec codecOcf.VNDOCFCBORCodec
+		err := d.GetResourceWithCodec(ctx, l, codec, &ob)
+		if err != nil {
+			return nil, err
+		}
+		return &ob, err
+	}
+	return nil, fmt.Errorf("not found")
+}
+
+func getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
+	link, ok := links.GetResourceLink("/oic/d")
+	var eps []schema.Endpoint
+	if ok {
+		eps = link.GetEndpoints()
+	}
+
+	var device schema.Device
+	err := d.GetResource(ctx, link, &device)
 	if err != nil {
-		h.handler.Error(err)
-		return
+		return out, err
 	}
-	deviceID := link.GetDeviceID()
-	if deviceID == "" {
-		h.handler.Error(fmt.Errorf("cannot determine deviceID"))
-		return
-	}
-	if len(link.ResourceTypes) == 0 {
-		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
-		return
-	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)
 
-	h.handler.Handle(ctx, d, links)
+	isSecured, err := d.IsSecured(ctx, links)
+	if err != nil {
+		return out, err
+	}
+
+	details, err := getDetails(ctx, d, links)
+	if err != nil {
+		return DeviceDetails{}, err
+	}
+
+	return DeviceDetails{
+		ID:        d.DeviceID(),
+		Device:    device,
+		Details:   details,
+		IsSecured: isSecured,
+		Resources: links,
+		Endpoints: eps,
+	}, nil
 }
 
-func (h *discoveryHandler) Error(err error) {
-	h.handler.Error(err)
+func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device, links schema.ResourceLinks) {
+	defer d.Close(ctx)
+
+	deviceTypes := make(kitStrings.Set, len(d.DeviceTypes()))
+	deviceTypes.Add(d.DeviceTypes()...)
+	if !deviceTypes.HasOneOf(h.typeFilter...) {
+		return
+	}
+
+	devDetails, err := getDeviceDetails(ctx, d, links, h.getDetails)
+	if err != nil {
+		h.Error(err)
+		return
+	}
+
+	h.devices(devDetails)
+}
+
+func newDiscoveryOwnershipsHandler(
+	ctx context.Context,
+	errors func(error),
+	ownerships func(schema.Doxm),
+) *discoveryOwnershipsHandler {
+	return &discoveryOwnershipsHandler{errors: errors, ownerships: ownerships}
+}
+
+type discoveryOwnershipsHandler struct {
+	errors     func(error)
+	ownerships func(schema.Doxm)
+}
+
+func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm schema.Doxm) {
+	h.ownerships(doxm)
+}
+
+func (h *discoveryOwnershipsHandler) Error(err error) { h.errors(err) }
+
+func mergeDevices(list []DeviceDetails) map[string]DeviceDetails {
+	m := make(map[string]DeviceDetails, len(list))
+	for _, i := range list {
+		d, ok := m[i.ID]
+		if !ok {
+			m[i.ID] = i
+		} else {
+			d.Endpoints = mergeEndpoints(d.Endpoints, i.Endpoints)
+		}
+	}
+	return m
+}
+
+func mergeEndpoints(a, b []schema.Endpoint) []schema.Endpoint {
+	eps := make([]schema.Endpoint, 0, len(a)+len(b))
+	eps = append(eps, a...)
+	eps = append(eps, b...)
+	sort.SliceStable(eps, func(i, j int) bool { return eps[i].URI < eps[j].URI })
+	sort.SliceStable(eps, func(i, j int) bool { return eps[i].Priority < eps[j].Priority })
+	out := make([]schema.Endpoint, 0, len(eps))
+	var last string
+	for _, e := range eps {
+		if last != e.URI {
+			out = append(out, e)
+		}
+		last = e.URI
+	}
+	return out
+}
+
+func setOwnership(devs map[string]DeviceDetails, owns map[string]schema.Doxm) map[string]DeviceDetails {
+	for _, o := range owns {
+		v := o
+		d, ok := devs[o.DeviceID]
+		if ok && d.Ownership == nil {
+			d.Ownership = &v
+			devs[o.DeviceID] = d
+		}
+	}
+	return devs
 }
