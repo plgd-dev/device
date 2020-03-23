@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"net/url"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/keepalive"
 
 	"github.com/go-ocf/grpc-gateway/pb"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
@@ -58,7 +60,12 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback) (*Client, error) 
 		return nil, err
 	}
 
-	conn, err := grpc.Dial(cfg.GatewayAddress, grpc.WithTransportCredentials(credentials.NewTLS(security.NewDefaultTLSConfig(rootCA))))
+	keepAlive := keepalive.ClientParameters{
+		Time:                10 * time.Second,
+		PermitWithoutStream: true,
+	}
+
+	conn, err := grpc.Dial(cfg.GatewayAddress, grpc.WithKeepaliveParams(keepAlive), grpc.WithTransportCredentials(credentials.NewTLS(security.NewDefaultTLSConfig(rootCA))))
 	if err != nil {
 		return nil, fmt.Errorf("cannot create certificate authority client: %w", err)
 	}
