@@ -1,8 +1,11 @@
 package local
 
 import (
+	"context"
+
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	ocf "github.com/go-ocf/sdk/local/core"
+	ocfschema "github.com/go-ocf/sdk/schema"
 )
 
 // WithInterface updates/gets resource with interface directly from a device.
@@ -10,6 +13,35 @@ func WithInterface(resourceInterface string) ResourceInterfaceOption {
 	return ResourceInterfaceOption{
 		resourceInterface: resourceInterface,
 	}
+}
+
+func WithError(err func(error)) ErrorOption {
+	return ErrorOption{
+		err: err,
+	}
+}
+
+func WithGetDetails(getDetails func(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks) (interface{}, error)) GetDetailsOption {
+	return GetDetailsOption{
+		getDetails: getDetails,
+	}
+}
+
+func WithCodec(codec kitNetCoap.Codec) CodecOption {
+	return CodecOption{
+		codec: codec,
+	}
+}
+
+func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
+	return ResourceTypesOption{
+		resourceTypes: resourceTypes,
+	}
+}
+
+// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
+func WithIotivityHack() IotivityHackOption {
+	return IotivityHackOption{}
 }
 
 type ResourceInterfaceOption struct {
@@ -50,15 +82,14 @@ type UpdateOption = interface {
 	applyOnUpdate(opts updateOptions) updateOptions
 }
 
-// UpdateOption option definition.
+// GetDevicesOption option definition.
 type GetDevicesOption = interface {
 	applyOnGetDevices(opts getDevicesOptions) getDevicesOptions
 }
 
-func WithError(err func(error)) ErrorOption {
-	return ErrorOption{
-		err: err,
-	}
+// GetDeviceOption option definition.
+type GetDeviceOption = interface {
+	applyOnGetDevice(opts getDeviceOptions) getDeviceOptions
 }
 
 type ErrorOption struct {
@@ -70,15 +101,30 @@ func (r ErrorOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions
 	return opts
 }
 
+type GetDetailsFunc = func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error)
+
+type GetDetailsOption struct {
+	getDetails GetDetailsFunc
+}
+
+func (r GetDetailsOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
+	opts.getDetails = r.getDetails
+	return opts
+}
+
+func (r GetDetailsOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+	opts.getDetails = r.getDetails
+	return opts
+}
+
 type getDevicesOptions struct {
 	resourceTypes []string
 	err           func(error)
+	getDetails    GetDetailsFunc
 }
 
-func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
-	return ResourceTypesOption{
-		resourceTypes: resourceTypes,
-	}
+type getDeviceOptions struct {
+	getDetails GetDetailsFunc
 }
 
 type ResourceTypesOption struct {
@@ -88,12 +134,6 @@ type ResourceTypesOption struct {
 func (r ResourceTypesOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
 	opts.resourceTypes = r.resourceTypes
 	return opts
-}
-
-func WithCodec(codec kitNetCoap.Codec) CodecOption {
-	return CodecOption{
-		codec: codec,
-	}
 }
 
 type CodecOption struct {
@@ -131,11 +171,6 @@ type ownOptions struct {
 // OwnOption option definition.
 type OwnOption = interface {
 	applyOnOwn(opts ownOptions) ownOptions
-}
-
-// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
-func WithIotivityHack() IotivityHackOption {
-	return IotivityHackOption{}
 }
 
 type IotivityHackOption struct{}

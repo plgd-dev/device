@@ -14,7 +14,6 @@ import (
 
 func sortDevices(s map[string]backend.DeviceDetails) map[string]backend.DeviceDetails {
 	for key, x := range s {
-		x.DeviceRaw = nil
 		x.Resources = grpcTest.SortResources(x.Resources)
 		s[key] = x
 	}

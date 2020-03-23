@@ -38,8 +38,8 @@ func (d *RefDevice) Device() *ocf.Device {
 	return d.obj.Data().(*ocf.Device)
 }
 
-func (d *RefDevice) GetDeviceDetails(ctx context.Context, links ocfschema.ResourceLinks) (out DeviceDetails, _ error) {
-	return getDeviceDetails(ctx, d.Device(), links)
+func (d *RefDevice) GetDeviceDetails(ctx context.Context, links ocfschema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
+	return getDeviceDetails(ctx, d.Device(), links, getDetails)
 }
 
 func (d *RefDevice) GetResourceWithCodec(

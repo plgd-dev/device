@@ -6,7 +6,6 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
-	"github.com/go-ocf/sdk/schema/cloud"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -55,9 +54,6 @@ func TestClient_OnboardDevice(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				dev, err := c.GetDevice(ctx, tt.args.deviceID)
-				require.NoError(t, err)
-				assert.Equal(t, cloud.ProvisioningStatus_READY_TO_REGISTER, dev.CloudConfiguration.ProvisioningStatus)
 				err = c.OffboardDevice(ctx, tt.args.deviceID)
 				assert.NoError(t, err)
 			}

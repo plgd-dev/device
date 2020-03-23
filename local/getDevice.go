@@ -3,7 +3,7 @@ package local
 import (
 	"context"
 
-	"github.com/go-ocf/sdk/schema"
+	ocf "github.com/go-ocf/sdk/local/core"
 	ocfschema "github.com/go-ocf/sdk/schema"
 )
 
@@ -11,7 +11,7 @@ import (
 func (c *Client) GetRefDevice(
 	ctx context.Context,
 	deviceID string,
-) (*RefDevice, schema.ResourceLinks, error) {
+) (*RefDevice, ocfschema.ResourceLinks, error) {
 	refDev, ok := c.deviceCache.GetDevice(ctx, deviceID)
 	if ok {
 		links, err := refDev.GetResourceLinks(ctx)
@@ -36,14 +36,23 @@ func (c *Client) GetRefDevice(
 	return refDev, c.patchResourceLinks(links), nil
 }
 
-func (c *Client) GetDevice(ctx context.Context, deviceID string) (DeviceDetails, error) {
+func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
+	cfg := getDeviceOptions{
+		getDetails: func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error) {
+			return nil, nil
+		},
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetDevice(cfg)
+	}
+
 	refDev, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
 	defer refDev.Release(ctx)
 
-	devDetails, err := refDev.GetDeviceDetails(ctx, links)
+	devDetails, err := refDev.GetDeviceDetails(ctx, links, cfg.getDetails)
 	if err != nil {
 		return DeviceDetails{}, err
 	}

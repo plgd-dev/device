@@ -91,8 +91,6 @@ func TestClient_GetDevice(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			require.NotEmpty(t, got.DeviceRaw)
-			got.DeviceRaw = nil
 			got.Resources = grpcTest.SortResources(got.Resources)
 			require.Equal(t, tt.want, got)
 		})

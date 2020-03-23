@@ -7,7 +7,6 @@ import (
 	"time"
 
 	local "github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/schema/cloud"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	"github.com/go-ocf/sdk/schema"
@@ -35,14 +34,6 @@ func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 		Device: schema.Device{
 			ID:   deviceID,
 			Name: deviceName,
-		},
-		CloudConfiguration: &cloud.Configuration{
-			ResourceTypes:      cloud.ConfigurationResourceTypes,
-			Interfaces:         []string{"oic.if.rw", "oic.if.baseline"},
-			ProvisioningStatus: cloud.ProvisioningStatus_UNINITIALIZED,
-			CloudID:            "00000000-0000-0000-0000-000000000000",
-			URL:                "coaps+tcp://127.0.0.1",
-			LastErrorCode:      2,
 		},
 		Resources: sortResources(append(grpcTest.TestDevsimResources, test.TestDevsimPrivateResources...)),
 	}
@@ -133,7 +124,6 @@ func TestClient_GetDevice(t *testing.T) {
 			}
 			require.NoError(t, err)
 			got.Resources = cleanUpResources(sortResources(got.Resources))
-			got.DeviceRaw = nil
 			got.Endpoints = nil
 			require.Equal(t, tt.want, got)
 		})

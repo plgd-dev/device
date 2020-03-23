@@ -4,13 +4,11 @@ import (
 	"context"
 
 	"github.com/go-ocf/grpc-gateway/pb"
-	"github.com/go-ocf/sdk/schema"
 )
 
 type DeviceDetails struct {
 	ID        string
 	Device    pb.Device
-	DeviceRaw []byte
 	Resources []pb.ResourceLink
 }
 
@@ -34,19 +32,6 @@ func (c *Client) GetDevices(
 		}
 		ids = append(ids, v.GetId())
 	})
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.RetrieveResourcesByType(ctx, ids,
-		MakeTypeCallback(schema.DeviceResourceType, func(v pb.ResourceValue) {
-			d, ok := devices[v.GetResourceId().GetDeviceId()]
-			if ok && err == nil {
-				d.DeviceRaw = v.GetContent().GetData()
-				devices[v.GetResourceId().GetDeviceId()] = d
-			}
-		}),
-	)
 	if err != nil {
 		return nil, err
 	}

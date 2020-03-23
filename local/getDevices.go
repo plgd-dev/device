@@ -6,10 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/go-ocf/kit/codec/cbor"
 	"github.com/go-ocf/kit/log"
-
-	"github.com/go-ocf/go-coap"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitStrings "github.com/go-ocf/kit/strings"
@@ -26,6 +23,9 @@ func (c *Client) GetDevices(
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
 		err: func(err error) { log.Error(err) },
+		getDetails: func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error) {
+			return nil, nil
+		},
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDevices(cfg)
@@ -52,7 +52,7 @@ func (c *Client) GetDevices(
 	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
 	go c.client.GetOwnerships(ctx, ocf.DiscoverAllDevices, ownershipsHandler)
 
-	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices)
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, cfg.getDetails)
 	if err := c.client.GetDevices(ctx, handler); err != nil {
 		return nil, err
 	}
@@ -69,33 +69,14 @@ func (c *Client) GetDevicesWithHandler(ctx context.Context, handler ocf.DeviceHa
 	return c.client.GetDevices(ctx, handler)
 }
 
-// GetDeviceDetails discovers devices using a CoAP multicast request via UDP
-// and provides their details via callback.
-func (c *Client) GetDeviceDetails(
-	ctx context.Context,
-	devices func(DeviceDetails),
-	opts ...GetDevicesOption,
-) error {
-	cfg := getDevicesOptions{
-		err: func(err error) { log.Error(err) },
-	}
-	for _, o := range opts {
-		cfg = o.applyOnGetDevices(cfg)
-	}
-	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices)
-
-	return c.client.GetDevices(ctx, handler)
-}
-
 type DeviceDetails struct {
-	ID                 string
-	Device             ocfschema.Device
-	DeviceRaw          []byte
-	IsSecured          bool
-	Ownership          *ocfschema.Doxm
-	CloudConfiguration *cloud.Configuration
-	Resources          []ocfschema.ResourceLink
-	Endpoints          []ocfschema.Endpoint
+	ID        string
+	Device    ocfschema.Device
+	Details   interface{}
+	IsSecured bool
+	Ownership *ocfschema.Doxm
+	Resources []ocfschema.ResourceLink
+	Endpoints []ocfschema.Endpoint
 }
 
 func newDiscoveryHandler(
@@ -103,14 +84,16 @@ func newDiscoveryHandler(
 	typeFilter []string,
 	errors func(error),
 	devices func(DeviceDetails),
+	getDetails GetDetailsFunc,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices}
+	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails}
 }
 
 type discoveryHandler struct {
 	typeFilter []string
 	errors     func(error)
 	devices    func(DeviceDetails)
+	getDetails GetDetailsFunc
 }
 
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
@@ -128,23 +111,15 @@ func getCloudConfiguration(ctx context.Context, d *ocf.Device, links ocfschema.R
 	return nil, fmt.Errorf("not found")
 }
 
-func getDeviceDetails(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks) (out DeviceDetails, _ error) {
+func getDeviceDetails(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink("/oic/d")
 	var eps []ocfschema.Endpoint
 	if ok {
 		eps = link.GetEndpoints()
 	}
-	var deviceRaw []byte
-	codec := codecOcf.NoCodec{
-		MediaType: uint16(coap.AppOcfCbor),
-	}
-	err := d.GetResourceWithCodec(ctx, link, codec, &deviceRaw)
-	if err != nil {
-		return out, err
-	}
 
 	var device ocfschema.Device
-	err = cbor.Decode(deviceRaw, &device)
+	err := d.GetResource(ctx, link, &device)
 	if err != nil {
 		return out, err
 	}
@@ -153,16 +128,19 @@ func getDeviceDetails(ctx context.Context, d *ocf.Device, links ocfschema.Resour
 	if err != nil {
 		return out, err
 	}
-	cloudCfg, _ := getCloudConfiguration(ctx, d, links)
+
+	details, err := getDetails(ctx, d, links)
+	if err != nil {
+		return DeviceDetails{}, err
+	}
 
 	return DeviceDetails{
-		ID:                 d.DeviceID(),
-		Device:             device,
-		DeviceRaw:          deviceRaw,
-		IsSecured:          isSecured,
-		CloudConfiguration: cloudCfg,
-		Resources:          links,
-		Endpoints:          eps,
+		ID:        d.DeviceID(),
+		Device:    device,
+		Details:   details,
+		IsSecured: isSecured,
+		Resources: links,
+		Endpoints: eps,
 	}, nil
 }
 
@@ -175,7 +153,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *ocf.Device, links ocfs
 		return
 	}
 
-	devDetails, err := getDeviceDetails(ctx, d, links)
+	devDetails, err := getDeviceDetails(ctx, d, links, h.getDetails)
 	if err != nil {
 		h.Error(err)
 		return
