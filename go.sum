@@ -99,6 +99,8 @@ github.com/go-ocf/grpc-gateway v0.0.0-20200319123843-760c721614a6 h1:9f7oca2N6Mk
 github.com/go-ocf/grpc-gateway v0.0.0-20200319123843-760c721614a6/go.mod h1:MrWS8kkt/2owxXBeF1iS3Phv/d+FpzJ2Q9dw8tAlPnM=
 github.com/go-ocf/grpc-gateway v0.0.0-20200319135410-983e3720b65d h1:k7ObzZCrWmB53m8KpOymYskXkhwffDSCBOcATpbxums=
 github.com/go-ocf/grpc-gateway v0.0.0-20200319135410-983e3720b65d/go.mod h1:G4Axmfc2431jBj/gJU4RtKnHTsnPUrccuLet9HS/3H0=
+github.com/go-ocf/grpc-gateway v0.0.0-20200323174616-7e3ad9506bab h1:2CXV1l7LRrb/zpKw1bjJqbCOgbNVGl2h6JlFjV5twNU=
+github.com/go-ocf/grpc-gateway v0.0.0-20200323174616-7e3ad9506bab/go.mod h1:c6KMzcPlbVHbkv6S6bivypKoWEDabuMdaxJg2uFn73U=
 github.com/go-ocf/kit v0.0.0-20190627123507-31d82dceaba0/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191028131320-a13f1309c964/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191121115122-d51c9ca11d08/go.mod h1:PyZjU7p8U5oXiCuTYfufjEsFwePni3eMr5l5qU2nkZ8=
@@ -150,6 +152,7 @@ github.com/go-ocf/sdk v0.0.0-20191105105859-e5b3f03a79c0/go.mod h1:KTuP0di3ddTq/
 github.com/go-ocf/sdk v0.0.0-20200102133029-8f03424b4d93/go.mod h1:+UrbVN6b6aNlMPZGdAbXiJbjsJXl8qcGA0173vuQ7Zg=
 github.com/go-ocf/sdk v0.0.0-20200302102400-517867bc1075/go.mod h1:5jvB+9hK7x6VULY9qidUS00nJwJIHK6+BnomwFg9s7s=
 github.com/go-ocf/sdk v0.0.0-20200319134918-2e08edf8487d/go.mod h1:A/jV/AdVxe3SW6FYe8wB65WMpcmlZPPfYrEpWj13Ayo=
+github.com/go-ocf/sdk v0.0.0-20200323152137-050aa844e539/go.mod h1:GKqvP80MeIWx4/ekRA2FJzFJCnTg/8TLTTANZJx2Hhw=
 github.com/go-sql-driver/mysql v1.4.0/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-sql-driver/mysql v1.4.1/go.mod h1:zAC/RDZ24gD3HViQzih4MyKcchzm+sOG5ZlKdlhCg5w=
 github.com/go-stack/stack v1.8.0 h1:5SgMzNM5HxrEjV0ww2lTmX6E2Izsfxas4+YHWRs3Lsk=
