@@ -3,15 +3,15 @@ package local
 import (
 	"context"
 
-	ocf "github.com/go-ocf/sdk/local/core"
-	ocfschema "github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/schema"
 )
 
 // GetRefDevice returns device, after using call device.Release to free resources.
 func (c *Client) GetRefDevice(
 	ctx context.Context,
 	deviceID string,
-) (*RefDevice, ocfschema.ResourceLinks, error) {
+) (*RefDevice, schema.ResourceLinks, error) {
 	refDev, ok := c.deviceCache.GetDevice(ctx, deviceID)
 	if ok {
 		links, err := refDev.GetResourceLinks(ctx)
@@ -38,7 +38,7 @@ func (c *Client) GetRefDevice(
 
 func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
 	cfg := getDeviceOptions{
-		getDetails: func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error) {
+		getDetails: func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
 			return nil, nil
 		},
 	}
@@ -56,7 +56,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	var doxm ocfschema.Doxm
+	var doxm schema.Doxm
 	if devDetails.IsSecured {
 		doxm, err = refDev.GetOwnership(ctx)
 	}
@@ -66,7 +66,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 
 	return setOwnership(map[string]DeviceDetails{
 		devDetails.Device.ID: devDetails,
-	}, map[string]ocfschema.Doxm{
+	}, map[string]schema.Doxm{
 		doxm.DeviceID: doxm,
 	})[devDetails.Device.ID], nil
 }

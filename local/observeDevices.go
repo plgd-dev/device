@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/gofrs/uuid"
 )
@@ -115,7 +115,7 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, device *ocf.Device, deviceLinks schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(ctx context.Context, device *core.Device, deviceLinks schema.ResourceLinks) {
 	defer device.Close(ctx)
 	o.devices.Store(device.DeviceID(), nil)
 }

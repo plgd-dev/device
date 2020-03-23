@@ -4,7 +4,7 @@ import (
 	"context"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 )
 
 func (c *Client) UpdateResource(
@@ -28,7 +28,7 @@ func (c *Client) UpdateResource(
 	}
 	defer d.Release(ctx)
 
-	link, err := ocf.GetResourceLink(links, href)
+	link, err := core.GetResourceLink(links, href)
 	if err != nil {
 		return err
 	}

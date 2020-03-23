@@ -1,25 +1,25 @@
 package local
 
-import ocfSchema "github.com/go-ocf/sdk/schema"
+import "github.com/go-ocf/sdk/schema"
 
 // To support a keepalive feature, we need to filter tcp endpoints because:
 // - iotivity-classic doesn't support ping over udp/dtls.
-func filterTCPEndpoints(eps []ocfSchema.Endpoint) []ocfSchema.Endpoint {
-	tcpDevEndpoints := make([]ocfSchema.Endpoint, 0, 4)
+func filterTCPEndpoints(eps []schema.Endpoint) []schema.Endpoint {
+	tcpDevEndpoints := make([]schema.Endpoint, 0, 4)
 	for _, e := range eps {
 		addr, err := e.GetAddr()
 		if err != nil {
 			continue
 		}
 		switch addr.GetScheme() {
-		case string(ocfSchema.TCPScheme), string(ocfSchema.TCPSecureScheme):
+		case string(schema.TCPScheme), string(schema.TCPSecureScheme):
 			tcpDevEndpoints = append(tcpDevEndpoints, e)
 		}
 	}
 	return tcpDevEndpoints
 }
 
-func (c *Client) patchResourceLinks(links ocfSchema.ResourceLinks) ocfSchema.ResourceLinks {
+func (c *Client) patchResourceLinks(links schema.ResourceLinks) schema.ResourceLinks {
 	devLink, ok := links.GetResourceLink("/oic/d")
 	if !ok {
 		return links
@@ -30,7 +30,7 @@ func (c *Client) patchResourceLinks(links ocfSchema.ResourceLinks) ocfSchema.Res
 		tcpDevEps = filterTCPEndpoints(tcpDevEps)
 	}
 
-	patchedLinks := make(ocfSchema.ResourceLinks, 0, len(links))
+	patchedLinks := make(schema.ResourceLinks, 0, len(links))
 	for _, l := range links {
 		eps := l.GetEndpoints()
 		if c.disableUDPEndpoints {

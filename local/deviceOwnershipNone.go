@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 )
 
 type deviceOwnershipNone struct {
@@ -22,7 +22,7 @@ func (s noneSigner) Sign(context.Context, []byte) ([]byte, error) {
 	return nil, fmt.Errorf("sign is not supported by %T", s)
 }
 
-func (o *deviceOwnershipNone) GetIdentitySigner(accessToken string) ocf.CertificateSigner {
+func (o *deviceOwnershipNone) GetIdentitySigner(accessToken string) core.CertificateSigner {
 	return noneSigner{}
 }
 
@@ -30,7 +30,7 @@ func (o *deviceOwnershipNone) Close(ctx context.Context) error {
 	return nil
 }
 
-func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...ocf.OwnOption) error {
+func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
 	return own(ctx, deviceID, nil, opts...)
 }
 

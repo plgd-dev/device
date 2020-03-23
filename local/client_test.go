@@ -10,7 +10,7 @@ import (
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
 	"github.com/go-ocf/sdk/app"
-	local "github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/local"
 )
 
 const TestTimeout = time.Second * 8

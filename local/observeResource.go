@@ -7,14 +7,14 @@ import (
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 )
 
 func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID string,
 	href string,
-	handler ocf.ObservationHandler,
+	handler core.ObservationHandler,
 	opts ...ObserveOption,
 ) (observationID string, _ error) {
 	cfg := observeOptions{
@@ -33,7 +33,7 @@ func (c *Client) ObserveResource(
 		client: c,
 	}
 
-	link, err := ocf.GetResourceLink(links, href)
+	link, err := core.GetResourceLink(links, href)
 	if err != nil {
 		return "", err
 	}
@@ -84,7 +84,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 }
 
 type observationHandler struct {
-	obs    ocf.ObservationHandler
+	obs    core.ObservationHandler
 	client *Client
 
 	lock          sync.Mutex

@@ -5,15 +5,15 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/schema/cloud"
 
-	ocf "github.com/go-ocf/sdk/local/core"
-	ocfSchema "github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/acl"
 )
 
-func setACLForCloudResources(ctx context.Context, p *ocf.ProvisioningClient, links ocfSchema.ResourceLinks) error {
-	link, err := ocf.GetResourceLink(links, "/oic/sec/acl2")
+func setACLForCloudResources(ctx context.Context, p *core.ProvisioningClient, links schema.ResourceLinks) error {
+	link, err := core.GetResourceLink(links, "/oic/sec/acl2")
 	if err != nil {
 		return err
 	}
@@ -50,7 +50,7 @@ func setACLForCloudResources(ctx context.Context, p *ocf.ProvisioningClient, lin
 	return p.UpdateResource(ctx, link, obACL, nil)
 }
 
-func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links ocfSchema.ResourceLinks, certAuthorities []*x509.Certificate) (rerr error) {
+func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.ResourceLinks, certAuthorities []*x509.Certificate) (rerr error) {
 	p, err := d.Provision(ctx, links)
 	if err != nil {
 		return err
@@ -91,7 +91,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient ocf.OTMClient, opts ...ocf.OwnOption) error {
+func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) error {
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return err

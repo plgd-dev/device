@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/local/core/otm/manufacturer"
 
 	"github.com/go-ocf/kit/security"
 	ocfSigner "github.com/go-ocf/kit/security/signer"
-	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/google/uuid"
 )
 
@@ -23,7 +23,7 @@ type DeviceOwnershipSDKConfig struct {
 
 type deviceOwnershipSDK struct {
 	sdkDeviceID         string
-	identitySigner      ocf.CertificateSigner
+	identitySigner      core.CertificateSigner
 	identityCertificate tls.Certificate
 	disableDTLS         bool
 	app                 ApplicationCallback
@@ -66,7 +66,7 @@ func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
 	return nil
 }
 
-func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer ocf.CertificateSigner) (ocf.OTMClient, error) {
+func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.CertificateSigner) (core.OTMClient, error) {
 	certAuthorities, err := app.GetRootCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -88,7 +88,7 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer ocf.Ce
 	return manufacturer.NewClient(mfgCert, mfgCA, signer, certAuthorities, mfgOpts...), nil
 }
 
-func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...ocf.OwnOption) error {
+func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
 	otm, err := getOTMManufacturer(o.app, o.disableDTLS, o.identitySigner)
 	if err != nil {
 		return err

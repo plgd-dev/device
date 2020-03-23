@@ -4,8 +4,8 @@ import (
 	"context"
 
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	ocf "github.com/go-ocf/sdk/local/core"
-	ocfschema "github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/schema"
 )
 
 // WithInterface updates/gets resource with interface directly from a device.
@@ -21,7 +21,7 @@ func WithError(err func(error)) ErrorOption {
 	}
 }
 
-func WithGetDetails(getDetails func(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks) (interface{}, error)) GetDetailsOption {
+func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error)) GetDetailsOption {
 	return GetDetailsOption{
 		getDetails: getDetails,
 	}
@@ -101,7 +101,7 @@ func (r ErrorOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions
 	return opts
 }
 
-type GetDetailsFunc = func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error)
+type GetDetailsFunc = func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error)
 
 type GetDetailsOption struct {
 	getDetails GetDetailsFunc
@@ -165,7 +165,7 @@ type ObserveOption = interface {
 }
 
 type ownOptions struct {
-	opts []ocf.OwnOption
+	opts []core.OwnOption
 }
 
 // OwnOption option definition.
@@ -176,6 +176,6 @@ type OwnOption = interface {
 type IotivityHackOption struct{}
 
 func (r IotivityHackOption) applyOnOwn(opts ownOptions) ownOptions {
-	opts.opts = append(opts.opts, ocf.WithIotivityHack())
+	opts.opts = append(opts.opts, core.WithIotivityHack())
 	return opts
 }

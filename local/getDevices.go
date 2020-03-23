@@ -10,8 +10,8 @@ import (
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitStrings "github.com/go-ocf/kit/strings"
-	ocf "github.com/go-ocf/sdk/local/core"
-	ocfschema "github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/schema/cloud"
 )
 
@@ -23,7 +23,7 @@ func (c *Client) GetDevices(
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
 		err: func(err error) { log.Error(err) },
-		getDetails: func(context.Context, *ocf.Device, ocfschema.ResourceLinks) (interface{}, error) {
+		getDetails: func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
 			return nil, nil
 		},
 	}
@@ -39,8 +39,8 @@ func (c *Client) GetDevices(
 		res = append(res, d)
 	}
 
-	resOwnerships := make(map[string]ocfschema.Doxm)
-	ownerships := func(d ocfschema.Doxm) {
+	resOwnerships := make(map[string]schema.Doxm)
+	ownerships := func(d schema.Doxm) {
 		m.Lock()
 		defer m.Unlock()
 		resOwnerships[d.DeviceID] = d
@@ -50,7 +50,7 @@ func (c *Client) GetDevices(
 	defer cancel()
 
 	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
-	go c.client.GetOwnerships(ctx, ocf.DiscoverAllDevices, ownershipsHandler)
+	go c.client.GetOwnerships(ctx, core.DiscoverAllDevices, ownershipsHandler)
 
 	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, cfg.getDetails)
 	if err := c.client.GetDevices(ctx, handler); err != nil {
@@ -65,18 +65,18 @@ func (c *Client) GetDevices(
 
 // GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevicesWithHandler(ctx context.Context, handler ocf.DeviceHandler) error {
+func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandler) error {
 	return c.client.GetDevices(ctx, handler)
 }
 
 type DeviceDetails struct {
 	ID        string
-	Device    ocfschema.Device
+	Device    schema.Device
 	Details   interface{}
 	IsSecured bool
-	Ownership *ocfschema.Doxm
-	Resources []ocfschema.ResourceLink
-	Endpoints []ocfschema.Endpoint
+	Ownership *schema.Doxm
+	Resources []schema.ResourceLink
+	Endpoints []schema.Endpoint
 }
 
 func newDiscoveryHandler(
@@ -98,7 +98,7 @@ type discoveryHandler struct {
 
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
 
-func getCloudConfiguration(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks) (*cloud.Configuration, error) {
+func getCloudConfiguration(ctx context.Context, d *core.Device, links schema.ResourceLinks) (*cloud.Configuration, error) {
 	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
 		var ob cloud.Configuration
 		var codec codecOcf.VNDOCFCBORCodec
@@ -111,14 +111,14 @@ func getCloudConfiguration(ctx context.Context, d *ocf.Device, links ocfschema.R
 	return nil, fmt.Errorf("not found")
 }
 
-func getDeviceDetails(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
+func getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink("/oic/d")
-	var eps []ocfschema.Endpoint
+	var eps []schema.Endpoint
 	if ok {
 		eps = link.GetEndpoints()
 	}
 
-	var device ocfschema.Device
+	var device schema.Device
 	err := d.GetResource(ctx, link, &device)
 	if err != nil {
 		return out, err
@@ -144,7 +144,7 @@ func getDeviceDetails(ctx context.Context, d *ocf.Device, links ocfschema.Resour
 	}, nil
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, d *ocf.Device, links ocfschema.ResourceLinks) {
+func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device, links schema.ResourceLinks) {
 	defer d.Close(ctx)
 
 	deviceTypes := make(kitStrings.Set, len(d.DeviceTypes()))
@@ -165,17 +165,17 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *ocf.Device, links ocfs
 func newDiscoveryOwnershipsHandler(
 	ctx context.Context,
 	errors func(error),
-	ownerships func(ocfschema.Doxm),
+	ownerships func(schema.Doxm),
 ) *discoveryOwnershipsHandler {
 	return &discoveryOwnershipsHandler{errors: errors, ownerships: ownerships}
 }
 
 type discoveryOwnershipsHandler struct {
 	errors     func(error)
-	ownerships func(ocfschema.Doxm)
+	ownerships func(schema.Doxm)
 }
 
-func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm ocfschema.Doxm) {
+func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm schema.Doxm) {
 	h.ownerships(doxm)
 }
 
@@ -194,13 +194,13 @@ func mergeDevices(list []DeviceDetails) map[string]DeviceDetails {
 	return m
 }
 
-func mergeEndpoints(a, b []ocfschema.Endpoint) []ocfschema.Endpoint {
-	eps := make([]ocfschema.Endpoint, 0, len(a)+len(b))
+func mergeEndpoints(a, b []schema.Endpoint) []schema.Endpoint {
+	eps := make([]schema.Endpoint, 0, len(a)+len(b))
 	eps = append(eps, a...)
 	eps = append(eps, b...)
 	sort.SliceStable(eps, func(i, j int) bool { return eps[i].URI < eps[j].URI })
 	sort.SliceStable(eps, func(i, j int) bool { return eps[i].Priority < eps[j].Priority })
-	out := make([]ocfschema.Endpoint, 0, len(eps))
+	out := make([]schema.Endpoint, 0, len(eps))
 	var last string
 	for _, e := range eps {
 		if last != e.URI {
@@ -211,7 +211,7 @@ func mergeEndpoints(a, b []ocfschema.Endpoint) []ocfschema.Endpoint {
 	return out
 }
 
-func setOwnership(devs map[string]DeviceDetails, owns map[string]ocfschema.Doxm) map[string]DeviceDetails {
+func setOwnership(devs map[string]DeviceDetails, owns map[string]schema.Doxm) map[string]DeviceDetails {
 	for _, o := range owns {
 		v := o
 		d, ok := devs[o.DeviceID]

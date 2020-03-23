@@ -11,10 +11,10 @@ import (
 	"fmt"
 
 	"github.com/go-ocf/kit/security/generateCertificate"
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 )
 
-func GenerateSDKIdentityCertificate(ctx context.Context, signer ocf.CertificateSigner, sdkDeviceID string) (tls.Certificate, error) {
+func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, fmt.Errorf("cannot generate private key: %w", err)

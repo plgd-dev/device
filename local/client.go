@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/go-ocf/kit/net/coap"
+	"github.com/go-ocf/sdk/local/core"
 
-	ocf "github.com/go-ocf/sdk/local/core"
 	cache "github.com/patrickmn/go-cache"
 )
 
@@ -52,17 +52,17 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 		observerPollingInterval = time.Second * time.Duration(cfg.ObserverPollingIntervalSeconds)
 	}
 
-	opts := make([]ocf.OptionFunc, 0, 1)
+	opts := make([]core.OptionFunc, 0, 1)
 	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
-		opts = append(opts, ocf.WithDialOptions(
+		opts = append(opts, core.WithDialOptions(
 			coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)),
 		))
 	}
 	if cfg.DisableDTLS {
-		opts = append(opts, ocf.WithoutDTLS())
+		opts = append(opts, core.WithoutDTLS())
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
-		opts = append(opts, ocf.WithDialOptions(
+		opts = append(opts, core.WithDialOptions(
 			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
 		))
 	}
@@ -82,7 +82,7 @@ func NewClient(
 	observerPollingInterval time.Duration,
 	disableUDPEndpoints bool,
 	errors func(error),
-	opt ...ocf.OptionFunc,
+	opt ...core.OptionFunc,
 ) (*Client, error) {
 	if app == nil {
 		return nil, fmt.Errorf("missing application callback")
@@ -90,17 +90,17 @@ func NewClient(
 	if deviceOwner == nil {
 		return nil, fmt.Errorf("missing device owner callback")
 	}
-	tls := ocf.TLSConfig{
+	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
 		GetCertificateAuthorities: app.GetRootCertificateAuthorities,
 	}
 	opt = append(
-		[]ocf.OptionFunc{
-			ocf.WithTLS(&tls),
+		[]core.OptionFunc{
+			core.WithTLS(&tls),
 		},
 		opt...,
 	)
-	oc := ocf.NewClient(opt...)
+	oc := core.NewClient(opt...)
 	client := Client{
 		client:                  oc,
 		app:                     app,
@@ -114,11 +114,11 @@ func NewClient(
 	return &client, nil
 }
 
-type ownFunc = func(ctx context.Context, deviceID string, otmClient ocf.OTMClient, opts ...ocf.OwnOption) error
+type ownFunc = func(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) error
 
 type DeviceOwner interface {
 	Initialization(ctx context.Context) error
-	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...ocf.OwnOption) error
+	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error
 
 	GetAccessTokenURL(ctx context.Context) (string, error)
 	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)
@@ -129,7 +129,7 @@ type DeviceOwner interface {
 // Client uses the underlying OCF local client.
 type Client struct {
 	app    ApplicationCallback
-	client *ocf.Client
+	client *core.Client
 
 	deviceCache *refDeviceCache
 
@@ -173,7 +173,7 @@ func (c *Client) insertSubscription(ID string, s subscription) {
 	c.subscriptions[ID] = s
 }
 
-func (c *Client) CoreClient() *ocf.Client {
+func (c *Client) CoreClient() *core.Client {
 	return c.client
 }
 

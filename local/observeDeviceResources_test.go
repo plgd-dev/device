@@ -7,7 +7,7 @@ import (
 	"time"
 
 	grpcTest "github.com/go-ocf/grpc-gateway/test"
-	local "github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
 
 	"github.com/stretchr/testify/require"

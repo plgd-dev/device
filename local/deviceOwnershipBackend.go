@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	"github.com/go-ocf/kit/security"
-	ocf "github.com/go-ocf/sdk/local/core"
+	"github.com/go-ocf/sdk/local/core"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-ocf/certificate-authority/pb"
@@ -89,7 +89,7 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 	}, nil
 }
 
-func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...ocf.OwnOption) error {
+func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
 	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
 	otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
 	if err != nil {
