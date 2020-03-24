@@ -67,6 +67,8 @@ github.com/go-ocf/coap-gateway v0.0.0-20200206135044-4d6d04bae45e h1:v8bvewioDkw
 github.com/go-ocf/coap-gateway v0.0.0-20200206135044-4d6d04bae45e/go.mod h1:v0nWSD3MofMRfuIhjj6FQdp7Etc74qhfnDMDy5iMT/0=
 github.com/go-ocf/coap-gateway v0.0.0-20200317094312-c095f634133e h1:egTV06lqoulQT7OWHQWxEUyNmV77Mv2fv+TtO/ekdFc=
 github.com/go-ocf/coap-gateway v0.0.0-20200317094312-c095f634133e/go.mod h1:ANFvRv1xaSory80DCyfID+f68DvwE3CUO2F84ArblgM=
+github.com/go-ocf/coap-gateway v0.0.0-20200323122545-250f26f53c6c h1:wgQgGczzzIkDAZ/KLzfsrkOZMmBSduUQlj4EDGo3vOU=
+github.com/go-ocf/coap-gateway v0.0.0-20200323122545-250f26f53c6c/go.mod h1:puyYbXqf0IlhVf9lChu4wIJ6/17TErZGohLSVz5Vbg8=
 github.com/go-ocf/cqrs v0.0.0-20190925123934-fc3dcec96e06/go.mod h1:kV/m0T0vn3lWBZTx2u/PVmXO/uRKSHmzWfQL2Us1Vv0=
 github.com/go-ocf/cqrs v0.0.0-20191107150148-d3546606da81/go.mod h1:+clS9NgOOp6PvrgH5yJ/paxggQnS4bhgIajH7Zq4mTA=
 github.com/go-ocf/cqrs v0.0.0-20191122204740-b228b8585d6c/go.mod h1:u5MFHqNscEjEyB+/Ljj/jpQYIZUhs5wgqX+z53fSm/w=
@@ -101,6 +103,8 @@ github.com/go-ocf/grpc-gateway v0.0.0-20200319135410-983e3720b65d h1:k7ObzZCrWmB
 github.com/go-ocf/grpc-gateway v0.0.0-20200319135410-983e3720b65d/go.mod h1:G4Axmfc2431jBj/gJU4RtKnHTsnPUrccuLet9HS/3H0=
 github.com/go-ocf/grpc-gateway v0.0.0-20200323174616-7e3ad9506bab h1:2CXV1l7LRrb/zpKw1bjJqbCOgbNVGl2h6JlFjV5twNU=
 github.com/go-ocf/grpc-gateway v0.0.0-20200323174616-7e3ad9506bab/go.mod h1:c6KMzcPlbVHbkv6S6bivypKoWEDabuMdaxJg2uFn73U=
+github.com/go-ocf/grpc-gateway v0.0.0-20200324073658-348af29e49ec h1:11vN0aC33UU7ecE/3EH5YKhuFQaZ7qqnsJoHHSEaU5o=
+github.com/go-ocf/grpc-gateway v0.0.0-20200324073658-348af29e49ec/go.mod h1:vwl4JzOnLx4qwgDPULhLMi4oXwbPu6gDtixy4FJNXR0=
 github.com/go-ocf/kit v0.0.0-20190627123507-31d82dceaba0/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191028131320-a13f1309c964/go.mod h1:cP9tDuWo0oq30mYGOSvpVJ6mDSUiOUCuisMnPN/AmvQ=
 github.com/go-ocf/kit v0.0.0-20191121115122-d51c9ca11d08/go.mod h1:PyZjU7p8U5oXiCuTYfufjEsFwePni3eMr5l5qU2nkZ8=
@@ -138,6 +142,8 @@ github.com/go-ocf/resource-aggregate v0.0.0-20200206134526-98a7e94bdd4d h1:eFqm3
 github.com/go-ocf/resource-aggregate v0.0.0-20200206134526-98a7e94bdd4d/go.mod h1:copBrVc8C9SqyvAZ7rCOVR/cMeJ8tE3qAZUbS1Cm4mo=
 github.com/go-ocf/resource-aggregate v0.0.0-20200317084442-61d838e69238 h1:Gmt0TzbFip7oWgqF9gFGwUnjhNPxnMqIlFiBUThDBIY=
 github.com/go-ocf/resource-aggregate v0.0.0-20200317084442-61d838e69238/go.mod h1:ncd3pGRu9/uik/poxKhOXswVU5wE26NipVM3sVHWFNs=
+github.com/go-ocf/resource-aggregate v0.0.0-20200323093600-690f73062315 h1:+twGTV4dAKkX3hRj7Hs80LWLhrQ8Kc1V4YuKIBoqQ4g=
+github.com/go-ocf/resource-aggregate v0.0.0-20200323093600-690f73062315/go.mod h1:ncd3pGRu9/uik/poxKhOXswVU5wE26NipVM3sVHWFNs=
 github.com/go-ocf/resource-directory v0.0.0-20191029084211-59afab3faf54/go.mod h1:AyZwgRfDRRg9vQMxW66NUq5/O5vwd1+gOgPAtVA7xdc=
 github.com/go-ocf/resource-directory v0.0.0-20191029134203-3e2a985c36e2/go.mod h1:AyZwgRfDRRg9vQMxW66NUq5/O5vwd1+gOgPAtVA7xdc=
 github.com/go-ocf/resource-directory v0.0.0-20191122211635-a96a97864227/go.mod h1:HbLJmgwxFnBg+ehdMiuiQla3MEmXxFXwjN4LXKKZVJY=
