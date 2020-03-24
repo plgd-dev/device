@@ -33,6 +33,7 @@ func (c *Client) UpdateResource(
 			DeviceId:         deviceID,
 			ResourceLinkHref: href,
 		},
+		ResourceInterface: cfg.resourceInterface,
 		Content: &pb.Content{
 			Data:        data,
 			ContentType: cfg.codec.ContentFormat().String(),

@@ -57,14 +57,19 @@ func TestClient_UpdateResource(t *testing.T) {
 			},
 		},
 		{
-			name: "resourceInterface not supported",
+			name: "valid with resourceInterface",
 			args: args{
 				token:    authTest.UserToken,
 				deviceID: deviceID,
 				href:     "/oc/con",
-				opts:     []backend.UpdateOption{backend.WithInterface("oic.if.baseline")},
+				data: map[string]interface{}{
+					"n": grpcTest.TestDeviceName,
+				},
+				opts: []backend.UpdateOption{backend.WithInterface("oic.if.baseline")},
 			},
-			wantErr: true,
+			want: map[interface{}]interface{}{
+				"n": grpcTest.TestDeviceName,
+			},
 		},
 		{
 			name: "invalid href",
