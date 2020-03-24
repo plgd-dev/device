@@ -2,7 +2,9 @@ package backend
 
 import (
 	"context"
-	"fmt"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // GetDevice retrieves device details from the backend.
@@ -15,7 +17,7 @@ func (c *Client) GetDevice(
 		return DeviceDetails{}, err
 	}
 	if len(devices) == 0 {
-		return DeviceDetails{}, fmt.Errorf("not found")
+		return DeviceDetails{}, status.Errorf(codes.NotFound, "not found")
 	}
 	return devices[deviceID], nil
 }

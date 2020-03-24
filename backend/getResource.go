@@ -2,10 +2,11 @@ package backend
 
 import (
 	"context"
-	"fmt"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/go-ocf/grpc-gateway/pb"
 )
@@ -45,7 +46,7 @@ func (c *Client) getResource(
 		return err
 	}
 	if resp == nil {
-		return fmt.Errorf("not found")
+		return status.Errorf(codes.NotFound, "not found")
 	}
 
 	return DecodeContentWithCodec(codec, resp.GetContent().GetContentType(), resp.GetContent().GetData(), response)
