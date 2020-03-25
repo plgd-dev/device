@@ -3,6 +3,9 @@ package backend
 import (
 	"fmt"
 
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/go-ocf/go-coap"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
@@ -18,7 +21,7 @@ func ContentTypeToMediaType(contentType string) (coap.MediaType, error) {
 	case coap.AppJSON.String():
 		return coap.AppJSON, nil
 	default:
-		return coap.TextPlain, fmt.Errorf("unknown content format")
+		return coap.TextPlain, fmt.Errorf("unknown content type '%v'", contentType)
 	}
 }
 
@@ -32,12 +35,16 @@ func DecodeContentWithCodec(codec kitNetCoap.Codec, contentType string, data []b
 	}
 	mediaType, err := ContentTypeToMediaType(contentType)
 	if err != nil {
-		return fmt.Errorf("cannot convert response contentype %v to mediatype: %w", contentType, err)
+		return status.Errorf(codes.InvalidArgument, "cannot convert response contentype %v to mediatype: %w", contentType, err)
 	}
 	msg := coap.NewTcpMessage(coap.MessageParams{
 		Payload: data,
 	})
 	msg.SetOption(coap.ContentFormat, mediaType)
+	err = codec.Decode(msg, response)
+	if err != nil {
+		return status.Errorf(codes.InvalidArgument, "cannot decode response: %v", err)
+	}
 
-	return codec.Decode(msg, response)
+	return err
 }

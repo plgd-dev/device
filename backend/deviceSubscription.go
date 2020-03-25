@@ -50,7 +50,7 @@ func (c *Client) NewDeviceSubscription(ctx context.Context, deviceID string, han
 	}
 
 	if resourcePublishedHandler == nil && resourceUnpublishedHandler == nil {
-		return nil, fmt.Errorf("invalid handler - it's supports: ResourceContentChangedHandler")
+		return nil, fmt.Errorf("invalid handler - it's supports: ResourcePublishedHandler, ResourceUnpublishedHandler")
 	}
 	client, err := c.gateway.SubscribeForEvents(ctx)
 	if err != nil {
