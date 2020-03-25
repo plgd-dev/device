@@ -95,7 +95,7 @@ func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string,
 	if err != nil {
 		return err
 	}
-	return own(ctx, deviceID, otm)
+	return own(ctx, deviceID, otm, opts...)
 }
 
 type claims map[string]interface{}
