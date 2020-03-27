@@ -18,7 +18,7 @@ func (c *Client) ObserveResource(
 	opts ...ObserveOption,
 ) (observationID string, _ error) {
 	cfg := observeOptions{
-		codec: codecOcf.VNDOCFCBORCodec{},
+		json: codecOcf.VNDOCFCBORCodec{},
 	}
 	for _, o := range opts {
 		cfg = o.applyOnObserve(cfg)

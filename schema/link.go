@@ -14,17 +14,17 @@ import (
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
-	ID                    string     `codec:"id"`
-	Href                  string     `codec:"href"`
-	ResourceTypes         []string   `codec:"rt"`
-	Interfaces            []string   `codec:"if"`
-	Policy                Policy     `codec:"p"`
-	Endpoints             []Endpoint `codec:"eps"`
-	Anchor                string     `codec:"anchor"`
-	DeviceID              string     `codec:"di"`
-	InstanceID            int64      `codec:"ins"`
-	Title                 string     `codec:"title"`
-	SupportedContentTypes []string   `codec:"type"`
+	ID                    string     `json:"id"`
+	Href                  string     `json:"href"`
+	ResourceTypes         []string   `json:"rt"`
+	Interfaces            []string   `json:"if"`
+	Policy                Policy     `json:"p"`
+	Endpoints             []Endpoint `json:"eps"`
+	Anchor                string     `json:"anchor"`
+	DeviceID              string     `json:"di"`
+	InstanceID            int64      `json:"ins"`
+	Title                 string     `json:"title"`
+	SupportedContentTypes []string   `json:"type"`
 }
 
 type ResourceLinks []ResourceLink
@@ -32,13 +32,13 @@ type ResourceLinks []ResourceLink
 // Policy is defined on the line 1822 of the Core specification:
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 type Policy struct {
-	BitMask    BitMask `codec:"bm"`
-	UDPPort    uint16  `codec:"port"`
-	TCPPort    uint16  `codec:"x.org.iotivity.tcp"`
-	TCPTLSPort uint16  `codec:"x.org.iotivity.tls"`
+	BitMask    BitMask `json:"bm"`
+	UDPPort    uint16  `json:"port"`
+	TCPPort    uint16  `json:"x.org.iotivity.tcp"`
+	TCPTLSPort uint16  `json:"x.org.iotivity.tls"`
 
 	// Secured is true if the resource is only available via an encrypted connection.
-	Secured bool `codec:"sec"`
+	Secured bool `json:"sec"`
 }
 
 // Endpoint is defined on the line 2439 and 1892, Priority on 2434 of the Core specification:
@@ -47,8 +47,8 @@ type Policy struct {
 // When there are multiple endpoints, Priority indicates the priority among them.
 // The lower the value, the higher the priority.
 type Endpoint struct {
-	URI      string `codec:"ep"`
-	Priority uint64 `codec:"pri"`
+	URI      string `json:"ep"`
+	Priority uint64 `json:"pri"`
 }
 
 // GetAddr parses a endpoint URI to addr.

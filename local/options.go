@@ -29,7 +29,7 @@ func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links s
 
 func WithCodec(codec kitNetCoap.Codec) CodecOption {
 	return CodecOption{
-		codec: codec,
+		json: codec,
 	}
 }
 

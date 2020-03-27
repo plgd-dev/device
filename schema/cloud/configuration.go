@@ -21,19 +21,19 @@ const (
 )
 
 type Configuration struct {
-	ResourceTypes         []string           `codec:"rt"`
-	Interfaces            []string           `codec:"if"`
-	Name                  string             `codec:"n"`
-	AuthorizationProvider string             `codec:"apn"`
-	CloudID               string             `codec:"sid"`
-	URL                   string             `codec:"cis"`
-	LastErrorCode         int                `codec:"clec"`
-	ProvisioningStatus    ProvisioningStatus `codec:"cps"`
+	ResourceTypes         []string           `json:"rt"`
+	Interfaces            []string           `json:"if"`
+	Name                  string             `json:"n"`
+	AuthorizationProvider string             `json:"apn"`
+	CloudID               string             `json:"sid"`
+	URL                   string             `json:"cis"`
+	LastErrorCode         int                `json:"clec"`
+	ProvisioningStatus    ProvisioningStatus `json:"cps"`
 }
 
 type ConfigurationUpdateRequest struct {
-	AuthorizationProvider string `codec:"apn"`
-	URL                   string `codec:"cis"`
-	AuthorizationCode     string `codec:"at"`
-	CloudID               string `codec:"sid"`
+	AuthorizationProvider string `json:"apn"`
+	URL                   string `json:"cis"`
+	AuthorizationCode     string `json:"at"`
+	CloudID               string `json:"sid"`
 }

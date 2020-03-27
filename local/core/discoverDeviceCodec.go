@@ -24,8 +24,8 @@ func anchorToDeviceId(anchor string) string {
 }
 
 type deviceLink struct {
-	DeviceID string               `codec:"di"`
-	Links    schema.ResourceLinks `codec:"links"`
+	DeviceID string               `json:"di"`
+	Links    schema.ResourceLinks `json:"links"`
 }
 
 func decodeDiscoverDevices(msg gocoap.Message, resources *schema.ResourceLinks) error {

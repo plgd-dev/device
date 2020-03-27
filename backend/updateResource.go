@@ -18,7 +18,7 @@ func (c *Client) UpdateResource(
 	opts ...UpdateOption,
 ) error {
 	cfg := updateOptions{
-		codec: codecOcf.VNDOCFCBORCodec{},
+		json: codecOcf.VNDOCFCBORCodec{},
 	}
 	for _, o := range opts {
 		cfg = o.applyOnUpdate(cfg)

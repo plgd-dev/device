@@ -8,24 +8,24 @@ import (
 )
 
 type Response struct {
-	ResourceOwner     string          `codec:"rowneruuid"`
-	Interfaces        []string        `codec:"if"`
-	ResourceTypes     []string        `codec:"rt"`
-	Name              string          `codec:"n"`
-	AccessControlList []AccessControl `codec:"aclist2"`
+	ResourceOwner     string          `json:"rowneruuid"`
+	Interfaces        []string        `json:"if"`
+	ResourceTypes     []string        `json:"rt"`
+	Name              string          `json:"n"`
+	AccessControlList []AccessControl `json:"aclist2"`
 }
 
 type UpdateRequest struct {
-	ResourceOwner     string          `codec:"rowneruuid,omitempty"`
-	AccessControlList []AccessControl `codec:"aclist2"`
+	ResourceOwner     string          `json:"rowneruuid,omitempty"`
+	AccessControlList []AccessControl `json:"aclist2"`
 }
 
 type AccessControl struct {
-	ID         int           `codec:"id,omitempty"`
-	Permission Permission    `codec:"permission"`
-	Resources  []Resource    `codec:"resources"`
-	Subject    Subject       `codec:"subject"`
-	Validity   []TimePattern `codec:"validity,omitempty"`
+	ID         int           `json:"id,omitempty"`
+	Permission Permission    `json:"permission"`
+	Resources  []Resource    `json:"resources"`
+	Subject    Subject       `json:"subject"`
+	Validity   []TimePattern `json:"validity,omitempty"`
 }
 
 type Permission int
@@ -74,10 +74,10 @@ func (b Permission) Has(flag Permission) bool {
 }
 
 type Resource struct {
-	Href          string           `codec:"href,omitempty"`
-	Interfaces    []string         `codec:"if,omitempty"`
-	ResourceTypes []string         `codec:"rt,omitempty"`
-	Wildcard      ResourceWildcard `codec:"wc,omitempty"`
+	Href          string           `json:"href,omitempty"`
+	Interfaces    []string         `json:"if,omitempty"`
+	ResourceTypes []string         `json:"rt,omitempty"`
+	Wildcard      ResourceWildcard `json:"wc,omitempty"`
 }
 
 var AllResources = []Resource{Resource{
@@ -94,16 +94,16 @@ const (
 )
 
 type Subject_Device struct {
-	DeviceID string `codec:"uuid,omitempty"`
+	DeviceID string `json:"uuid,omitempty"`
 }
 
 type Subject_Role struct {
-	Authority string `codec:"authority,omitempty"`
-	Role      string `codec:"role,omitempty"`
+	Authority string `json:"authority,omitempty"`
+	Role      string `json:"role,omitempty"`
 }
 
 type Subject_Connection struct {
-	Type ConnectionType `codec:"conntype,omitempty"`
+	Type ConnectionType `json:"conntype,omitempty"`
 }
 
 type ConnectionType string
@@ -129,6 +129,6 @@ var TLSConnection = Subject{
 }
 
 type TimePattern struct {
-	Period     string `codec:"period"`
-	Recurrence string `codec:"recurrence"`
+	Period     string `json:"period"`
+	Recurrence string `json:"recurrence"`
 }
