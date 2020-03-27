@@ -20,7 +20,7 @@ func (c *Client) GetResource(
 	opts ...GetOption,
 ) error {
 	cfg := getOptions{
-		json: codecOcf.VNDOCFCBORCodec{},
+		codec: codecOcf.VNDOCFCBORCodec{},
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGet(cfg)

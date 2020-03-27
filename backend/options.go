@@ -103,7 +103,7 @@ func (r ResourceTypesOption) applyOnGetDevices(opts getDevicesOptions) getDevice
 
 func WithCodec(codec kitNetCoap.Codec) CodecOption {
 	return CodecOption{
-		json: codec,
+		codec: codec,
 	}
 }
 
