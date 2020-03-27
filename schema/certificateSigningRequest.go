@@ -1,12 +1,12 @@
 package schema
 
 type CertificateSigningRequestResponse struct {
-	Interfaces                []string            `codec:"if"`
-	ResourceTypes             []string            `codec:"rt"`
-	Name                      string              `codec:"n"`
-	InstanceId                string              `codec:"id"`
-	Encoding                  CertificateEncoding `codec:"encoding"`
-	CertificateSigningRequest []byte              `codec:"csr"`
+	Interfaces                []string            `json:"if"`
+	ResourceTypes             []string            `json:"rt"`
+	Name                      string              `json:"n"`
+	InstanceId                string              `json:"id"`
+	Encoding                  CertificateEncoding `json:"encoding"`
+	CertificateSigningRequest []byte              `json:"csr"`
 }
 
 type CertificateEncoding string

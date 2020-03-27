@@ -8,29 +8,29 @@ import (
 //https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
 
 type DeviceOnboardingState struct {
-	Pending                          bool             `codec:"p,omitempty"`
-	CurrentOrPendingOperationalState OperationalState `codec:"s"`
+	Pending                          bool             `json:"p,omitempty"`
+	CurrentOrPendingOperationalState OperationalState `json:"s"`
 }
 
 type ProvisionStatusResponse struct {
-	ResourceOwner             string                `codec:"rowneruuid"`
-	Interfaces                []string              `codec:"if"`
-	ResourceTypes             []string              `codec:"rt"`
-	CurrentOperationalMode    OperationalMode       `codec:"om"`
-	CurrentProvisioningMode   ProvisioningMode      `codec:"cm"`
-	Name                      string                `codec:"n"`
-	InstanceId                string                `codec:"id"`
-	DeviceIsOperational       bool                  `codec:"isop"`
-	TargetProvisioningMode    ProvisioningMode      `codec:"tm"`
-	SupportedOperationalModes OperationalMode       `codec:"sm"`
-	DeviceOnboardingState     DeviceOnboardingState `codec:"dos"`
+	ResourceOwner             string                `json:"rowneruuid"`
+	Interfaces                []string              `json:"if"`
+	ResourceTypes             []string              `json:"rt"`
+	CurrentOperationalMode    OperationalMode       `json:"om"`
+	CurrentProvisioningMode   ProvisioningMode      `json:"cm"`
+	Name                      string                `json:"n"`
+	InstanceId                string                `json:"id"`
+	DeviceIsOperational       bool                  `json:"isop"`
+	TargetProvisioningMode    ProvisioningMode      `json:"tm"`
+	SupportedOperationalModes OperationalMode       `json:"sm"`
+	DeviceOnboardingState     DeviceOnboardingState `json:"dos"`
 }
 
 type ProvisionStatusUpdateRequest struct {
-	ResourceOwner          string                 `codec:"rowneruuid,omitempty"`
-	CurrentOperationalMode OperationalMode        `codec:"om,omitempty"`
-	TargetProvisioningMode ProvisioningMode       `codec:"tm,omitempty"`
-	DeviceOnboardingState  *DeviceOnboardingState `codec:"dos,omitempty"`
+	ResourceOwner          string                 `json:"rowneruuid,omitempty"`
+	CurrentOperationalMode OperationalMode        `json:"om,omitempty"`
+	TargetProvisioningMode ProvisioningMode       `json:"tm,omitempty"`
+	DeviceOnboardingState  *DeviceOnboardingState `json:"dos,omitempty"`
 }
 
 type OperationalState int

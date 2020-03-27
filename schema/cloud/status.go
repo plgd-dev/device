@@ -12,7 +12,7 @@ const StatusHref = "/oic/cloud/s"
 // - signin: content changed -> online true
 // - signout/close connection: content changed -> online false
 type Status struct {
-	ResourceTypes []string `codec:"rt"`
-	Interfaces    []string `codec:"if"`
-	Online        bool     `codec:"online"`
+	ResourceTypes []string `json:"rt"`
+	Interfaces    []string `json:"if"`
+	Online        bool     `json:"online"`
 }

@@ -8,16 +8,16 @@ import (
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
 
 type Credential struct {
-	ID                      int                       `codec:"credid,omitempty"`
-	Type                    CredentialType            `codec:"credtype"`
-	Subject                 string                    `codec:"subjectuuid"`
-	Usage                   CredentialUsage           `codec:"credusage,omitempty"`
-	SupportedRefreshMethods []CredentialRefreshMethod `codec:"crms,omitempty"`
-	OptionalData            CredentialOptionalData    `codec:"optionaldata,omitempty"`
-	Period                  string                    `codec:"period,omitempty"`
-	PrivateData             CredentialPrivateData     `codec:"privatedata,omitempty"`
-	PublicData              CredentialPublicData      `codec:"publicdata,omitempty"`
-	RoleId                  CredentialRoleId          `codec:"roleid,omitempty"`
+	ID                      int                       `json:"credid,omitempty"`
+	Type                    CredentialType            `json:"credtype"`
+	Subject                 string                    `json:"subjectuuid"`
+	Usage                   CredentialUsage           `json:"credusage,omitempty"`
+	SupportedRefreshMethods []CredentialRefreshMethod `json:"crms,omitempty"`
+	OptionalData            CredentialOptionalData    `json:"optionaldata,omitempty"`
+	Period                  string                    `json:"period,omitempty"`
+	PrivateData             CredentialPrivateData     `json:"privatedata,omitempty"`
+	PublicData              CredentialPublicData      `json:"publicdata,omitempty"`
+	RoleId                  CredentialRoleId          `json:"roleid,omitempty"`
 }
 
 type CredentialType uint8
@@ -94,9 +94,9 @@ const (
 )
 
 type CredentialOptionalData struct {
-	Data      string                         `codec:"data"`
-	Encoding  CredentialOptionalDataEncoding `codec:"encoding"`
-	IsRevoked bool                           `codec:"revstat"`
+	Data      string                         `json:"data"`
+	Encoding  CredentialOptionalDataEncoding `json:"encoding"`
+	IsRevoked bool                           `json:"revstat"`
 }
 
 type CredentialOptionalDataEncoding string
@@ -111,9 +111,9 @@ const (
 )
 
 type CredentialPrivateData struct {
-	Data     string                        `codec:"data"`
-	Encoding CredentialPrivateDataEncoding `codec:"encoding"`
-	Handle   int                           `codec:"handle,omitempty"`
+	Data     string                        `json:"data"`
+	Encoding CredentialPrivateDataEncoding `json:"encoding"`
+	Handle   int                           `json:"handle,omitempty"`
 }
 
 type CredentialPrivateDataEncoding string
@@ -128,8 +128,8 @@ const (
 )
 
 type CredentialPublicData struct {
-	Data     string                       `codec:"data"`
-	Encoding CredentialPublicDataEncoding `codec:"encoding"`
+	Data     string                       `json:"data"`
+	Encoding CredentialPublicDataEncoding `json:"encoding"`
 }
 
 type CredentialPublicDataEncoding string
@@ -150,14 +150,14 @@ type CredentialRoleId struct {
 }
 
 type CredentialResponse struct {
-	ResourceOwner string       `codec:"rowneruuid"`
-	Interfaces    []string     `codec:"if"`
-	ResourceTypes []string     `codec:"rt"`
-	Name          string       `codec:"n"`
-	Credentials   []Credential `codec:"creds"`
+	ResourceOwner string       `json:"rowneruuid"`
+	Interfaces    []string     `json:"if"`
+	ResourceTypes []string     `json:"rt"`
+	Name          string       `json:"n"`
+	Credentials   []Credential `json:"creds"`
 }
 
 type CredentialUpdateRequest struct {
-	ResourceOwner string       `codec:"rowneruuid,omitempty"`
-	Credentials   []Credential `codec:"creds"`
+	ResourceOwner string       `json:"rowneruuid,omitempty"`
+	Credentials   []Credential `json:"creds"`
 }

@@ -5,15 +5,15 @@ package maintenance
 const MaintenanceResourceType = "oic.wk.mnt"
 
 type Maintenance struct {
-	ResourceTypes []string `codec:"rt"`
-	Interfaces    []string `codec:"if"`
-	Name          string   `codec:"n"`
-	FactoryReset  bool     `codec:"fr"`
-	Reboot        bool     `codec:"rb"`
-	LastHTTPError int      `codec:"err"`
+	ResourceTypes []string `json:"rt"`
+	Interfaces    []string `json:"if"`
+	Name          string   `json:"n"`
+	FactoryReset  bool     `json:"fr"`
+	Reboot        bool     `json:"rb"`
+	LastHTTPError int      `json:"err"`
 }
 
 type MaintenanceUpdateRequest struct {
-	FactoryReset bool `codec:"fr,omitempty"`
-	Reboot       bool `codec:"rb,omitempty"`
+	FactoryReset bool `json:"fr,omitempty"`
+	Reboot       bool `json:"rb,omitempty"`
 }

@@ -3,14 +3,14 @@ package schema
 // Platform info
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.p.swagger.json
 type Platform struct {
-	Interfaces                      []string `codec:"if,omitempty"`
-	ResourceTypes                   []string `codec:"rt,omitempty"`
-	PlatformIdentifier              string   `codec:"pi"`
-	ManufacturerName                string   `codec:"mnmn"`
-	SerialNumber                    string   `codec:"mnsel,omitempty"`
-	ManufacturersURL                string   `codec:"mnml,omitempty"`
-	ManufacturersSupport            string   `codec:"mnsl,omitempty"`
-	ModelNumber                     string   `codec:"mnmo,omitempty"`
-	ManufacturersDefinedInformation string   `codec:"vid,omitempty"`
-	PlatformVersion                 string   `codec:"mnpv,omitempty"`
+	Interfaces                      []string `json:"if,omitempty"`
+	ResourceTypes                   []string `json:"rt,omitempty"`
+	PlatformIdentifier              string   `json:"pi"`
+	ManufacturerName                string   `json:"mnmn"`
+	SerialNumber                    string   `json:"mnsel,omitempty"`
+	ManufacturersURL                string   `json:"mnml,omitempty"`
+	ManufacturersSupport            string   `json:"mnsl,omitempty"`
+	ModelNumber                     string   `json:"mnmo,omitempty"`
+	ManufacturersDefinedInformation string   `json:"vid,omitempty"`
+	PlatformVersion                 string   `json:"mnpv,omitempty"`
 }

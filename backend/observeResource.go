@@ -18,7 +18,7 @@ func (c *Client) ObserveResource(
 	opts ...ObserveOption,
 ) (observationID string, _ error) {
 	cfg := observeOptions{
-		codec: codecOcf.VNDOCFCBORCodec{},
+		json: codecOcf.VNDOCFCBORCodec{},
 	}
 	for _, o := range opts {
 		cfg = o.applyOnObserve(cfg)
@@ -33,7 +33,7 @@ func (c *Client) ObserveResource(
 		DeviceId:         deviceID,
 		ResourceLinkHref: href,
 	}, &observationHandler{
-		codec: cfg.codec,
+		json: cfg.codec,
 		obs:   handler,
 		removeSubscription: func() {
 			c.stopObservingResource(ID.String())
