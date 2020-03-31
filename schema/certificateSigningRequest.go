@@ -6,7 +6,20 @@ type CertificateSigningRequestResponse struct {
 	Name                      string              `json:"n"`
 	InstanceId                string              `json:"id"`
 	Encoding                  CertificateEncoding `json:"encoding"`
-	CertificateSigningRequest []byte              `json:"csr"`
+	CertificateSigningRequest interface{}         `json:"csr"`
+}
+
+func (c CertificateSigningRequestResponse) CSR() []byte {
+	if c.CertificateSigningRequest == nil {
+		return nil
+	}
+	switch v := c.CertificateSigningRequest.(type) {
+	case string:
+		return []byte(v)
+	case []byte:
+		return v
+	}
+	return nil
 }
 
 type CertificateEncoding string

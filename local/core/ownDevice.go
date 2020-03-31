@@ -43,9 +43,9 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 			schema.Credential{
 				Subject: hackId,
 				Type:    schema.CredentialType_SYMMETRIC_PAIR_WISE,
-				PrivateData: schema.CredentialPrivateData{
-					Data:     "IOTIVITY HACK",
-					Encoding: schema.CredentialPrivateDataEncoding_RAW,
+				PrivateData: &schema.CredentialPrivateData{
+					DataInternal: "IOTIVITY HACK",
+					Encoding:     schema.CredentialPrivateDataEncoding_RAW,
 				},
 			},
 		},

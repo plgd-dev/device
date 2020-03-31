@@ -97,7 +97,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("cannot get csr for setup device owner credentials: %w", err)
 	}
 
-	pemCSR := encodeToPem(csr.Encoding, csr.CertificateSigningRequest)
+	pemCSR := encodeToPem(csr.Encoding, csr.CSR())
 
 	signedCsr, err := c.signer.Sign(ctx, pemCSR)
 	if err != nil {
@@ -128,9 +128,9 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 				Subject: deviceID,
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_CERT,
-				PublicData: schema.CredentialPublicData{
-					Data:     string(signedCsr),
-					Encoding: schema.CredentialPublicDataEncoding_PEM,
+				PublicData: &schema.CredentialPublicData{
+					DataInternal: string(signedCsr),
+					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
@@ -148,9 +148,9 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 					Subject: ownerID,
 					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: schema.CredentialPublicData{
-						Data:     string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
-						Encoding: schema.CredentialPublicDataEncoding_PEM,
+					PublicData: &schema.CredentialPublicData{
+						DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
+						Encoding:     schema.CredentialPublicDataEncoding_PEM,
 					},
 				},
 			},
