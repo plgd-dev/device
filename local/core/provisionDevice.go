@@ -87,9 +87,9 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 				Subject: subject,
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
-				PublicData: schema.CredentialPublicData{
-					Data:     string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})),
-					Encoding: schema.CredentialPublicDataEncoding_PEM,
+				PublicData: &schema.CredentialPublicData{
+					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})),
+					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},

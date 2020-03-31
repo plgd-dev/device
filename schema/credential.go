@@ -13,11 +13,11 @@ type Credential struct {
 	Subject                 string                    `json:"subjectuuid"`
 	Usage                   CredentialUsage           `json:"credusage,omitempty"`
 	SupportedRefreshMethods []CredentialRefreshMethod `json:"crms,omitempty"`
-	OptionalData            CredentialOptionalData    `json:"optionaldata,omitempty"`
+	OptionalData            *CredentialOptionalData   `json:"optionaldata,omitempty"`
 	Period                  string                    `json:"period,omitempty"`
-	PrivateData             CredentialPrivateData     `json:"privatedata,omitempty"`
-	PublicData              CredentialPublicData      `json:"publicdata,omitempty"`
-	RoleId                  CredentialRoleId          `json:"roleid,omitempty"`
+	PrivateData             *CredentialPrivateData    `json:"privatedata,omitempty"`
+	PublicData              *CredentialPublicData     `json:"publicdata,omitempty"`
+	RoleID                  *CredentialRoleID         `json:"roleid,omitempty"`
 }
 
 type CredentialType uint8
@@ -94,9 +94,22 @@ const (
 )
 
 type CredentialOptionalData struct {
-	Data      string                         `json:"data"`
-	Encoding  CredentialOptionalDataEncoding `json:"encoding"`
-	IsRevoked bool                           `json:"revstat"`
+	DataInternal interface{}                    `json:"data"`
+	Encoding     CredentialOptionalDataEncoding `json:"encoding"`
+	IsRevoked    bool                           `json:"revstat"`
+}
+
+func (c CredentialOptionalData) Data() []byte {
+	if c.DataInternal == nil {
+		return nil
+	}
+	switch v := c.DataInternal.(type) {
+	case string:
+		return []byte(v)
+	case []byte:
+		return v
+	}
+	return nil
 }
 
 type CredentialOptionalDataEncoding string
@@ -111,9 +124,22 @@ const (
 )
 
 type CredentialPrivateData struct {
-	Data     string                        `json:"data"`
-	Encoding CredentialPrivateDataEncoding `json:"encoding"`
-	Handle   int                           `json:"handle,omitempty"`
+	DataInternal interface{}                   `json:"data"`
+	Encoding     CredentialPrivateDataEncoding `json:"encoding"`
+	Handle       int                           `json:"handle,omitempty"`
+}
+
+func (c CredentialPrivateData) Data() []byte {
+	if c.DataInternal == nil {
+		return nil
+	}
+	switch v := c.DataInternal.(type) {
+	case string:
+		return []byte(v)
+	case []byte:
+		return v
+	}
+	return nil
 }
 
 type CredentialPrivateDataEncoding string
@@ -128,8 +154,21 @@ const (
 )
 
 type CredentialPublicData struct {
-	Data     string                       `json:"data"`
-	Encoding CredentialPublicDataEncoding `json:"encoding"`
+	DataInternal interface{}                  `json:"data"`
+	Encoding     CredentialPublicDataEncoding `json:"encoding"`
+}
+
+func (c CredentialPublicData) Data() []byte {
+	if c.DataInternal == nil {
+		return nil
+	}
+	switch v := c.DataInternal.(type) {
+	case string:
+		return []byte(v)
+	case []byte:
+		return v
+	}
+	return nil
 }
 
 type CredentialPublicDataEncoding string
@@ -144,9 +183,9 @@ const (
 	CredentialPublicDataEncoding_RAW    CredentialPublicDataEncoding = "oic.sec.encoding.raw"
 )
 
-type CredentialRoleId struct {
-	Authority string "authority"
-	Role      string "role"
+type CredentialRoleID struct {
+	Authority string `json:"authority,omitempty"`
+	Role      string `json:"role,omitempty"`
 }
 
 type CredentialResponse struct {
