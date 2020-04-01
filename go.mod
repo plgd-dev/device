@@ -8,7 +8,7 @@ require (
 	github.com/go-ocf/certificate-authority v0.0.0-20200306090447-ff501f1cf29a
 	github.com/go-ocf/go-coap v0.0.0-20200302101636-d137010769dc
 	github.com/go-ocf/grpc-gateway v0.0.0-20200324152726-f5d2d0c21a79
-	github.com/go-ocf/kit v0.0.0-20200324144609-83b53db6bbf7
+	github.com/go-ocf/kit 40a7509422e3
 	github.com/go-ocf/resource-aggregate v0.0.0-20200324145835-165be0b7b6ca
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/google/uuid v1.1.1
