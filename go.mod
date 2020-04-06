@@ -14,5 +14,5 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/stretchr/testify v1.5.1
-	google.golang.org/grpc v1.27.1
+	google.golang.org/grpc v1.28.1
 )
