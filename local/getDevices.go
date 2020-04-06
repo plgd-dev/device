@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/go-ocf/kit/log"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 	kitStrings "github.com/go-ocf/kit/strings"
@@ -119,7 +120,7 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 	}
 
 	var device schema.Device
-	err := d.GetResource(ctx, link, &device)
+	err := d.GetResource(ctx, link, &device, kitNetCoap.WithInterface("oic.if.baseline"))
 	if err != nil {
 		return out, err
 	}
