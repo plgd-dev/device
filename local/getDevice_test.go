@@ -32,8 +32,10 @@ func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 	return local.DeviceDetails{
 		ID: deviceID,
 		Device: schema.Device{
-			ID:   deviceID,
-			Name: deviceName,
+			ID:            deviceID,
+			Name:          deviceName,
+			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
+			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 		},
 		Resources: sortResources(append(grpcTest.TestDevsimResources, test.TestDevsimPrivateResources...)),
 	}
@@ -43,8 +45,10 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetai
 	return local.DeviceDetails{
 		ID: deviceID,
 		Device: schema.Device{
-			ID:   deviceID,
-			Name: deviceName,
+			ID:            deviceID,
+			Name:          deviceName,
+			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
+			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 		},
 		IsSecured: true,
 		Ownership: &schema.Doxm{
