@@ -13,10 +13,10 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/keepalive"
 
-	"github.com/go-ocf/grpc-gateway/pb"
+	"github.com/go-ocf/cloud/grpc-gateway/pb"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/kit/strings"
-	"github.com/go-ocf/resource-aggregate/cqrs"
+	"github.com/go-ocf/cloud/resource-aggregate/cqrs"
 )
 
 type ApplicationCallback interface {

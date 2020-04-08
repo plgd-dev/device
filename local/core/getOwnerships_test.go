@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/test"

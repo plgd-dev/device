@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/go-ocf/grpc-gateway/pb"
+	"github.com/go-ocf/cloud/grpc-gateway/pb"
 )
 
 // SubscriptionHandler handler of events.

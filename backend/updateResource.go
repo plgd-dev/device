@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/grpc-gateway/pb"
+	"github.com/go-ocf/cloud/grpc-gateway/pb"
 	codecOcf "github.com/go-ocf/kit/codec/ocf"
 )
 

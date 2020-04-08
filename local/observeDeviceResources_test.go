@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
 

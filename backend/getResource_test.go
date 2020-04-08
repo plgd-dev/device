@@ -7,8 +7,8 @@ import (
 
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 
-	authTest "github.com/go-ocf/authorization/provider"
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	authTest "github.com/go-ocf/cloud/authorization/provider"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/backend"
 	"github.com/stretchr/testify/require"
 )

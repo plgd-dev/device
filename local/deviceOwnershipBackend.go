@@ -13,8 +13,8 @@ import (
 	"github.com/go-ocf/sdk/local/core"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/go-ocf/certificate-authority/pb"
-	caSigner "github.com/go-ocf/certificate-authority/signer"
+	"github.com/go-ocf/cloud/certificate-authority/pb"
+	caSigner "github.com/go-ocf/cloud/certificate-authority/signer"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/gofrs/uuid"
 )

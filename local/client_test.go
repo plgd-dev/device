@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/app"
 	"github.com/go-ocf/sdk/local"
 )
