@@ -2,6 +2,8 @@ package backend_test
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"testing"
 
 	"github.com/go-ocf/go-coap"
@@ -28,8 +30,14 @@ var BackendTestCfg = backend.Config{
 }
 
 func NewTestClient(t *testing.T) *backend.Client {
-	app := testApplication{cas: grpcTest.GetRootCertificateAuthorities(t)}
-	c, err := backend.NewClientFromConfig(&BackendTestCfg, &app)
+	rootCAs := x509.NewCertPool()
+	for _, c := range grpcTest.GetRootCertificateAuthorities(t) {
+		rootCAs.AddCert(c)
+	}
+	tlsCfg := tls.Config{
+		RootCAs: rootCAs,
+	}
+	c, err := backend.NewClientFromConfig(&BackendTestCfg, &tlsCfg)
 	require.NoError(t, err)
 	return c
 }
