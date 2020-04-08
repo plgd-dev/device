@@ -11,7 +11,6 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/pion/dtls/v2"
-	"github.com/pion/logging"
 )
 
 type CertificateSigner = interface {
@@ -79,10 +78,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 			rootCAs.AddCert(ca)
 		}
 
-		log := logging.NewDefaultLoggerFactory()
-		log.DefaultLogLevel = logging.LogLevelTrace
 		tlsConfig := dtls.Config{
-			LoggerFactory:         log,
 			InsecureSkipVerify:    true,
 			CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
