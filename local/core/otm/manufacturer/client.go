@@ -10,6 +10,8 @@ import (
 	kitNet "github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/pion/dtls/v2"
+	"github.com/pion/logging"
 )
 
 type CertificateSigner = interface {
@@ -72,12 +74,35 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 		if c.disableDTLS {
 			return nil, fmt.Errorf("dtls is disabled")
 		}
-		return kitNetCoap.DialUDPSecure(ctx, addr.String(), c.manufacturerCertificate, c.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
+		rootCAs := x509.NewCertPool()
+		for _, ca := range c.manufacturerCA {
+			rootCAs.AddCert(ca)
+		}
+
+		log := logging.NewDefaultLoggerFactory()
+		log.DefaultLogLevel = logging.LogLevelTrace
+		tlsConfig := dtls.Config{
+			LoggerFactory:         log,
+			InsecureSkipVerify:    true,
+			CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
+			Certificates:          []tls.Certificate{c.manufacturerCertificate},
+			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
+		}
+		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
 	case schema.TCPSecureScheme:
 		if c.disableTCPTLS {
 			return nil, fmt.Errorf("tcp-tls is disabled")
 		}
-		return kitNetCoap.DialTCPSecure(ctx, addr.String(), c.manufacturerCertificate, c.manufacturerCA, func(*x509.Certificate) error { return nil }, opts...)
+		rootCAs := x509.NewCertPool()
+		for _, ca := range c.manufacturerCA {
+			rootCAs.AddCert(ca)
+		}
+		tlsConfig := tls.Config{
+			InsecureSkipVerify:    true,
+			Certificates:          []tls.Certificate{c.manufacturerCertificate},
+			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
+		}
+		return kitNetCoap.DialTCPSecure(ctx, addr.String(), &tlsConfig, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
