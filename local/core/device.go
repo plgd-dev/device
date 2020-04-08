@@ -8,7 +8,10 @@ import (
 	"sync"
 
 	"github.com/go-ocf/kit/net/coap"
+	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/pion/dtls/v2"
+	"github.com/pion/logging"
 )
 
 type deviceConfiguration struct {
@@ -96,7 +99,17 @@ func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 	if err != nil {
 		return nil, err
 	}
-	return coap.DialTCPSecure(ctx, addr, cert, cas, verifyPeerCertificate, dialOptions...)
+	rootCAs := x509.NewCertPool()
+	for _, ca := range cas {
+		rootCAs.AddCert(ca)
+	}
+	tlsCfg := tls.Config{
+		InsecureSkipVerify:    true,
+		Certificates:          []tls.Certificate{cert},
+		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
+	}
+
+	return coap.DialTCPSecure(ctx, addr, &tlsCfg, dialOptions...)
 }
 
 func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
@@ -108,7 +121,21 @@ func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 	if err != nil {
 		return nil, err
 	}
-	return coap.DialUDPSecure(ctx, addr, cert, cas, verifyPeerCertificate, dialOptions...)
+	rootCAs := x509.NewCertPool()
+	for _, ca := range cas {
+		rootCAs.AddCert(ca)
+	}
+
+	log := logging.NewDefaultLoggerFactory()
+	log.DefaultLogLevel = logging.LogLevelTrace
+	tlsCfg := dtls.Config{
+		LoggerFactory:         log,
+		InsecureSkipVerify:    true,
+		CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
+		Certificates:          []tls.Certificate{cert},
+		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
+	}
+	return coap.DialUDPSecure(ctx, addr, &tlsCfg, dialOptions...)
 }
 
 func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
