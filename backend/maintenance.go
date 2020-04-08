@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/go-ocf/grpc-gateway/pb"
+	"github.com/go-ocf/cloud/grpc-gateway/pb"
 	"github.com/go-ocf/sdk/schema/maintenance"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

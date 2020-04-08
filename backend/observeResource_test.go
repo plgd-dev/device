@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	authTest "github.com/go-ocf/authorization/provider"
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	authTest "github.com/go-ocf/cloud/authorization/provider"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/stretchr/testify/assert"

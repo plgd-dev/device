@@ -12,7 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	ocfSigner "github.com/go-ocf/kit/security/signer"
 	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/local/core/otm/manufacturer"

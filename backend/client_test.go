@@ -15,8 +15,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/go-ocf/grpc-gateway/pb"
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	"github.com/go-ocf/cloud/grpc-gateway/pb"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 )
 
 const (

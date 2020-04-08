@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/grpc-gateway/test"
+	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

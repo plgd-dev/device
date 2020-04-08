@@ -3,7 +3,7 @@ package backend
 import (
 	"context"
 
-	pbGW "github.com/go-ocf/grpc-gateway/pb"
+	pbGW "github.com/go-ocf/cloud/grpc-gateway/pb"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
