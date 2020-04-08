@@ -43,12 +43,12 @@ func TestClient_GetDevices(t *testing.T) {
 			},
 		},
 		{
-			name: "not-found - OK",
+			name: "not-found",
 			args: args{
 				token: authTest.UserToken,
 				opts:  []backend.GetDevicesOption{backend.WithResourceTypes("not-found")},
 			},
-			want: map[string]backend.DeviceDetails{},
+			wantErr: true,
 		},
 	}
 
