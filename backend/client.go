@@ -2,6 +2,7 @@ package backend
 
 import (
 	"context"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"net/url"
@@ -14,7 +15,6 @@ import (
 
 	"github.com/go-ocf/grpc-gateway/pb"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
-	"github.com/go-ocf/kit/security"
 	"github.com/go-ocf/kit/strings"
 	"github.com/go-ocf/resource-aggregate/cqrs"
 )
@@ -45,7 +45,7 @@ func validateURL(URL string) error {
 }
 
 // NewClient constructs a new backend client. For every call there is expected jwt token for grpc stored in context.
-func NewClientFromConfig(cfg *Config, app ApplicationCallback) (*Client, error) {
+func NewClientFromConfig(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 	if cfg == nil || cfg.GatewayAddress == "" {
 		return nil, fmt.Errorf("missing backend client config")
 	}
@@ -55,17 +55,12 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback) (*Client, error) 
 		return nil, fmt.Errorf("invalid AccessTokenURL: %w", err)
 	}
 
-	rootCA, err := app.GetRootCertificateAuthorities()
-	if err != nil {
-		return nil, err
-	}
-
 	keepAlive := keepalive.ClientParameters{
 		Time:                10 * time.Second,
 		PermitWithoutStream: true,
 	}
 
-	conn, err := grpc.Dial(cfg.GatewayAddress, grpc.WithKeepaliveParams(keepAlive), grpc.WithTransportCredentials(credentials.NewTLS(security.NewDefaultTLSConfig(rootCA))))
+	conn, err := grpc.Dial(cfg.GatewayAddress, grpc.WithKeepaliveParams(keepAlive), grpc.WithTransportCredentials(credentials.NewTLS(tlsCfg)))
 	if err != nil {
 		return nil, fmt.Errorf("cannot create certificate authority client: %w", err)
 	}
@@ -74,7 +69,6 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback) (*Client, error) 
 
 	client := Client{
 		gateway:        ocfGW,
-		app:            app,
 		conn:           conn,
 		subscriptions:  make(map[string]subscription),
 		accessTokenURL: cfg.AccessTokenURL,
@@ -85,7 +79,6 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback) (*Client, error) 
 // Client for interacting with the backend.
 type Client struct {
 	gateway pb.GrpcGatewayClient
-	app     ApplicationCallback
 	conn    *grpc.ClientConn
 
 	accessTokenURL string
