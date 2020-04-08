@@ -11,7 +11,6 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/pion/dtls/v2"
-	"github.com/pion/logging"
 )
 
 type deviceConfiguration struct {
@@ -126,10 +125,7 @@ func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 		rootCAs.AddCert(ca)
 	}
 
-	log := logging.NewDefaultLoggerFactory()
-	log.DefaultLogLevel = logging.LogLevelTrace
 	tlsCfg := dtls.Config{
-		LoggerFactory:         log,
 		InsecureSkipVerify:    true,
 		CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
 		Certificates:          []tls.Certificate{cert},
