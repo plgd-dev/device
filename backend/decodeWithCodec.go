@@ -33,6 +33,10 @@ func DecodeContentWithCodec(codec kitNetCoap.Codec, contentType string, data []b
 		*val = data
 		return nil
 	}
+	if val, ok := response.(*interface{}); ok && len(data) == 0 {
+		*val = nil
+		return nil
+	}
 	mediaType, err := ContentTypeToMediaType(contentType)
 	if err != nil {
 		return status.Errorf(codes.InvalidArgument, "cannot convert response contentype %v to mediatype: %w", contentType, err)
