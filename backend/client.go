@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc/keepalive"
 
 	"github.com/go-ocf/cloud/grpc-gateway/pb"
+	"github.com/go-ocf/cloud/resource-aggregate/cqrs"
 	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/go-ocf/kit/strings"
-	"github.com/go-ocf/cloud/resource-aggregate/cqrs"
 )
 
 type ApplicationCallback interface {
@@ -45,14 +45,24 @@ func validateURL(URL string) error {
 }
 
 // NewClient constructs a new backend client. For every call there is expected jwt token for grpc stored in context.
+func NewClient(accessTokenURL string, grpcClient pb.GrpcGatewayClient) (*Client, error) {
+	err := validateURL(accessTokenURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid AccessTokenURL: %w", err)
+	}
+
+	client := Client{
+		gateway:        grpcClient,
+		subscriptions:  make(map[string]subscription),
+		accessTokenURL: accessTokenURL,
+	}
+	return &client, nil
+}
+
+// NewClientFromConfig constructs a new backend client. For every call there is expected jwt token for grpc stored in context.
 func NewClientFromConfig(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 	if cfg == nil || cfg.GatewayAddress == "" {
 		return nil, fmt.Errorf("missing backend client config")
-	}
-
-	err := validateURL(cfg.AccessTokenURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid AccessTokenURL: %w", err)
 	}
 
 	keepAlive := keepalive.ClientParameters{
@@ -67,13 +77,14 @@ func NewClientFromConfig(cfg *Config, tlsCfg *tls.Config) (*Client, error) {
 
 	ocfGW := pb.NewGrpcGatewayClient(conn)
 
-	client := Client{
-		gateway:        ocfGW,
-		conn:           conn,
-		subscriptions:  make(map[string]subscription),
-		accessTokenURL: cfg.AccessTokenURL,
+	client, err := NewClient(cfg.AccessTokenURL, ocfGW)
+	if err != nil {
+		conn.Close()
+		return nil, err
 	}
-	return &client, nil
+	client.conn = conn
+
+	return client, nil
 }
 
 // Client for interacting with the backend.
@@ -126,9 +137,11 @@ func (c *Client) Close(ctx context.Context) error {
 		}
 		wait()
 	}
-	err := c.conn.Close()
-	if err != nil {
-		errors = append(errors, err)
+	if c.conn != nil {
+		err := c.conn.Close()
+		if err != nil {
+			errors = append(errors, err)
+		}
 	}
 
 	if len(errors) != 0 {
