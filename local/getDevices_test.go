@@ -37,7 +37,7 @@ func TestDeviceDiscovery(t *testing.T) {
 	require.NotNil(t, d)
 	assert.Equal(t, test.TestSecureDeviceName, d.Device.Name)
 	require.NotNil(t, d.Ownership)
-	assert.Equal(t, d.Ownership.DeviceOwner, "00000000-0000-0000-0000-000000000000")
+	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
 }
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {

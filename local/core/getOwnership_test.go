@@ -38,7 +38,7 @@ func TestGetOwnership(t *testing.T) {
 	got, err = device.GetOwnership(ctx)
 	require.NoError(t, err)
 	assert.True(t, got.Owned)
-	assert.Equal(t, CertIdentity, got.DeviceOwner)
+	assert.Equal(t, CertIdentity, got.OwnerID)
 
 	err = device.Disown(ctx, links)
 	require.NoError(t, err)

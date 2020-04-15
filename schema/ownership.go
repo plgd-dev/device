@@ -7,7 +7,7 @@ import "fmt"
 type Doxm struct {
 	ResourceOwner                 string                `json:"rowneruuid"`
 	SupportedOwnerTransferMethods []OwnerTransferMethod `json:"oxms"`
-	DeviceOwner                   string                `json:"devowneruuid"`
+	OwnerID                       string                `json:"devowneruuid"`
 	DeviceID                      string                `json:"deviceuuid"`
 	Owned                         bool                  `json:"owned"`
 	Name                          string                `json:"n"`
@@ -20,7 +20,7 @@ type Doxm struct {
 
 type DoxmUpdate struct {
 	ResourceOwner             string              `json:"rowneruuid,omitempty"`
-	DeviceOwner               string              `json:"devowneruuid,omitempty"`
+	OwnerID                   string              `json:"devowneruuid,omitempty"`
 	DeviceID                  string              `json:"deviceuuid,omitempty"`
 	Owned                     bool                `json:"owned,omitempty"`
 	SelectOwnerTransferMethod OwnerTransferMethod `json:"oxmsel,omitempty"`

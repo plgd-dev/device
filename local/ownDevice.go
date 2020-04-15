@@ -17,7 +17,7 @@ func setACLForCloudResources(ctx context.Context, p *core.ProvisioningClient, li
 	if err != nil {
 		return err
 	}
-	ownerID, err := p.GetSdkDeviceID()
+	ownerID, err := p.GetSdkOwnerID()
 	if err != nil {
 		return err
 	}

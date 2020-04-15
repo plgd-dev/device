@@ -39,7 +39,7 @@ func DecodeContentWithCodec(codec kitNetCoap.Codec, contentType string, data []b
 	}
 	mediaType, err := ContentTypeToMediaType(contentType)
 	if err != nil {
-		return status.Errorf(codes.InvalidArgument, "cannot convert response contentype %v to mediatype: %w", contentType, err)
+		return status.Errorf(codes.InvalidArgument, "cannot convert response contentype %v to mediatype: %v", contentType, err)
 	}
 	msg := coap.NewTcpMessage(coap.MessageParams{
 		Payload: data,

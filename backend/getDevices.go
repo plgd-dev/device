@@ -6,9 +6,13 @@ import (
 	"github.com/go-ocf/cloud/grpc-gateway/pb"
 )
 
+// DeviceDetails describes a device.
 type DeviceDetails struct {
-	ID        string
-	Device    pb.Device
+	// ID of the device
+	ID string
+	// Device basic content(oic.wk.d) of /oic/d resource.
+	Device pb.Device
+	// Resources list of the device resources.
 	Resources []pb.ResourceLink
 }
 

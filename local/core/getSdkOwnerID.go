@@ -7,8 +7,8 @@ import (
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
-// GetSdkDeviceID returns sdk deviceID from identity certificate.
-func (d *Device) GetSdkDeviceID() (string, error) {
+// GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
+func (d *Device) GetSdkOwnerID() (string, error) {
 	cert, err := d.cfg.tlsConfig.GetCertificate()
 	if err != nil {
 		return "", fmt.Errorf("cannot get sdk id: %w", err)
