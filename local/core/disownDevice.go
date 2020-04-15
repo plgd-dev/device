@@ -19,13 +19,13 @@ func (d *Device) Disown(
 		return fmt.Errorf(errMsg, err)
 	}
 
-	sdkID, err := d.GetSdkDeviceID()
+	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
 
-	if ownership.DeviceOwner != sdkID {
-		return fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.DeviceOwner, sdkID))
+	if ownership.OwnerID != sdkID {
+		return fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{

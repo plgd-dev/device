@@ -70,13 +70,21 @@ func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceH
 	return c.client.GetDevices(ctx, handler)
 }
 
+// DeviceDetails describes a device.
 type DeviceDetails struct {
-	ID        string
-	Device    schema.Device
-	Details   interface{}
+	// ID of the device
+	ID string
+	// Device basic content(oic.wk.d) of /oic/d resource.
+	Device schema.Device
+	// Details result of function which can be set via option WithGetDetails(), by default it is nil.
+	Details interface{}
+	// IsSecured is secured.
 	IsSecured bool
+	// Ownership describes ownership of the device, for unsecure device it is nil.
 	Ownership *schema.Doxm
+	// Resources list of the device resources.
 	Resources []schema.ResourceLink
+	// Resources list of the device endpoints.
 	Endpoints []schema.Endpoint
 }
 

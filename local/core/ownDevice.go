@@ -28,7 +28,7 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
 
 	setDeviceOwner := schema.DoxmUpdate{
-		DeviceOwner: hackId,
+		OwnerID: hackId,
 	}
 
 	/*doxm doesn't send any content for select OTM*/
@@ -262,16 +262,16 @@ func (d *Device) Own(
 		return fmt.Errorf(errMsg, err)
 	}
 
-	sdkID, err := d.GetSdkDeviceID()
+	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	if ownership.Owned {
-		if ownership.DeviceOwner == sdkID {
+		if ownership.OwnerID == sdkID {
 			return nil
 		}
-		return fmt.Errorf(errMsg, fmt.Errorf("device is already owned by %v", ownership.DeviceOwner))
+		return fmt.Errorf(errMsg, fmt.Errorf("device is already owned by %v", ownership.OwnerID))
 	}
 
 	//ownership := d.ownership
@@ -362,7 +362,7 @@ func (d *Device) Own(
 	// END OF HACK
 
 	setDeviceOwner := schema.DoxmUpdate{
-		DeviceOwner: sdkID,
+		OwnerID: sdkID,
 	}
 
 	/*doxm doesn't send any content for select OTM*/
@@ -377,7 +377,7 @@ func (d *Device) Own(
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot verify owner: %w", err))
 	}
-	if verifyOwner.DeviceOwner != sdkID {
+	if verifyOwner.OwnerID != sdkID {
 		return fmt.Errorf(errMsg, err)
 	}
 
