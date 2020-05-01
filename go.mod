@@ -10,7 +10,7 @@ require (
 	github.com/gofrs/uuid v3.2.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pion/dtls/v2 v2.0.0-rc.9
+	github.com/pion/dtls/v2 v2.0.0
 	github.com/pion/logging v0.2.2
 	github.com/stretchr/testify v1.5.1
 	google.golang.org/grpc v1.28.1
