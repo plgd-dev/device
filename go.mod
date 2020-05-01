@@ -13,5 +13,5 @@ require (
 	github.com/pion/dtls/v2 v2.0.0-rc.9
 	github.com/pion/logging v0.2.2
 	github.com/stretchr/testify v1.5.1
-	google.golang.org/grpc v1.28.1
+	google.golang.org/grpc v1.29.1
 )
