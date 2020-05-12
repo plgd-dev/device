@@ -12,13 +12,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	ocfSigner "github.com/go-ocf/kit/security/signer"
 	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/local/core/otm/manufacturer"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/test"
 )
+
+var TestDeviceName = "devsim-core-" + test.MustGetHostname()
 
 type Client struct {
 	*ocf.Client
@@ -123,7 +124,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	deviceId := secureDeviceID
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)

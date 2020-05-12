@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/assert"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestGetOwnership(t *testing.T) {
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()

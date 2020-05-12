@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_FactoryReset(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 
 	type args struct {
 		deviceID string
@@ -57,7 +57,7 @@ func TestClient_FactoryReset(t *testing.T) {
 
 /* TODO: not supported by iotivity-lite devsim
 func TestClient_Reboot(t *testing.T) {
-	deviceID = grpcTest.MustFindDeviceByName(TestDeviceName)
+	deviceID = test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		deviceID string
 	}

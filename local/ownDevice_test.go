@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_OwnDevice(t *testing.T) {
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}

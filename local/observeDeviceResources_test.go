@@ -6,15 +6,15 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())

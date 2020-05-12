@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -23,7 +23,7 @@ func newDeviceOwnershipHandler(deviceID string, cancel context.CancelFunc) *devi
 	return &deviceOwnershipHandler{deviceID: deviceID, cancel: cancel}
 }
 
-func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, ownership schema.Doxm) {
+func (h *deviceOwnershipHandler) Handle(ctx context.Context, clientConn *client.ClientConn, ownership schema.Doxm) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	defer clientConn.Close()

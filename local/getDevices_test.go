@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/local"
 	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +13,8 @@ import (
 )
 
 func TestDeviceDiscovery(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 
@@ -30,7 +29,7 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
-	assert.Equal(t, TestDeviceName, d.Device.Name)
+	assert.Equal(t, test.TestDeviceName, d.Device.Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)
@@ -41,7 +40,7 @@ func TestDeviceDiscovery(t *testing.T) {
 }
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c := NewTestClient()
 	defer func() {
 		err := c.Close(context.Background())

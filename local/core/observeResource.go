@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
 	"github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -83,10 +82,10 @@ type observation struct {
 
 	lock      sync.Mutex
 	onCloseID int
-	obs       *gocoap.Observation
+	obs       kitNetCoap.Observation
 }
 
-func (o *observation) Set(onCloseID int, obs *gocoap.Observation) {
+func (o *observation) Set(onCloseID int, obs kitNetCoap.Observation) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -94,7 +93,7 @@ func (o *observation) Set(onCloseID int, obs *gocoap.Observation) {
 	o.obs = obs
 }
 
-func (o *observation) Get() (onCloseID int, obs *gocoap.Observation) {
+func (o *observation) Get() (onCloseID int, obs kitNetCoap.Observation) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -105,7 +104,7 @@ func (o *observation) Stop(ctx context.Context) error {
 	onCloseID, obs := o.Get()
 	o.client.UnregisterCloseHandler(onCloseID)
 	if obs != nil {
-		err := obs.CancelWithContext(ctx)
+		err := obs.Cancel(ctx)
 		if err != nil {
 			return fmt.Errorf("cannot cancel observation %s: %w", o.id, err)
 		}
@@ -162,8 +161,8 @@ type observationHandler struct {
 	handler ObservationHandler
 }
 
-func (h *observationHandler) Handle(ctx context.Context, client *gocoap.ClientConn, body kitNetCoap.DecodeFunc) {
-	h.handler.Handle(ctx, body)
+func (h *observationHandler) Handle(client *kitNetCoap.Client, body kitNetCoap.DecodeFunc) {
+	h.handler.Handle(client.Context(), body)
 }
 
 func (h *observationHandler) Error(err error) {

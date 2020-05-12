@@ -5,15 +5,14 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )
 
 func TestDevice_GetResourceLinks(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceID := test.MustFindDeviceByName(TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}
