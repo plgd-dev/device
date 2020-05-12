@@ -4,18 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/go-coap/codes"
+	"github.com/go-ocf/go-coap/v2/message"
+	"github.com/go-ocf/go-coap/v2/message/codes"
+	"github.com/go-ocf/go-coap/v2/udp/client"
+	"github.com/go-ocf/go-coap/v2/udp/message/pool"
 
 	"github.com/go-ocf/kit/codec/ocf"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
-
-	gocoap "github.com/go-ocf/go-coap"
 )
 
 // DiscoverDeviceOwnershipHandler receives devices ownership info.
 type DiscoverDeviceOwnershipHandler interface {
-	Handle(ctx context.Context, client *gocoap.ClientConn, device schema.Doxm)
+	Handle(ctx context.Context, client *client.ClientConn, device schema.Doxm)
 	Error(err error)
 }
 
@@ -35,7 +36,7 @@ const (
 // It waits for device responses until the context is canceled.
 func DiscoverDeviceOwnership(
 	ctx context.Context,
-	conn []*gocoap.MulticastClientConn,
+	conn []*DiscoveryClient,
 	status DiscoverOwnershipStatus,
 	handler DiscoverDeviceOwnershipHandler,
 ) error {
@@ -44,9 +45,17 @@ func DiscoverDeviceOwnership(
 	case DiscoverAllDevices:
 		return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler))
 	case DiscoverOwnedDevices:
-		opt = func(m gocoap.Message) { m.AddOption(gocoap.URIQuery, "Owned=TRUE") }
+		opt = func(m message.Options) message.Options {
+			buf := make([]byte, 16)
+			opts, _, _ := m.AddString(buf, message.URIQuery, "Owned=TRUE")
+			return opts
+		}
 	case DiscoverDisownedDevices:
-		opt = func(m gocoap.Message) { m.AddOption(gocoap.URIQuery, "Owned=FALSE") }
+		opt = func(m message.Options) message.Options {
+			buf := make([]byte, 16)
+			opts, _, _ := m.AddString(buf, message.URIQuery, "Owned=FALSE")
+			return opts
+		}
 	default:
 		return fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status)
 	}
@@ -54,20 +63,22 @@ func DiscoverDeviceOwnership(
 	return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler), opt)
 }
 
-func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(req *gocoap.Request) {
-	return func(req *gocoap.Request) {
-		if req.Msg.Code() != codes.Content {
-			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req.Msg)))
+func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {
+	return func(client *client.ClientConn, r *pool.Message) {
+		req := pool.ConvertTo(r)
+
+		if req.Code != codes.Content {
+			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
 			return
 		}
 
 		var doxm schema.Doxm
 		var codec ocf.VNDOCFCBORCodec
-		err := codec.Decode(req.Msg, &doxm)
+		err := codec.Decode(req, &doxm)
 		if err != nil {
-			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req.Msg), err))
+			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req), err))
 			return
 		}
-		handler.Handle(ctx, req.Client, doxm)
+		handler.Handle(ctx, client, doxm)
 	}
 }

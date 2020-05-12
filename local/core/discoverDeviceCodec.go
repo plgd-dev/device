@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/message"
 	"github.com/go-ocf/kit/codec/ocf"
 	"github.com/go-ocf/sdk/schema"
 )
@@ -12,7 +12,7 @@ import (
 type DiscoverDeviceCodec struct{}
 
 // ContentFormat propagates the CoAP media type.
-func (c DiscoverDeviceCodec) ContentFormat() gocoap.MediaType { return gocoap.MediaType(0) }
+func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.MediaType(0) }
 
 // Encode propagates the payload without any conversions.
 func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
@@ -28,7 +28,7 @@ type deviceLink struct {
 	Links    schema.ResourceLinks `json:"links"`
 }
 
-func decodeDiscoverDevices(msg gocoap.Message, resources *schema.ResourceLinks) error {
+func decodeDiscoverDevices(msg *message.Message, resources *schema.ResourceLinks) error {
 	codec := ocf.VNDOCFCBORCodec{}
 	var devices []deviceLink
 
@@ -53,26 +53,24 @@ func decodeDiscoverDevices(msg gocoap.Message, resources *schema.ResourceLinks) 
 
 // Decode validates the content format and
 // propagates the payload to v as *schema.ResourceLinks
-func (c DiscoverDeviceCodec) Decode(msg gocoap.Message, v interface{}) error {
+func (c DiscoverDeviceCodec) Decode(msg *message.Message, v interface{}) error {
 	resources, ok := v.(*schema.ResourceLinks)
 	if !ok {
 		return fmt.Errorf("invalid type %T", v)
 	}
-
-	cf := msg.Option(gocoap.ContentFormat)
-	if cf == nil {
+	mt, err := msg.Options.ContentFormat()
+	if err != nil {
 		return fmt.Errorf("content format not found")
 	}
-	mt, _ := cf.(gocoap.MediaType)
 	switch mt {
-	case gocoap.AppOcfCbor:
+	case message.AppOcfCbor:
 		codec := ocf.VNDOCFCBORCodec{}
 		if err := codec.Decode(msg, resources); err != nil {
 			return fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err)
 		}
 		return nil
-	case gocoap.AppCBOR:
+	case message.AppCBOR:
 		return decodeDiscoverDevices(msg, resources)
 	}
-	return fmt.Errorf("not a VNDOCFCBOR content format: %v", cf)
+	return fmt.Errorf("not a VNDOCFCBOR content format: %v", mt)
 }

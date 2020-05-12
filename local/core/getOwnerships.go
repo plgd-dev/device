@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -44,7 +44,7 @@ type ownershipHandler struct {
 	handler OwnershipHandler
 }
 
-func (h *ownershipHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, doxm schema.Doxm) {
+func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm schema.Doxm) {
 	conn.Close()
 	h.handler.Handle(ctx, doxm)
 }

@@ -8,14 +8,14 @@ import (
 	"fmt"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/app"
 	"github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/test"
 )
 
 const TestTimeout = time.Second * 8
 
-var TestDeviceName = "devsim-local-" + grpcTest.MustGetHostname()
+var TestDeviceName = "devsim-local-" + test.MustGetHostname()
 
 type testSetupSecureClient struct {
 	ca      []*x509.Certificate

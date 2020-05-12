@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/message"
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -66,7 +67,7 @@ func (h *deviceDiscoveryHandler) ResourceLinks() (schema.ResourceLinks, bool) {
 	return h.links, h.ok
 }
 
-func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
+func (h *deviceDiscoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
 	defer conn.Close()
 	h.lock.Lock()
 	defer h.lock.Unlock()
@@ -90,7 +91,7 @@ func (h *deviceDiscoveryHandler) Error(err error) {
 }
 
 func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
-	options = append(options, coap.WithAccept(gocoap.AppOcfCbor))
+	options = append(options, coap.WithAccept(message.AppOcfCbor))
 	var links schema.ResourceLinks
 
 	var codec DiscoverDeviceCodec

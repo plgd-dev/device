@@ -2,10 +2,16 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/binary"
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/message"
+	"github.com/go-ocf/go-coap/v2/net"
+	"github.com/go-ocf/go-coap/v2/udp"
+	"github.com/go-ocf/go-coap/v2/udp/client"
+	"github.com/go-ocf/go-coap/v2/udp/message/pool"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
 
@@ -17,29 +23,76 @@ var (
 	DiscoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
 )
 
-// DialDiscoveryAddresses connects to discovery endpoints.
-func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*gocoap.MulticastClientConn {
-	var out []*gocoap.MulticastClientConn
-	for _, address := range cfg.MulticastAddressUDP4 {
-		client := gocoap.MulticastClient{Net: "udp4", MulticastHopLimit: cfg.MulticastHopLimit}
-		conn, err := client.DialWithContext(ctx, address)
-		if err != nil && errors != nil {
+type DiscoveryHandler = func(conn *client.ClientConn, req *pool.Message)
+
+type DiscoveryClient struct {
+	mcastaddr string
+	msgID     uint16
+	l         *net.UDPConn
+	server    *udp.Server
+	wg        sync.WaitGroup
+}
+
+func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(error)) (*DiscoveryClient, error) {
+	l, err := net.NewListenUDP(network, "")
+	if err != nil {
+		return nil, err
+	}
+	s := udp.NewServer()
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := s.Serve(l)
+		if err != nil {
 			errors(err)
 		}
-		out = append(out, conn)
+	}()
+	return &DiscoveryClient{
+		mcastaddr: mcastaddr,
+		msgID:     uint16(msgID),
+		server:    s,
+		l:         l,
+		wg:        wg,
+	}, nil
+}
+
+func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
+	req.SetMessageID(d.msgID)
+	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler)
+}
+
+func (d *DiscoveryClient) Close() error {
+	d.server.Stop()
+	d.wg.Wait()
+	return d.l.Close()
+}
+
+// DialDiscoveryAddresses connects to discovery endpoints.
+func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*DiscoveryClient {
+	var out []*DiscoveryClient
+	b := make([]byte, 4)
+	rand.Read(b)
+	msgID := uint16(binary.BigEndian.Uint32(b))
+
+	for _, address := range cfg.MulticastAddressUDP4 {
+		c, err := newDiscoveryClient("udp4", address, msgID, errors)
+		if err != nil {
+			errors(err)
+			continue
+		}
+		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		client := gocoap.MulticastClient{Net: "udp6", MulticastHopLimit: cfg.MulticastHopLimit}
-		conn, err := client.DialWithContext(ctx, address)
-		if err != nil && errors != nil {
+		c, err := newDiscoveryClient("udp6", address, msgID, errors)
+		if err != nil {
 			errors(err)
+			continue
 		}
-		out = append(out, conn)
+		out = append(out, c)
 	}
 	return out
 }
-
-type DiscoveryHandler func(req *gocoap.Request)
 
 // Discover discovers devices using a CoAP multicast request via UDP.
 // It waits for device responses until the context is canceled.
@@ -48,7 +101,7 @@ type DiscoveryHandler func(req *gocoap.Request)
 // Note: Iotivity 1.3 which responds with BadRequest if more than 1 resource type is queried.
 func Discover(
 	ctx context.Context,
-	conn []*gocoap.MulticastClientConn,
+	conn []*DiscoveryClient,
 	href string,
 	handler DiscoveryHandler,
 	options ...kitNetCoap.OptionFunc,
@@ -75,26 +128,25 @@ func Discover(
 func runDiscovery(
 	wg *sync.WaitGroup,
 	href string,
-	handler func(*gocoap.Request),
+	handler DiscoveryHandler,
 	errors chan<- error,
 	options ...kitNetCoap.OptionFunc,
-) func(ctx context.Context, conn *gocoap.MulticastClientConn) {
-	return func(ctx context.Context, conn *gocoap.MulticastClientConn) {
+) func(ctx context.Context, conn *DiscoveryClient) {
+	return func(ctx context.Context, conn *DiscoveryClient) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-
-			req, err := conn.NewGetRequest(href)
+			opts := make(message.Options, 0, 4)
+			for _, o := range options {
+				opts = o(opts)
+			}
+			req, err := client.NewGetRequest(ctx, href, opts...)
 			if err != nil {
 				errors <- fmt.Errorf("device discovery request creation failed: %w", err)
 				return
 			}
 
-			for _, opt := range options {
-				opt(req)
-			}
-
-			waiter, err := conn.PublishMsgWithContext(ctx, req, handler)
+			err = conn.PublishMsgWithContext(req, handler)
 			if err != nil {
 				select {
 				case errors <- fmt.Errorf("device discovery multicast request failed: %w", err):
@@ -102,7 +154,6 @@ func runDiscovery(
 				}
 				return
 			}
-			defer waiter.Cancel()
 
 			select {
 			case <-ctx.Done():

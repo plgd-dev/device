@@ -5,14 +5,13 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
-
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_OnboardDevice(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		token                 string
 		deviceID              string

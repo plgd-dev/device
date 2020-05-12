@@ -5,13 +5,13 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/local"
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClient_UpdateResource(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	type args struct {
 		deviceID string
 		href     string
@@ -57,11 +57,11 @@ func TestClient_UpdateResource(t *testing.T) {
 				deviceID: deviceID,
 				href:     "/oc/con",
 				data: map[string]interface{}{
-					"n": TestDeviceName,
+					"n": test.TestDeviceName,
 				},
 			},
 			want: map[interface{}]interface{}{
-				"n": TestDeviceName,
+				"n": test.TestDeviceName,
 			},
 		},
 		{

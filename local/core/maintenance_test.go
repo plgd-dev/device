@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	ocf "github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/schema"
+	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +40,7 @@ func TestDevice_Reboot(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+			deviceID := test.MustFindDeviceByName(TestDeviceName)
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
@@ -64,7 +64,7 @@ func TestDevice_FactoryReset(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
-	deviceID := grpcTest.MustFindDeviceByName(grpcTest.TestDeviceName)
+	deviceID := test.MustFindDeviceByName(TestDeviceName)
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelTimeout()

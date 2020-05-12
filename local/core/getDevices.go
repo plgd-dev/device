@@ -4,9 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	"github.com/go-ocf/sdk/schema"
-
-	gocoap "github.com/go-ocf/go-coap"
 )
 
 // DeviceHandler conveys device connections and errors during discovery.
@@ -44,7 +43,7 @@ type discoveryHandler struct {
 	handler   DeviceHandler
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
+func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
 	conn.Close()
 
 	link, err := GetResourceLink(links, "/oic/d")

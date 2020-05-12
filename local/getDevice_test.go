@@ -8,7 +8,6 @@ import (
 
 	"github.com/go-ocf/sdk/local"
 
-	grpcTest "github.com/go-ocf/cloud/grpc-gateway/test"
 	"github.com/go-ocf/sdk/schema"
 	"github.com/go-ocf/sdk/test"
 	"github.com/stretchr/testify/require"
@@ -37,7 +36,7 @@ func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
 			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 		},
-		Resources: sortResources(append(grpcTest.TestDevsimResources, test.TestDevsimPrivateResources...)),
+		Resources: sortResources(append(test.TestDevsimResources, test.TestDevsimPrivateResources...)),
 	}
 }
 
@@ -61,7 +60,7 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetai
 			Interfaces:                    []string{"oic.if.baseline"},
 			ResourceTypes:                 []string{"oic.r.doxm"},
 		},
-		Resources: sortResources(append(append(grpcTest.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
+		Resources: sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
 	}
 }
 
@@ -77,8 +76,8 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 }
 
 func TestClient_GetDevice(t *testing.T) {
-	deviceID := grpcTest.MustFindDeviceByName(TestDeviceName)
-	secureDeviceID := grpcTest.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID string
 	}
@@ -93,7 +92,7 @@ func TestClient_GetDevice(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
-			want: NewTestDeviceSimulator(deviceID, TestDeviceName),
+			want: NewTestDeviceSimulator(deviceID, test.TestDeviceName),
 		},
 		{
 			name: "valid - secure",

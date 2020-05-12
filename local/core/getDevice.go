@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	"github.com/go-ocf/sdk/schema"
 )
 
@@ -62,7 +62,7 @@ func (h *deviceHandler) Device() (*Device, schema.ResourceLinks) {
 	return h.device, h.deviceLinks
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *gocoap.ClientConn, links schema.ResourceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
 	conn.Close()
 	h.lock.Lock()
 	defer h.lock.Unlock()

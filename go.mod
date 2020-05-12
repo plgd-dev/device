@@ -4,14 +4,13 @@ go 1.13
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/go-ocf/cloud v0.0.0-20200415201755-085952a7b0b8
-	github.com/go-ocf/go-coap v0.0.0-20200406073902-cf923db524db
-	github.com/go-ocf/kit v0.0.0-20200415082910-ad21ac15dfec
-	github.com/gofrs/uuid v3.2.0+incompatible
+	github.com/go-ocf/cloud v0.0.0-20200508074105-f9daefc26a14
+	github.com/go-ocf/go-coap/v2 v2.0.0-beta.4
+	github.com/go-ocf/kit v0.0.0-20200512120648-b85237b48a64
+	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/google/uuid v1.1.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pion/dtls/v2 v2.0.0-rc.9
-	github.com/pion/logging v0.2.2
+	github.com/pion/dtls/v2 v2.0.1-0.20200503085337-8e86b3a7d585
 	github.com/stretchr/testify v1.5.1
-	google.golang.org/grpc v1.28.1
+	google.golang.org/grpc v1.29.1
 )

@@ -6,7 +6,7 @@ import (
 
 	"fmt"
 
-	gocoap "github.com/go-ocf/go-coap"
+	"github.com/go-ocf/go-coap/v2/udp/client"
 	kitNet "github.com/go-ocf/kit/net"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -102,7 +102,7 @@ func newSelectOTMHandler(deviceID string, cancel context.CancelFunc) *selectOTMH
 	return &selectOTMHandler{deviceID: deviceID, cancel: cancel}
 }
 
-func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *gocoap.ClientConn, links schema.ResourceLinks) {
+func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *client.ClientConn, links schema.ResourceLinks) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
@@ -122,7 +122,7 @@ func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *gocoap.Client
 		clientConn.Close()
 		return
 	}
-	h.conn = kitNetCoap.NewClient(clientConn)
+	h.conn = kitNetCoap.NewClient(clientConn.Client())
 	h.cancel()
 }
 
