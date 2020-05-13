@@ -52,7 +52,7 @@ func TestObservingResource(t *testing.T) {
 }
 
 func makeObservationHandler() *observationHandler {
-	return &observationHandler{res: make(chan kitNetCoap.DecodeFunc)}
+	return &observationHandler{res: make(chan kitNetCoap.DecodeFunc, 1)}
 }
 
 type observationHandler struct {

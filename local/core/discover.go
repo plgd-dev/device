@@ -39,22 +39,21 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(err
 		return nil, err
 	}
 	s := udp.NewServer()
-	var wg sync.WaitGroup
-	wg.Add(1)
+	c := &DiscoveryClient{
+		mcastaddr: mcastaddr,
+		msgID:     uint16(msgID),
+		server:    s,
+		l:         l,
+	}
+	c.wg.Add(1)
 	go func() {
-		defer wg.Done()
+		defer c.wg.Done()
 		err := s.Serve(l)
 		if err != nil {
 			errors(err)
 		}
 	}()
-	return &DiscoveryClient{
-		mcastaddr: mcastaddr,
-		msgID:     uint16(msgID),
-		server:    s,
-		l:         l,
-		wg:        wg,
-	}, nil
+	return c, nil
 }
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
@@ -63,9 +62,11 @@ func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHand
 }
 
 func (d *DiscoveryClient) Close() error {
+	fmt.Printf("close %v\n", d.mcastaddr)
 	d.server.Stop()
+	err := d.l.Close()
 	d.wg.Wait()
-	return d.l.Close()
+	return err
 }
 
 // DialDiscoveryAddresses connects to discovery endpoints.
