@@ -62,7 +62,6 @@ func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHand
 }
 
 func (d *DiscoveryClient) Close() error {
-	fmt.Printf("close %v\n", d.mcastaddr)
 	d.server.Stop()
 	err := d.l.Close()
 	d.wg.Wait()
