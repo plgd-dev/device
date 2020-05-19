@@ -69,7 +69,7 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 	a := make([]schema.ResourceLink, 0, len(s))
 	for _, l := range s {
 		l.Endpoints = nil
-		l.Policy = schema.Policy{}
+		l.Policy = nil
 		l.Anchor = ""
 		a = append(a, l)
 	}
