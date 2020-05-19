@@ -14,17 +14,17 @@ import (
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
-	ID                    string     `json:"id"`
+	ID                    string     `json:"id,omitempty"`
 	Href                  string     `json:"href"`
 	ResourceTypes         []string   `json:"rt"`
 	Interfaces            []string   `json:"if"`
-	Policy                Policy     `json:"p"`
-	Endpoints             []Endpoint `json:"eps"`
-	Anchor                string     `json:"anchor"`
-	DeviceID              string     `json:"di"`
-	InstanceID            int64      `json:"ins"`
-	Title                 string     `json:"title"`
-	SupportedContentTypes []string   `json:"type"`
+	Policy                *Policy    `json:"p,omitempty"`
+	Endpoints             []Endpoint `json:"eps,omitempty"`
+	Anchor                string     `json:"anchor,omitempty"`
+	DeviceID              string     `json:"di,omitempty"`
+	InstanceID            int64      `json:"ins,omitempty"`
+	Title                 string     `json:"title,omitempty"`
+	SupportedContentTypes []string   `json:"type,omitempty"`
 }
 
 type ResourceLinks []ResourceLink

@@ -42,7 +42,7 @@ LOOP:
 						ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
 						Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 						Anchor:        "ocf://" + deviceID,
-						Policy: schema.Policy{
+						Policy: &schema.Policy{
 							BitMask: schema.Discoverable,
 						},
 					},
