@@ -129,7 +129,7 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 }
 
 func (o *deviceOwnershipBackend) Initialization(ctx context.Context) error {
-	token, err := kitNetGrpc.CtxExtractOutgoingToken(ctx)
+	token, err := kitNetGrpc.TokenFromOutgoingMD(ctx)
 	if err != nil {
 		return err
 	}
