@@ -28,6 +28,11 @@ func TestClient_ownDevice(t *testing.T) {
 	err = device.Disown(timeout, links)
 	require.NoError(err)
 
+	// try disown second time
+	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
+	device, links, err = c.GetDevice(timeout, deviceId)
+	require.NoError(err)
+	defer device.Close(timeout)
 	err = device.Disown(timeout, links)
 	require.NoError(err)
 }
