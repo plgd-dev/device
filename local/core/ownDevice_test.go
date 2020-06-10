@@ -26,6 +26,8 @@ func TestClient_ownDevice(t *testing.T) {
 	err = device.Own(timeout, links, c.otm)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
+	require.NoError(err)
 
+	err = device.Disown(timeout, links)
 	require.NoError(err)
 }
