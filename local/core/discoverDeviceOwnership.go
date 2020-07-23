@@ -65,7 +65,10 @@ func DiscoverDeviceOwnership(
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {
 	return func(client *client.ClientConn, r *pool.Message) {
-		req := pool.ConvertTo(r)
+		req, err := pool.ConvertTo(r)
+		if err != nil {
+			handler.Error(fmt.Errorf("request failed: %w", err))
+		}
 
 		if req.Code != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
@@ -74,7 +77,7 @@ func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDevice
 
 		var doxm schema.Doxm
 		var codec ocf.VNDOCFCBORCodec
-		err := codec.Decode(req, &doxm)
+		err = codec.Decode(req, &doxm)
 		if err != nil {
 			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req), err))
 			return
