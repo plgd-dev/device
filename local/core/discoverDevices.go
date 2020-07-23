@@ -40,7 +40,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*c
 	return func(cc *client.ClientConn, r *pool.Message) {
 		req, err := pool.ConvertTo(r)
 		if err != nil {
-			handler.Error(fmt.Errorf("request failed: %w", err))
+			handler.Error(fmt.Errorf("cannot convert message: %w", err))
 		}
 		if req.Code != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
