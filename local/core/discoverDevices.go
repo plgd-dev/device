@@ -38,7 +38,10 @@ func DiscoverDevices(
 
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*client.ClientConn, *pool.Message) {
 	return func(cc *client.ClientConn, r *pool.Message) {
-		req := pool.ConvertTo(r)
+		req, err := pool.ConvertTo(r)
+		if err != nil {
+			handler.Error(fmt.Errorf("cannot convert message: %w", err))
+		}
 		if req.Code != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
 			return
@@ -47,7 +50,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*c
 		var links schema.ResourceLinks
 		var codec DiscoverDeviceCodec
 
-		err := codec.Decode(req, &links)
+		err = codec.Decode(req, &links)
 		if err != nil {
 			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req), err))
 			return

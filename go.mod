@@ -5,7 +5,7 @@ go 1.13
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-ocf/cloud v0.0.0-20200722070446-3773fbf08dcb
-	github.com/go-ocf/go-coap/v2 v2.0.2
+	github.com/go-ocf/go-coap/v2 v2.0.4-0.20200723131250-f4a1b6b8c4b1
 	github.com/go-ocf/kit v0.0.0-20200702075537-01631a881369
 	github.com/gofrs/uuid v3.3.0+incompatible
 	github.com/google/uuid v1.1.1
