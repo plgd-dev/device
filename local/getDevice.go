@@ -18,7 +18,7 @@ func (c *Client) GetRefDevice(
 		if err != nil {
 			return nil, nil, err
 		}
-		return refDev, c.patchResourceLinks(links), nil
+		return refDev, c.PatchResourceLinksEndpoints(links), nil
 	}
 	dev, links, err := c.client.GetDevice(ctx, deviceID)
 	if err != nil {
@@ -33,7 +33,7 @@ func (c *Client) GetRefDevice(
 	if err != nil {
 		return nil, nil, err
 	}
-	return refDev, c.patchResourceLinks(links), nil
+	return refDev, c.PatchResourceLinksEndpoints(links), nil
 }
 
 func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {

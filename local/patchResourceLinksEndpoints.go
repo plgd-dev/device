@@ -19,7 +19,7 @@ func filterTCPEndpoints(eps []schema.Endpoint) []schema.Endpoint {
 	return tcpDevEndpoints
 }
 
-func (c *Client) patchResourceLinks(links schema.ResourceLinks) schema.ResourceLinks {
+func (c *Client) PatchResourceLinksEndpoints(links schema.ResourceLinks) schema.ResourceLinks {
 	devLink, ok := links.GetResourceLink("/oic/d")
 	if !ok {
 		return links
