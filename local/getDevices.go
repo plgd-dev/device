@@ -32,7 +32,7 @@ func (c *Client) GetDevices(
 		cfg = o.applyOnGetDevices(cfg)
 	}
 	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-		return cfg.getDetails(ctx, d, c.patchResourceLinks(links))
+		return cfg.getDetails(ctx, d, c.PatchResourceLinksEndpoints(links))
 	}
 
 	var m sync.Mutex
