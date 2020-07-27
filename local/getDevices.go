@@ -31,6 +31,9 @@ func (c *Client) GetDevices(
 	for _, o := range opts {
 		cfg = o.applyOnGetDevices(cfg)
 	}
+	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+		return cfg.getDetails(ctx, d, c.patchResourceLinks(links))
+	}
 
 	var m sync.Mutex
 	var res []DeviceDetails
@@ -53,7 +56,7 @@ func (c *Client) GetDevices(
 	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
 	go c.client.GetOwnerships(ctx, core.DiscoverAllDevices, ownershipsHandler)
 
-	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, cfg.getDetails)
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, getDetails)
 	if err := c.client.GetDevices(ctx, handler); err != nil {
 		return nil, err
 	}
