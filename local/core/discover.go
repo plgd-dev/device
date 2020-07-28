@@ -2,8 +2,6 @@ package core
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/binary"
 	"fmt"
 	"sync"
 
@@ -11,6 +9,7 @@ import (
 	"github.com/go-ocf/go-coap/v2/net"
 	"github.com/go-ocf/go-coap/v2/udp"
 	"github.com/go-ocf/go-coap/v2/udp/client"
+	udpMessage "github.com/go-ocf/go-coap/v2/udp/message"
 	"github.com/go-ocf/go-coap/v2/udp/message/pool"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 )
@@ -71,9 +70,7 @@ func (d *DiscoveryClient) Close() error {
 // DialDiscoveryAddresses connects to discovery endpoints.
 func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*DiscoveryClient {
 	var out []*DiscoveryClient
-	b := make([]byte, 4)
-	rand.Read(b)
-	msgID := uint16(binary.BigEndian.Uint32(b))
+	msgID := udpMessage.GetMID()
 
 	for _, address := range cfg.MulticastAddressUDP4 {
 		c, err := newDiscoveryClient("udp4", address, msgID, errors)
