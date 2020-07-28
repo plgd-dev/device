@@ -121,7 +121,7 @@ func (c *Client) getDeviceConfiguration() deviceConfiguration {
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
 		errFunc: func(err error) {
-			log.Error(err)
+			log.Debug(err)
 		},
 		dialOptions: []coap.DialOptionFunc{
 			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
@@ -135,6 +135,7 @@ func NewClient(opts ...OptionFunc) *Client {
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
+	cfg.dialOptions = append(cfg.dialOptions, coap.WithErrors(cfg.errFunc))
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
 	return &Client{
