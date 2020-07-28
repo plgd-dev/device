@@ -100,6 +100,9 @@ func NewClient(
 		},
 		opt...,
 	)
+	if errors != nil {
+		opt = append(opt, core.WithErr(errors))
+	}
 	oc := core.NewClient(opt...)
 	client := Client{
 		client:                  oc,

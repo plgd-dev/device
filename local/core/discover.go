@@ -33,11 +33,11 @@ type DiscoveryClient struct {
 }
 
 func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(error)) (*DiscoveryClient, error) {
-	l, err := net.NewListenUDP(network, "")
+	l, err := net.NewListenUDP(network, "", net.WithErrors(errors))
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer()
+	s := udp.NewServer(udp.WithErrors(errors))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     uint16(msgID),
