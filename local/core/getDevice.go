@@ -9,6 +9,8 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
+// According to Device2Cloud spec the CoAPCloudConf Resource shall expose only secure Endpoints (e.g. CoAPS); see the ISO/IEC 30118-1:2018, clause 10.
+// You have to be secure to talk to it so we try to load device links via secure endpoints if it is possible.
 func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLinks) (*Device, schema.ResourceLinks, error) {
 	isSecure, err := d.IsSecured(ctx, dlinks)
 	if err != nil {
