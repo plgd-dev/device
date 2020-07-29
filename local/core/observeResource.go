@@ -120,7 +120,7 @@ func (d *Device) observeResource(
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
 
-	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
+	_, client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 
 	if err != nil {
 		return "", fmt.Errorf("cannot observe resource %v: %w", link.Href, err)

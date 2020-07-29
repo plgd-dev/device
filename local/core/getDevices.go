@@ -62,6 +62,12 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, 
 	}
 	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)
 
+	d, links, err = patchDeviceLinks(ctx, d, links)
+	if err != nil {
+		h.handler.Error(err)
+		return
+	}
+
 	h.handler.Handle(ctx, d, links)
 }
 

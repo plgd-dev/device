@@ -29,7 +29,7 @@ func (d *Device) GetResourceWithCodec(
 	options ...coap.OptionFunc,
 ) error {
 	options = append(options, coap.WithAccept(codec.ContentFormat()))
-	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
+	_, client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 	if err != nil {
 		return fmt.Errorf("cannot get resource %v: %w", link.Href, err)
 	}

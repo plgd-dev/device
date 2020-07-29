@@ -14,7 +14,13 @@ func (c *Client) GetRefDevice(
 ) (*RefDevice, schema.ResourceLinks, error) {
 	refDev, ok := c.deviceCache.GetDevice(ctx, deviceID)
 	if ok {
-		links, err := refDev.GetResourceLinks(ctx)
+		endpoints, err := refDev.GetEndpoints(ctx)
+		if err != nil {
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+		links, err := refDev.GetResourceLinks(ctx, endpoints)
 		if err != nil {
 			return nil, nil, err
 		}
