@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/go-ocf/kit/net"
 	"github.com/go-ocf/kit/net/coap"
 	kitNetCoap "github.com/go-ocf/kit/net/coap"
 	"github.com/go-ocf/sdk/schema"
@@ -141,16 +142,16 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	return
 }
 
-func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (*coap.ClientCloseHandler, error) {
+func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (net.Addr, *coap.ClientCloseHandler, error) {
 	const errMsg = "cannot connect to %v: %w"
 	addr, err := endpoint.GetAddr()
 	if err != nil {
-		return nil, err
+		return net.Addr{}, nil, err
 	}
 
 	conn, ok := d.getConn(addr.URL())
 	if ok {
-		return conn, nil
+		return addr, conn, nil
 	}
 
 	var c *coap.ClientCloseHandler
@@ -158,38 +159,38 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 	case schema.UDPScheme:
 		c, err = coap.DialUDP(ctx, addr.String(), d.cfg.dialOptions...)
 		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.UDPSecureScheme:
 		if d.cfg.disableDTLS {
-			return nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("dtls is disabled by client option"))
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("dtls is disabled by client option"))
 		}
 		c, err = DialUDPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
 		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.TCPScheme:
 		c, err = coap.DialTCP(ctx, addr.String(), d.cfg.dialOptions...)
 		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	case schema.TCPSecureScheme:
 		if d.cfg.disableTCPTLS {
-			return nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("tcp-tls is disabled by client option"))
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("tcp-tls is disabled by client option"))
 		}
 		c, err = DialTCPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
 		if err != nil {
-			return nil, fmt.Errorf(errMsg, addr.URL(), err)
+			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), err)
 		}
 	default:
-		return nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("unknown scheme :%v", addr.GetScheme()))
+		return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("unknown scheme :%v", addr.GetScheme()))
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	conn, ok = d.conn[addr.URL()]
 	if ok {
 		c.Close()
-		return conn, nil
+		return addr, conn, nil
 	}
 	c.RegisterCloseHandler(func(error) {
 		d.lock.Lock()
@@ -197,24 +198,24 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		delete(d.conn, addr.URL())
 	})
 	d.conn[addr.URL()] = c
-	return c, nil
+	return addr, c, nil
 }
 
-func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endpoint) (*coap.ClientCloseHandler, error) {
+func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endpoint) (net.Addr, *coap.ClientCloseHandler, error) {
 	errors := make([]error, 0, 4)
 
 	for _, endpoint := range endpoints {
-		conn, err := d.connectToEndpoint(ctx, endpoint)
+		addr, conn, err := d.connectToEndpoint(ctx, endpoint)
 		if err != nil {
 			errors = append(errors, err)
 			continue
 		}
-		return conn, nil
+		return addr, conn, nil
 	}
 	if len(errors) > 0 {
-		return nil, fmt.Errorf("%v", errors)
+		return net.Addr{}, nil, fmt.Errorf("%v", errors)
 	}
-	return nil, fmt.Errorf("cannot connect to empty endpoints")
+	return net.Addr{}, nil, fmt.Errorf("cannot connect to empty endpoints")
 }
 
 func (d *Device) DeviceID() string      { return d.deviceID }

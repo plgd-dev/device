@@ -5,13 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/local/core"
 	"github.com/go-ocf/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )
 
-func TestDevice_GetResourceLinks(t *testing.T) {
+func TestDevice_GetEndpoints(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
@@ -45,13 +44,11 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, links, err := c.GetDevice(timeout, deviceId)
+			device, _, err := c.GetDevice(timeout, deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 
-			dlink, err := core.GetResourceLink(links, "/oic/d")
-			require.NoError(err)
-			got, err := device.GetResourceLinks(timeout, dlink.GetEndpoints())
+			got, err := device.GetEndpoints(timeout)
 			if tt.wantErr {
 				require.Error(err)
 			} else {

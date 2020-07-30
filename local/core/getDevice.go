@@ -9,12 +9,36 @@ import (
 	"github.com/go-ocf/sdk/schema"
 )
 
+// According to Device2Cloud spec the CoAPCloudConf Resource shall expose only secure Endpoints (e.g. CoAPS); see the ISO/IEC 30118-1:2018, clause 10.
+// You have to be secure to talk to it so we try to load device links via secure endpoints if it is possible.
+func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLinks) (*Device, schema.ResourceLinks, error) {
+	isSecure, err := d.IsSecured(ctx, dlinks)
+	if err != nil {
+		defer d.Close(ctx)
+		return nil, nil, fmt.Errorf("cannot determine whether device %s is secured: %w", d.DeviceID(), err)
+	}
+	if !isSecure {
+		return d, dlinks, nil
+	}
+	dlink, err := GetResourceLink(dlinks, "/oic/d")
+	if err != nil {
+		defer d.Close(ctx)
+		return nil, nil, fmt.Errorf("cannot read device link for secure device %s: %w", d.DeviceID(), err)
+	}
+	dlinks, err = d.GetResourceLinks(ctx, dlink.GetEndpoints())
+	if err != nil {
+		defer d.Close(ctx)
+		return nil, nil, fmt.Errorf("cannot get resource links for secure device %s: %w", d.DeviceID(), err)
+	}
+	return d, dlinks, nil
+}
+
 // GetDevice performs a multicast and returns a device object if the device responds.
 func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schema.ResourceLinks, error) {
-	ctx, cancel := context.WithCancel(ctx)
+	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(ctx, c.discoveryConfiguration, c.errFunc)
+	multicastConn := DialDiscoveryAddresses(findCtx, c.discoveryConfiguration, c.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -22,7 +46,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	}()
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
-	err := DiscoverDevices(ctx, multicastConn, h)
+	err := DiscoverDevices(findCtx, multicastConn, h)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not get the device %s: %w", deviceID, err)
 	}
@@ -30,7 +54,8 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	if d == nil {
 		return nil, nil, fmt.Errorf("no response from the device %s", deviceID)
 	}
-	return d, dlinks, nil
+
+	return patchDeviceLinks(ctx, d, dlinks)
 }
 
 func newDeviceHandler(

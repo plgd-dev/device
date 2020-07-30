@@ -10,7 +10,7 @@ import (
 )
 
 func TestClient_OffboardDevice(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		token    string
 		deviceID string
@@ -29,7 +29,8 @@ func TestClient_OffboardDevice(t *testing.T) {
 		},
 	}
 
-	c := NewTestClient()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)

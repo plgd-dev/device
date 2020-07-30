@@ -404,6 +404,15 @@ func (d *Device) Own(
 
 	tlsClient.Close()
 
+	dlink, err := GetResourceLink(links, "/oic/d")
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get device link: %w", err))
+	}
+	links, err = d.GetResourceLinks(ctx, dlink.Endpoints)
+	if err != nil {
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links: %w", err))
+	}
+
 	/*pstat set owner of resource*/
 	err = d.setProvisionResourceOwner(ctx, links, sdkID)
 	if err != nil {

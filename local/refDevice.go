@@ -122,8 +122,12 @@ func (d *RefDevice) Provision(ctx context.Context, links schema.ResourceLinks) (
 	return d.Device().Provision(ctx, links)
 }
 
-func (d *RefDevice) GetResourceLinks(ctx context.Context, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
-	return d.Device().GetResourceLinks(ctx, options...)
+func (d *RefDevice) GetEndpoints(ctx context.Context) ([]schema.Endpoint, error) {
+	return d.Device().GetEndpoints(ctx)
+}
+
+func (d *RefDevice) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoint, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
+	return d.Device().GetResourceLinks(ctx, endpoints, options...)
 }
 
 func (d *RefDevice) FactoryReset(ctx context.Context, links schema.ResourceLinks) error {

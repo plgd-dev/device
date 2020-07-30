@@ -28,7 +28,7 @@ func (d *Device) UpdateResourceWithCodec(
 	response interface{},
 	options ...kitNetCoap.OptionFunc,
 ) error {
-	client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
+	_, client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 	if err != nil {
 		return fmt.Errorf("cannot update resource %v: %w", link.Href, err)
 	}
