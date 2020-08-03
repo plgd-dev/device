@@ -105,6 +105,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 	}
 	tlsCfg := tls.Config{
 		InsecureSkipVerify:    true,
+		ClientCAs:             rootCAs,
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
@@ -128,6 +129,7 @@ func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 
 	tlsCfg := dtls.Config{
 		InsecureSkipVerify:    true,
+		ClientCAs:             rootCAs,
 		CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
@@ -139,6 +141,12 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	c, ok = d.conn[addr]
+	if ok {
+		if c.Context().Err() == nil {
+			return c, ok
+		}
+		delete(d.conn, addr)
+	}
 	return
 }
 
