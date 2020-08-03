@@ -293,20 +293,23 @@ func (d *Device) Own(
 
 	var tlsClient *kitNetCoap.ClientCloseHandler
 	var errors []error
+	var tlsAddr kitNet.Addr
 	for _, link := range links {
-		if tlsAddr, err := link.GetUDPSecureAddr(); err == nil {
-			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.cfg.dialOptions...)
+		if addr, err := link.GetUDPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
 			if err == nil {
+				tlsAddr = addr
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", tlsAddr.URL(), err))
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
-		if tlsAddr, err := link.GetTCPSecureAddr(); err == nil {
-			tlsClient, err = otmClient.Dial(ctx, tlsAddr, d.cfg.dialOptions...)
+		if addr, err := link.GetTCPSecureAddr(); err == nil {
+			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
 			if err == nil {
+				tlsAddr = addr
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", tlsAddr.URL(), err))
+			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 	}
 	if tlsClient == nil {
@@ -404,11 +407,9 @@ func (d *Device) Own(
 
 	tlsClient.Close()
 
-	dlink, err := GetResourceLink(links, "/oic/d")
-	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot get device link: %w", err))
-	}
-	links, err = d.GetResourceLinks(ctx, dlink.Endpoints)
+	links, err = d.GetResourceLinks(ctx, []schema.Endpoint{
+		{URI: tlsAddr.URL()},
+	})
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot get resource links: %w", err))
 	}
