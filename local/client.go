@@ -32,6 +32,7 @@ type Config struct {
 	DisableDTLS                       bool
 	DisablePeerTCPSignalMessageCSMs   bool
 	DisableUDPEndpoints               bool
+	MaxMessageSize                    int
 
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
@@ -64,6 +65,11 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	if cfg.DisablePeerTCPSignalMessageCSMs {
 		opts = append(opts, core.WithDialOptions(
 			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
+		))
+	}
+	if cfg.MaxMessageSize > 0 {
+		opts = append(opts, core.WithDialOptions(
+			coap.WithMaxMessageSize(cfg.MaxMessageSize),
 		))
 	}
 
