@@ -2,22 +2,10 @@ package local
 
 import (
 	"context"
+	"fmt"
 )
 
-// OffboardDevice for unsecure device it reset attributes, for secure device it calls Disown.
+// OffboardDevice is not supported by OCF spec(https://openconnectivity.org/specs/OCF_Device_To_Cloud_Services_Specification_v2.2.0.pdf)
 func (c *Client) OffboardDevice(ctx context.Context, deviceID string) error {
-	d, links, err := c.GetRefDevice(ctx, deviceID)
-	if err != nil {
-		return err
-	}
-	defer d.Release(ctx)
-
-	ok, err := d.IsSecured(ctx, links)
-	if err != nil {
-		return err
-	}
-	if ok {
-		return d.Disown(ctx, links)
-	}
-	return setCloudResource(ctx, links, d, "", "", "", "")
+	return fmt.Errorf("not supported")
 }

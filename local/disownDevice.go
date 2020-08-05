@@ -5,6 +5,8 @@ import (
 )
 
 // DisownDevice disowns a device.
+// For unsecure device it calls factory reset.
+// For secure device it disowns.
 func (c *Client) DisownDevice(ctx context.Context, deviceID string) error {
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
@@ -17,8 +19,7 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string) error {
 		return err
 	}
 	if !ok {
-		// don't disown insecure device
-		return nil
+		return d.FactoryReset(ctx, links)
 	}
 
 	return d.Disown(ctx, links)
