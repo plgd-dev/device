@@ -50,14 +50,17 @@ func TestClient_OnboardDevice(t *testing.T) {
 			defer cancel()
 			err := c.OwnDevice(ctx, deviceID)
 			require.NoError(t, err)
-			defer c.DisownDevice(ctx, deviceID)
+			defer func() {
+				err := c.DisownDevice(ctx, deviceID)
+				require.NoError(t, err)
+			}()
 			err = c.OnboardDevice(ctx, tt.args.deviceID, tt.args.authorizationProvider, tt.args.cloudURL, tt.args.authorizationCode, tt.args.cloudID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
 				err = c.OffboardDevice(ctx, tt.args.deviceID)
-				assert.NoError(t, err)
+				assert.Error(t, err)
 			}
 		})
 	}

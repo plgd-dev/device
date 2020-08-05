@@ -25,7 +25,7 @@ func TestClient_OffboardDevice(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
-			wantErr: false,
+			wantErr: true,
 		},
 	}
 
