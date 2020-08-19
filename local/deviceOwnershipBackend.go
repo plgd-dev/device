@@ -13,9 +13,9 @@ import (
 	"github.com/plgd-dev/sdk/local/core"
 
 	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/go-ocf/cloud/certificate-authority/pb"
-	caSigner "github.com/go-ocf/cloud/certificate-authority/signer"
 	"github.com/gofrs/uuid"
+	"github.com/plgd-dev/cloud/certificate-authority/pb"
+	caSigner "github.com/plgd-dev/cloud/certificate-authority/signer"
 	kitNetGrpc "github.com/plgd-dev/kit/net/grpc"
 )
 
