@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/cloud"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/cloud"
 )
 
 var (

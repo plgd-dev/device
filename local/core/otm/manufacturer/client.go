@@ -7,9 +7,9 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	kitNet "github.com/go-ocf/kit/net"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
+	kitNet "github.com/plgd-dev/kit/net"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/schema"
 	"github.com/pion/dtls/v2"
 )
 

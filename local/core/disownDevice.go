@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // DisownDevice remove ownership of device

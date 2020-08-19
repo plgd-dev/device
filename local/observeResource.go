@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"sync"
 
-	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/core"
+	codecOcf "github.com/plgd-dev/kit/codec/ocf"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/local/core"
 )
 
 func (c *Client) ObserveResource(

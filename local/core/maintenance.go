@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/maintenance"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/maintenance"
 )
 
 func (d *Device) Reboot(

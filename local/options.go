@@ -3,9 +3,9 @@ package local
 import (
 	"context"
 
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // WithInterface updates/gets resource with interface directly from a device.

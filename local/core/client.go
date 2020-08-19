@@ -5,9 +5,9 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/go-ocf/kit/net/coap"
+	"github.com/plgd-dev/kit/net/coap"
 
-	"github.com/go-ocf/kit/log"
+	"github.com/plgd-dev/kit/log"
 )
 
 // ErrFunc to log errors in goroutines

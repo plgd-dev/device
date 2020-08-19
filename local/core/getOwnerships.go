@@ -3,8 +3,8 @@ package core
 import (
 	"context"
 
-	"github.com/go-ocf/go-coap/v2/udp/client"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // OwnershipHandler conveys device ownership and errors during discovery.

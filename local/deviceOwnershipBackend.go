@@ -9,14 +9,14 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 
-	"github.com/go-ocf/kit/security"
-	"github.com/go-ocf/sdk/local/core"
+	"github.com/plgd-dev/kit/security"
+	"github.com/plgd-dev/sdk/local/core"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/go-ocf/cloud/certificate-authority/pb"
 	caSigner "github.com/go-ocf/cloud/certificate-authority/signer"
-	kitNetGrpc "github.com/go-ocf/kit/net/grpc"
 	"github.com/gofrs/uuid"
+	kitNetGrpc "github.com/plgd-dev/kit/net/grpc"
 )
 
 type deviceOwnershipBackend struct {

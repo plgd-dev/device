@@ -3,7 +3,7 @@ package core
 import (
 	"context"
 
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // IsSecured returns if device serves secure ports.

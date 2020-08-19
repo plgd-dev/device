@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/local/core/otm/manufacturer"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
 
-	"github.com/go-ocf/kit/security"
-	ocfSigner "github.com/go-ocf/kit/security/signer"
+	"github.com/plgd-dev/kit/security"
+	ocfSigner "github.com/plgd-dev/kit/security/signer"
 	"github.com/google/uuid"
 )
 

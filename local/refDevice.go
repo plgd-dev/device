@@ -3,10 +3,10 @@ package local
 import (
 	"context"
 
-	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/kit/sync"
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/kit/sync"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 type RefDevice struct {

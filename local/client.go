@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/local/core"
+	"github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/local/core"
 
 	cache "github.com/patrickmn/go-cache"
 )

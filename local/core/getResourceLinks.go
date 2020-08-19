@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/go-coap/v2/message"
-	"github.com/go-ocf/kit/net"
-	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/go-coap/v2/message"
+	"github.com/plgd-dev/kit/net"
+	"github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {

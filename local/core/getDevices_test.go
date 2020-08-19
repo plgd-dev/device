@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
+	ocf "github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
 
 	"github.com/stretchr/testify/require"
 )

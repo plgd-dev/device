@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 
-	"github.com/go-ocf/sdk/local/core"
+	"github.com/plgd-dev/sdk/local/core"
 )
 
 type deviceOwnershipNone struct {

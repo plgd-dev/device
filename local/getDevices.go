@@ -6,14 +6,14 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/go-ocf/kit/log"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	"github.com/plgd-dev/kit/log"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 
-	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	kitStrings "github.com/go-ocf/kit/strings"
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/cloud"
+	codecOcf "github.com/plgd-dev/kit/codec/ocf"
+	kitStrings "github.com/plgd-dev/kit/strings"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/cloud"
 )
 
 // GetDevices discovers devices in the local mode.

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/go-ocf/sdk/schema/acl"
-	"github.com/go-ocf/sdk/schema/cloud"
+	"github.com/plgd-dev/sdk/schema/acl"
+	"github.com/plgd-dev/sdk/schema/cloud"
 	"github.com/stretchr/testify/require"
 )
 
