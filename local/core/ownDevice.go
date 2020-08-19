@@ -6,12 +6,12 @@ import (
 
 	"fmt"
 
-	"github.com/go-ocf/go-coap/v2/udp/client"
-	kitNet "github.com/go-ocf/kit/net"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/acl"
-	"github.com/go-ocf/sdk/schema/cloud"
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	kitNet "github.com/plgd-dev/kit/net"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/acl"
+	"github.com/plgd-dev/sdk/schema/cloud"
 )
 
 type OTMClient interface {

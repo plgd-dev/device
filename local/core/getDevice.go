@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-ocf/go-coap/v2/udp/client"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // According to Device2Cloud spec the CoAPCloudConf Resource shall expose only secure Endpoints (e.g. CoAPS); see the ISO/IEC 30118-1:2018, clause 10.

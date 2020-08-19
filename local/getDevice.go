@@ -3,8 +3,8 @@ package local
 import (
 	"context"
 
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // GetRefDevice returns device, after using call device.Release to free resources.

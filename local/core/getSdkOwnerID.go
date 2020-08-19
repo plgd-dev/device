@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 )
 
 // GetSdkOwnerID returns sdk ownerID from sdk identity certificate.

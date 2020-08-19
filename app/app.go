@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/go-ocf/kit/security"
+	"github.com/plgd-dev/kit/security"
 )
 
 type AppConfig struct {

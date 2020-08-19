@@ -6,10 +6,10 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/go-ocf/kit/strings"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/acl"
-	"github.com/go-ocf/sdk/schema/cloud"
+	"github.com/plgd-dev/kit/strings"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/acl"
+	"github.com/plgd-dev/sdk/schema/cloud"
 )
 
 func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks) (*ProvisioningClient, error) {

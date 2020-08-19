@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/go-ocf/sdk/app"
-	"github.com/go-ocf/sdk/local"
-	"github.com/go-ocf/sdk/test"
+	"github.com/plgd-dev/sdk/app"
+	"github.com/plgd-dev/sdk/local"
+	"github.com/plgd-dev/sdk/test"
 )
 
 const TestTimeout = time.Second * 8

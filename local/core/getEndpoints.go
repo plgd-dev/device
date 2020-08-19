@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/go-ocf/go-coap/v2/udp/client"
-	"github.com/go-ocf/kit/net"
-	"github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/kit/net"
+	"github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 func (d *Device) findBestClient() (net.Addr, *coap.ClientCloseHandler, error) {

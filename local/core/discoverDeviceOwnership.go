@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/go-ocf/go-coap/v2/message"
-	"github.com/go-ocf/go-coap/v2/message/codes"
-	"github.com/go-ocf/go-coap/v2/udp/client"
-	"github.com/go-ocf/go-coap/v2/udp/message/pool"
+	"github.com/plgd-dev/go-coap/v2/message"
+	"github.com/plgd-dev/go-coap/v2/message/codes"
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
 
-	"github.com/go-ocf/kit/codec/ocf"
-	kitNetCoap "github.com/go-ocf/kit/net/coap"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/kit/codec/ocf"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 // DiscoverDeviceOwnershipHandler receives devices ownership info.

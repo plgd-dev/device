@@ -7,8 +7,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 func MustGetHostname() string {

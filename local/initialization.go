@@ -10,8 +10,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/go-ocf/kit/security/generateCertificate"
-	"github.com/go-ocf/sdk/local/core"
+	"github.com/plgd-dev/kit/security/generateCertificate"
+	"github.com/plgd-dev/sdk/local/core"
 )
 
 func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, error) {

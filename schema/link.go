@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	kitNet "github.com/go-ocf/kit/net"
-	kitStrings "github.com/go-ocf/kit/strings"
+	kitNet "github.com/plgd-dev/kit/net"
+	kitStrings "github.com/plgd-dev/kit/strings"
 )
 
 // ResourceLink provides a link for retrieving details for its resource types:

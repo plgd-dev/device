@@ -7,9 +7,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	ocf "github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/test"
+	ocf "github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/test"
 
 	"github.com/stretchr/testify/require"
 )

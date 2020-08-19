@@ -12,11 +12,11 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	ocfSigner "github.com/go-ocf/kit/security/signer"
-	ocf "github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/local/core/otm/manufacturer"
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/test"
+	ocfSigner "github.com/plgd-dev/kit/security/signer"
+	ocf "github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/test"
 )
 
 var TestDeviceName = "devsim-core-" + test.MustGetHostname()

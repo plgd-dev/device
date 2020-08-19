@@ -3,8 +3,8 @@ package local
 import (
 	"context"
 
-	codecOcf "github.com/go-ocf/kit/codec/ocf"
-	"github.com/go-ocf/sdk/local/core"
+	codecOcf "github.com/plgd-dev/kit/codec/ocf"
+	"github.com/plgd-dev/sdk/local/core"
 )
 
 func (c *Client) UpdateResource(

@@ -5,11 +5,11 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/go-ocf/sdk/local/core"
-	"github.com/go-ocf/sdk/schema/cloud"
+	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/schema/cloud"
 
-	"github.com/go-ocf/sdk/schema"
-	"github.com/go-ocf/sdk/schema/acl"
+	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/schema/acl"
 )
 
 func setACLForCloudResources(ctx context.Context, p *core.ProvisioningClient, links schema.ResourceLinks) error {
