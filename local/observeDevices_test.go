@@ -43,16 +43,11 @@ func TestObserveDevices(t *testing.T) {
 	h := makeTestDevicesObservationHandler()
 	ID, err := c.ObserveDevices(ctx, h)
 	require.NoError(t, err)
-	defer func() {
-		err := c.StopObservingDevices(ctx, ID)
-		require.NoError(t, err)
-	}()
 
 	waitForDevicesObservationEvent(ctx, t, h.devs, local.DevicesObservationEvent{
 		DeviceID: deviceID,
 		Event:    local.DevicesObservationEvent_ONLINE,
 	})
-
 	/* TODO: add support for reboot to iotivity-lite
 	err = c.Reboot(ctx, deviceID)
 	require.NoError(t, err)
@@ -66,6 +61,22 @@ func TestObserveDevices(t *testing.T) {
 		Event:    local.DevicesObservationEvent_ONLINE,
 	})
 	*/
+LOOP:
+	for {
+		select {
+		case <-h.devs:
+		default:
+			break LOOP
+		}
+	}
+
+	err = c.StopObservingDevices(ctx, ID)
+	require.NoError(t, err)
+	select {
+	case <-h.devs:
+		require.NoError(t, fmt.Errorf("unexpected event"))
+	default:
+	}
 }
 
 func makeTestDevicesObservationHandler() *testDevicesObservationHandler {
@@ -87,5 +98,5 @@ func (h *testDevicesObservationHandler) Error(err error) {
 }
 
 func (h *testDevicesObservationHandler) OnClose() {
-	fmt.Println("device resources observation was closed")
+	fmt.Println("devices observation was closed")
 }

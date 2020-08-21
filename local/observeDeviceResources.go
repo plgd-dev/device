@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/sdk/schema"
 	"github.com/gofrs/uuid"
+	"github.com/plgd-dev/sdk/schema"
 )
 
 type DeviceResourcesObservationEvent_type uint8
@@ -62,16 +62,16 @@ func (o *deviceResourcesObserver) poll(ctx context.Context) bool {
 	pollCtx, cancel := context.WithTimeout(ctx, o.interval)
 	defer cancel()
 	newLinks, err := o.observe(pollCtx)
-	if err != nil {
-		o.handler.Error(err)
-		return false
-	}
-	o.links = newLinks
 	select {
 	case <-ctx.Done():
 		o.handler.OnClose()
 		return false
 	case <-pollCtx.Done():
+		if err != nil {
+			o.handler.Error(err)
+			return false
+		}
+		o.links = newLinks
 		return true
 	}
 }
