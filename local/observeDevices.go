@@ -5,9 +5,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
-	"github.com/gofrs/uuid"
 )
 
 type DevicesObservationEvent_type uint8
@@ -61,16 +61,16 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 	pollCtx, cancel := context.WithTimeout(ctx, o.interval)
 	defer cancel()
 	newDeviceIDs, err := o.observe(pollCtx)
-	if err != nil {
-		o.handler.Error(err)
-		return false
-	}
-	o.deviceIDs = newDeviceIDs
 	select {
 	case <-ctx.Done():
 		o.handler.OnClose()
 		return false
 	default:
+		if err != nil {
+			o.handler.Error(err)
+			return false
+		}
+		o.deviceIDs = newDeviceIDs
 		return true
 	}
 }
@@ -129,6 +129,9 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 	newDevices := listDeviceIds{err: o.handler.Error, devices: &sync.Map{}}
 	err := o.c.GetDevicesWithHandler(ctx, &newDevices)
 	if err != nil {
+		return nil, err
+	}
+	if ctx.Err() == context.Canceled {
 		return nil, err
 	}
 

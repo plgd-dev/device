@@ -26,9 +26,6 @@ func TestObserveDeviceResources(t *testing.T) {
 	defer cancel()
 	ID, err := c.ObserveDeviceResources(ctx, deviceID, h)
 	require.NoError(t, err)
-	defer func() {
-		c.StopObservingDeviceResources(ctx, ID)
-	}()
 
 LOOP:
 	for {
@@ -54,6 +51,23 @@ LOOP:
 			require.NoError(t, fmt.Errorf("timeout"))
 			break LOOP
 		}
+	}
+
+LOOP1:
+	for {
+		select {
+		case <-h.res:
+		default:
+			break LOOP1
+		}
+	}
+
+	err = c.StopObservingDeviceResources(ctx, ID)
+	require.NoError(t, err)
+	select {
+	case <-h.res:
+		require.NoError(t, fmt.Errorf("unexpected event"))
+	default:
 	}
 }
 
