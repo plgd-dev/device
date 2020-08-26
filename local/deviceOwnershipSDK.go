@@ -9,24 +9,26 @@ import (
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
 
+	"github.com/google/uuid"
+	"github.com/karrick/tparse/v2"
 	"github.com/plgd-dev/kit/security"
 	ocfSigner "github.com/plgd-dev/kit/security/signer"
-	"github.com/google/uuid"
 )
 
 type DeviceOwnershipSDKConfig struct {
 	ID         string
 	Cert       []byte
 	CertKey    []byte
+	ValidFrom  string //RFC3339, or now-1m, empty means now-1m
 	CertExpiry *string
 }
 
 type deviceOwnershipSDK struct {
-	sdkDeviceID         string
-	identitySigner      core.CertificateSigner
-	identityCertificate tls.Certificate
-	disableDTLS         bool
-	app                 ApplicationCallback
+	sdkDeviceID          string
+	createIdentitySigner func() (core.CertificateSigner, error)
+	identityCertificate  tls.Certificate
+	disableDTLS          bool
+	app                  ApplicationCallback
 }
 
 func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnershipSDKConfig, disableDTLS bool) (*deviceOwnershipSDK, error) {
@@ -46,19 +48,35 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnersh
 	if err != nil {
 		return nil, fmt.Errorf("invalid ID for device ownership SDK: %w", err)
 	}
-	return NewDeviceOwnershipSDK(app, uid.String(), &signerCert, certExpiry, disableDTLS)
+
+	return NewDeviceOwnershipSDK(app, uid.String(), &signerCert, cfg.ValidFrom, certExpiry, disableDTLS)
 }
 
-func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCert *tls.Certificate, certExpiry time.Duration, disableDTLS bool) (*deviceOwnershipSDK, error) {
+func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, disableDTLS bool) (*deviceOwnershipSDK, error) {
+	if validFrom == "" {
+		validFrom = "now-1m"
+	}
+	_, err := tparse.ParseNow(time.RFC3339, validFrom)
+	if err != nil {
+		return nil, fmt.Errorf("invalid validFrom(%v) for device ownership SDK: %w", validFrom, err)
+	}
+
 	signerCAs, err := security.ParseX509Certificates(signerCert)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse signer certificates")
 	}
 	return &deviceOwnershipSDK{
-		sdkDeviceID:    sdkDeviceID,
-		identitySigner: ocfSigner.NewIdentityCertificateSigner(signerCAs, signerCert.PrivateKey, certExpiry),
-		disableDTLS:    disableDTLS,
-		app:            app,
+		sdkDeviceID: sdkDeviceID,
+		createIdentitySigner: func() (core.CertificateSigner, error) {
+			notBefore, err := tparse.ParseNow(time.RFC3339, validFrom)
+			if err != nil {
+				return nil, fmt.Errorf("invalid validFrom(%v): %w", validFrom, err)
+			}
+			notAfter := notBefore.Add(certExpiry)
+			return ocfSigner.NewIdentityCertificateSigner(signerCAs, signerCert.PrivateKey, notBefore, notAfter), nil
+		},
+		disableDTLS: disableDTLS,
+		app:         app,
 	}, nil
 }
 
@@ -89,7 +107,11 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 }
 
 func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
-	otm, err := getOTMManufacturer(o.app, o.disableDTLS, o.identitySigner)
+	signer, err := o.createIdentitySigner()
+	if err != nil {
+		return err
+	}
+	otm, err := getOTMManufacturer(o.app, o.disableDTLS, signer)
 	if err != nil {
 		return err
 	}
@@ -97,7 +119,11 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own
 }
 
 func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
-	cert, err := GenerateSDKIdentityCertificate(ctx, o.identitySigner, o.sdkDeviceID)
+	signer, err := o.createIdentitySigner()
+	if err != nil {
+		return err
+	}
+	cert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
 	o.identityCertificate = cert
 	return err
 }

@@ -85,8 +85,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	if err != nil {
 		return nil, err
 	}
-
-	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, time.Hour*86400)
+	notBefore := time.Now()
+	notAfter := notBefore.Add(time.Hour * 86400)
+	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter)
 
 	var manOpts []manufacturer.OptionFunc
 	if disableDTLS {
