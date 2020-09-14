@@ -32,6 +32,12 @@ func init() {
 		},
 
 		{
+			Href:          "/oic/res",
+			ResourceTypes: []string{"oic.wk.res"},
+			Interfaces:    []string{"oic.if.ll", "oic.if.b", "oic.if.baseline"},
+		},
+
+		{
 			Href:          "/oc/con",
 			ResourceTypes: []string{"oic.wk.con"},
 			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
@@ -72,37 +78,47 @@ func init() {
 		schema.ResourceLink{
 			Href:          "/oic/sec/sp",
 			ResourceTypes: []string{"oic.r.sp"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/roles",
 			ResourceTypes: []string{"oic.r.roles"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/pstat",
 			ResourceTypes: []string{"oic.r.pstat"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/doxm",
 			ResourceTypes: []string{"oic.r.doxm"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/csr",
 			ResourceTypes: []string{"oic.r.csr"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/cred",
 			ResourceTypes: []string{"oic.r.cred"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
 			Href:          "/oic/sec/acl2",
 			ResourceTypes: []string{"oic.r.acl2"},
-			Interfaces:    []string{"oic.if.baseline"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+		},
+		schema.ResourceLink{
+			Href:          "/oic/sec/ael",
+			ResourceTypes: []string{"oic.r.ael"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+		},
+		schema.ResourceLink{
+			Href:          "/oic/sec/sdi",
+			ResourceTypes: []string{"oic.r.sdi"},
+			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 	}
 
