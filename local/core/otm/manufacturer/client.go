@@ -1,7 +1,6 @@
 package manufacturer
 
 import (
-	"bytes"
 	"context"
 	"crypto/tls"
 	"crypto/x509"
@@ -11,6 +10,7 @@ import (
 	"github.com/pion/dtls/v2"
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	kitSecurity "github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -126,7 +126,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("cannot sign csr for setup device owner credentials: %w", err)
 	}
 
-	certsFromChain, err := readCertificateChain(signedCsr)
+	certsFromChain, err := kitSecurity.ParseX509FromPEM(signedCsr)
 	if err != nil {
 		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
 	}
@@ -167,77 +167,36 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("cannot set device identity credentials: %w", err)
 	}
 
-	for _, ca := range c.trustedCAs {
-		setCaCredential := schema.CredentialUpdateRequest{
-			ResourceOwner: ownerID,
-			Credentials: []schema.Credential{
-				schema.Credential{
-					Subject: ownerID,
-					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: &schema.CredentialPublicData{
-						DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
-						Encoding:     schema.CredentialPublicDataEncoding_PEM,
-					},
-				},
-				schema.Credential{
-					Subject: ownerID,
-					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: &schema.CredentialPublicData{
-						DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[0].Raw})),
-						Encoding:     schema.CredentialPublicDataEncoding_PEM,
-					},
+	setCaCredential := schema.CredentialUpdateRequest{
+		ResourceOwner: ownerID,
+		Credentials: []schema.Credential{
+			schema.Credential{
+				Subject: ownerID,
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_TRUST_CA,
+				PublicData: &schema.CredentialPublicData{
+					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
+					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
-		}
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
-		if err != nil {
-			return fmt.Errorf("cannot set device CA credentials: %w", err)
-		}
+			schema.Credential{
+				Subject: ownerID,
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_TRUST_CA,
+				PublicData: &schema.CredentialPublicData{
+					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[0].Raw})),
+					Encoding:     schema.CredentialPublicDataEncoding_PEM,
+				},
+			},
+		},
 	}
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
+	if err != nil {
+		return fmt.Errorf("cannot set device CA credentials: %w", err)
+	}
+
 	return nil
 }
-
-// readCertificateChain parses PEM encoded bytes that can contain one or
-// multiple certificates and returns a slice of x509.Certificate.
-func readCertificateChain(certificateChainBytes []byte) ([]*x509.Certificate, error) {
-	// build the certificate chain next
-	var certificateBlock *pem.Block
-	var remainingBytes []byte = bytes.TrimSpace(certificateChainBytes)
-	var certificateChain [][]byte
-
-	for {
-		certificateBlock, remainingBytes = pem.Decode(remainingBytes)
-		if certificateBlock == nil || certificateBlock.Type != pemBlockCertificate {
-			return nil, fmt.Errorf("no PEM data found")
-		}
-		certificateChain = append(certificateChain, certificateBlock.Bytes)
-
-		if len(remainingBytes) == 0 {
-			break
-		}
-	}
-
-	// build a concatenated certificate chain
-	var buf bytes.Buffer
-	for _, cc := range certificateChain {
-		_, err := buf.Write(cc)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// parse the chain and get a slice of x509.Certificates.
-	x509Chain, err := x509.ParseCertificates(buf.Bytes())
-	if err != nil {
-		return nil, err
-	}
-
-	return x509Chain, nil
-}
-
-const pemBlockCertificate = "CERTIFICATE"
 
 /*
 func (c *Client) SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
