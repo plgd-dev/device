@@ -175,15 +175,6 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
 				PublicData: &schema.CredentialPublicData{
-					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
-					Encoding:     schema.CredentialPublicDataEncoding_PEM,
-				},
-			},
-			schema.Credential{
-				Subject: ownerID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_TRUST_CA,
-				PublicData: &schema.CredentialPublicData{
 					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[0].Raw})),
 					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
