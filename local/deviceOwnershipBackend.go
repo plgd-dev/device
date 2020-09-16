@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"net/url"
 
@@ -23,6 +24,7 @@ type deviceOwnershipBackend struct {
 	caClient            pb.CertificateAuthorityClient
 	caConn              *grpc.ClientConn
 	identityCertificate tls.Certificate
+	identityCACert      *x509.Certificate
 	authCodeURL         string
 	accessTokenURL      string
 	jwtClaimOwnerID     string
@@ -120,11 +122,14 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	deviceID := uuid.NewV5(uuid.NamespaceURL, ownerStr)
 
 	signer := caSigner.NewIdentityCertificateSigner(o.caClient)
-	cert, err := GenerateSDKIdentityCertificate(ctx, signer, deviceID.String())
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, deviceID.String())
 	if err != nil {
 		return err
 	}
+
 	o.identityCertificate = cert
+	o.identityCACert = caCert
+
 	return nil
 }
 

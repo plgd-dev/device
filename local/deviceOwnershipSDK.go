@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -27,6 +28,7 @@ type deviceOwnershipSDK struct {
 	sdkDeviceID          string
 	createIdentitySigner func() (core.CertificateSigner, error)
 	identityCertificate  tls.Certificate
+	identityCACert       *x509.Certificate
 	disableDTLS          bool
 	app                  ApplicationCallback
 }
@@ -123,8 +125,9 @@ func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
 	o.identityCertificate = cert
+	o.identityCACert = caCert
 	return err
 }
 
