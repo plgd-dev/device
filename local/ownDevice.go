@@ -2,7 +2,6 @@ package local
 
 import (
 	"context"
-	"crypto/x509"
 	"fmt"
 
 	"github.com/plgd-dev/sdk/local/core"
@@ -50,7 +49,7 @@ func setACLForCloudResources(ctx context.Context, p *core.ProvisioningClient, li
 	return p.UpdateResource(ctx, link, obACL, nil)
 }
 
-func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.ResourceLinks, certAuthorities []*x509.Certificate) (rerr error) {
+func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.ResourceLinks) (rerr error) {
 	p, err := d.Provision(ctx, links)
 	if err != nil {
 		return err
@@ -106,17 +105,12 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 		return nil
 	}
 
-	certAuthorities, err := c.app.GetRootCertificateAuthorities()
-	if err != nil {
-		return err
-	}
-
 	err = d.Own(ctx, links, otmClient, opts...)
 	if err != nil {
 		return err
 	}
 
-	err = configureDeviceInProvsion(ctx, d, links, certAuthorities)
+	err = configureDeviceInProvsion(ctx, d, links)
 	if err != nil {
 		d.Disown(ctx, links)
 		return err

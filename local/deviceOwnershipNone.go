@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/plgd-dev/sdk/local/core"
@@ -48,4 +49,8 @@ func (o *deviceOwnershipNone) GetAccessTokenURL(ctx context.Context) (string, er
 
 func (o *deviceOwnershipNone) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
 	return "", fmt.Errorf("not supported")
+}
+
+func (o *deviceOwnershipNone) GetIdentityCACerts() ([]*x509.Certificate, error) {
+	return nil, fmt.Errorf("not supported")
 }

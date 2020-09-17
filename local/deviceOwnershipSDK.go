@@ -3,6 +3,7 @@ package local
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"time"
 
@@ -27,6 +28,7 @@ type deviceOwnershipSDK struct {
 	sdkDeviceID          string
 	createIdentitySigner func() (core.CertificateSigner, error)
 	identityCertificate  tls.Certificate
+	identityCACert       *x509.Certificate
 	disableDTLS          bool
 	app                  ApplicationCallback
 }
@@ -85,10 +87,6 @@ func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
 }
 
 func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.CertificateSigner) (core.OTMClient, error) {
-	certAuthorities, err := app.GetRootCertificateAuthorities()
-	if err != nil {
-		return nil, err
-	}
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -103,7 +101,7 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 		mfgOpts = append(mfgOpts, manufacturer.WithoutDTLS())
 	}
 
-	return manufacturer.NewClient(mfgCert, mfgCA, signer, certAuthorities, mfgOpts...), nil
+	return manufacturer.NewClient(mfgCert, mfgCA, signer, mfgOpts...), nil
 }
 
 func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
@@ -123,8 +121,9 @@ func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
 	o.identityCertificate = cert
+	o.identityCACert = caCert
 	return err
 }
 
@@ -133,6 +132,13 @@ func (o *deviceOwnershipSDK) GetIdentityCertificate() (tls.Certificate, error) {
 		return tls.Certificate{}, fmt.Errorf("client is not initialized")
 	}
 	return o.identityCertificate, nil
+}
+
+func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
+	if o.identityCACert == nil {
+		return nil, fmt.Errorf("client is not initialized")
+	}
+	return []*x509.Certificate{o.identityCACert}, nil
 }
 
 func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {

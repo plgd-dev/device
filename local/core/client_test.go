@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/plgd-dev/kit/security"
 	ocfSigner "github.com/plgd-dev/kit/security/signer"
 	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
@@ -51,20 +52,13 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	if err != nil {
 		return nil, err
 	}
-	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-	if mfgTrustedCABlock == nil {
-		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
-	}
-	mfgCa, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+
+	mfgCa, err := security.ParseX509FromPEM(MfgTrustedCA)
 	if err != nil {
 		return nil, err
 	}
 
-	identityIntermediateCABlock, _ := pem.Decode(IdentityIntermediateCA)
-	if identityIntermediateCABlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
-	}
-	identityIntermediateCA, err := x509.ParseCertificates(identityIntermediateCABlock.Bytes)
+	identityIntermediateCA, err := security.ParseX509FromPEM(IdentityIntermediateCA)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +71,6 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		return nil, err
 	}
 
-	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
-	if identityTrustedCABlock == nil {
-		return nil, fmt.Errorf("identityTrustedCABlock is empty")
-	}
-	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
 	notBefore := time.Now()
 	notAfter := notBefore.Add(time.Hour * 86400)
 	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter)
@@ -97,7 +83,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		manOpts = append(manOpts, manufacturer.WithoutTCPTLS())
 	}
 
-	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, identityTrustedCA, manOpts...)
+	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, manOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +100,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 			return cert, nil
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
-			cas := identityTrustedCA
-			cas = append(cas, mfgCa...)
-			return cas, nil
-		}}))
+			return identityIntermediateCA, nil
+		}}),
+	)
 
 	c := ocf.NewClient(opts...)
 
@@ -292,6 +277,16 @@ AwEHA0IABKw1/6WHFcWtw67hH5DzoZvHgA0suC6IYLKms4IP/pds9wU320eDaENo
 HSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8ECDAGAQH/AgEAMAsGA1UdEQQEMAKC
 ADAKBggqhkjOPQQDAgNIADBFAiEAgPtnYpgwxmPhN0Mo8VX582RORnhcdSHMzFjh
 P/li1WwCIFVVWBOrfBnTt7A6UfjP3ljAyHrJERlMauQR+tkD/aqm
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIBaDCCAQ6gAwIBAgIRANpzWRKheR25RH0CgYYwLzQwCgYIKoZIzj0EAwIwETEP
+MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTEzMTA1M1oYDzIxMTkwNjI1MTMxMDUz
+WjARMQ8wDQYDVQQDEwZSb290Q0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASQ
+TLfEiNgEfqyWmtW1RV9UKgxsMddrNlYFt/+ZpqaJpBQ+hvtGwJenLEv5jzeEcMXr
+gOR4EwjjJSzELk6IibC+o0UwQzAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYI
+KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zALBgNVHREEBDACggAwCgYIKoZIzj0E
+AwIDSAAwRQIhAOUfsOKyjIgYmDd2G46ge+PEPAZ9DS67Q5RjJvLk/lf3AiA6yMxJ
+msmj2nz8VeEkxpKq3gYwJUdJ9jMklTzP+Dcenw==
 -----END CERTIFICATE-----
 `)
 	IdentityIntermediateCAKey = []byte(`-----BEGIN EC PRIVATE KEY-----

@@ -10,34 +10,41 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	kitSecurity "github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/kit/security/generateCertificate"
 	"github.com/plgd-dev/sdk/local/core"
 )
 
-func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, error) {
+func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, *x509.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("cannot generate private key: %w", err)
+		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
 	}
 	csr, err := generateCertificate.GenerateIdentityCSR(generateCertificate.Configuration{}, sdkDeviceID, priv)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("cannot generate identity csr: %w", err)
+		return tls.Certificate{}, nil, fmt.Errorf("cannot generate identity csr: %w", err)
 	}
 	cert, err := signer.Sign(ctx, csr)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("cannot sign csr: %w", err)
+		return tls.Certificate{}, nil, fmt.Errorf("cannot sign csr: %w", err)
 	}
 	derKey, err := x509.MarshalECPrivateKey(priv)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("cannot marhsal private key: %w", err)
+		return tls.Certificate{}, nil, fmt.Errorf("cannot marhsal private key: %w", err)
 	}
 	key := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: derKey})
 
 	tlsCert, err := tls.X509KeyPair(cert, key)
 	if err != nil {
-		return tls.Certificate{}, fmt.Errorf("cannot create tls certificate: %w", err)
+		return tls.Certificate{}, nil, fmt.Errorf("cannot create tls certificate: %w", err)
 	}
-	return tlsCert, nil
+
+	certsFromChain, err := kitSecurity.ParseX509FromPEM(cert)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot parse cert chain: %w", err)
+	}
+
+	return tlsCert, certsFromChain[len(certsFromChain)-1], nil
 }
 
 func (c *Client) Initialization(ctx context.Context) (err error) {
@@ -47,6 +54,10 @@ func (c *Client) Initialization(ctx context.Context) (err error) {
 // GetIdentityCertificate returns certificate for connection
 func (c *Client) GetIdentityCertificate() (tls.Certificate, error) {
 	return c.deviceOwner.GetIdentityCertificate()
+}
+
+func (c *Client) GetIdentityCACerts() ([]*x509.Certificate, error) {
+	return c.deviceOwner.GetIdentityCACerts()
 }
 
 // GetAccessTokenURL returns access token url.

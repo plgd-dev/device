@@ -69,24 +69,6 @@ func NewTestSecureClient() (*local.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	identityIntermediateCABlock, _ := pem.Decode(IdentityIntermediateCA)
-	if identityIntermediateCABlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
-	}
-	identityIntermediateCAKeyBlock, _ := pem.Decode(IdentityIntermediateCAKey)
-	if identityIntermediateCAKeyBlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
-	}
-
-	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
-	if identityTrustedCABlock == nil {
-		return nil, fmt.Errorf("identityTrustedCABlock is empty")
-	}
-	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse cert: %w", err)
-	}
 	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
@@ -103,7 +85,6 @@ func NewTestSecureClient() (*local.Client, error) {
 	client, err := local.NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-		ca:      append(identityTrustedCA),
 	}, func(err error) { fmt.Print(err) },
 	)
 	if err != nil {
@@ -177,7 +158,8 @@ AwEHoUQDQgAEkEy3xIjYBH6slprVtUVfVCoMbDHXazZWBbf/maamiaQUPob7RsCX
 pyxL+Y83hHDF64DkeBMI4yUsxC5OiImwvg==
 -----END EC PRIVATE KEY-----
 `)
-	IdentityIntermediateCA = []byte(`-----BEGIN CERTIFICATE-----
+	IdentityIntermediateCA = []byte(`
+-----BEGIN CERTIFICATE-----
 MIIBczCCARmgAwIBAgIRANntjEpzu9krzL0EG6fcqqgwCgYIKoZIzj0EAwIwETEP
 MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTIwMzczOVoYDzIxMTkwNjI1MjAzNzM5
 WjAZMRcwFQYDVQQDEw5JbnRlcm1lZGlhdGVDQTBZMBMGByqGSM49AgEGCCqGSM49
@@ -186,6 +168,16 @@ AwEHA0IABKw1/6WHFcWtw67hH5DzoZvHgA0suC6IYLKms4IP/pds9wU320eDaENo
 HSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8ECDAGAQH/AgEAMAsGA1UdEQQEMAKC
 ADAKBggqhkjOPQQDAgNIADBFAiEAgPtnYpgwxmPhN0Mo8VX582RORnhcdSHMzFjh
 P/li1WwCIFVVWBOrfBnTt7A6UfjP3ljAyHrJERlMauQR+tkD/aqm
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIBaDCCAQ6gAwIBAgIRANpzWRKheR25RH0CgYYwLzQwCgYIKoZIzj0EAwIwETEP
+MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTEzMTA1M1oYDzIxMTkwNjI1MTMxMDUz
+WjARMQ8wDQYDVQQDEwZSb290Q0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASQ
+TLfEiNgEfqyWmtW1RV9UKgxsMddrNlYFt/+ZpqaJpBQ+hvtGwJenLEv5jzeEcMXr
+gOR4EwjjJSzELk6IibC+o0UwQzAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYI
+KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zALBgNVHREEBDACggAwCgYIKoZIzj0E
+AwIDSAAwRQIhAOUfsOKyjIgYmDd2G46ge+PEPAZ9DS67Q5RjJvLk/lf3AiA6yMxJ
+msmj2nz8VeEkxpKq3gYwJUdJ9jMklTzP+Dcenw==
 -----END CERTIFICATE-----
 `)
 	IdentityIntermediateCAKey = []byte(`-----BEGIN EC PRIVATE KEY-----

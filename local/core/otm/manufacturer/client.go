@@ -7,10 +7,11 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/pion/dtls/v2"
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
+	kitSecurity "github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/schema"
-	"github.com/pion/dtls/v2"
 )
 
 type CertificateSigner = interface {
@@ -24,8 +25,7 @@ type Client struct {
 	disableDTLS             bool
 	disableTCPTLS           bool
 
-	signer     CertificateSigner
-	trustedCAs []*x509.Certificate
+	signer CertificateSigner
 }
 
 type OptionFunc func(Client) Client
@@ -48,14 +48,12 @@ func NewClient(
 	manufacturerCertificate tls.Certificate,
 	manufacturerCA []*x509.Certificate,
 	signer CertificateSigner,
-	trustedCAs []*x509.Certificate,
 	opts ...OptionFunc,
 ) *Client {
 	c := Client{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
-		trustedCAs:              trustedCAs,
 	}
 	for _, o := range opts {
 		c = o(c)
@@ -125,6 +123,11 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("cannot sign csr for setup device owner credentials: %w", err)
 	}
 
+	certsFromChain, err := kitSecurity.ParseX509FromPEM(signedCsr)
+	if err != nil {
+		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
+	}
+
 	var deviceCredential schema.CredentialResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
 	if err != nil {
@@ -154,6 +157,15 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
+			schema.Credential{
+				Subject: ownerID,
+				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   schema.CredentialUsage_TRUST_CA,
+				PublicData: &schema.CredentialPublicData{
+					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[len(certsFromChain)-1].Raw})),
+					Encoding:     schema.CredentialPublicDataEncoding_PEM,
+				},
+			},
 		},
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
@@ -161,26 +173,6 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("cannot set device identity credentials: %w", err)
 	}
 
-	for _, ca := range c.trustedCAs {
-		setCaCredential := schema.CredentialUpdateRequest{
-			ResourceOwner: ownerID,
-			Credentials: []schema.Credential{
-				schema.Credential{
-					Subject: ownerID,
-					Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-					Usage:   schema.CredentialUsage_TRUST_CA,
-					PublicData: &schema.CredentialPublicData{
-						DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: ca.Raw})),
-						Encoding:     schema.CredentialPublicDataEncoding_PEM,
-					},
-				},
-			},
-		}
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
-		if err != nil {
-			return fmt.Errorf("cannot set device CA credentials: %w", err)
-		}
-	}
 	return nil
 }
 
