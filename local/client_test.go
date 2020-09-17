@@ -69,24 +69,6 @@ func NewTestSecureClient() (*local.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	/*
-		identityIntermediateCABlock, _ := pem.Decode(IdentityIntermediateCA)
-		if identityIntermediateCABlock == nil {
-			return nil, fmt.Errorf("identityIntermediateCABlock is empty")
-		}
-		identityIntermediateCAKeyBlock, _ := pem.Decode(IdentityIntermediateCAKey)
-		if identityIntermediateCAKeyBlock == nil {
-			return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
-		}
-	*/
-	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
-	if identityTrustedCABlock == nil {
-		return nil, fmt.Errorf("identityTrustedCABlock is empty")
-	}
-	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse cert: %w", err)
-	}
 	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 	if err != nil {
 		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
@@ -103,7 +85,6 @@ func NewTestSecureClient() (*local.Client, error) {
 	client, err := local.NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-		ca:      append(identityTrustedCA),
 	}, func(err error) { fmt.Print(err) },
 	)
 	if err != nil {
