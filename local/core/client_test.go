@@ -12,6 +12,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/plgd-dev/kit/security"
 	ocfSigner "github.com/plgd-dev/kit/security/signer"
 	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
@@ -51,20 +52,13 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	if err != nil {
 		return nil, err
 	}
-	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-	if mfgTrustedCABlock == nil {
-		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
-	}
-	mfgCa, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+
+	mfgCa, err := security.ParseX509FromPEM(MfgTrustedCA)
 	if err != nil {
 		return nil, err
 	}
 
-	identityIntermediateCABlock, _ := pem.Decode(IdentityIntermediateCA)
-	if identityIntermediateCABlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCABlock is empty")
-	}
-	identityIntermediateCA, err := x509.ParseCertificates(identityIntermediateCABlock.Bytes)
+	identityIntermediateCA, err := security.ParseX509FromPEM(IdentityIntermediateCA)
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +71,6 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		return nil, err
 	}
 
-	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
-	if identityTrustedCABlock == nil {
-		return nil, fmt.Errorf("identityTrustedCABlock is empty")
-	}
-	identityTrustedCA, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
 	notBefore := time.Now()
 	notAfter := notBefore.Add(time.Hour * 86400)
 	signer := ocfSigner.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter)
@@ -97,7 +83,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		manOpts = append(manOpts, manufacturer.WithoutTCPTLS())
 	}
 
-	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, identityTrustedCA, manOpts...)
+	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, manOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +100,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 			return cert, nil
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
-			cas := identityTrustedCA
-			cas = append(cas, mfgCa...)
-			return cas, nil
-		}}))
+			return nil, fmt.Errorf("not supported")
+		}}),
+	)
 
 	c := ocf.NewClient(opts...)
 

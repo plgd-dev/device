@@ -152,9 +152,7 @@ func (o *deviceOwnershipBackend) GetIdentityCACerts() ([]*x509.Certificate, erro
 	if o.identityCACert == nil {
 		return nil, fmt.Errorf("client is not initialized")
 	}
-	var crts []*x509.Certificate
-	crts[0] = o.identityCACert
-	return crts, nil
+	return []*x509.Certificate{o.identityCACert}, nil
 }
 
 func (o *deviceOwnershipBackend) GetAccessTokenURL(ctx context.Context) (string, error) {

@@ -25,8 +25,7 @@ type Client struct {
 	disableDTLS             bool
 	disableTCPTLS           bool
 
-	signer     CertificateSigner
-	trustedCAs []*x509.Certificate
+	signer CertificateSigner
 }
 
 type OptionFunc func(Client) Client
@@ -49,14 +48,12 @@ func NewClient(
 	manufacturerCertificate tls.Certificate,
 	manufacturerCA []*x509.Certificate,
 	signer CertificateSigner,
-	trustedCAs []*x509.Certificate,
 	opts ...OptionFunc,
 ) *Client {
 	c := Client{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
-		trustedCAs:              trustedCAs,
 	}
 	for _, o := range opts {
 		c = o(c)
@@ -160,30 +157,20 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
-		},
-	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
-	if err != nil {
-		return fmt.Errorf("cannot set device identity credentials: %w", err)
-	}
-
-	setCaCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: ownerID,
-		Credentials: []schema.Credential{
 			schema.Credential{
 				Subject: ownerID,
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
 				PublicData: &schema.CredentialPublicData{
-					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[0].Raw})),
+					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[len(certsFromChain)-1].Raw})),
 					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
 	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setCaCredential, nil)
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
 	if err != nil {
-		return fmt.Errorf("cannot set device CA credentials: %w", err)
+		return fmt.Errorf("cannot set device identity credentials: %w", err)
 	}
 
 	return nil

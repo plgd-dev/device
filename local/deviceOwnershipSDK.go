@@ -87,10 +87,6 @@ func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
 }
 
 func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.CertificateSigner) (core.OTMClient, error) {
-	certAuthorities, err := app.GetRootCertificateAuthorities()
-	if err != nil {
-		return nil, err
-	}
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -105,7 +101,7 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 		mfgOpts = append(mfgOpts, manufacturer.WithoutDTLS())
 	}
 
-	return manufacturer.NewClient(mfgCert, mfgCA, signer, certAuthorities, mfgOpts...), nil
+	return manufacturer.NewClient(mfgCert, mfgCA, signer, mfgOpts...), nil
 }
 
 func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
@@ -142,10 +138,7 @@ func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
 	if o.identityCACert == nil {
 		return nil, fmt.Errorf("client is not initialized")
 	}
-
-	var crts []*x509.Certificate
-	crts[0] = o.identityCACert
-	return crts, nil
+	return []*x509.Certificate{o.identityCACert}, nil
 }
 
 func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {

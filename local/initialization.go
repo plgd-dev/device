@@ -44,7 +44,7 @@ func GenerateSDKIdentityCertificate(ctx context.Context, signer core.Certificate
 		return tls.Certificate{}, nil, fmt.Errorf("cannot parse cert chain: %w", err)
 	}
 
-	return tlsCert, certsFromChain[0], nil
+	return tlsCert, certsFromChain[len(certsFromChain)-1], nil
 }
 
 func (c *Client) Initialization(ctx context.Context) (err error) {
