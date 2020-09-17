@@ -98,7 +98,7 @@ func NewClient(
 	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
-		GetCertificateAuthorities: app.GetRootCertificateAuthorities,
+		GetCertificateAuthorities: deviceOwner.GetIdentityCACerts,
 	}
 	opt = append(
 		[]core.OptionFunc{
@@ -111,7 +111,8 @@ func NewClient(
 	}
 	oc := core.NewClient(opt...)
 	client := Client{
-		client:                  oc,
+		client: oc,
+
 		app:                     app,
 		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
 		observeDeviceCache:      make(map[string]*RefDevice),
@@ -132,6 +133,7 @@ type DeviceOwner interface {
 	GetAccessTokenURL(ctx context.Context) (string, error)
 	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)
 	GetIdentityCertificate() (tls.Certificate, error)
+	GetIdentityCACerts() ([]*x509.Certificate, error)
 	Close(ctx context.Context) error
 }
 

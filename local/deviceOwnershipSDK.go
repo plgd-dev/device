@@ -138,6 +138,16 @@ func (o *deviceOwnershipSDK) GetIdentityCertificate() (tls.Certificate, error) {
 	return o.identityCertificate, nil
 }
 
+func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
+	if o.identityCACert == nil {
+		return nil, fmt.Errorf("client is not initialized")
+	}
+
+	var crts []*x509.Certificate
+	crts[0] = o.identityCACert
+	return crts, nil
+}
+
 func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {
 	return "", fmt.Errorf("not supported")
 }

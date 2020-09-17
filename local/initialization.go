@@ -56,6 +56,10 @@ func (c *Client) GetIdentityCertificate() (tls.Certificate, error) {
 	return c.deviceOwner.GetIdentityCertificate()
 }
 
+func (c *Client) GetIdentityCACerts() ([]*x509.Certificate, error) {
+	return c.deviceOwner.GetIdentityCACerts()
+}
+
 // GetAccessTokenURL returns access token url.
 func (c *Client) GetAccessTokenURL(ctx context.Context) (string, error) {
 	return c.deviceOwner.GetAccessTokenURL(ctx)
