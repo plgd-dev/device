@@ -127,9 +127,6 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 	if err != nil {
 		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
 	}
-	if len(certsFromChain) < 2 {
-		return fmt.Errorf("invalid length of identity chain cert: %w", err)
-	}
 
 	var deviceCredential schema.CredentialResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
