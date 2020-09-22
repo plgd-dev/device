@@ -127,6 +127,9 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 	if err != nil {
 		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
 	}
+	if len(certsFromChain) < 2 {
+		return fmt.Errorf("invalid length of identity chain cert: %w", err)
+	}
 
 	identityCerts, err := kitSecurity.CreatePemChain(certsFromChain[1:len(certsFromChain)-1], certsFromChain[0].Raw)
 	if err != nil {
