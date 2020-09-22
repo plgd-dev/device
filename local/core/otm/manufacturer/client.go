@@ -128,6 +128,11 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
 	}
 
+	identityCerts, err := kitSecurity.CreatePemChain(certsFromChain[1:len(certsFromChain)-1], certsFromChain[0].Raw)
+	if err != nil {
+		return fmt.Errorf("cannot create identity pem chain: %w", err)
+	}
+
 	var deviceCredential schema.CredentialResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
 	if err != nil {
@@ -153,7 +158,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_CERT,
 				PublicData: &schema.CredentialPublicData{
-					DataInternal: string(signedCsr),
+					DataInternal: string(identityCerts),
 					Encoding:     schema.CredentialPublicDataEncoding_PEM,
 				},
 			},
