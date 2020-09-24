@@ -21,119 +21,119 @@ func (e SdkError) GetCode() codes.Code {
 	return e.errorCode
 }
 
-func NewCanceled(e error) *SdkError {
+func MakeCanceled(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Canceled,
 		wrappedError: e,
 	}
 }
 
-func NewUnknown(e error) *SdkError {
+func MakeUnknown(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Unknown,
 		wrappedError: e,
 	}
 }
 
-func NewInvalidArgument(e error) *SdkError {
+func MakeInvalidArgument(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.InvalidArgument,
 		wrappedError: e,
 	}
 }
 
-func NewDeadlineExceeded(e error) *SdkError {
+func MakeDeadlineExceeded(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.DeadlineExceeded,
 		wrappedError: e,
 	}
 }
 
-func NewNotFound(e error) *SdkError {
+func MakeNotFound(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.NotFound,
 		wrappedError: e,
 	}
 }
 
-func NewAlreadyExists(e error) *SdkError {
+func MakeAlreadyExists(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.AlreadyExists,
 		wrappedError: e,
 	}
 }
 
-func NewPermissionDenied(e error) *SdkError {
+func MakePermissionDenied(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.PermissionDenied,
 		wrappedError: e,
 	}
 }
 
-func NewResourceExhausted(e error) *SdkError {
+func MakeResourceExhausted(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.ResourceExhausted,
 		wrappedError: e,
 	}
 }
 
-func NewFailedPrecondition(e error) *SdkError {
+func MakeFailedPrecondition(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.FailedPrecondition,
 		wrappedError: e,
 	}
 }
 
-func NewAborted(e error) *SdkError {
+func MakeAborted(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Aborted,
 		wrappedError: e,
 	}
 }
 
-func NewOutOfRange(e error) *SdkError {
+func MakeOutOfRange(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.OutOfRange,
 		wrappedError: e,
 	}
 }
 
-func NewUnimplemented(e error) *SdkError {
+func MakeUnimplemented(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Unimplemented,
 		wrappedError: e,
 	}
 }
 
-func NewInternal(e error) *SdkError {
+func MakeInternal(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Internal,
 		wrappedError: e,
 	}
 }
 
-func NewInternalStr(str string, e error) *SdkError {
+func MakeInternalStr(str string, e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Internal,
 		wrappedError: fmt.Errorf(str, e),
 	}
 }
 
-func NewUnavailable(e error) *SdkError {
+func MakeUnavailable(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Unavailable,
 		wrappedError: e,
 	}
 }
 
-func NewDataLoss(e error) *SdkError {
+func MakeDataLoss(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.DataLoss,
 		wrappedError: e,
 	}
 }
 
-func NewUnauthenticated(e error) *SdkError {
+func MakeUnauthenticated(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Unauthenticated,
 		wrappedError: e,
