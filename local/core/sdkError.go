@@ -17,6 +17,10 @@ func (e *SdkError) Error() string {
 
 func (e *SdkError) Unwrap() error { return e.wrappedError }
 
+func (e *SdkError) GetCode() codes.Code {
+	return e.errorCode
+}
+
 func NewCanceled(e error) *SdkError {
 	return &SdkError{
 		errorCode:    codes.Canceled,
