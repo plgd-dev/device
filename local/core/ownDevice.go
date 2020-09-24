@@ -34,7 +34,7 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	/*doxm doesn't send any content for select OTM*/
 	err := tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return NewInternal(err)
+		return NewInternal(fmt.Errorf("cannot set device hackid as owner %w", err))
 	}
 
 	iotivityHackCredential := schema.CredentialUpdateRequest{
@@ -52,12 +52,12 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
 	if err != nil {
-		return NewInternal(err)
+		return NewInternal(fmt.Errorf("cannot set iotivity-hack credential: %w", err))
 	}
 
 	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialSubject(hackId))
 	if err != nil {
-		return NewInternal(err)
+		return NewInternal(fmt.Errorf("cannot delete iotivity-hack credential: %w", err))
 	}
 
 	return nil
@@ -165,7 +165,7 @@ func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferM
 		return err
 	}
 
-	return NewNotFound(err)
+	return NewNotFound(fmt.Errorf("device not found"))
 }
 
 func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod, links schema.ResourceLinks) error {
@@ -264,14 +264,14 @@ func (d *Device) Own(
 
 	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
-		return NewUnavailable(err)
+		return NewUnavailable(fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	if ownership.Owned {
 		if ownership.OwnerID == sdkID {
 			return nil
 		}
-		return NewAlreadyExists(nil)
+		return NewAlreadyExists(fmt.Errorf("device is already owned by %v", ownership.OwnerID))
 	}
 
 	//ownership := d.ownership
@@ -371,14 +371,14 @@ func (d *Device) Own(
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return NewUnavailable(err)
+		return NewUnavailable(fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	/*verify ownership*/
 	var verifyOwner schema.Doxm
 	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
-		return NewUnavailable(err)
+		return NewUnavailable(fmt.Errorf("cannot verify owner %w", err))
 	}
 	if verifyOwner.OwnerID != sdkID {
 		return NewInternal(err)
