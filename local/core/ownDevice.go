@@ -271,7 +271,7 @@ func (d *Device) Own(
 		if ownership.OwnerID == sdkID {
 			return nil
 		}
-		return MakeAlreadyExists(fmt.Errorf("device is already owned by %v", ownership.OwnerID))
+		return MakePermissionDenied(fmt.Errorf("device is already owned by %v", ownership.OwnerID))
 	}
 
 	//ownership := d.ownership
