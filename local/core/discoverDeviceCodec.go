@@ -16,7 +16,7 @@ func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.
 
 // Encode propagates the payload without any conversions.
 func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
-	return nil, fmt.Errorf("not supported")
+	return nil, MakeUnavailable(fmt.Errorf("not supported"))
 }
 
 func anchorToDeviceId(anchor string) string {
@@ -33,7 +33,7 @@ func decodeDiscoverDevices(msg *message.Message, resources *schema.ResourceLinks
 	var devices []deviceLink
 
 	if err := codec.Decode(msg, &devices); err != nil {
-		return fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err)
+		return MakeInternal(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err))
 	}
 	var resourceLinks schema.ResourceLinks
 	for _, device := range devices {
@@ -56,21 +56,21 @@ func decodeDiscoverDevices(msg *message.Message, resources *schema.ResourceLinks
 func (c DiscoverDeviceCodec) Decode(msg *message.Message, v interface{}) error {
 	resources, ok := v.(*schema.ResourceLinks)
 	if !ok {
-		return fmt.Errorf("invalid type %T", v)
+		return MakeInvalidArgument(fmt.Errorf("invalid type %T", v))
 	}
 	mt, err := msg.Options.ContentFormat()
 	if err != nil {
-		return fmt.Errorf("content format not found")
+		return MakeUnavailable(fmt.Errorf("content format not found"))
 	}
 	switch mt {
 	case message.AppOcfCbor:
 		codec := ocf.VNDOCFCBORCodec{}
 		if err := codec.Decode(msg, resources); err != nil {
-			return fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err)
+			return MakeInternal(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(msg), err))
 		}
 		return nil
 	case message.AppCBOR:
 		return decodeDiscoverDevices(msg, resources)
 	}
-	return fmt.Errorf("not a VNDOCFCBOR content format: %v", mt)
+	return MakeInternal(fmt.Errorf("not a VNDOCFCBOR content format: %v", mt))
 }

@@ -71,7 +71,7 @@ func (it *ResourceIterator) Next(ctx context.Context, v interface{}) bool {
 
 	err := it.device.GetResource(ctx, it.links[it.i], v)
 	if err != nil {
-		it.Err = fmt.Errorf("could not get a resource value for the device %s: %w", it.device.DeviceID(), err)
+		it.Err = MakeDataLoss(fmt.Errorf("could not get a resource value for the device %s: %w", it.device.DeviceID(), err))
 		return false
 	}
 

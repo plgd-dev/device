@@ -74,5 +74,5 @@ func (d *Device) GetOwnership(ctx context.Context) (schema.Doxm, error) {
 		return schema.Doxm{}, err
 	}
 
-	return schema.Doxm{}, fmt.Errorf("device not found")
+	return schema.Doxm{}, MakeUnavailable(fmt.Errorf("device  not found"))
 }

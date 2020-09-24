@@ -26,11 +26,11 @@ func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientClo
 func (d *Device) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoint, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	addr, client, err := d.connectToEndpoints(ctx, endpoints)
 	if err != nil {
-		return nil, fmt.Errorf("cannot get resource links for %v with endpoints %+v: %w", d.DeviceID(), endpoints, err)
+		return nil, MakeDataLoss(fmt.Errorf("cannot get resource links for %v with endpoints %+v: %w", d.DeviceID(), endpoints, err))
 	}
 	links, err := getResourceLinks(ctx, addr, client, options...)
 	if err != nil {
-		return links, fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err)
+		return links, MakeDataLoss(fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err))
 	}
 	return links, nil
 }
@@ -38,7 +38,7 @@ func (d *Device) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoi
 func GetResourceLink(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 	link, ok := links.GetResourceLink(href)
 	if !ok {
-		return link, fmt.Errorf("resource \"%v\" not found", href)
+		return link, MakeUnavailable(fmt.Errorf("resource \"%v\" not found", href))
 	}
 	return link, nil
 }

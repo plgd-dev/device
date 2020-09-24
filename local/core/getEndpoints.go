@@ -36,7 +36,7 @@ func (d *Device) findBestClient() (net.Addr, *coap.ClientCloseHandler, error) {
 		}
 	}
 	if client == nil {
-		return addr, nil, fmt.Errorf("cannot find connection to device")
+		return addr, nil, MakeInternal(fmt.Errorf("cannot find connection to device"))
 	}
 	return addr, client, nil
 }
@@ -94,11 +94,11 @@ func (d *Device) GetEndpoints(ctx context.Context) ([]schema.Endpoint, error) {
 	if err == nil {
 		links, err := getResourceLinks(ctx, addr, client, coap.WithResourceType(schema.DeviceResourceType))
 		if err != nil {
-			return nil, fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err)
+			return nil, MakeDataLoss(fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err))
 		}
 		dlink, err := GetResourceLink(links, "/oic/d")
 		if err != nil {
-			return nil, fmt.Errorf("cannot read device link for device %s: %w", d.DeviceID(), err)
+			return nil, MakeDataLoss(fmt.Errorf("cannot read device link for device %s: %w", d.DeviceID(), err))
 		}
 		return dlink.Endpoints, nil
 	}
@@ -121,10 +121,10 @@ func (d *Device) GetEndpoints(ctx context.Context) ([]schema.Endpoint, error) {
 	if ok {
 		dlink, err := GetResourceLink(links, "/oic/d")
 		if err != nil {
-			return nil, fmt.Errorf("cannot read device link for device %s: %w", d.DeviceID(), err)
+			return nil, MakeDataLoss(fmt.Errorf("cannot read device link for device %s: %w", d.DeviceID(), err))
 		}
 		return dlink.Endpoints, nil
 	}
 
-	return nil, fmt.Errorf("device %v not found", d.DeviceID())
+	return nil, MakeUnavailable(fmt.Errorf("device %v not found", d.DeviceID()))
 }
