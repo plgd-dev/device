@@ -11,13 +11,13 @@ type SdkError struct {
 	wrappedError error
 }
 
-func (e *SdkError) Error() string {
+func (e SdkError) Error() string {
 	return fmt.Sprintf("Status code %v caused by : %s", e.errorCode, e.wrappedError)
 }
 
-func (e *SdkError) Unwrap() error { return e.wrappedError }
+func (e SdkError) Unwrap() error { return e.wrappedError }
 
-func (e *SdkError) GetCode() codes.Code {
+func (e SdkError) GetCode() codes.Code {
 	return e.errorCode
 }
 
