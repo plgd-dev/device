@@ -57,7 +57,7 @@ func DiscoverDeviceOwnership(
 			return opts
 		}
 	default:
-		return MakeUnavailable(fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status))
+		return MakeUnimplemented(fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status))
 	}
 
 	return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler), opt)

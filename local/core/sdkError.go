@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
@@ -21,121 +22,84 @@ func (e SdkError) GetCode() codes.Code {
 	return e.errorCode
 }
 
-func MakeCanceled(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Canceled,
-		wrappedError: e,
+func MakeSdkError(code codes.Code, err error) SdkError {
+	var orig SdkError
+	if errors.As(err, &orig) {
+		return orig
+	} else {
+		return SdkError{
+			errorCode:    code,
+			wrappedError: err,
+		}
 	}
 }
 
-func MakeUnknown(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Unknown,
-		wrappedError: e,
-	}
+func MakeCanceled(e error) SdkError {
+	return MakeSdkError(codes.Canceled, e)
+
 }
 
-func MakeInvalidArgument(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.InvalidArgument,
-		wrappedError: e,
-	}
+func MakeUnknown(e error) SdkError {
+	return MakeSdkError(codes.Unknown, e)
 }
 
-func MakeDeadlineExceeded(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.DeadlineExceeded,
-		wrappedError: e,
-	}
+func MakeInvalidArgument(e error) SdkError {
+	return MakeSdkError(codes.InvalidArgument, e)
 }
 
-func MakeNotFound(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.NotFound,
-		wrappedError: e,
-	}
+func MakeDeadlineExceeded(e error) SdkError {
+	return MakeSdkError(codes.DeadlineExceeded, e)
 }
 
-func MakeAlreadyExists(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.AlreadyExists,
-		wrappedError: e,
-	}
+func MakeNotFound(e error) SdkError {
+	return MakeSdkError(codes.NotFound, e)
 }
 
-func MakePermissionDenied(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.PermissionDenied,
-		wrappedError: e,
-	}
+func MakeAlreadyExists(e error) SdkError {
+	return MakeSdkError(codes.AlreadyExists, e)
 }
 
-func MakeResourceExhausted(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.ResourceExhausted,
-		wrappedError: e,
-	}
+func MakePermissionDenied(e error) SdkError {
+	return MakeSdkError(codes.PermissionDenied, e)
+
 }
 
-func MakeFailedPrecondition(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.FailedPrecondition,
-		wrappedError: e,
-	}
+func MakeResourceExhausted(e error) SdkError {
+	return MakeSdkError(codes.ResourceExhausted, e)
 }
 
-func MakeAborted(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Aborted,
-		wrappedError: e,
-	}
+func MakeFailedPrecondition(e error) SdkError {
+	return MakeSdkError(codes.FailedPrecondition, e)
 }
 
-func MakeOutOfRange(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.OutOfRange,
-		wrappedError: e,
-	}
+func MakeAborted(e error) SdkError {
+	return MakeSdkError(codes.Aborted, e)
 }
 
-func MakeUnimplemented(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Unimplemented,
-		wrappedError: e,
-	}
+func MakeOutOfRange(e error) SdkError {
+	return MakeSdkError(codes.OutOfRange, e)
 }
 
-func MakeInternal(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Internal,
-		wrappedError: e,
-	}
+func MakeUnimplemented(e error) SdkError {
+	return MakeSdkError(codes.Unimplemented, e)
 }
 
-func MakeInternalStr(str string, e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Internal,
-		wrappedError: fmt.Errorf(str, e),
-	}
+func MakeInternal(e error) SdkError {
+	return MakeSdkError(codes.Internal, e)
 }
 
-func MakeUnavailable(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Unavailable,
-		wrappedError: e,
-	}
+func MakeInternalStr(str string, e error) SdkError {
+	return MakeSdkError(codes.Internal, fmt.Errorf(str, e))
 }
 
-func MakeDataLoss(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.DataLoss,
-		wrappedError: e,
-	}
+func MakeUnavailable(e error) SdkError {
+	return MakeSdkError(codes.Unavailable, e)
 }
 
-func MakeUnauthenticated(e error) *SdkError {
-	return &SdkError{
-		errorCode:    codes.Unauthenticated,
-		wrappedError: e,
-	}
+func MakeDataLoss(e error) SdkError {
+	return MakeSdkError(codes.DataLoss, e)
+}
+
+func MakeUnauthenticated(e error) SdkError {
+	return MakeSdkError(codes.Unauthenticated, e)
 }

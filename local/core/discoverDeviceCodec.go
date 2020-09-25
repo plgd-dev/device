@@ -16,7 +16,7 @@ func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.
 
 // Encode propagates the payload without any conversions.
 func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
-	return nil, MakeUnavailable(fmt.Errorf("not supported"))
+	return nil, MakeUnimplemented(fmt.Errorf("not supported"))
 }
 
 func anchorToDeviceId(anchor string) string {
@@ -60,7 +60,7 @@ func (c DiscoverDeviceCodec) Decode(msg *message.Message, v interface{}) error {
 	}
 	mt, err := msg.Options.ContentFormat()
 	if err != nil {
-		return MakeUnavailable(fmt.Errorf("content format not found"))
+		return MakeUnimplemented(fmt.Errorf("content format not found"))
 	}
 	switch mt {
 	case message.AppOcfCbor:
