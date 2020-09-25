@@ -34,7 +34,7 @@ func (d *Device) updateMaintenanceResource(
 ) (ret error) {
 	links = links.GetResourceLinks(maintenance.MaintenanceResourceType)
 	if len(links) == 0 {
-		return fmt.Errorf("cannot find '%v' in %+v", maintenance.MaintenanceResourceType, links)
+		return MakeUnavailable(fmt.Errorf("cannot find '%v' in %+v", maintenance.MaintenanceResourceType, links))
 	}
 	var resp maintenance.Maintenance
 	err := d.UpdateResource(ctx, links[0], req, &resp)

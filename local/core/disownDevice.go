@@ -28,7 +28,7 @@ func (d *Device) Disown(
 		if ownership.OwnerID == "00000000-0000-0000-0000-000000000000" {
 			return nil
 		}
-		return fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID))
+		return MakeUnauthenticated(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
@@ -39,12 +39,12 @@ func (d *Device) Disown(
 
 	link, err := GetResourceLink(links, "/oic/sec/pstat")
 	if err != nil {
-		return fmt.Errorf(errMsg, err)
+		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
 
 	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, err)
+		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
 
 	return nil

@@ -139,14 +139,14 @@ func runDiscovery(
 			}
 			req, err := client.NewGetRequest(ctx, href, opts...)
 			if err != nil {
-				errors <- fmt.Errorf("device discovery request creation failed: %w", err)
+				errors <- MakeInternal(fmt.Errorf("device discovery request creation failed: %w", err))
 				return
 			}
 
 			err = conn.PublishMsgWithContext(req, handler)
 			if err != nil {
 				select {
-				case errors <- fmt.Errorf("device discovery multicast request failed: %w", err):
+				case errors <- MakeInternal(fmt.Errorf("device discovery multicast request failed: %w", err)):
 				case <-ctx.Done():
 				}
 				return

@@ -29,12 +29,12 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 	}
 	if cfg.GetCertificate == nil {
 		cfg.GetCertificate = func() (tls.Certificate, error) {
-			return tls.Certificate{}, fmt.Errorf("not supported")
+			return tls.Certificate{}, MakeUnimplemented(fmt.Errorf("not supported"))
 		}
 	}
 	if cfg.GetCertificateAuthorities == nil {
 		cfg.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
-			return nil, fmt.Errorf("not supported")
+			return nil, MakeUnimplemented(fmt.Errorf("not supported"))
 		}
 	}
 	return cfg

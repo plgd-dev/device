@@ -15,7 +15,7 @@ func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLink
 	isSecure, err := d.IsSecured(ctx, dlinks)
 	if err != nil {
 		defer d.Close(ctx)
-		return nil, nil, fmt.Errorf("cannot determine whether device %s is secured: %w", d.DeviceID(), err)
+		return nil, nil, MakeFailedPrecondition(fmt.Errorf("cannot determine whether device %s is secured: %w", d.DeviceID(), err))
 	}
 	if !isSecure {
 		return d, dlinks, nil
@@ -23,12 +23,12 @@ func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLink
 	dlink, err := GetResourceLink(dlinks, "/oic/d")
 	if err != nil {
 		defer d.Close(ctx)
-		return nil, nil, fmt.Errorf("cannot read device link for secure device %s: %w", d.DeviceID(), err)
+		return nil, nil, MakeDataLoss(fmt.Errorf("cannot read device link for secure device %s: %w", d.DeviceID(), err))
 	}
 	dlinks, err = d.GetResourceLinks(ctx, dlink.GetEndpoints())
 	if err != nil {
 		defer d.Close(ctx)
-		return nil, nil, fmt.Errorf("cannot get resource links for secure device %s: %w", d.DeviceID(), err)
+		return nil, nil, MakeDataLoss(fmt.Errorf("cannot get resource links for secure device %s: %w", d.DeviceID(), err))
 	}
 	return d, dlinks, nil
 }
@@ -48,11 +48,11 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	err := DiscoverDevices(findCtx, multicastConn, h)
 	if err != nil {
-		return nil, nil, fmt.Errorf("could not get the device %s: %w", deviceID, err)
+		return nil, nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
 	d, dlinks := h.Device()
 	if d == nil {
-		return nil, nil, fmt.Errorf("no response from the device %s", deviceID)
+		return nil, nil, MakeInternal(fmt.Errorf("no response from the device %s", deviceID))
 	}
 
 	return patchDeviceLinks(ctx, d, dlinks)
@@ -99,7 +99,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 	}
 	deviceID := link.GetDeviceID()
 	if deviceID == "" {
-		h.err = fmt.Errorf("cannot determine deviceID")
+		h.err = MakeInternal(fmt.Errorf("cannot determine deviceID"))
 		return
 	}
 
@@ -107,7 +107,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 		return
 	}
 	if len(link.ResourceTypes) == 0 {
-		h.err = fmt.Errorf("cannot get resource types for %v: is empty", deviceID)
+		h.err = MakeDataLoss(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
 	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)

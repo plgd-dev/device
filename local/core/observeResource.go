@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/kit/codec/ocf"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/schema"
-	"github.com/gofrs/uuid"
 )
 
 func (d *Device) ObserveResourceWithCodec(
@@ -43,13 +43,13 @@ func (d *Device) StopObservingResource(
 ) error {
 	v, ok := d.observations.Load(observationID)
 	if !ok {
-		return fmt.Errorf("unknown observation %s", observationID)
+		return MakeNotFound(fmt.Errorf("unknown observation %s", observationID))
 	}
 	d.observations.Delete(observationID)
 	o := v.(*observation)
 	err := o.Stop(ctx)
 	if err != nil {
-		return fmt.Errorf("could not cancel observation %s: %w", observationID, err)
+		return MakeCanceled(fmt.Errorf("could not cancel observation %s: %w", observationID, err))
 	}
 
 	return nil
@@ -70,7 +70,7 @@ func (d *Device) stopObservations(ctx context.Context) error {
 		}
 	}
 	if len(errors) > 0 {
-		return fmt.Errorf("%v", errors)
+		return MakeInternal(fmt.Errorf("%v", errors))
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func (o *observation) Stop(ctx context.Context) error {
 	if obs != nil {
 		err := obs.Cancel(ctx)
 		if err != nil {
-			return fmt.Errorf("cannot cancel observation %s: %w", o.id, err)
+			return MakeCanceled(fmt.Errorf("cannot cancel observation %s: %w", o.id, err))
 		}
 		return err
 	}
@@ -123,14 +123,14 @@ func (d *Device) observeResource(
 	_, client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
 
 	if err != nil {
-		return "", fmt.Errorf("cannot observe resource %v: %w", link.Href, err)
+		return "", MakeInternal(fmt.Errorf("cannot observe resource %v: %w", link.Href, err))
 	}
 
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
 	id, err := uuid.NewV4()
 	if err != nil {
-		return "", fmt.Errorf("observation id generation failed: %w", err)
+		return "", MakeInternal(fmt.Errorf("observation id generation failed: %w", err))
 	}
 	h := observationHandler{handler: handler}
 	o := &observation{
