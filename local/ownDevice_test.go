@@ -10,9 +10,8 @@ import (
 )
 
 func TestClient_OwnDevice(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
-		deviceID string
+		deviceName string
 	}
 	tests := []struct {
 		name    string
@@ -22,7 +21,7 @@ func TestClient_OwnDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceID: secureDeviceID,
+				deviceName: test.TestSecureDeviceName,
 			},
 		},
 	}
@@ -38,13 +37,26 @@ func TestClient_OwnDevice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 			defer cancel()
-			err := c.OwnDevice(ctx, tt.args.deviceID)
+			deviceID, err := test.FindDeviceByName(ctx, tt.args.deviceName)
+			require.NoError(t, err)
+			err = c.OwnDevice(ctx, deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			err = c.DisownDevice(ctx, tt.args.deviceID)
+			device1, err := c.GetDevice(ctx, deviceID)
+			require.NoError(t, err)
+			err = c.DisownDevice(ctx, deviceID)
+			require.NoError(t, err)
+			deviceID, err = test.FindDeviceByName(ctx, tt.args.deviceName)
+			require.NoError(t, err)
+			err = c.OwnDevice(ctx, deviceID)
+			require.NoError(t, err)
+			device2, err := c.GetDevice(ctx, deviceID)
+			require.NoError(t, err)
+			require.Equal(t, device1.Device.ProtocolIndependentID, device2.Device.ProtocolIndependentID)
+			err = c.DisownDevice(ctx, deviceID)
 			require.NoError(t, err)
 		})
 	}
