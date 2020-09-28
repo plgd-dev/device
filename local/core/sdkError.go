@@ -25,7 +25,7 @@ func (e SdkError) GetCode() codes.Code {
 func MakeSdkError(code codes.Code, err error) SdkError {
 	var orig SdkError
 	if errors.As(err, &orig) {
-		return orig
+		return err
 	} else {
 		return SdkError{
 			errorCode:    code,
