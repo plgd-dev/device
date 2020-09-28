@@ -5,12 +5,13 @@ const DeviceResourceType = "oic.wk.d"
 // Device info.
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.d.swagger.json
 type Device struct {
-	ID               string            `json:"di"`
-	ResourceTypes    []string          `json:"rt"`
-	Interfaces       []string          `json:"if"`
-	Name             string            `json:"n"`
-	ManufacturerName []LocalizedString `json:"dmn"`
-	ModelNumber      string            `json:"dmno"`
+	ID                    string            `json:"di"`
+	ResourceTypes         []string          `json:"rt"`
+	Interfaces            []string          `json:"if"`
+	Name                  string            `json:"n"`
+	ManufacturerName      []LocalizedString `json:"dmn"`
+	ModelNumber           string            `json:"dmno"`
+	ProtocolIndependentID string            `json:"piid"`
 }
 
 // LocalizedString struct.
