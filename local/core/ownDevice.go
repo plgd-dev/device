@@ -34,7 +34,7 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	/*doxm doesn't send any content for select OTM*/
 	err := tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
 	if err != nil {
-		return MakeInternal(fmt.Errorf("cannot set device hackid as owner %w", err))
+		return MakeInternal(fmt.Errorf("cannot set device hackid as owner: %w", err))
 	}
 
 	iotivityHackCredential := schema.CredentialUpdateRequest{
@@ -264,7 +264,7 @@ func (d *Device) Own(
 
 	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
-		return MakeUnavailable(fmt.Errorf("cannot set device owner %w", err))
+		return MakeUnavailable(fmt.Errorf("cannot set device owner: %w", err))
 	}
 
 	if ownership.Owned {
