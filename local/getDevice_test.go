@@ -128,6 +128,8 @@ func TestClient_GetDevice(t *testing.T) {
 			require.NoError(t, err)
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
+			require.NotEmpty(t, got.Device.ProtocolIndependentID)
+			got.Device.ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
 		})
 	}
