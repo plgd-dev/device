@@ -28,7 +28,7 @@ func (d *Device) Disown(
 		if ownership.OwnerID == "00000000-0000-0000-0000-000000000000" {
 			return nil
 		}
-		return MakeUnauthenticated(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
+		return MakePermissionDenied(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
 	}
 
 	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
