@@ -226,5 +226,18 @@ func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endp
 	return net.Addr{}, nil, MakeInternal(fmt.Errorf("cannot connect to empty endpoints"))
 }
 
-func (d *Device) DeviceID() string      { return d.deviceID }
-func (d *Device) DeviceTypes() []string { return d.deviceTypes }
+func (d *Device) DeviceID() string {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return d.deviceID
+}
+
+func (d *Device) setDeviceID(deviceID string) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.deviceID = deviceID
+}
+
+func (d *Device) DeviceTypes() []string {
+	return d.deviceTypes
+}

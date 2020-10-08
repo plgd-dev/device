@@ -42,12 +42,11 @@ func TestClient_ownDevice(t *testing.T) {
 
 	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 	device, links, err = c.GetDevice(timeout, secureDeviceID)
-	var newDeviceID string
-	err = device.Own(timeout, links, c.otm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) error {
+	err = device.Own(timeout, links, c.otm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 		var d schema.Device
 		err := client.GetResource(ctx, "/oic/d", &d)
 		if err != nil {
-			return core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, err))
+			return "", core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, err))
 		}
 		setDeviceOwned := schema.DoxmUpdate{
 			DeviceID: d.ProtocolIndependentID,
@@ -55,14 +54,13 @@ func TestClient_ownDevice(t *testing.T) {
 		/*doxm doesn't send any content for select OTM*/
 		err = client.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 		if err != nil {
-			return core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
+			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
 		}
-		newDeviceID = d.ProtocolIndependentID
-		return nil
+		return d.ProtocolIndependentID, nil
 	}))
 	require.NoError(err)
-	require.NotEqual(t, secureDeviceID, newDeviceID)
-	device, _, err = c.GetDevice(timeout, newDeviceID)
+	require.NotEqual(t, secureDeviceID, device.DeviceID())
+	device, _, err = c.GetDevice(timeout, device.DeviceID())
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)

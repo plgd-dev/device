@@ -45,7 +45,7 @@ func WithIotivityHack() OwnOption {
 }
 
 // WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
-func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error) OwnOption {
+func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)) OwnOption {
 	return actionDuringOwnOption{
 		actionDuringOwn: actionDuringOwn,
 	}
@@ -188,7 +188,7 @@ func (r iotivityHackOption) applyOnOwn(opts ownOptions) ownOptions {
 }
 
 type actionDuringOwnOption struct {
-	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
+	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
 }
 
 func (r actionDuringOwnOption) applyOnOwn(opts ownOptions) ownOptions {

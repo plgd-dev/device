@@ -63,9 +63,11 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 	return nil
 }
 
+type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
+
 type ownCfg struct {
 	iotivityHack    bool
-	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
+	actionDuringOwn ActionDuringOwnFunc
 }
 
 type OwnOption = func(ownCfg) ownCfg
@@ -78,8 +80,9 @@ func WithIotivityHack() OwnOption {
 	}
 }
 
-// WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
-func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error) OwnOption {
+// WithActionDuringOwn allows to set deviceID of owned device and other staff over owner TLS.
+// returns new deviceID
+func WithActionDuringOwn(actionDuringOwn ActionDuringOwnFunc) OwnOption {
 	return func(o ownCfg) ownCfg {
 		o.actionDuringOwn = actionDuringOwn
 		return o
@@ -261,16 +264,16 @@ func (d *Device) Own(
 	options ...OwnOption,
 ) error {
 	cfg := ownCfg{
-		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error {
+		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error) {
 			setDeviceOwned := schema.DoxmUpdate{
 				DeviceID: d.DeviceID(),
 			}
 			/*doxm doesn't send any content for select OTM*/
 			err := client.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 			if err != nil {
-				return MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", d.DeviceID(), err))
+				return "", MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", d.DeviceID(), err))
 			}
-			return nil
+			return d.DeviceID(), nil
 		},
 	}
 	const errMsg = "cannot own device: %w"
@@ -367,6 +370,14 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("cannot update provision state %w", err))
 	}
 
+	if cfg.actionDuringOwn != nil {
+		deviceID, err := cfg.actionDuringOwn(ctx, tlsClient)
+		if err != nil {
+			return err
+		}
+		d.setDeviceID(deviceID)
+	}
+
 	/*setup credentials */
 	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, d.DeviceID())
 	if err != nil {
@@ -403,13 +414,6 @@ func (d *Device) Own(
 	}
 	if verifyOwner.OwnerID != sdkID {
 		return MakeInternal(err)
-	}
-
-	if cfg.actionDuringOwn != nil {
-		err := cfg.actionDuringOwn(ctx, tlsClient)
-		if err != nil {
-			return err
-		}
 	}
 
 	setDeviceOwned := schema.DoxmUpdate{
