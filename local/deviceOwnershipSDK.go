@@ -104,14 +104,14 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 	return manufacturer.NewClient(mfgCert, mfgCA, signer, mfgOpts...), nil
 }
 
-func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
+func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
 	signer, err := o.createIdentitySigner()
 	if err != nil {
-		return err
+		return "", err
 	}
 	otm, err := getOTMManufacturer(o.app, o.disableDTLS, signer)
 	if err != nil {
-		return err
+		return "", err
 	}
 	return own(ctx, deviceID, otm, opts...)
 }

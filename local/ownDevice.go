@@ -68,53 +68,53 @@ func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.R
 	return nil
 }
 
-func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) error {
+func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
 	var cfg ownOptions
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer d.Release(ctx)
 	ok, err := d.IsSecured(ctx, links)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !ok {
 		// don't own insecure device
-		return nil
+		return deviceID, nil
 	}
 
 	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) error {
+func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error) {
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer d.Release(ctx)
 	ok, err := d.IsSecured(ctx, links)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if !ok {
 		// don't own insecure device
-		return nil
+		return d.DeviceID(), nil
 	}
 
 	err = d.Own(ctx, links, otmClient, opts...)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	err = configureDeviceInProvsion(ctx, d, links)
 	if err != nil {
 		d.Disown(ctx, links)
-		return err
+		return "", err
 	}
 
-	return nil
+	return d.DeviceID(), nil
 }
