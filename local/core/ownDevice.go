@@ -64,7 +64,8 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 }
 
 type ownCfg struct {
-	iotivityHack bool
+	iotivityHack    bool
+	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
 }
 
 type OwnOption = func(ownCfg) ownCfg
@@ -73,6 +74,14 @@ type OwnOption = func(ownCfg) ownCfg
 func WithIotivityHack() OwnOption {
 	return func(o ownCfg) ownCfg {
 		o.iotivityHack = true
+		return o
+	}
+}
+
+// WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
+func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error) OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.actionDuringOwn = actionDuringOwn
 		return o
 	}
 }
@@ -251,7 +260,19 @@ func (d *Device) Own(
 	otmClient OTMClient,
 	options ...OwnOption,
 ) error {
-	var cfg ownCfg
+	cfg := ownCfg{
+		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error {
+			setDeviceOwned := schema.DoxmUpdate{
+				DeviceID: d.DeviceID(),
+			}
+			/*doxm doesn't send any content for select OTM*/
+			err := client.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+			if err != nil {
+				return MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", d.DeviceID(), err))
+			}
+			return nil
+		},
+	}
 	const errMsg = "cannot own device: %w"
 	for _, opt := range options {
 		cfg = opt(cfg)
@@ -384,9 +405,15 @@ func (d *Device) Own(
 		return MakeInternal(err)
 	}
 
+	if cfg.actionDuringOwn != nil {
+		err := cfg.actionDuringOwn(ctx, tlsClient)
+		if err != nil {
+			return err
+		}
+	}
+
 	setDeviceOwned := schema.DoxmUpdate{
 		ResourceOwner: sdkID,
-		DeviceID:      d.DeviceID(),
 		Owned:         true,
 	}
 
