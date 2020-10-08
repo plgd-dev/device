@@ -40,8 +40,15 @@ func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
 }
 
 // WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
-func WithIotivityHack() IotivityHackOption {
-	return IotivityHackOption{}
+func WithIotivityHack() OwnOption {
+	return iotivityHackOption{}
+}
+
+// WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
+func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error) OwnOption {
+	return actionDuringOwnOption{
+		actionDuringOwn: actionDuringOwn,
+	}
 }
 
 type ResourceInterfaceOption struct {
@@ -173,9 +180,18 @@ type OwnOption = interface {
 	applyOnOwn(opts ownOptions) ownOptions
 }
 
-type IotivityHackOption struct{}
+type iotivityHackOption struct{}
 
-func (r IotivityHackOption) applyOnOwn(opts ownOptions) ownOptions {
+func (r iotivityHackOption) applyOnOwn(opts ownOptions) ownOptions {
 	opts.opts = append(opts.opts, core.WithIotivityHack())
+	return opts
+}
+
+type actionDuringOwnOption struct {
+	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
+}
+
+func (r actionDuringOwnOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.opts = append(opts.opts, core.WithActionDuringOwn(r.actionDuringOwn))
 	return opts
 }
