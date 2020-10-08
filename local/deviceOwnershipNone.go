@@ -31,7 +31,7 @@ func (o *deviceOwnershipNone) Close(ctx context.Context) error {
 	return nil
 }
 
-func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
+func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
 	return own(ctx, deviceID, nil, opts...)
 }
 

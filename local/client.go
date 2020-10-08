@@ -124,11 +124,11 @@ func NewClient(
 	return &client, nil
 }
 
-type ownFunc = func(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) error
+type ownFunc = func(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error)
 
 type DeviceOwner interface {
 	Initialization(ctx context.Context) error
-	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error
+	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error)
 
 	GetAccessTokenURL(ctx context.Context) (string, error)
 	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)

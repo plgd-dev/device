@@ -39,7 +39,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			defer cancel()
 			deviceID, err := test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
-			err = c.OwnDevice(ctx, deviceID)
+			deviceID, err = c.OwnDevice(ctx, deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -51,7 +51,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 			deviceID, err = test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
-			err = c.OwnDevice(ctx, deviceID)
+			deviceID, err = c.OwnDevice(ctx, deviceID)
 			require.NoError(t, err)
 			device2, err := c.GetDevice(ctx, deviceID)
 			require.NoError(t, err)

@@ -91,11 +91,11 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 	}, nil
 }
 
-func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) error {
+func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
 	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
 	otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
 	if err != nil {
-		return err
+		return "", err
 	}
 	return own(ctx, deviceID, otm, opts...)
 }
