@@ -28,7 +28,7 @@ type deviceOwnershipSDK struct {
 	sdkDeviceID          string
 	createIdentitySigner func() (core.CertificateSigner, error)
 	identityCertificate  tls.Certificate
-	identityCACert       *x509.Certificate
+	identityCACert       []*x509.Certificate
 	disableDTLS          bool
 	app                  ApplicationCallback
 }
@@ -138,7 +138,7 @@ func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
 	if o.identityCACert == nil {
 		return nil, fmt.Errorf("client is not initialized")
 	}
-	return []*x509.Certificate{o.identityCACert}, nil
+	return o.identityCACert, nil
 }
 
 func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {
