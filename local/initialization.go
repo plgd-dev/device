@@ -15,7 +15,7 @@ import (
 	"github.com/plgd-dev/sdk/local/core"
 )
 
-func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, *x509.Certificate, error) {
+func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, []*x509.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
@@ -44,7 +44,42 @@ func GenerateSDKIdentityCertificate(ctx context.Context, signer core.Certificate
 		return tls.Certificate{}, nil, fmt.Errorf("cannot parse cert chain: %w", err)
 	}
 
-	return tlsCert, certsFromChain[len(certsFromChain)-1], nil
+	return tlsCert, []*x509.Certificate{certsFromChain[len(certsFromChain)-1]}, nil
+}
+
+func GenerateSDKManufacturerCertificate(ctx context.Context, signer core.CertificateSigner, ID string) (tls.Certificate, []*x509.Certificate, error) {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
+	}
+	cfg := generateCertificate.Configuration{}
+	cfg.Subject.CommonName = "Manufacturer certificate for" + ID
+	cfg.ExtensionKeyUsages = []string{"client"}
+	csr, err := generateCertificate.GenerateCSR(cfg, priv)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot generate identity csr: %w", err)
+	}
+	cert, err := signer.Sign(ctx, csr)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot sign csr: %w", err)
+	}
+	derKey, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot marhsal private key: %w", err)
+	}
+	key := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: derKey})
+
+	tlsCert, err := tls.X509KeyPair(cert, key)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot create tls certificate: %w", err)
+	}
+
+	certsFromChain, err := kitSecurity.ParseX509FromPEM(cert)
+	if err != nil {
+		return tls.Certificate{}, nil, fmt.Errorf("cannot parse cert chain: %w", err)
+	}
+
+	return tlsCert, []*x509.Certificate{certsFromChain[len(certsFromChain)-1]}, nil
 }
 
 func (c *Client) Initialization(ctx context.Context) (err error) {

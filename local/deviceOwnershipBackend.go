@@ -21,15 +21,17 @@ import (
 )
 
 type deviceOwnershipBackend struct {
-	caClient            pb.CertificateAuthorityClient
-	caConn              *grpc.ClientConn
-	identityCertificate tls.Certificate
-	identityCACert      *x509.Certificate
-	authCodeURL         string
-	accessTokenURL      string
-	jwtClaimOwnerID     string
-	app                 ApplicationCallback
-	disableDTLS         bool
+	caClient                pb.CertificateAuthorityClient
+	caConn                  *grpc.ClientConn
+	identityCertificate     tls.Certificate
+	identityCACert          []*x509.Certificate
+	authCodeURL             string
+	accessTokenURL          string
+	jwtClaimOwnerID         string
+	app                     ApplicationCallback
+	disableDTLS             bool
+	manufacturerCertificate tls.Certificate
+	manufacturerCACert      []*x509.Certificate
 }
 
 type DeviceOwnershipBackendConfig struct {
@@ -91,9 +93,40 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 	}, nil
 }
 
+type appDeviceOwnershipBackend struct {
+	getRootCertificateAuthorities func() ([]*x509.Certificate, error)
+	manufacturerCertificate       tls.Certificate
+	manufacturerCACert            []*x509.Certificate
+}
+
+func (a appDeviceOwnershipBackend) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
+	return a.getRootCertificateAuthorities()
+}
+
+func (a appDeviceOwnershipBackend) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
+	if len(a.manufacturerCACert) == 0 {
+		return nil, fmt.Errorf("missing Manufacturer's CA")
+	}
+	return a.manufacturerCACert, nil
+}
+
+func (a appDeviceOwnershipBackend) GetManufacturerCertificate() (tls.Certificate, error) {
+	if a.manufacturerCertificate.Certificate == nil {
+		return a.manufacturerCertificate, fmt.Errorf("missing Manufacturer's certificate")
+	}
+	return a.manufacturerCertificate, nil
+}
+
 func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
 	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
-	otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
+
+	app := appDeviceOwnershipBackend{
+		getRootCertificateAuthorities: o.app.GetRootCertificateAuthorities,
+		manufacturerCACert:            o.manufacturerCACert,
+		manufacturerCertificate:       o.manufacturerCertificate,
+	}
+
+	otm, err := getOTMManufacturer(app, o.disableDTLS, identCert)
 	if err != nil {
 		return "", err
 	}
@@ -133,6 +166,47 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	return nil
 }
 
+func (o *deviceOwnershipBackend) setManufacturerCertificate(ctx context.Context, accessToken string) error {
+	cert, err := o.app.GetManufacturerCertificate()
+	if err != nil {
+		return err
+	}
+	caCert, err := o.app.GetManufacturerCertificateAuthorities()
+	if err != nil {
+		return err
+	}
+	if cert.Certificate != nil && len(caCert) > 0 {
+		o.manufacturerCertificate = cert
+		o.manufacturerCACert = caCert
+		return nil
+	}
+
+	parser := &jwt.Parser{
+		SkipClaimsValidation: true,
+	}
+	var claims claims
+	_, _, err = parser.ParseUnverified(accessToken, &claims)
+	if err != nil {
+		return fmt.Errorf("cannot parse jwt token: %w", err)
+	}
+	if claims[o.jwtClaimOwnerID] == nil {
+		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
+	}
+	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
+	deviceID := uuid.NewV5(uuid.NamespaceURL, ownerStr)
+
+	signer := caSigner.NewBasicCertificateSigner(o.caClient)
+	cert, caCert, err = GenerateSDKManufacturerCertificate(ctx, signer, deviceID.String())
+	if err != nil {
+		return err
+	}
+
+	o.manufacturerCertificate = cert
+	o.manufacturerCACert = caCert
+
+	return nil
+}
+
 func (o *deviceOwnershipBackend) Initialization(ctx context.Context) error {
 	token, err := kitNetGrpc.TokenFromOutgoingMD(ctx)
 	if err != nil {
@@ -152,7 +226,7 @@ func (o *deviceOwnershipBackend) GetIdentityCACerts() ([]*x509.Certificate, erro
 	if o.identityCACert == nil {
 		return nil, fmt.Errorf("client is not initialized")
 	}
-	return []*x509.Certificate{o.identityCACert}, nil
+	return o.identityCACert, nil
 }
 
 func (o *deviceOwnershipBackend) GetAccessTokenURL(ctx context.Context) (string, error) {
