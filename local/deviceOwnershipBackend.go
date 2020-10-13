@@ -146,10 +146,12 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
 	}
 	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
-	deviceID := uuid.NewV5(uuid.NamespaceURL, ownerStr)
-
+	ownerID, err := uuid.FromString(ownerStr)
+	if err != nil {
+		ownerID = uuid.NewV5(uuid.NamespaceURL, ownerStr)
+	}
 	signer := caSigner.NewIdentityCertificateSigner(o.caClient)
-	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, deviceID.String())
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, ownerID.String())
 	if err != nil {
 		return err
 	}
