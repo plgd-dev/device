@@ -6,6 +6,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/kit/log"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 
@@ -250,7 +251,7 @@ func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string
 			d.Ownership = &v
 			if ownerID != "" {
 				switch v.OwnerID {
-				case "00000000-0000-0000-0000-000000000000":
+				case uuid.Nil.String():
 					d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
 				case ownerID:
 					d.OwnershipStatus = OwnershipStatus_Owned
