@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -25,7 +26,7 @@ func (d *Device) Disown(
 	}
 
 	if ownership.OwnerID != sdkID {
-		if ownership.OwnerID == "00000000-0000-0000-0000-000000000000" {
+		if ownership.OwnerID == uuid.Nil.String() {
 			return nil
 		}
 		return MakePermissionDenied(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))

@@ -147,7 +147,7 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	}
 	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
 	ownerID, err := uuid.FromString(ownerStr)
-	if err != nil {
+	if err != nil || ownerStr == uuid.Nil.String() {
 		ownerID = uuid.NewV5(uuid.NamespaceURL, ownerStr)
 	}
 	signer := caSigner.NewIdentityCertificateSigner(o.caClient)
