@@ -7,9 +7,11 @@ import (
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 )
 
-// GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
-func (d *Device) GetSdkOwnerID() (string, error) {
-	cert, err := d.cfg.tlsConfig.GetCertificate()
+func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
+	if getCertificate == nil {
+		return "", MakeUnimplemented(fmt.Errorf("getCertificate is not set"))
+	}
+	cert, err := getCertificate()
 	if err != nil {
 		return "", MakeInternal(fmt.Errorf("cannot get sdk id: %w", err))
 	}
@@ -22,12 +24,30 @@ func (d *Device) GetSdkOwnerID() (string, error) {
 			errors = append(errors, err)
 			continue
 		}
-		deviceId, err := kitNetCoap.GetDeviceIDFromIndetityCertificate(x509cert)
+		id, err := kitNetCoap.GetDeviceIDFromIndetityCertificate(x509cert)
 		if err != nil {
 			errors = append(errors, err)
 			continue
 		}
-		return deviceId, nil
+		return id, nil
 	}
 	return "", MakeInternal(fmt.Errorf("cannot get sdk id: %v", errors))
+}
+
+// GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
+func (c *Client) GetSdkOwnerID() (string, error) {
+	id, err := getSdkOwnerID(c.tlsConfig.GetCertificate)
+	if err != nil {
+		return "", fmt.Errorf("cannot get sdk id: %w", err)
+	}
+	return id, nil
+}
+
+// GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
+func (d *Device) GetSdkOwnerID() (string, error) {
+	id, err := getSdkOwnerID(d.cfg.tlsConfig.GetCertificate)
+	if err != nil {
+		return "", fmt.Errorf("cannot get sdk id: %w", err)
+	}
+	return id, nil
 }

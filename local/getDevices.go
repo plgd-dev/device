@@ -64,7 +64,9 @@ func (c *Client) GetDevices(
 	m.Lock()
 	defer m.Unlock()
 
-	return setOwnership(mergeDevices(res), resOwnerships), nil
+	ownerID, _ := c.client.GetSdkOwnerID()
+
+	return setOwnership(ownerID, mergeDevices(res), resOwnerships), nil
 }
 
 // GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
@@ -72,6 +74,20 @@ func (c *Client) GetDevices(
 func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandler) error {
 	return c.client.GetDevices(ctx, handler)
 }
+
+// OwnershipStatus describes ownership status of the device
+type OwnershipStatus string
+
+const (
+	// OwnershipStatus_ReadyToBeOwned the device is ready to be owned.
+	OwnershipStatus_ReadyToBeOwned OwnershipStatus = "readytobeowned"
+	// OwnershipStatus_Owned the device is owned.
+	OwnershipStatus_Owned OwnershipStatus = "owned"
+	// OwnershipStatus_OwnedByOther the device is owned by another user.
+	OwnershipStatus_OwnedByOther OwnershipStatus = "ownedbyother"
+	// OwnershipStatus_Unknown the device is unsecure or cannot obtain his status.
+	OwnershipStatus_Unknown OwnershipStatus = "unknown"
+)
 
 // DeviceDetails describes a device.
 type DeviceDetails struct {
@@ -89,6 +105,8 @@ type DeviceDetails struct {
 	Resources []schema.ResourceLink
 	// Resources list of the device endpoints.
 	Endpoints []schema.Endpoint
+	// Ownership status
+	OwnershipStatus OwnershipStatus
 }
 
 func newDiscoveryHandler(
@@ -147,12 +165,13 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 	}
 
 	return DeviceDetails{
-		ID:        d.DeviceID(),
-		Device:    device,
-		Details:   details,
-		IsSecured: isSecured,
-		Resources: links,
-		Endpoints: eps,
+		ID:              d.DeviceID(),
+		Device:          device,
+		Details:         details,
+		IsSecured:       isSecured,
+		Resources:       links,
+		Endpoints:       eps,
+		OwnershipStatus: OwnershipStatus_Unknown,
 	}, nil
 }
 
@@ -223,12 +242,22 @@ func mergeEndpoints(a, b []schema.Endpoint) []schema.Endpoint {
 	return out
 }
 
-func setOwnership(devs map[string]DeviceDetails, owns map[string]schema.Doxm) map[string]DeviceDetails {
+func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string]schema.Doxm) map[string]DeviceDetails {
 	for _, o := range owns {
 		v := o
 		d, ok := devs[o.DeviceID]
 		if ok && d.Ownership == nil {
 			d.Ownership = &v
+			if ownerID != "" {
+				switch v.OwnerID {
+				case "00000000-0000-0000-0000-000000000000":
+					d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
+				case ownerID:
+					d.OwnershipStatus = OwnershipStatus_Owned
+				default:
+					d.OwnershipStatus = OwnershipStatus_OwnedByOther
+				}
+			}
 			devs[o.DeviceID] = d
 		}
 	}

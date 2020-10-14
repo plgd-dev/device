@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/sdk/local"
 	"github.com/plgd-dev/sdk/test"
 	"github.com/stretchr/testify/require"
 )
@@ -47,6 +48,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 			device1, err := c.GetDevice(ctx, deviceID)
 			require.NoError(t, err)
+			require.Equal(t, device1.OwnershipStatus, local.OwnershipStatus_Owned)
 			err = c.DisownDevice(ctx, deviceID)
 			require.NoError(t, err)
 			deviceID, err = test.FindDeviceByName(ctx, tt.args.deviceName)
@@ -56,6 +58,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			device2, err := c.GetDevice(ctx, deviceID)
 			require.NoError(t, err)
 			require.Equal(t, device1.Device.ProtocolIndependentID, device2.Device.ProtocolIndependentID)
+			require.Equal(t, device1.OwnershipStatus, local.OwnershipStatus_Owned)
 			err = c.DisownDevice(ctx, deviceID)
 			require.NoError(t, err)
 		})

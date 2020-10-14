@@ -69,8 +69,9 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 	if err != nil {
 		return DeviceDetails{}, err
 	}
+	ownerID, _ := c.client.GetSdkOwnerID()
 
-	return setOwnership(map[string]DeviceDetails{
+	return setOwnership(ownerID, map[string]DeviceDetails{
 		devDetails.Device.ID: devDetails,
 	}, map[string]schema.Doxm{
 		doxm.DeviceID: doxm,
