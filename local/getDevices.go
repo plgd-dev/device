@@ -249,15 +249,13 @@ func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string
 		d, ok := devs[o.DeviceID]
 		if ok && d.Ownership == nil {
 			d.Ownership = &v
-			if ownerID != "" {
-				switch v.OwnerID {
-				case uuid.Nil.String():
-					d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
-				case ownerID:
-					d.OwnershipStatus = OwnershipStatus_Owned
-				default:
-					d.OwnershipStatus = OwnershipStatus_OwnedByOther
-				}
+			switch v.OwnerID {
+			case uuid.Nil.String():
+				d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
+			case ownerID:
+				d.OwnershipStatus = OwnershipStatus_Owned
+			default:
+				d.OwnershipStatus = OwnershipStatus_OwnedByOther
 			}
 			devs[o.DeviceID] = d
 		}
