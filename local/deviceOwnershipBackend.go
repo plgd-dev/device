@@ -21,24 +21,24 @@ import (
 )
 
 type deviceOwnershipBackend struct {
-	caClient                pb.CertificateAuthorityClient
-	caConn                  *grpc.ClientConn
-	identityCertificate     tls.Certificate
-	identityCACert          []*x509.Certificate
-	authCodeURL             string
-	accessTokenURL          string
-	jwtClaimOwnerID         string
-	app                     ApplicationCallback
-	disableDTLS             bool
-	manufacturerCertificate tls.Certificate
-	manufacturerCACert      []*x509.Certificate
+	caClient                        pb.CertificateAuthorityClient
+	caConn                          *grpc.ClientConn
+	identityCertificate             tls.Certificate
+	identityCACert                  []*x509.Certificate
+	authCodeURL                     string
+	accessTokenURL                  string
+	jwtClaimOwnerID                 string
+	app                             ApplicationCallback
+	disableDTLS                     bool
+	acquireManufacturerCertificates bool
 }
 
 type DeviceOwnershipBackendConfig struct {
-	SigningServerAddress string
-	AuthCodeURL          string
-	AccessTokenURL       string
-	JWTClaimOwnerID      string
+	SigningServerAddress            string
+	AuthCodeURL                     string
+	AccessTokenURL                  string
+	JWTClaimOwnerID                 string
+	AcquireManufacturerCertificates bool
 }
 
 func validateURL(URL string) error {
@@ -83,13 +83,14 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 	caClient := pb.NewCertificateAuthorityClient(conn)
 
 	return &deviceOwnershipBackend{
-		caClient:        caClient,
-		caConn:          conn,
-		accessTokenURL:  cfg.AccessTokenURL,
-		authCodeURL:     cfg.AuthCodeURL,
-		app:             app,
-		jwtClaimOwnerID: cfg.JWTClaimOwnerID,
-		disableDTLS:     disableDTLS,
+		caClient:                        caClient,
+		caConn:                          conn,
+		accessTokenURL:                  cfg.AccessTokenURL,
+		authCodeURL:                     cfg.AuthCodeURL,
+		app:                             app,
+		jwtClaimOwnerID:                 cfg.JWTClaimOwnerID,
+		disableDTLS:                     disableDTLS,
+		acquireManufacturerCertificates: cfg.AcquireManufacturerCertificates,
 	}, nil
 }
 
@@ -119,14 +120,7 @@ func (a appDeviceOwnershipBackend) GetManufacturerCertificate() (tls.Certificate
 
 func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
 	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
-
-	app := appDeviceOwnershipBackend{
-		getRootCertificateAuthorities: o.app.GetRootCertificateAuthorities,
-		manufacturerCACert:            o.manufacturerCACert,
-		manufacturerCertificate:       o.manufacturerCertificate,
-	}
-
-	otm, err := getOTMManufacturer(app, o.disableDTLS, identCert)
+	otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
 	if err != nil {
 		return "", err
 	}
@@ -167,25 +161,11 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 }
 
 func (o *deviceOwnershipBackend) setManufacturerCertificate(ctx context.Context, accessToken string) error {
-	cert, err := o.app.GetManufacturerCertificate()
-	if err != nil {
-		return err
-	}
-	caCert, err := o.app.GetManufacturerCertificateAuthorities()
-	if err != nil {
-		return err
-	}
-	if cert.Certificate != nil && len(caCert) > 0 {
-		o.manufacturerCertificate = cert
-		o.manufacturerCACert = caCert
-		return nil
-	}
-
 	parser := &jwt.Parser{
 		SkipClaimsValidation: true,
 	}
 	var claims claims
-	_, _, err = parser.ParseUnverified(accessToken, &claims)
+	_, _, err := parser.ParseUnverified(accessToken, &claims)
 	if err != nil {
 		return fmt.Errorf("cannot parse jwt token: %w", err)
 	}
@@ -196,13 +176,16 @@ func (o *deviceOwnershipBackend) setManufacturerCertificate(ctx context.Context,
 	deviceID := uuid.NewV5(uuid.NamespaceURL, ownerStr)
 
 	signer := caSigner.NewBasicCertificateSigner(o.caClient)
-	cert, caCert, err = GenerateSDKManufacturerCertificate(ctx, signer, deviceID.String())
+	cert, caCert, err := GenerateSDKManufacturerCertificate(ctx, signer, deviceID.String())
 	if err != nil {
 		return err
 	}
 
-	o.manufacturerCertificate = cert
-	o.manufacturerCACert = caCert
+	o.app = appDeviceOwnershipBackend{
+		getRootCertificateAuthorities: o.app.GetRootCertificateAuthorities,
+		manufacturerCACert:            caCert,
+		manufacturerCertificate:       cert,
+	}
 
 	return nil
 }
@@ -211,6 +194,12 @@ func (o *deviceOwnershipBackend) Initialization(ctx context.Context) error {
 	token, err := kitNetGrpc.TokenFromOutgoingMD(ctx)
 	if err != nil {
 		return err
+	}
+	if o.acquireManufacturerCertificates {
+		err = o.setManufacturerCertificate(ctx, token)
+		if err != nil {
+			return err
+		}
 	}
 	return o.setIdentityCertificate(ctx, token)
 }
