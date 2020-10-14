@@ -36,7 +36,8 @@ func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
 			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 		},
-		Resources: sortResources(append(test.TestDevsimResources, test.TestDevsimPrivateResources...)),
+		Resources:       sortResources(append(test.TestDevsimResources, test.TestDevsimPrivateResources...)),
+		OwnershipStatus: local.OwnershipStatus_Unknown,
 	}
 }
 
@@ -60,7 +61,8 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetai
 			Interfaces:                    []string{"oic.if.rw", "oic.if.baseline"},
 			ResourceTypes:                 []string{"oic.r.doxm"},
 		},
-		Resources: sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
+		Resources:       sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
+		OwnershipStatus: local.OwnershipStatus_ReadyToBeOwned,
 	}
 }
 
@@ -113,7 +115,8 @@ func TestClient_GetDevice(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
-	c := NewTestClient()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer c.Close(context.Background())
 
 	for _, tt := range tests {
