@@ -128,7 +128,7 @@ type ownFunc = func(ctx context.Context, deviceID string, otmClient core.OTMClie
 
 type DeviceOwner interface {
 	Initialization(ctx context.Context) error
-	OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error)
+	OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error)
 
 	GetAccessTokenURL(ctx context.Context) (string, error)
 	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)

@@ -69,7 +69,9 @@ func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.R
 }
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
-	var cfg ownOptions
+	cfg := ownOptions{
+		otmType: OTMType_Manufacturer,
+	}
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
@@ -87,7 +89,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		return deviceID, nil
 	}
 
-	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, cfg.opts...)
+	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, c.ownDeviceWithSigners, cfg.opts...)
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error) {
