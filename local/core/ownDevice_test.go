@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_ownDevice(t *testing.T) {
+func TestClient_ownDeviceMfg(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -27,7 +27,7 @@ func TestClient_ownDevice(t *testing.T) {
 	require.NoError(err)
 	defer device.Close(timeout)
 
-	err = device.Own(timeout, links, c.otm)
+	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)
@@ -42,7 +42,7 @@ func TestClient_ownDevice(t *testing.T) {
 
 	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
 	device, links, err = c.GetDevice(timeout, secureDeviceID)
-	err = device.Own(timeout, links, c.otm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
+	err = device.Own(timeout, links, c.mfgOtm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 		var d schema.Device
 		err := client.GetResource(ctx, "/oic/d", &d)
 		if err != nil {
@@ -61,6 +61,26 @@ func TestClient_ownDevice(t *testing.T) {
 	require.NoError(err)
 	require.NotEqual(t, secureDeviceID, device.DeviceID())
 	device, _, err = c.GetDevice(timeout, device.DeviceID())
+	require.NoError(err)
+	err = device.Disown(timeout, links)
+	require.NoError(err)
+}
+
+func TestClient_ownDeviceJustWorks(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer c.Close()
+	deviceId := secureDeviceID
+	require := require.New(t)
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancelTimeout()
+
+	device, links, err := c.GetDevice(timeout, deviceId)
+	require.NoError(err)
+	defer device.Close(timeout)
+
+	err = device.Own(timeout, links, c.justWorksOtm)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)

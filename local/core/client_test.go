@@ -15,6 +15,7 @@ import (
 	"github.com/plgd-dev/kit/security"
 	ocfSigner "github.com/plgd-dev/kit/security/signer"
 	ocf "github.com/plgd-dev/sdk/local/core"
+	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
 	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
 	"github.com/plgd-dev/sdk/schema"
 	"github.com/plgd-dev/sdk/test"
@@ -24,7 +25,8 @@ var TestDeviceName = "devsim-core-" + test.MustGetHostname()
 
 type Client struct {
 	*ocf.Client
-	otm *manufacturer.Client
+	mfgOtm       *manufacturer.Client
+	justWorksOtm *justworks.Client
 
 	DeviceID string
 	*ocf.Device
@@ -83,10 +85,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		manOpts = append(manOpts, manufacturer.WithoutTCPTLS())
 	}
 
-	otm := manufacturer.NewClient(mfgCert, mfgCa, signer, manOpts...)
-	if err != nil {
-		return nil, err
-	}
+	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, signer, manOpts...)
+	justWorksOtm := justworks.NewClient(signer)
 
 	var opts []ocf.OptionFunc
 	if disableDTLS {
@@ -106,7 +106,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 	c := ocf.NewClient(opts...)
 
-	return &Client{Client: c, otm: otm}, nil
+	return &Client{Client: c, mfgOtm: mfgOtm, justWorksOtm: justWorksOtm}, nil
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
@@ -117,7 +117,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	defer cancel()
 	device, links, err := c.GetDevice(timeout, deviceId)
 	require.NoError(t, err)
-	err = device.Own(timeout, links, c.otm)
+	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(t, err)
 	c.Device = device
 	c.DeviceID = deviceId
