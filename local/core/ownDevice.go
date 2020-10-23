@@ -308,12 +308,16 @@ func (d *Device) Own(
 
 	var tlsClient *kitNetCoap.ClientCloseHandler
 	var errors []error
-	var tlsAddr kitNet.Addr
+	var secureEndpoints []schema.Endpoint
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
 			if err == nil {
-				tlsAddr = addr
+				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
+				addr, err = link.GetTCPSecureAddr()
+				if err == nil {
+					secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
+				}
 				break
 			}
 			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
@@ -321,7 +325,11 @@ func (d *Device) Own(
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
 			if err == nil {
-				tlsAddr = addr
+				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
+				addr, err = link.GetUDPSecureAddr()
+				if err == nil {
+					secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
+				}
 				break
 			}
 			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
@@ -463,9 +471,7 @@ func (d *Device) Own(
 
 	tlsClient.Close()
 
-	links, err = d.GetResourceLinks(ctx, []schema.Endpoint{
-		{URI: tlsAddr.URL()},
-	})
+	links, err = d.GetResourceLinks(ctx, secureEndpoints)
 	if err != nil {
 		return MakeUnavailable(fmt.Errorf("cannot get resource links: %w", err))
 	}
