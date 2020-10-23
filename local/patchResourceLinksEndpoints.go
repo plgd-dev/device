@@ -18,22 +18,21 @@ func filterTCPEndpoints(eps []schema.Endpoint) []schema.Endpoint {
 	}
 	return tcpDevEndpoints
 }
-
-func (c *Client) PatchResourceLinksEndpoints(links schema.ResourceLinks) schema.ResourceLinks {
+func patchResourceLinksEndpoints(links schema.ResourceLinks, disableUDPEndpoints bool) schema.ResourceLinks {
 	devLink, ok := links.GetResourceLink("/oic/d")
 	if !ok {
 		return links
 	}
 
 	tcpDevEps := devLink.GetEndpoints()
-	if c.disableUDPEndpoints {
+	if disableUDPEndpoints {
 		tcpDevEps = filterTCPEndpoints(tcpDevEps)
 	}
 
 	patchedLinks := make(schema.ResourceLinks, 0, len(links))
 	for _, l := range links {
 		eps := l.GetEndpoints()
-		if c.disableUDPEndpoints {
+		if disableUDPEndpoints {
 			eps = filterTCPEndpoints(eps)
 		}
 		if len(eps) == 0 {

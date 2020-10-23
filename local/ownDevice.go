@@ -106,6 +106,18 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 		// don't own insecure device
 		return d.DeviceID(), nil
 	}
+	if c.disableUDPEndpoints {
+		// we need to get all links because just-works need to use dtls
+		endpoints, err := d.GetEndpoints(ctx)
+		if err != nil {
+			return "", err
+		}
+		links, err = d.GetResourceLinks(ctx, endpoints)
+		if err != nil {
+			return "", err
+		}
+		links = patchResourceLinksEndpoints(links, false)
+	}
 
 	err = d.Own(ctx, links, otmClient, opts...)
 	if err != nil {
