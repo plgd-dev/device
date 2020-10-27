@@ -121,7 +121,7 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	case OTMType_JustWorks:
 		otmClient = justworks.NewClient(signer)
 	default:
-		return "", fmt.Errorf("unsuppored ownership transfer method: %v", otmType)
+		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
 	return own(ctx, deviceID, otmClient, opts...)
 }
