@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/pem"
 	"fmt"
+	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/pion/logging"
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	kitSecurity "github.com/plgd-dev/kit/security"
@@ -38,13 +38,13 @@ func (*Client) Type() schema.OwnerTransferMethod {
 func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
-		log := logging.NewDefaultLoggerFactory()
-		log.DefaultLogLevel = logging.LogLevelTrace
 		tlsConfig := dtls.Config{
 			CipherSuitesFactory: func() []dtls.CipherSuite {
 				return []dtls.CipherSuite{dtls.NewCipherSuiteTLSEcdhAnonWithAes128CbcSha256(dtls.CipherSuiteID(0xff00))}
 			},
-			LoggerFactory: log,
+			ConnectContextMaker: func() (context.Context, func()) {
+				return context.WithTimeout(ctx, time.Second*5)
+			},
 		}
 		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
 	}
