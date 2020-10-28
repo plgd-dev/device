@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/sdk/local/core"
+	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
 	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
 
 	"github.com/google/uuid"
@@ -104,16 +105,25 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 	return manufacturer.NewClient(mfgCert, mfgCA, signer, mfgOpts...), nil
 }
 
-func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
 	signer, err := o.createIdentitySigner()
 	if err != nil {
 		return "", err
 	}
-	otm, err := getOTMManufacturer(o.app, o.disableDTLS, signer)
-	if err != nil {
-		return "", err
+	var otmClient core.OTMClient
+	switch otmType {
+	case OTMType_Manufacturer:
+		otm, err := getOTMManufacturer(o.app, o.disableDTLS, signer)
+		if err != nil {
+			return "", err
+		}
+		otmClient = otm
+	case OTMType_JustWorks:
+		otmClient = justworks.NewClient(signer)
+	default:
+		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
-	return own(ctx, deviceID, otm, opts...)
+	return own(ctx, deviceID, otmClient, opts...)
 }
 
 func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {

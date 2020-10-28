@@ -30,7 +30,7 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, got.Owned)
 
-	err = device.Own(ctx, links, c.otm)
+	err = device.Own(ctx, links, c.mfgOtm)
 	require.NoError(t, err)
 
 	// after own

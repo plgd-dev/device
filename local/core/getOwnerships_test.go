@@ -42,7 +42,7 @@ func TestGetOwnerships(t *testing.T) {
 	require.NoError(t, err)
 	defer device.Close(ctx)
 
-	err = device.Own(ctx, links, c.otm)
+	err = device.Own(ctx, links, c.mfgOtm)
 	require.NoError(t, err)
 
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)

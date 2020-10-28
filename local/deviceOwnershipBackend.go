@@ -12,6 +12,7 @@ import (
 
 	"github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/local/core"
+	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/gofrs/uuid"
@@ -118,13 +119,22 @@ func (a appDeviceOwnershipBackend) GetManufacturerCertificate() (tls.Certificate
 	return a.manufacturerCertificate, nil
 }
 
-func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
 	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
-	otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
-	if err != nil {
-		return "", err
+	var otmClient core.OTMClient
+	switch otmType {
+	case OTMType_Manufacturer:
+		otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
+		if err != nil {
+			return "", err
+		}
+		otmClient = otm
+	case OTMType_JustWorks:
+		otmClient = justworks.NewClient(identCert)
+	default:
+		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
-	return own(ctx, deviceID, otm, opts...)
+	return own(ctx, deviceID, otmClient, opts...)
 }
 
 type claims map[string]interface{}

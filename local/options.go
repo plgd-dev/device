@@ -51,6 +51,13 @@ func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNe
 	}
 }
 
+// WithOTM allows to set ownership transfer method, by default it is manufacturer.
+func WithOTM(otmType OTMType) OwnOption {
+	return otmOption{
+		otmType: otmType,
+	}
+}
+
 type ResourceInterfaceOption struct {
 	resourceInterface string
 }
@@ -171,8 +178,16 @@ type ObserveOption = interface {
 	applyOnObserve(opts observeOptions) observeOptions
 }
 
+type OTMType int
+
+const (
+	OTMType_Manufacturer OTMType = 0
+	OTMType_JustWorks    OTMType = 1
+)
+
 type ownOptions struct {
-	opts []core.OwnOption
+	opts    []core.OwnOption
+	otmType OTMType
 }
 
 // OwnOption option definition.
@@ -193,5 +208,14 @@ type actionDuringOwnOption struct {
 
 func (r actionDuringOwnOption) applyOnOwn(opts ownOptions) ownOptions {
 	opts.opts = append(opts.opts, core.WithActionDuringOwn(r.actionDuringOwn))
+	return opts
+}
+
+type otmOption struct {
+	otmType OTMType
+}
+
+func (r otmOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.otmType = r.otmType
 	return opts
 }

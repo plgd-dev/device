@@ -69,7 +69,9 @@ func configureDeviceInProvsion(ctx context.Context, d *RefDevice, links schema.R
 }
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
-	var cfg ownOptions
+	cfg := ownOptions{
+		otmType: OTMType_Manufacturer,
+	}
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
@@ -87,7 +89,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		return deviceID, nil
 	}
 
-	return c.deviceOwner.OwnDevice(ctx, deviceID, c.ownDeviceWithSigners, cfg.opts...)
+	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, c.ownDeviceWithSigners, cfg.opts...)
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error) {
@@ -103,6 +105,18 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	if !ok {
 		// don't own insecure device
 		return d.DeviceID(), nil
+	}
+	if c.disableUDPEndpoints {
+		// we need to get all links because just-works need to use dtls
+		endpoints, err := d.GetEndpoints(ctx)
+		if err != nil {
+			return "", err
+		}
+		links, err = d.GetResourceLinks(ctx, endpoints)
+		if err != nil {
+			return "", err
+		}
+		links = patchResourceLinksEndpoints(links, false)
 	}
 
 	err = d.Own(ctx, links, otmClient, opts...)
