@@ -323,14 +323,6 @@ github.com/pion/dtls/v2 v2.0.1-0.20200503085337-8e86b3a7d585 h1:0v1k/bHrth28Tctd
 github.com/pion/dtls/v2 v2.0.1-0.20200503085337-8e86b3a7d585/go.mod h1:/GahSOC8ZY/+17zkaGJIG4OUkSGAcZu/N/g3roBOCkM=
 github.com/pion/dtls/v2 v2.0.3-0.20200804191223-c6dbd482fa3a h1:66BY8i1xTtCfgGji3Kpw4GyQPbbMugDknBwwcE9/TsI=
 github.com/pion/dtls/v2 v2.0.3-0.20200804191223-c6dbd482fa3a/go.mod h1:6w/Bomzyed9YjrUpKhBtFKz4bf7IrgNn1NbuHBJqm50=
-github.com/pion/dtls/v2 v2.0.4-0.20201022074517-922350a10d81 h1:8A+KddbBJewJLIq6vSGTlAnJKr798TIMtVKjpEUBuB4=
-github.com/pion/dtls/v2 v2.0.4-0.20201022074517-922350a10d81/go.mod h1:q4yHaGEwnvK3jh3bcPR/P2wMXqDCm+j6BmwFymU7svc=
-github.com/pion/dtls/v2 v2.0.4-0.20201022081118-8be4e95249d1 h1:0eHT7Yd1KWFdETjTmkF2YqjiahAejt02zc+1Geudowg=
-github.com/pion/dtls/v2 v2.0.4-0.20201022081118-8be4e95249d1/go.mod h1:q4yHaGEwnvK3jh3bcPR/P2wMXqDCm+j6BmwFymU7svc=
-github.com/pion/dtls/v2 v2.0.4-0.20201022091528-23c1363b5354 h1:koGbRFi9DYgYTSbOzQ18/3ltN1HPdo+I1KyPIumpTkE=
-github.com/pion/dtls/v2 v2.0.4-0.20201022091528-23c1363b5354/go.mod h1:q4yHaGEwnvK3jh3bcPR/P2wMXqDCm+j6BmwFymU7svc=
-github.com/pion/dtls/v2 v2.0.4-0.20201022091906-d6feb6219e29 h1:9u5Pi/cJ/0wnTGGbvGpGe22HFPcTwolMhsvhDSGXWGw=
-github.com/pion/dtls/v2 v2.0.4-0.20201022091906-d6feb6219e29/go.mod h1:q4yHaGEwnvK3jh3bcPR/P2wMXqDCm+j6BmwFymU7svc=
 github.com/pion/dtls/v2 v2.0.4-0.20201022144118-315d6150008a h1:T07+qlS6UCv3XxIhBlCHVLZwH3cYIIO6huBmYAKZbys=
 github.com/pion/dtls/v2 v2.0.4-0.20201022144118-315d6150008a/go.mod h1:q4yHaGEwnvK3jh3bcPR/P2wMXqDCm+j6BmwFymU7svc=
 github.com/pion/logging v0.2.1/go.mod h1:k0/tDVsRCX2Mb2ZEmTqNa7CWsQPc+YYCB7Q+5pahoms=
@@ -362,8 +354,8 @@ github.com/plgd-dev/go-coap/v2 v2.0.5-0.20200911142212-79c70969a181 h1:hnz0NO20p
 github.com/plgd-dev/go-coap/v2 v2.0.5-0.20200911142212-79c70969a181/go.mod h1:DccQmYY6swDlNlOCQOAX+SXTI9laSfGytskmeeNWmms=
 github.com/plgd-dev/go-coap/v2 v2.0.5-0.20200922125453-917a9b325e68 h1:1Fm9uTIRK7ooBuiwHI6XOO6TGoHo/6nwVpjzn/W6Yi8=
 github.com/plgd-dev/go-coap/v2 v2.0.5-0.20200922125453-917a9b325e68/go.mod h1:DccQmYY6swDlNlOCQOAX+SXTI9laSfGytskmeeNWmms=
-github.com/plgd-dev/go-coap/v2 v2.0.5-0.20201027070641-9937654b6af4 h1:smEjS2xxLMj6bh+sbk9sAKADCka8R0n3aiHw2LlS+QE=
-github.com/plgd-dev/go-coap/v2 v2.0.5-0.20201027070641-9937654b6af4/go.mod h1:DccQmYY6swDlNlOCQOAX+SXTI9laSfGytskmeeNWmms=
+github.com/plgd-dev/go-coap/v2 v2.1.0 h1:FNpGHDaBQx2M4wh7zGsSM/ECGzwngR8ALSkrx0Wxyx0=
+github.com/plgd-dev/go-coap/v2 v2.1.0/go.mod h1:DccQmYY6swDlNlOCQOAX+SXTI9laSfGytskmeeNWmms=
 github.com/plgd-dev/kit v0.0.0-20200819113605-d5fcf3e94f63 h1:cI6kESUBU1KUHtufZepEkaTsSkLN2kE6xz+Ec5V17q0=
 github.com/plgd-dev/kit v0.0.0-20200819113605-d5fcf3e94f63/go.mod h1:Yl9zisyXfPdtP9hTWlJqjJYXmgU/jtSDKttz9/CeD90=
 github.com/plgd-dev/kit v0.0.0-20200917114550-e55124608612 h1:YAzuCNWQgBtIhVPgERZZdweOeQlFENdxmiC51Hse5lU=
