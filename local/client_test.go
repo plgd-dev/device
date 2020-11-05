@@ -77,8 +77,8 @@ func NewTestSecureClient() (*local.Client, error) {
 		DisablePeerTCPSignalMessageCSMs: true,
 		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 			ID:      CertIdentity,
-			Cert:    IdentityIntermediateCA,
-			CertKey: IdentityIntermediateCAKey,
+			Cert:    string(IdentityIntermediateCA),
+			CertKey: string(IdentityIntermediateCAKey),
 		},
 	}
 
