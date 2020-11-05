@@ -19,8 +19,8 @@ import (
 
 type DeviceOwnershipSDKConfig struct {
 	ID         string
-	Cert       []byte
-	CertKey    []byte
+	Cert       string
+	CertKey    string
 	ValidFrom  string //RFC3339, or now-1m, empty means now-1m
 	CertExpiry *string
 }
@@ -43,7 +43,7 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnersh
 	if err != nil {
 		return nil, fmt.Errorf("invalid cert expiry for device ownership SDK: %w", err)
 	}
-	signerCert, err := tls.X509KeyPair(cfg.Cert, cfg.CertKey)
+	signerCert, err := tls.X509KeyPair([]byte(cfg.Cert), []byte(cfg.CertKey))
 	if err != nil {
 		return nil, fmt.Errorf("invalid cert or key for device ownership SDK: %w", err)
 	}
