@@ -61,7 +61,7 @@ func (s OperationalState) String() string {
 	case OperationalState_SRESET:
 		return "OperationalState_SRESET"
 	default:
-		return fmt.Sprintf("unknown %v", string(s))
+		return fmt.Sprintf("unknown %v", int(s))
 	}
 }
 
