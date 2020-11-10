@@ -50,7 +50,6 @@ func NewTestClient() *local.Client {
 		panic(err)
 	}
 	c, err := local.NewClientFromConfig(&local.Config{
-		DisablePeerTCPSignalMessageCSMs:   true,
 		KeepAliveConnectionTimeoutSeconds: 1,
 		ObserverPollingIntervalSeconds:    1,
 	}, appCallback, func(error) {})
@@ -74,7 +73,6 @@ func NewTestSecureClient() (*local.Client, error) {
 		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
 	}
 	cfg := local.Config{
-		DisablePeerTCPSignalMessageCSMs: true,
 		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 			ID:      CertIdentity,
 			Cert:    string(IdentityIntermediateCA),

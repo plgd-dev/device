@@ -30,11 +30,10 @@ type deviceOwnershipSDK struct {
 	createIdentitySigner func() (core.CertificateSigner, error)
 	identityCertificate  tls.Certificate
 	identityCACert       []*x509.Certificate
-	disableDTLS          bool
 	app                  ApplicationCallback
 }
 
-func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnershipSDKConfig, disableDTLS bool) (*deviceOwnershipSDK, error) {
+func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnershipSDKConfig) (*deviceOwnershipSDK, error) {
 	certExpiry := time.Hour * 24 * 365 * 10
 	var err error
 	if cfg.CertExpiry != nil {
@@ -52,10 +51,10 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnersh
 		return nil, fmt.Errorf("invalid ID for device ownership SDK: %w", err)
 	}
 
-	return NewDeviceOwnershipSDK(app, uid.String(), &signerCert, cfg.ValidFrom, certExpiry, disableDTLS)
+	return NewDeviceOwnershipSDK(app, uid.String(), &signerCert, cfg.ValidFrom, certExpiry)
 }
 
-func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, disableDTLS bool) (*deviceOwnershipSDK, error) {
+func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration) (*deviceOwnershipSDK, error) {
 	if validFrom == "" {
 		validFrom = "now-1m"
 	}
@@ -78,8 +77,7 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCe
 			notAfter := notBefore.Add(certExpiry)
 			return ocfSigner.NewIdentityCertificateSigner(signerCAs, signerCert.PrivateKey, notBefore, notAfter), nil
 		},
-		disableDTLS: disableDTLS,
-		app:         app,
+		app: app,
 	}, nil
 }
 
@@ -87,7 +85,7 @@ func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
 	return nil
 }
 
-func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.CertificateSigner) (core.OTMClient, error) {
+func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner) (core.OTMClient, error) {
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -97,12 +95,7 @@ func getOTMManufacturer(app ApplicationCallback, disableDTLS bool, signer core.C
 		return nil, err
 	}
 
-	mfgOpts := make([]manufacturer.OptionFunc, 0, 1)
-	if disableDTLS {
-		mfgOpts = append(mfgOpts, manufacturer.WithoutDTLS())
-	}
-
-	return manufacturer.NewClient(mfgCert, mfgCA, signer, mfgOpts...), nil
+	return manufacturer.NewClient(mfgCert, mfgCA, signer), nil
 }
 
 func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
@@ -113,7 +106,7 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, o.disableDTLS, signer)
+		otm, err := getOTMManufacturer(o.app, signer)
 		if err != nil {
 			return "", err
 		}

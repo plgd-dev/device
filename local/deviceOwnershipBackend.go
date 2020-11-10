@@ -30,7 +30,6 @@ type deviceOwnershipBackend struct {
 	accessTokenURL                  string
 	jwtClaimOwnerID                 string
 	app                             ApplicationCallback
-	disableDTLS                     bool
 	acquireManufacturerCertificates bool
 }
 
@@ -53,7 +52,7 @@ func validateURL(URL string) error {
 	return nil
 }
 
-func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwnershipBackendConfig, disableDTLS bool, errorsFunc func(err error)) (*deviceOwnershipBackend, error) {
+func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error)) (*deviceOwnershipBackend, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("missing device ownership backend config")
 	}
@@ -90,7 +89,6 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 		authCodeURL:                     cfg.AuthCodeURL,
 		app:                             app,
 		jwtClaimOwnerID:                 cfg.JWTClaimOwnerID,
-		disableDTLS:                     disableDTLS,
 		acquireManufacturerCertificates: cfg.AcquireManufacturerCertificates,
 	}, nil
 }
@@ -124,7 +122,7 @@ func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string,
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, o.disableDTLS, identCert)
+		otm, err := getOTMManufacturer(o.app, identCert)
 		if err != nil {
 			return "", err
 		}

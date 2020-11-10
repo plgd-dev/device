@@ -66,19 +66,10 @@ func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler,
 type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
 
 type ownCfg struct {
-	iotivityHack    bool
 	actionDuringOwn ActionDuringOwnFunc
 }
 
 type OwnOption = func(ownCfg) ownCfg
-
-// WithIotivityHack set this option when device with iotivity 2.0 will be onboarded.
-func WithIotivityHack() OwnOption {
-	return func(o ownCfg) ownCfg {
-		o.iotivityHack = true
-		return o
-	}
-}
 
 // WithActionDuringOwn allows to set deviceID of owned device and other staff over owner TLS.
 // returns new deviceID
@@ -201,7 +192,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema
 	return d.selectOTMViaDiscovery(ctx, selectOwnerTransferMethod)
 }
 
-func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID string, setResourceOwer bool) error {
+func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
 	link, err := GetResourceLink(links, "/oic/sec/acl2")
 	if err != nil {
 		return err
@@ -214,14 +205,9 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 			Interfaces: []string{"*"},
 		})
 	}
-	resourceOwner := ownerID
-	if !setResourceOwer {
-		resourceOwner = ""
-	}
 
 	/*acl2 set owner of resource*/
 	setACL := acl.UpdateRequest{
-		ResourceOwner: resourceOwner,
 		AccessControlList: []acl.AccessControl{
 			acl.AccessControl{
 				Permission: acl.AllPermissions,
@@ -311,7 +297,7 @@ func (d *Device) Own(
 	var secureEndpoints []schema.Endpoint
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
-			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
+			tlsClient, err = otmClient.Dial(ctx, addr)
 			if err == nil {
 				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
 				addr, err = link.GetTCPSecureAddr()
@@ -323,7 +309,7 @@ func (d *Device) Own(
 			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
-			tlsClient, err = otmClient.Dial(ctx, addr, d.cfg.dialOptions...)
+			tlsClient, err = otmClient.Dial(ctx, addr)
 			if err == nil {
 				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
 				addr, err = link.GetUDPSecureAddr()
@@ -383,18 +369,6 @@ func (d *Device) Own(
 		return MakeAborted(fmt.Errorf("cannot provision owner %w", err))
 	}
 
-	/*
-	 * THIS IS HACK FOR iotivity -> enables ciphers for TLS communication with signed certificates.
-	 * Tested with iotivity 2.0.1-RC0.
-	 */
-	if cfg.iotivityHack {
-		err = iotivityHack(ctx, tlsClient, sdkID)
-		if err != nil {
-			return fmt.Errorf(errMsg, err)
-		}
-	}
-	// END OF HACK
-
 	setDeviceOwner := schema.DoxmUpdate{
 		OwnerID: sdkID,
 	}
@@ -429,15 +403,13 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("cannot set owner of resource pstat %w", err))
 	}
 
-	if !cfg.iotivityHack {
-		/*acl2 set owner of resource*/
-		setOwnerACL := acl.UpdateRequest{
-			ResourceOwner: sdkID,
-		}
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/acl2", setOwnerACL, nil)
-		if err != nil {
-			return MakeInternal(fmt.Errorf("cannot set owner of resource acl2: %w", err))
-		}
+	/*acl2 set owner of resource*/
+	setOwnerACL := acl.UpdateRequest{
+		ResourceOwner: sdkID,
+	}
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/acl2", setOwnerACL, nil)
+	if err != nil {
+		return MakeInternal(fmt.Errorf("cannot set owner of resource acl2: %w", err))
 	}
 
 	/*doxm doesn't send any content for select OTM*/
@@ -446,18 +418,16 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("cannot set device owned %w", err))
 	}
 
-	if !cfg.iotivityHack {
-		/*set device to provision opertaion mode*/
-		provisionOperationState := schema.ProvisionStatusUpdateRequest{
-			DeviceOnboardingState: &schema.DeviceOnboardingState{
-				CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
-			},
-		}
+	/*set device to provision opertaion mode*/
+	provisionOperationState := schema.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &schema.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
+		},
+	}
 
-		err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", provisionOperationState, nil)
-		if err != nil {
-			return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
-		}
+	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", provisionOperationState, nil)
+	if err != nil {
+		return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
 	}
 
 	//For Servers based on OCF 1.0, PostOwnerAcl can be executed using
@@ -477,7 +447,7 @@ func (d *Device) Own(
 	}
 
 	/*set owner acl*/
-	err = d.setACL(ctx, links, sdkID, cfg.iotivityHack)
+	err = d.setACL(ctx, links, sdkID)
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot update resource acl: %w", err))
 	}
