@@ -15,12 +15,10 @@ import (
 )
 
 type deviceConfiguration struct {
-	tlsConfig              *TLSConfig
+	dialFunc               DialFunc
 	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
 	discoveryConfiguration DiscoveryConfiguration
-	disableDTLS            bool
-	disableTCPTLS          bool
+	tlsConfig              *TLSConfig
 }
 
 type Device struct {
@@ -150,6 +148,20 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	return
 }
 
+func DefaultDialFunc(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+	switch schema.Scheme(addr.GetScheme()) {
+	case schema.UDPScheme:
+		return coap.DialUDP(ctx, addr.String(), dialOptions...)
+	case schema.UDPSecureScheme:
+		return DialUDPSecure(ctx, addr.String(), tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+	case schema.TCPScheme:
+		return coap.DialTCP(ctx, addr.String(), dialOptions...)
+	case schema.TCPSecureScheme:
+		return DialTCPSecure(ctx, addr.String(), tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+	}
+	return nil, fmt.Errorf("unknown scheme :%v", addr.GetScheme())
+}
+
 func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (net.Addr, *coap.ClientCloseHandler, error) {
 	const errMsg = "cannot connect to %v: %w"
 	addr, err := endpoint.GetAddr()
@@ -161,37 +173,9 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 	if ok {
 		return addr, conn, nil
 	}
-
-	var c *coap.ClientCloseHandler
-	switch schema.Scheme(addr.GetScheme()) {
-	case schema.UDPScheme:
-		c, err = coap.DialUDP(ctx, addr.String(), d.cfg.dialOptions...)
-		if err != nil {
-			return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
-		}
-	case schema.UDPSecureScheme:
-		if d.cfg.disableDTLS {
-			return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("dtls is disabled by client option")))
-		}
-		c, err = DialUDPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
-		if err != nil {
-			return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
-		}
-	case schema.TCPScheme:
-		c, err = coap.DialTCP(ctx, addr.String(), d.cfg.dialOptions...)
-		if err != nil {
-			return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
-		}
-	case schema.TCPSecureScheme:
-		if d.cfg.disableTCPTLS {
-			return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("tcp-tls is disabled by client option")))
-		}
-		c, err = DialTCPSecure(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, d.cfg.dialOptions...)
-		if err != nil {
-			return net.Addr{}, nil, fmt.Errorf(errMsg, addr.URL(), err)
-		}
-	default:
-		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), fmt.Errorf("unknown scheme :%v", addr.GetScheme())))
+	c, err := d.cfg.dialFunc(ctx, addr, d.cfg.tlsConfig)
+	if err != nil {
+		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
 	}
 	d.lock.Lock()
 	defer d.lock.Unlock()

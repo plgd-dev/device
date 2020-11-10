@@ -1,10 +1,12 @@
 package core
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 
+	"github.com/plgd-dev/kit/net"
 	"github.com/plgd-dev/kit/net/coap"
 
 	"github.com/plgd-dev/kit/log"
@@ -17,10 +19,8 @@ type ErrFunc = func(err error)
 type Client struct {
 	tlsConfig              *TLSConfig
 	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
+	dialFunc               DialFunc
 	discoveryConfiguration DiscoveryConfiguration
-	disableDTLS            bool
-	disableTCPTLS          bool
 }
 
 func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
@@ -43,10 +43,8 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 type config struct {
 	tlsConfig              *TLSConfig
 	errFunc                ErrFunc
-	dialOptions            []coap.DialOptionFunc
+	dialFunc               DialFunc
 	discoveryConfiguration DiscoveryConfiguration
-	disableTCPTLS          bool
-	disableDTLS            bool
 }
 
 type OptionFunc func(config) config
@@ -56,20 +54,6 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 		if tlsConfig != nil {
 			cfg.tlsConfig = tlsConfig
 		}
-		return cfg
-	}
-}
-
-func WithoutTCPTLS() OptionFunc {
-	return func(cfg config) config {
-		cfg.disableTCPTLS = true
-		return cfg
-	}
-}
-
-func WithoutDTLS() OptionFunc {
-	return func(cfg config) config {
-		cfg.disableDTLS = true
 		return cfg
 	}
 }
@@ -89,15 +73,6 @@ func WithDiscoveryConfiguration(d DiscoveryConfiguration) OptionFunc {
 	}
 }
 
-func WithDialOptions(opts ...coap.DialOptionFunc) OptionFunc {
-	return func(cfg config) config {
-		if len(opts) > 0 {
-			cfg.dialOptions = opts
-		}
-		return cfg
-	}
-}
-
 func WithErr(errFunc ErrFunc) OptionFunc {
 	return func(cfg config) config {
 		if errFunc != nil {
@@ -107,14 +82,23 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 	}
 }
 
+type DialFunc func(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig) (*coap.ClientCloseHandler, error)
+
+func WithDial(dial DialFunc) OptionFunc {
+	return func(cfg config) config {
+		if dial != nil {
+			cfg.dialFunc = dial
+		}
+		return cfg
+	}
+}
+
 func (c *Client) getDeviceConfiguration() deviceConfiguration {
 	return deviceConfiguration{
-		tlsConfig:              c.tlsConfig,
 		errFunc:                c.errFunc,
-		dialOptions:            c.dialOptions,
 		discoveryConfiguration: c.discoveryConfiguration,
-		disableDTLS:            c.disableDTLS,
-		disableTCPTLS:          c.disableTCPTLS,
+		dialFunc:               c.dialFunc,
+		tlsConfig:              c.tlsConfig,
 	}
 }
 
@@ -123,8 +107,8 @@ func NewClient(opts ...OptionFunc) *Client {
 		errFunc: func(err error) {
 			log.Debug(err)
 		},
-		dialOptions: []coap.DialOptionFunc{
-			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
+		dialFunc: func(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig) (*coap.ClientCloseHandler, error) {
+			return DefaultDialFunc(ctx, addr, tlsConfig)
 		},
 		discoveryConfiguration: DiscoveryConfiguration{
 			MulticastHopLimit:    2,
@@ -135,15 +119,11 @@ func NewClient(opts ...OptionFunc) *Client {
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	cfg.dialOptions = append(cfg.dialOptions, coap.WithErrors(cfg.errFunc))
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
 	return &Client{
-		tlsConfig:              cfg.tlsConfig,
+		dialFunc:               cfg.dialFunc,
 		errFunc:                cfg.errFunc,
-		dialOptions:            cfg.dialOptions,
 		discoveryConfiguration: cfg.discoveryConfiguration,
-		disableDTLS:            cfg.disableDTLS,
-		disableTCPTLS:          cfg.disableTCPTLS,
 	}
 }

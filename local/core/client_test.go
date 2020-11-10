@@ -12,6 +12,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 
+	"github.com/plgd-dev/kit/net"
+	"github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/kit/security"
 	ocfSigner "github.com/plgd-dev/kit/security/signer"
 	ocf "github.com/plgd-dev/sdk/local/core"
@@ -90,10 +92,20 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 	var opts []ocf.OptionFunc
 	if disableDTLS {
-		opts = append(opts, ocf.WithoutDTLS())
+		opts = append(opts, ocf.WithDial(func(ctx context.Context, addr net.Addr, tlsConfig *ocf.TLSConfig) (*coap.ClientCloseHandler, error) {
+			if schema.Scheme(addr.GetScheme()) == schema.UDPSecureScheme {
+				return nil, fmt.Errorf("not supported")
+			}
+			return ocf.DefaultDialFunc(ctx, addr, tlsConfig)
+		}))
 	}
 	if disableTCPTLS {
-		opts = append(opts, ocf.WithoutTCPTLS())
+		opts = append(opts, ocf.WithDial(func(ctx context.Context, addr net.Addr, tlsConfig *ocf.TLSConfig) (*coap.ClientCloseHandler, error) {
+			if schema.Scheme(addr.GetScheme()) == schema.TCPSecureScheme {
+				return nil, fmt.Errorf("not supported")
+			}
+			return ocf.DefaultDialFunc(ctx, addr, tlsConfig)
+		}))
 	}
 	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{
 		GetCertificate: func() (tls.Certificate, error) {

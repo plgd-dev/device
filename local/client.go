@@ -8,6 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/plgd-dev/kit/net"
+
 	"github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/local/core"
 
@@ -26,12 +28,10 @@ type subscription = interface {
 }
 
 type Config struct {
-	DeviceCacheExpirationSeconds      int64
+	DeviceCacheExpirationSeconds   int64
+	ObserverPollingIntervalSeconds uint64 // 0 means 3 seconds
+
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
-	ObserverPollingIntervalSeconds    uint64 // 0 means 3 seconds
-	DisableDTLS                       bool
-	DisablePeerTCPSignalMessageCSMs   bool
-	DisableUDPEndpoints               bool
 	MaxMessageSize                    int
 
 	// specify one of:
@@ -54,30 +54,24 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	}
 
 	opts := make([]core.OptionFunc, 0, 1)
-	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
-		opts = append(opts, core.WithDialOptions(
-			coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)),
-		))
-	}
-	if cfg.DisableDTLS {
-		opts = append(opts, core.WithoutDTLS())
-	}
-	if cfg.DisablePeerTCPSignalMessageCSMs {
-		opts = append(opts, core.WithDialOptions(
-			coap.WithDialDisablePeerTCPSignalMessageCSMs(),
-		))
-	}
-	if cfg.MaxMessageSize > 0 {
-		opts = append(opts, core.WithDialOptions(
-			coap.WithMaxMessageSize(cfg.MaxMessageSize),
-		))
-	}
+	opts = append(opts, core.WithDial(
+		func(ctx context.Context, addr net.Addr, tlsConfig *core.TLSConfig) (*coap.ClientCloseHandler, error) {
+			dialOpts := make([]coap.DialOptionFunc, 0, 5)
+			if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
+				dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)))
+			}
+			if cfg.MaxMessageSize > 0 {
+				dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
+			}
+			return core.DefaultDialFunc(ctx, addr, tlsConfig, dialOpts...)
+		}),
+	)
 
 	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, app, errors)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, cfg.DisableUDPEndpoints, errors, opts...)
+	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, errors, opts...)
 }
 
 // NewClient constructs a new local client.
@@ -86,7 +80,6 @@ func NewClient(
 	deviceOwner DeviceOwner,
 	cacheExpiration time.Duration,
 	observerPollingInterval time.Duration,
-	disableUDPEndpoints bool,
 	errors func(error),
 	opt ...core.OptionFunc,
 ) (*Client, error) {
@@ -111,15 +104,13 @@ func NewClient(
 	}
 	oc := core.NewClient(opt...)
 	client := Client{
-		client: oc,
-
+		client:                  oc,
 		app:                     app,
 		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
 		observeDeviceCache:      make(map[string]*RefDevice),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
-		disableUDPEndpoints:     disableUDPEndpoints,
 	}
 	return &client, nil
 }
@@ -206,13 +197,13 @@ func (c *Client) Close(ctx context.Context) error {
 
 func NewDeviceOwnerFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
 	if cfg.DeviceOwnershipSDK != nil {
-		c, err := NewDeviceOwnershipSDKFromConfig(app, cfg.DeviceOwnershipSDK, cfg.DisableDTLS)
+		c, err := NewDeviceOwnershipSDKFromConfig(app, cfg.DeviceOwnershipSDK)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
 		}
 		return c, nil
 	} else if cfg.DeviceOwnershipBackend != nil {
-		c, err := NewDeviceOwnershipBackendFromConfig(app, cfg.DeviceOwnershipBackend, cfg.DisableDTLS, errors)
+		c, err := NewDeviceOwnershipBackendFromConfig(app, cfg.DeviceOwnershipBackend, errors)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create server signers: %w", err)
 		}
