@@ -125,5 +125,6 @@ func NewClient(opts ...OptionFunc) *Client {
 		dialFunc:               cfg.dialFunc,
 		errFunc:                cfg.errFunc,
 		discoveryConfiguration: cfg.discoveryConfiguration,
+		tlsConfig:              cfg.tlsConfig,
 	}
 }

@@ -28,7 +28,7 @@ func (r *refCacheDevice) device() *RefDevice {
 }
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
-	cache := cache.New(cacheExpiration, cache.DefaultExpiration)
+	cache := cache.New(cacheExpiration, time.Minute)
 	cache.OnEvicted(func(key string, d interface{}) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
