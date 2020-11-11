@@ -33,6 +33,7 @@ type Config struct {
 
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
 	MaxMessageSize                    int
+	DisablePeerTCPSignalMessageCSMs   bool
 
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
@@ -62,6 +63,9 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 			}
 			if cfg.MaxMessageSize > 0 {
 				dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
+			}
+			if cfg.DisablePeerTCPSignalMessageCSMs {
+				dialOpts = append(dialOpts, coap.WithDialDisablePeerTCPSignalMessageCSMs())
 			}
 			return core.DefaultDialFunc(ctx, addr, tlsConfig, dialOpts...)
 		}),
