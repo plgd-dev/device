@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"sync"
+	"time"
 
 	"fmt"
 
@@ -18,49 +19,6 @@ type OTMClient interface {
 	Type() schema.OwnerTransferMethod
 	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
 	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
-}
-
-/*
- * iotivityHack sets credential with pair-wise and removes it. It's needed to
- * enable ciphers for TLS communication with signed certificates.
- */
-func iotivityHack(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, sdkID string) error {
-	hackId := "52a201a7-824c-4fc6-9092-d2b6a3414a5b"
-
-	setDeviceOwner := schema.DoxmUpdate{
-		OwnerID: hackId,
-	}
-
-	/*doxm doesn't send any content for select OTM*/
-	err := tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
-	if err != nil {
-		return MakeInternal(fmt.Errorf("cannot set device hackid as owner: %w", err))
-	}
-
-	iotivityHackCredential := schema.CredentialUpdateRequest{
-		ResourceOwner: sdkID,
-		Credentials: []schema.Credential{
-			schema.Credential{
-				Subject: hackId,
-				Type:    schema.CredentialType_SYMMETRIC_PAIR_WISE,
-				PrivateData: &schema.CredentialPrivateData{
-					DataInternal: "IOTIVITY HACK",
-					Encoding:     schema.CredentialPrivateDataEncoding_RAW,
-				},
-			},
-		},
-	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", iotivityHackCredential, nil)
-	if err != nil {
-		return MakeInternal(fmt.Errorf("cannot set iotivity-hack credential: %w", err))
-	}
-
-	err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialSubject(hackId))
-	if err != nil {
-		return MakeInternal(fmt.Errorf("cannot delete iotivity-hack credential: %w", err))
-	}
-
-	return nil
 }
 
 type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
@@ -82,6 +40,22 @@ func WithActionDuringOwn(actionDuringOwn ActionDuringOwnFunc) OwnOption {
 
 type connUpdateResourcer interface {
 	UpdateResource(context.Context, string, interface{}, interface{}, ...kitNetCoap.OptionFunc) error
+}
+
+func disown(ctx context.Context, conn connUpdateResourcer) error {
+	deadline, ok := ctx.Deadline()
+	if !ok || deadline.Sub(time.Now()) < time.Second {
+		ctx1, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		ctx = ctx1
+
+	}
+	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &schema.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: schema.OperationalState_RESET,
+		},
+	}
+	return conn.UpdateResource(ctx, "/oic/sec/pstat", setResetProvisionState, nil)
 }
 
 func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
@@ -327,6 +301,7 @@ func (d *Device) Own(
 		}
 		return MakeInternal(fmt.Errorf("cannot get udp/tcp secure address: %+v", errors))
 	}
+	defer tlsClient.Close()
 
 	var provisionState schema.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, "/oic/sec/pstat", &provisionState)
@@ -383,6 +358,9 @@ func (d *Device) Own(
 	var verifyOwner schema.Doxm
 	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeUnavailable(fmt.Errorf("cannot verify owner %w", err))
 	}
 	if verifyOwner.OwnerID != sdkID {
@@ -400,6 +378,9 @@ func (d *Device) Own(
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", setOwnerProvisionState, nil)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot set owner of resource pstat %w", err))
 	}
 
@@ -409,12 +390,18 @@ func (d *Device) Own(
 	}
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/acl2", setOwnerACL, nil)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot set owner of resource acl2: %w", err))
 	}
 
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot set device owned %w", err))
 	}
 
@@ -427,6 +414,9 @@ func (d *Device) Own(
 
 	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", provisionOperationState, nil)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
 	}
 
@@ -439,27 +429,37 @@ func (d *Device) Own(
 	//will close the current session and re-establish a new session,
 	//using the Owner Credential.
 
-	tlsClient.Close()
-
 	links, err = d.GetResourceLinks(ctx, secureEndpoints)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeUnavailable(fmt.Errorf("cannot get resource links: %w", err))
 	}
 
 	/*set owner acl*/
 	err = d.setACL(ctx, links, sdkID)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot update resource acl: %w", err))
 	}
 
 	// Provision the device to switch back to normal operation.
 	p, err := d.Provision(ctx, links)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return fmt.Errorf(errMsg, err)
 	}
 
 	err = p.Close(ctx)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+		}
 		return fmt.Errorf(errMsg, err)
 	}
 	d.Close(ctx)

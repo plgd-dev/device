@@ -108,7 +108,9 @@ func NewClient(opts ...OptionFunc) *Client {
 			log.Debug(err)
 		},
 		dialFunc: func(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig) (*coap.ClientCloseHandler, error) {
-			return DefaultDialFunc(ctx, addr, tlsConfig)
+			return DefaultDialFunc(ctx, addr, tlsConfig, coap.WithErrors(func(err error) {
+				log.Debug(fmt.Printf("coap: %v", err))
+			}))
 		},
 		discoveryConfiguration: DiscoveryConfiguration{
 			MulticastHopLimit:    2,
