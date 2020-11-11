@@ -79,9 +79,21 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 			continue
 		}
 		out = append(out, c)
+		c, err = newDiscoveryClient("udp4", address, msgID+(^uint16(0)/4), errors)
+		if err != nil {
+			errors(err)
+			continue
+		}
+		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
 		c, err := newDiscoveryClient("udp6", address, msgID, errors)
+		if err != nil {
+			errors(err)
+			continue
+		}
+		out = append(out, c)
+		c, err = newDiscoveryClient("udp6", address, msgID+(^uint16(0)/4), errors)
 		if err != nil {
 			errors(err)
 			continue
