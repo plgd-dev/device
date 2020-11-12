@@ -22,9 +22,15 @@ func (d *Device) FactoryReset(
 	ctx context.Context,
 	links schema.ResourceLinks,
 ) error {
-	return d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
+	err := d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
 		FactoryReset: true,
 	})
+	if connectionWasClosed(ctx, err) {
+		// connection was closed by disown so we don't report error just log it.
+		d.cfg.errFunc(err)
+		return nil
+	}
+	return err
 }
 
 func (d *Device) updateMaintenanceResource(
