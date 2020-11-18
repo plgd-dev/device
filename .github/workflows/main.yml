@@ -1,4 +1,4 @@
-name: Coverage
+name: CI
 
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
@@ -9,7 +9,7 @@ on:
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This workflow contains a single job called "build"
-  test:
+  ci:
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04
 
@@ -22,5 +22,5 @@ jobs:
       - name: Run a test
         run: make test
         
-      - name: Coverage
+      - name: Publish the coverage
         run: bash <(curl -s https://codecov.io/bash)
