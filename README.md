@@ -1,4 +1,4 @@
-[![Test](https://github.com/plgd-dev/sdk/workflows/Test/badge.svg?branch=master)](https://github.com/plgd-dev/sdk/actions?query=workflow%3ATest)
+[![Test](https://github.com/plgd-dev/sdk/workflows/Coverage/badge.svg)](https://github.com/plgd-dev/sdk/actions?query=workflow%3ACoverage)
 [![Coverage Status](https://codecov.io/gh/plgd-dev/sdk/branch/master/graph/badge.svg)](https://codecov.io/gh/plgd-dev/sdk)
 [![Go Report Card](https://goreportcard.com/badge/plgd-dev/sdk)](https://goreportcard.com/report/plgd-dev/sdk)
 [![Gitter](https://badges.gitter.im/ocfcloud/Lobby.svg)](https://gitter.im/ocfcloud/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
