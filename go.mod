@@ -10,8 +10,8 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pion/dtls/v2 v2.0.4-0.20201022144118-315d6150008a
 	github.com/plgd-dev/cloud v1.0.1
-	github.com/plgd-dev/go-coap/v2 v2.1.3
-	github.com/plgd-dev/kit v0.0.0-20201012075715-45376a9f2c61
+	github.com/plgd-dev/go-coap/v2 v2.2.0
+	github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe
 	github.com/stretchr/testify v1.6.1
 	google.golang.org/grpc v1.29.1
 )
