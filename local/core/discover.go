@@ -75,7 +75,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is
 	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
 	msgIDudp4 := udpMessage.GetMID()
-	msgIDudp6 := udpMessage.GetMID()
+	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
 		c, err := newDiscoveryClient("udp4", address, msgIDudp4, errors)
