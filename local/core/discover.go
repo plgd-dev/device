@@ -70,10 +70,15 @@ func (d *DiscoveryClient) Close() error {
 // DialDiscoveryAddresses connects to discovery endpoints.
 func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*DiscoveryClient {
 	var out []*DiscoveryClient
-	msgID := udpMessage.GetMID()
+
+	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
+	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is
+	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
+	msgIDudp4 := udpMessage.GetMID()
+	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
-		c, err := newDiscoveryClient("udp4", address, msgID, errors)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, errors)
 		if err != nil {
 			errors(err)
 			continue
@@ -81,7 +86,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		c, err := newDiscoveryClient("udp6", address, msgID, errors)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, errors)
 		if err != nil {
 			errors(err)
 			continue
