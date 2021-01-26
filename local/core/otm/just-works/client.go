@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/pem"
 	"fmt"
-	"time"
 
 	"github.com/pion/dtls/v2"
 	kitNet "github.com/plgd-dev/kit/net"
@@ -43,7 +42,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 				return []dtls.CipherSuite{dtls.NewCipherSuiteTLSEcdhAnonWithAes128CbcSha256(dtls.CipherSuiteID(0xff00))}
 			},
 			ConnectContextMaker: func() (context.Context, func()) {
-				return context.WithTimeout(ctx, time.Second*5)
+				return context.WithCancel(ctx)
 			},
 		}
 		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
