@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/pion/logging"
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	kitSecurity "github.com/plgd-dev/kit/security"
@@ -37,8 +36,6 @@ func (*Client) Type() schema.OwnerTransferMethod {
 }
 
 func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
-	loggerFactory := logging.NewDefaultLoggerFactory()
-	loggerFactory.DefaultLogLevel.Set(logging.LogLevelDebug)
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		tlsConfig := dtls.Config{
@@ -49,7 +46,6 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 			ConnectContextMaker: func() (context.Context, func()) {
 				return context.WithCancel(ctx)
 			},
-			LoggerFactory: loggerFactory,
 		}
 		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
 	}
