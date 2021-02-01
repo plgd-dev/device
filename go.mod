@@ -8,7 +8,8 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
-	github.com/pion/dtls/v2 v2.0.5-0.20210128070539-d64983095f3a
+	github.com/pion/dtls/v2 v2.0.5-0.20210131130429-43aede6b5060
+	github.com/pion/logging v0.2.2
 	github.com/plgd-dev/cloud v1.0.1
 	github.com/plgd-dev/go-coap/v2 v2.2.0
 	github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe
