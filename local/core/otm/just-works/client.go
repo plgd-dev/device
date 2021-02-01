@@ -9,6 +9,7 @@ import (
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	kitSecurity "github.com/plgd-dev/kit/security"
+	"github.com/plgd-dev/sdk/local/core/otm/just-works/cipher"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -38,9 +39,10 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		tlsConfig := dtls.Config{
-			CipherSuitesFactory: func() []dtls.CipherSuite {
-				return []dtls.CipherSuite{dtls.NewCipherSuiteTLSEcdhAnonWithAes128CbcSha256(dtls.CipherSuiteID(0xff00))}
+			CustomCipherSuites: func() []dtls.CipherSuite {
+				return []dtls.CipherSuite{cipher.NewTLSAecdhAes128Sha256(dtls.CipherSuiteID(0xff00))}
 			},
+			CipherSuites: []dtls.CipherSuiteID{},
 			ConnectContextMaker: func() (context.Context, func()) {
 				return context.WithCancel(ctx)
 			},
