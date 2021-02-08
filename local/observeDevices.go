@@ -122,11 +122,13 @@ func (o *listDeviceIds) Handle(ctx context.Context, device *core.Device, deviceL
 
 // Error gets errors during discovery.
 func (o *listDeviceIds) Error(err error) {
-	o.err(err)
+	if o.err != nil {
+		o.err(err)
+	}
 }
 
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
-	newDevices := listDeviceIds{err: o.handler.Error, devices: &sync.Map{}}
+	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
 	err := o.c.GetDevicesWithHandler(ctx, &newDevices)
 	if err != nil {
 		return nil, err
