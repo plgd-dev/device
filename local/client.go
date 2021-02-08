@@ -115,6 +115,7 @@ func NewClient(
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
+		errors:                  errors,
 	}
 	return &client, nil
 }
@@ -152,6 +153,7 @@ type Client struct {
 	subscriptions     map[string]subscription
 
 	disableUDPEndpoints bool
+	errors              func(error)
 }
 
 func (c *Client) popSubscriptions() map[string]subscription {
