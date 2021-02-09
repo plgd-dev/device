@@ -5,6 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/kit/net/coap"
 	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
@@ -115,9 +117,13 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, device *core.Device, deviceLinks schema.ResourceLinks) {
-	defer device.Close(ctx)
-	o.devices.Store(device.DeviceID(), nil)
+func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, device schema.ResourceLinks) {
+	defer client.Close()
+	d, ok := device.GetResourceLink("/oic/d")
+	if !ok {
+		return
+	}
+	o.devices.Store(d.GetDeviceID(), nil)
 }
 
 // Error gets errors during discovery.
@@ -127,9 +133,21 @@ func (o *listDeviceIds) Error(err error) {
 	}
 }
 
+func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDevicesHandler) error {
+	multicastConn := core.DialDiscoveryAddresses(ctx, o.c.CoreClient().GetDiscoveryConfiguration(), o.c.errors)
+	defer func() {
+		for _, conn := range multicastConn {
+			conn.Close()
+		}
+	}()
+	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
+	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType("oic.wk.d"))
+}
+
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
 	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
-	err := o.c.GetDevicesWithHandler(ctx, &newDevices)
+
+	err := o.discover(ctx, &newDevices)
 	if err != nil {
 		return nil, err
 	}

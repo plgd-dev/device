@@ -102,6 +102,10 @@ func (c *Client) getDeviceConfiguration() deviceConfiguration {
 	}
 }
 
+func (c *Client) GetDiscoveryConfiguration() DiscoveryConfiguration {
+	return c.discoveryConfiguration
+}
+
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
 		errFunc: func(err error) {
