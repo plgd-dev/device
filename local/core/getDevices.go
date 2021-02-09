@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -25,7 +26,8 @@ func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
 			conn.Close()
 		}
 	}()
-	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.getDeviceConfiguration(), handler))
+	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
+	return DiscoverDevices(ctx, multicastConn, newDiscoveryHandler(c.getDeviceConfiguration(), handler), coap.WithResourceType("oic.wk.d"))
 }
 
 func newDiscoveryHandler(
