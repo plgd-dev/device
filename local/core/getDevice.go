@@ -6,20 +6,13 @@ import (
 	"sync"
 
 	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/schema"
 )
 
 // According to Device2Cloud spec the CoAPCloudConf Resource shall expose only secure Endpoints (e.g. CoAPS); see the ISO/IEC 30118-1:2018, clause 10.
 // You have to be secure to talk to it so we try to load device links via secure endpoints if it is possible.
 func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLinks) (*Device, schema.ResourceLinks, error) {
-	isSecure, err := d.IsSecured(ctx, dlinks)
-	if err != nil {
-		defer d.Close(ctx)
-		return nil, nil, MakeFailedPrecondition(fmt.Errorf("cannot determine whether device %s is secured: %w", d.DeviceID(), err))
-	}
-	if !isSecure {
-		return d, dlinks, nil
-	}
 	dlink, err := GetResourceLink(dlinks, "/oic/d")
 	if err != nil {
 		defer d.Close(ctx)
@@ -46,7 +39,8 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	}()
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
-	err := DiscoverDevices(findCtx, multicastConn, h)
+	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
+	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
 	if err != nil {
 		return nil, nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
