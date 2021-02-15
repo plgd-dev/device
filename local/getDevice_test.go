@@ -30,7 +30,7 @@ func sortResources(s []schema.ResourceLink) []schema.ResourceLink {
 func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 	return local.DeviceDetails{
 		ID: deviceID,
-		Device: schema.Device{
+		Details: &schema.Device{
 			ID:            deviceID,
 			Name:          deviceName,
 			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
@@ -44,7 +44,7 @@ func NewTestDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetails {
 	return local.DeviceDetails{
 		ID: deviceID,
-		Device: schema.Device{
+		Details: &schema.Device{
 			ID:            deviceID,
 			Name:          deviceName,
 			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
@@ -131,8 +131,8 @@ func TestClient_GetDevice(t *testing.T) {
 			require.NoError(t, err)
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
-			require.NotEmpty(t, got.Device.ProtocolIndependentID)
-			got.Device.ProtocolIndependentID = ""
+			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)
+			got.Details.(*schema.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
 		})
 	}

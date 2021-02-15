@@ -31,6 +31,8 @@ type deviceOwnershipBackend struct {
 	jwtClaimOwnerID                 string
 	app                             ApplicationCallback
 	acquireManufacturerCertificates bool
+	dialTLS                         core.DialTLS
+	dialDTLS                        core.DialDTLS
 }
 
 type DeviceOwnershipBackendConfig struct {
@@ -52,7 +54,8 @@ func validateURL(URL string) error {
 	return nil
 }
 
-func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error)) (*deviceOwnershipBackend, error) {
+func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
+	cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error)) (*deviceOwnershipBackend, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("missing device ownership backend config")
 	}
@@ -90,6 +93,8 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, cfg *DeviceOwn
 		app:                             app,
 		jwtClaimOwnerID:                 cfg.JWTClaimOwnerID,
 		acquireManufacturerCertificates: cfg.AcquireManufacturerCertificates,
+		dialTLS:                         dialTLS,
+		dialDTLS:                        dialDTLS,
 	}, nil
 }
 
@@ -122,13 +127,13 @@ func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string,
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, identCert)
+		otm, err := getOTMManufacturer(o.app, identCert, o.dialTLS, o.dialDTLS)
 		if err != nil {
 			return "", err
 		}
 		otmClient = otm
 	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(identCert)
+		otmClient = justworks.NewClient(identCert, justworks.WithDialDTLS(o.dialDTLS))
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}

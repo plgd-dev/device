@@ -6,8 +6,9 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/kit/net"
+	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/kit/net/coap"
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 
 	"github.com/plgd-dev/kit/log"
 )
@@ -19,7 +20,10 @@ type ErrFunc = func(err error)
 type Client struct {
 	tlsConfig              *TLSConfig
 	errFunc                ErrFunc
-	dialFunc               DialFunc
+	dialDTLS               DialDTLS
+	dialTLS                DialTLS
+	dialTCP                DialTCP
+	dialUDP                DialUDP
 	discoveryConfiguration DiscoveryConfiguration
 }
 
@@ -43,7 +47,10 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 type config struct {
 	tlsConfig              *TLSConfig
 	errFunc                ErrFunc
-	dialFunc               DialFunc
+	dialDTLS               DialDTLS
+	dialTLS                DialTLS
+	dialTCP                DialTCP
+	dialUDP                DialUDP
 	discoveryConfiguration DiscoveryConfiguration
 }
 
@@ -82,12 +89,42 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 	}
 }
 
-type DialFunc func(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig) (*coap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialUDP = func(ctx context.Context, addr string, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialTCP = func(ctx context.Context, addr string, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
 
-func WithDial(dial DialFunc) OptionFunc {
+func WithDialDTLS(dial DialDTLS) OptionFunc {
 	return func(cfg config) config {
 		if dial != nil {
-			cfg.dialFunc = dial
+			cfg.dialDTLS = dial
+		}
+		return cfg
+	}
+}
+
+func WithDialTLS(dial DialTLS) OptionFunc {
+	return func(cfg config) config {
+		if dial != nil {
+			cfg.dialTLS = dial
+		}
+		return cfg
+	}
+}
+
+func WithDialTCP(dial DialTCP) OptionFunc {
+	return func(cfg config) config {
+		if dial != nil {
+			cfg.dialTCP = dial
+		}
+		return cfg
+	}
+}
+
+func WithDialUDP(dial DialUDP) OptionFunc {
+	return func(cfg config) config {
+		if dial != nil {
+			cfg.dialUDP = dial
 		}
 		return cfg
 	}
@@ -97,7 +134,10 @@ func (c *Client) getDeviceConfiguration() deviceConfiguration {
 	return deviceConfiguration{
 		errFunc:                c.errFunc,
 		discoveryConfiguration: c.discoveryConfiguration,
-		dialFunc:               c.dialFunc,
+		dialDTLS:               c.dialDTLS,
+		dialTLS:                c.dialTLS,
+		dialTCP:                c.dialTCP,
+		dialUDP:                c.dialUDP,
 		tlsConfig:              c.tlsConfig,
 	}
 }
@@ -111,11 +151,10 @@ func NewClient(opts ...OptionFunc) *Client {
 		errFunc: func(err error) {
 			log.Debug(err)
 		},
-		dialFunc: func(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig) (*coap.ClientCloseHandler, error) {
-			return DefaultDialFunc(ctx, addr, tlsConfig, coap.WithErrors(func(err error) {
-				log.Debug(fmt.Printf("coap: %v", err))
-			}))
-		},
+		dialDTLS: kitNetCoap.DialUDPSecure,
+		dialTLS:  kitNetCoap.DialTCPSecure,
+		dialTCP:  kitNetCoap.DialTCP,
+		dialUDP:  kitNetCoap.DialUDP,
 		discoveryConfiguration: DiscoveryConfiguration{
 			MulticastHopLimit:    2,
 			MulticastAddressUDP4: DiscoveryAddressUDP4,
@@ -128,7 +167,10 @@ func NewClient(opts ...OptionFunc) *Client {
 
 	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
 	return &Client{
-		dialFunc:               cfg.dialFunc,
+		dialDTLS:               cfg.dialDTLS,
+		dialTLS:                cfg.dialTLS,
+		dialTCP:                cfg.dialTCP,
+		dialUDP:                cfg.dialUDP,
 		errFunc:                cfg.errFunc,
 		discoveryConfiguration: cfg.discoveryConfiguration,
 		tlsConfig:              cfg.tlsConfig,

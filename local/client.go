@@ -8,12 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/kit/net"
+	"github.com/pion/dtls/v2"
 
 	"github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/local/core"
-
-	cache "github.com/patrickmn/go-cache"
 )
 
 type ApplicationCallback = interface {
@@ -34,6 +32,7 @@ type Config struct {
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
 	MaxMessageSize                    int
 	DisablePeerTCPSignalMessageCSMs   bool
+	HeartBeatSeconds                  uint64
 
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
@@ -43,9 +42,12 @@ type Config struct {
 // NewClientFromConfig constructs a new local client from the proto configuration.
 func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
 	var cacheExpiration time.Duration
-	if cfg.DeviceCacheExpirationSeconds < 0 {
-		cacheExpiration = cache.NoExpiration
-	} else {
+	switch {
+	case cfg.DeviceCacheExpirationSeconds < 0:
+		cacheExpiration = time.Microsecond
+	case cfg.DeviceCacheExpirationSeconds == 0:
+		cacheExpiration = time.Second * 3600
+	default:
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
 	}
 
@@ -53,25 +55,59 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	if cfg.ObserverPollingIntervalSeconds > 0 {
 		observerPollingInterval = time.Second * time.Duration(cfg.ObserverPollingIntervalSeconds)
 	}
+	dialOpts := make([]coap.DialOptionFunc, 0, 5)
+	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
+		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)))
+	} else {
+		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*60))
+	}
+	if cfg.HeartBeatSeconds > 0 {
+		dialOpts = append(dialOpts, coap.WithHeartBeat(time.Second*time.Duration(cfg.HeartBeatSeconds)))
+	} else {
+		dialOpts = append(dialOpts, coap.WithHeartBeat(time.Second*4))
+	}
+	if cfg.MaxMessageSize > 0 {
+		dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
+	} else {
+		dialOpts = append(dialOpts, coap.WithMaxMessageSize(512*1024))
+	}
+	if cfg.DisablePeerTCPSignalMessageCSMs {
+		dialOpts = append(dialOpts, coap.WithDialDisablePeerTCPSignalMessageCSMs())
+	}
+	if errors != nil {
+		dialOpts = append(dialOpts, coap.WithErrors(errors))
+	} else {
+		dialOpts = append(dialOpts, coap.WithErrors(func(error) {}))
+	}
 
-	opts := make([]core.OptionFunc, 0, 1)
-	opts = append(opts, core.WithDial(
-		func(ctx context.Context, addr net.Addr, tlsConfig *core.TLSConfig) (*coap.ClientCloseHandler, error) {
-			dialOpts := make([]coap.DialOptionFunc, 0, 5)
-			if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
-				dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)))
-			}
-			if cfg.MaxMessageSize > 0 {
-				dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
-			}
-			if cfg.DisablePeerTCPSignalMessageCSMs {
-				dialOpts = append(dialOpts, coap.WithDialDisablePeerTCPSignalMessageCSMs())
-			}
-			return core.DefaultDialFunc(ctx, addr, tlsConfig, dialOpts...)
-		}),
-	)
+	dialTLS := func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, dialOpts...)
+		return coap.DialTCPSecure(ctx, addr, tlsCfg, opts...)
+	}
+	dialDTLS := func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, dialOpts...)
+		return coap.DialUDPSecure(ctx, addr, dtlsCfg, opts...)
 
-	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, app, errors)
+	}
+	dialTCP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, dialOpts...)
+		return coap.DialTCP(ctx, addr, opts...)
+
+	}
+	dialUDP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, dialOpts...)
+		return coap.DialUDP(ctx, addr, opts...)
+
+	}
+
+	opts := []core.OptionFunc{
+		core.WithDialDTLS(dialDTLS),
+		core.WithDialTLS(dialTLS),
+		core.WithDialTCP(dialTCP),
+		core.WithDialUDP(dialUDP),
+	}
+
+	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app, errors)
 	if err != nil {
 		return nil, err
 	}
@@ -201,15 +237,15 @@ func (c *Client) Close(ctx context.Context) error {
 	return nil
 }
 
-func NewDeviceOwnerFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
+func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
 	if cfg.DeviceOwnershipSDK != nil {
-		c, err := NewDeviceOwnershipSDKFromConfig(app, cfg.DeviceOwnershipSDK)
+		c, err := NewDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
 		}
 		return c, nil
 	} else if cfg.DeviceOwnershipBackend != nil {
-		c, err := NewDeviceOwnershipBackendFromConfig(app, cfg.DeviceOwnershipBackend, errors)
+		c, err := NewDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend, errors)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create server signers: %w", err)
 		}

@@ -2,7 +2,9 @@ package local
 
 import (
 	"context"
+	"fmt"
 
+	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
 )
@@ -44,8 +46,17 @@ func (c *Client) GetRefDevice(
 
 func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
 	cfg := getDeviceOptions{
-		getDetails: func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
-			return nil, nil
+		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+			link := links.GetResourceLinks("oic.wk.d")
+			if len(link) == 0 {
+				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
+			}
+			var device schema.Device
+			err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+			if err != nil {
+				return nil, err
+			}
+			return &device, nil
 		},
 	}
 	for _, o := range opts {
@@ -72,8 +83,8 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 	ownerID, _ := c.client.GetSdkOwnerID()
 
 	return setOwnership(ownerID, map[string]DeviceDetails{
-		devDetails.Device.ID: devDetails,
+		devDetails.ID: devDetails,
 	}, map[string]schema.Doxm{
 		doxm.DeviceID: doxm,
-	})[devDetails.Device.ID], nil
+	})[devDetails.ID], nil
 }

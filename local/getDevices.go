@@ -25,8 +25,17 @@ func (c *Client) GetDevices(
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
 		err: func(err error) { log.Error(err) },
-		getDetails: func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
-			return nil, nil
+		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+			link := links.GetResourceLinks("oic.wk.d")
+			if len(link) == 0 {
+				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
+			}
+			var device schema.Device
+			err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+			if err != nil {
+				return nil, err
+			}
+			return &device, nil
 		},
 	}
 	for _, o := range opts {
@@ -94,8 +103,6 @@ const (
 type DeviceDetails struct {
 	// ID of the device
 	ID string
-	// Device basic content(oic.wk.d) of /oic/d resource.
-	Device schema.Device
 	// Details result of function which can be set via option WithGetDetails(), by default it is nil.
 	Details interface{}
 	// IsSecured is secured.
@@ -120,11 +127,18 @@ func newDiscoveryHandler(
 	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails}
 }
 
+type detailsWasSet struct {
+	sync.Mutex
+	wasSet bool
+}
+
 type discoveryHandler struct {
 	typeFilter []string
 	errors     func(error)
 	devices    func(DeviceDetails)
 	getDetails GetDetailsFunc
+
+	getDetailsWasCalled sync.Map
 }
 
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
@@ -149,12 +163,6 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 		eps = link.GetEndpoints()
 	}
 
-	var device schema.Device
-	err := d.GetResource(ctx, link, &device, kitNetCoap.WithInterface("oic.if.baseline"))
-	if err != nil {
-		return out, err
-	}
-
 	isSecured, err := d.IsSecured(ctx, links)
 	if err != nil {
 		return out, err
@@ -167,7 +175,6 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 
 	return DeviceDetails{
 		ID:              d.DeviceID(),
-		Device:          device,
 		Details:         details,
 		IsSecured:       isSecured,
 		Resources:       links,
@@ -185,13 +192,31 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device, links sch
 		return
 	}
 
-	devDetails, err := getDeviceDetails(ctx, d, links, h.getDetails)
+	devDetails, err := h.getDeviceDetails(ctx, d, links)
 	if err != nil {
 		h.Error(err)
 		return
 	}
 
 	h.devices(devDetails)
+}
+
+func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (out DeviceDetails, _ error) {
+	getDetails := h.getDetails
+	v, _ := h.getDetailsWasCalled.LoadOrStore(d.DeviceID(), &detailsWasSet{})
+	m := v.(*detailsWasSet)
+	m.Lock()
+	defer m.Unlock()
+	if m.wasSet {
+		getDetails = func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
+			return nil, nil
+		}
+	}
+	devDetails, err := getDeviceDetails(ctx, d, links, getDetails)
+	if err == nil {
+		m.wasSet = true
+	}
+	return devDetails, err
 }
 
 func newDiscoveryOwnershipsHandler(
@@ -219,9 +244,14 @@ func mergeDevices(list []DeviceDetails) map[string]DeviceDetails {
 		d, ok := m[i.ID]
 		if !ok {
 			m[i.ID] = i
+			d = i
 		} else {
 			d.Endpoints = mergeEndpoints(d.Endpoints, i.Endpoints)
 		}
+		if i.Details != nil {
+			d.Details = i.Details
+		}
+		m[i.ID] = d
 	}
 	return m
 }
