@@ -365,6 +365,8 @@ github.com/plgd-dev/kit v0.0.0-20200917114550-e55124608612 h1:YAzuCNWQgBtIhVPgER
 github.com/plgd-dev/kit v0.0.0-20200917114550-e55124608612/go.mod h1:fvVHdNe5H/mKTEt6CbupEx+DXfnIKMcnOxHpwmxC3qs=
 github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe h1:tABxiFuRPzyX0RTbsrBDs6Er1Tqo3i9ZPc+QDSj6tf8=
 github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
+github.com/plgd-dev/kit v0.0.0-20210215081623-7623f456902b h1:wek0auK8Ll0WcjbQYkOf3hqC9d66PLl0SXmlSbq943A=
+github.com/plgd-dev/kit v0.0.0-20210215081623-7623f456902b/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
 github.com/plgd-dev/sdk v0.0.0-20200819123823-4047b3e387d9/go.mod h1:8IzIQh/+2ZnNgtdpgWwaiBrI0hSox63ojTWHc4KlPTY=
 github.com/plgd-dev/sdk v0.0.0-20200917124432-caf96ab63f2d/go.mod h1:jbuh5K0ZIMDWcJEuRWtJZWve9CmjN0ZFGrLm4B09ytk=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=

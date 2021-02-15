@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/sdk/local"
+	"github.com/plgd-dev/sdk/schema"
 	"github.com/plgd-dev/sdk/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,12 +30,12 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
-	assert.Equal(t, test.TestDeviceName, d.Device.Name)
+	assert.Equal(t, test.TestDeviceName, d.Details.(*schema.Device).Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)
 	require.NotNil(t, d)
-	assert.Equal(t, test.TestSecureDeviceName, d.Device.Name)
+	assert.Equal(t, test.TestSecureDeviceName, d.Details.(*schema.Device).Name)
 	require.NotNil(t, d.Ownership)
 	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 	kitNet "github.com/plgd-dev/kit/net"
+	"github.com/plgd-dev/kit/net/coap"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	kitSecurity "github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/local/core/otm/just-works/cipher"
@@ -19,14 +20,30 @@ type CertificateSigner = interface {
 }
 
 type Client struct {
-	signer CertificateSigner
+	signer   CertificateSigner
+	dialDTLS DialDTLS
 }
+
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
 
 type OptionFunc func(Client) Client
 
-func NewClient(signer CertificateSigner) *Client {
+func WithDialDTLS(dial DialDTLS) OptionFunc {
+	return func(cfg Client) Client {
+		if dial != nil {
+			cfg.dialDTLS = dial
+		}
+		return cfg
+	}
+}
+
+func NewClient(signer CertificateSigner, opts ...OptionFunc) *Client {
 	c := Client{
-		signer: signer,
+		signer:   signer,
+		dialDTLS: kitNetCoap.DialUDPSecure,
+	}
+	for _, o := range opts {
+		c = o(c)
 	}
 	return &c
 }
@@ -47,7 +64,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 				return context.WithCancel(ctx)
 			},
 		}
-		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }

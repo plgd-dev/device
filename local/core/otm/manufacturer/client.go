@@ -9,6 +9,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 	kitNet "github.com/plgd-dev/kit/net"
+	"github.com/plgd-dev/kit/net/coap"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	kitSecurity "github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/schema"
@@ -19,27 +20,34 @@ type CertificateSigner = interface {
 	Sign(ctx context.Context, csr []byte) ([]byte, error)
 }
 
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+
 type Client struct {
 	manufacturerCertificate tls.Certificate
 	manufacturerCA          []*x509.Certificate
-	disableDTLS             bool
-	disableTCPTLS           bool
+	dialDTLS                DialDTLS
+	dialTLS                 DialTLS
 
 	signer CertificateSigner
 }
 
 type OptionFunc func(Client) Client
 
-func WithoutTCPTLS() OptionFunc {
+func WithDialDTLS(dial DialDTLS) OptionFunc {
 	return func(cfg Client) Client {
-		cfg.disableTCPTLS = true
+		if dial != nil {
+			cfg.dialDTLS = dial
+		}
 		return cfg
 	}
 }
 
-func WithoutDTLS() OptionFunc {
+func WithDialTLS(dial DialTLS) OptionFunc {
 	return func(cfg Client) Client {
-		cfg.disableDTLS = true
+		if dial != nil {
+			cfg.dialTLS = dial
+		}
 		return cfg
 	}
 }
@@ -54,6 +62,8 @@ func NewClient(
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
 		signer:                  signer,
+		dialDTLS:                kitNetCoap.DialUDPSecure,
+		dialTLS:                 kitNetCoap.DialTCPSecure,
 	}
 	for _, o := range opts {
 		c = o(c)
@@ -68,9 +78,6 @@ func (*Client) Type() schema.OwnerTransferMethod {
 func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
-		if c.disableDTLS {
-			return nil, fmt.Errorf("dtls is disabled")
-		}
 		rootCAs := x509.NewCertPool()
 		for _, ca := range c.manufacturerCA {
 			rootCAs.AddCert(ca)
@@ -82,11 +89,8 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return kitNetCoap.DialUDPSecure(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
 	case schema.TCPSecureScheme:
-		if c.disableTCPTLS {
-			return nil, fmt.Errorf("tcp-tls is disabled")
-		}
 		rootCAs := x509.NewCertPool()
 		for _, ca := range c.manufacturerCA {
 			rootCAs.AddCert(ca)
@@ -96,7 +100,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return kitNetCoap.DialTCPSecure(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialTLS(ctx, addr.String(), &tlsConfig, opts...)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
@@ -175,9 +179,3 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 
 	return nil
 }
-
-/*
-func (c *Client) SignCertificate(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
-	return c.signer.Sign(ctx, csr)
-}
-*/

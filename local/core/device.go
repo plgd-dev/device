@@ -15,7 +15,10 @@ import (
 )
 
 type deviceConfiguration struct {
-	dialFunc               DialFunc
+	dialDTLS               DialDTLS
+	dialTLS                DialTLS
+	dialUDP                DialUDP
+	dialTCP                DialTCP
 	errFunc                ErrFunc
 	discoveryConfiguration DiscoveryConfiguration
 	tlsConfig              *TLSConfig
@@ -88,7 +91,7 @@ func (d *Device) Close(ctx context.Context) error {
 	return nil
 }
 
-func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (d *Device) dialTLS(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 	cert, err := tlsConfig.GetCertificate()
 	if err != nil {
 		return nil, err
@@ -108,10 +111,10 @@ func DialTCPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
 
-	return coap.DialTCPSecure(ctx, addr, &tlsCfg, dialOptions...)
+	return d.cfg.dialTLS(ctx, addr, &tlsCfg, dialOptions...)
 }
 
-func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 	cert, err := tlsConfig.GetCertificate()
 	if err != nil {
 		return nil, err
@@ -132,7 +135,7 @@ func DialUDPSecure(ctx context.Context, addr string, tlsConfig *TLSConfig, verif
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
-	return coap.DialUDPSecure(ctx, addr, &tlsCfg, dialOptions...)
+	return d.cfg.dialDTLS(ctx, addr, &tlsCfg, dialOptions...)
 }
 
 func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
@@ -148,16 +151,16 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	return
 }
 
-func DefaultDialFunc(ctx context.Context, addr net.Addr, tlsConfig *TLSConfig, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (d *Device) dial(ctx context.Context, addr net.Addr, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPScheme:
-		return coap.DialUDP(ctx, addr.String(), dialOptions...)
+		return d.cfg.dialUDP(ctx, addr.String(), dialOptions...)
 	case schema.UDPSecureScheme:
-		return DialUDPSecure(ctx, addr.String(), tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+		return d.dialDTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
 	case schema.TCPScheme:
-		return coap.DialTCP(ctx, addr.String(), dialOptions...)
+		return d.cfg.dialTCP(ctx, addr.String(), dialOptions...)
 	case schema.TCPSecureScheme:
-		return DialTCPSecure(ctx, addr.String(), tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+		return d.dialTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
 	}
 	return nil, fmt.Errorf("unknown scheme :%v", addr.GetScheme())
 }
@@ -173,7 +176,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 	if ok {
 		return addr, conn, nil
 	}
-	c, err := d.cfg.dialFunc(ctx, addr, d.cfg.tlsConfig)
+	c, err := d.dial(ctx, addr)
 	if err != nil {
 		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
 	}

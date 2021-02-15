@@ -30,10 +30,13 @@ type deviceOwnershipSDK struct {
 	createIdentitySigner func() (core.CertificateSigner, error)
 	identityCertificate  tls.Certificate
 	identityCACert       []*x509.Certificate
+	dialTLS              core.DialTLS
+	dialDTLS             core.DialDTLS
 	app                  ApplicationCallback
 }
 
-func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnershipSDKConfig) (*deviceOwnershipSDK, error) {
+func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialTLS,
+	dialDLTS core.DialDTLS, cfg *DeviceOwnershipSDKConfig) (*deviceOwnershipSDK, error) {
 	certExpiry := time.Hour * 24 * 365 * 10
 	var err error
 	if cfg.CertExpiry != nil {
@@ -51,10 +54,11 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, cfg *DeviceOwnersh
 		return nil, fmt.Errorf("invalid ID for device ownership SDK: %w", err)
 	}
 
-	return NewDeviceOwnershipSDK(app, uid.String(), &signerCert, cfg.ValidFrom, certExpiry)
+	return NewDeviceOwnershipSDK(app, uid.String(), dialTLS, dialDLTS, &signerCert, cfg.ValidFrom, certExpiry)
 }
 
-func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration) (*deviceOwnershipSDK, error) {
+func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS core.DialTLS,
+	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration) (*deviceOwnershipSDK, error) {
 	if validFrom == "" {
 		validFrom = "now-1m"
 	}
@@ -77,7 +81,9 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, signerCe
 			notAfter := notBefore.Add(certExpiry)
 			return ocfSigner.NewIdentityCertificateSigner(signerCAs, signerCert.PrivateKey, notBefore, notAfter), nil
 		},
-		app: app,
+		app:      app,
+		dialTLS:  dialTLS,
+		dialDTLS: dialDTLS,
 	}, nil
 }
 
@@ -85,7 +91,8 @@ func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
 	return nil
 }
 
-func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner) (core.OTMClient, error) {
+func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner, dialTLS core.DialTLS,
+	dialDTLS core.DialDTLS) (core.OTMClient, error) {
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -95,7 +102,7 @@ func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner) 
 		return nil, err
 	}
 
-	return manufacturer.NewClient(mfgCert, mfgCA, signer), nil
+	return manufacturer.NewClient(mfgCert, mfgCA, signer, manufacturer.WithDialDTLS(dialDTLS), manufacturer.WithDialTLS(dialTLS)), nil
 }
 
 func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
@@ -106,13 +113,13 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, signer)
+		otm, err := getOTMManufacturer(o.app, signer, o.dialTLS, o.dialDTLS)
 		if err != nil {
 			return "", err
 		}
 		otmClient = otm
 	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(signer)
+		otmClient = justworks.NewClient(signer, justworks.WithDialDTLS(o.dialDTLS))
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
