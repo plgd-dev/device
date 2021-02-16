@@ -24,6 +24,18 @@ jobs:
       # Runs a single command using the runners shell
       - name: Run a test
         run: make test
+      
+      - name: Collect iotivity logs for devsimsec failed test
+        if: ${{ failure() }}
+        run: docker logs -t devsimsec
+      
+      - name: Collect iotivity logs for devsim failed test
+        if: ${{ failure() }}
+        run: docker logs -t devsim
+      
+      - name: Collect iotivity logs for devsim-core failed test
+        if: ${{ failure() }}
+        run: docker logs -t devsim-core
         
       - name: Publish the coverage
         run: bash <(curl -s https://codecov.io/bash)
