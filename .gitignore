@@ -4,10 +4,6 @@ coverage.txt
 step-ca/
 mongo/
 
-# CGO
-*.h
-*.so
-
 # Dep's guards against upstream overwrites
 # https://golang.github.io/dep/docs/FAQ.html#should-i-commit-my-vendor-directory
 vendor/
