@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/url"
 	"sort"
-	"strconv"
 	"strings"
 
 	kitNet "github.com/plgd-dev/kit/net"
@@ -53,11 +52,11 @@ type Endpoint struct {
 
 // GetAddr parses a endpoint URI to addr.
 func (ep Endpoint) GetAddr() (kitNet.Addr, error) {
-	u, err := url.ParseRequestURI(ep.URI)
-	if err != nil {
-		return kitNet.Addr{}, err
+	a := strings.Split(ep.URI, "://")
+	if len(a) != 2 {
+		return kitNet.Addr{}, fmt.Errorf("invalid address %v", ep.URI)
 	}
-	return kitNet.ParseURL(u)
+	return kitNet.ParseString(a[0], a[1])
 }
 
 // BitMask is defined with Policy on the line 1822 of the Core specification.
@@ -167,11 +166,11 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 		// which need to be used in Dial
 		endpoints := make([]Endpoint, 0, 8)
 		for _, endpoint := range r.Endpoints {
-			url, err := url.Parse(endpoint.URI)
+			addrEp, err := endpoint.GetAddr()
 			if err != nil {
 				continue
 			}
-			ip, zone := kitNet.ParseIPZone(url.Hostname())
+			ip, zone := kitNet.ParseIPZone(addrEp.GetHostname())
 			if ip == nil {
 				continue
 			}
@@ -179,12 +178,8 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 				if !strings.Contains(addr.URL(), ip.String()) {
 					continue
 				}
-				port, err := strconv.Atoi(url.Port())
-				if err != nil {
-					continue
-				}
 				endpoint = Endpoint{
-					URI:      addr.SetScheme(url.Scheme).SetPort(uint16(port)).URL(),
+					URI:      addr.SetScheme(addrEp.GetScheme()).SetPort(addrEp.GetPort()).URL(),
 					Priority: endpoint.Priority,
 				}
 			}
@@ -196,19 +191,17 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 	return r.patchEndpoint(addr)
 }
 
-func (r ResourceLink) getEndpoint(scheme Scheme) (_ kitNet.Addr, err error) {
-	var u *url.URL
+func (r ResourceLink) getEndpoint(scheme Scheme) (kitNet.Addr, error) {
 	for _, ep := range r.Endpoints {
-		u, err = url.ParseRequestURI(ep.URI)
+		u, err := ep.GetAddr()
 		if err != nil {
-			return
+			return kitNet.Addr{}, err
 		}
-		if Scheme(u.Scheme) == scheme {
-			return kitNet.ParseURL(u)
+		if u.GetScheme() == string(scheme) {
+			return u, nil
 		}
 	}
-	err = fmt.Errorf("no %s endpoint for %v", scheme, r)
-	return
+	return kitNet.Addr{}, fmt.Errorf("no %s endpoint for %v", scheme, r)
 }
 
 // GetTCPAddr parses and finds a TCP endpoint address.
