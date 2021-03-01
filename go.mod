@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
-	github.com/gofrs/uuid v3.3.0+incompatible
+	github.com/gofrs/uuid/v4 v4.0.0
 	github.com/google/uuid v1.1.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
