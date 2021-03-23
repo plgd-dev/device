@@ -91,7 +91,7 @@ func init() {
 			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},
 		schema.ResourceLink{
-			Href:          "/oic/sec/doxm",
+			Href:          schema.DoxmHref,
 			ResourceTypes: []string{"oic.r.doxm"},
 			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
 		},

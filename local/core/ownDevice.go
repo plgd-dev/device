@@ -63,7 +63,7 @@ func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMe
 		SelectOwnerTransferMethod: selectOwnerTransferMethod,
 	}
 	/*doxm doesn't send any content for update*/
-	return conn.UpdateResource(ctx, "/oic/sec/doxm", selectOTM, nil)
+	return conn.UpdateResource(ctx, schema.DoxmHref, selectOTM, nil)
 }
 
 type selectOTMHandler struct {
@@ -172,6 +172,12 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 		return err
 	}
 
+	// CleanUp acls rules
+	err = d.DeleteResource(ctx, link, nil)
+	if err != nil {
+		return err
+	}
+
 	cloudResources := make([]acl.Resource, 0, 1)
 	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
 		cloudResources = append(cloudResources, acl.Resource{
@@ -201,6 +207,72 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: cloudResources,
 			},
+			acl.AccessControl{
+				Permission: acl.Permission_READ | acl.Permission_WRITE | acl.Permission_DELETE,
+				Subject: acl.Subject{
+					Subject_Device: &acl.Subject_Device{
+						DeviceID: ownerID,
+					},
+				},
+				Resources: []acl.Resource{
+					{
+						Href:       "/oic/sec/sp",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       "oic/sec/pstat",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       "oic/sec/doxm",
+						Interfaces: []string{"*"},
+					},
+				},
+			},
+			acl.AccessControl{
+				Permission: acl.Permission_READ,
+				Subject: acl.Subject{
+					Subject_Device: &acl.Subject_Device{
+						DeviceID: ownerID,
+					},
+				},
+				Resources: []acl.Resource{
+					{
+						Href:       "/oic/sec/csr",
+						Interfaces: []string{"*"},
+					},
+				},
+			},
+			acl.AccessControl{
+				Permission: acl.Permission_READ,
+				Subject: acl.Subject{
+					Subject_Connection: &acl.Subject_Connection{
+						Type: acl.ConnectionType_ANON_CLEAR,
+					},
+				},
+				Resources: []acl.Resource{
+					{
+						Href:       "/oic/d",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       "/oic/p",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       "/oic/res",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       "/oic/sec/sdi",
+						Interfaces: []string{"*"},
+					},
+					{
+						Href:       schema.DoxmHref,
+						Interfaces: []string{"*"},
+					},
+				},
+			},
 		},
 	}
 
@@ -220,7 +292,7 @@ func (d *Device) Own(
 				DeviceID: d.DeviceID(),
 			}
 			/*doxm doesn't send any content for select OTM*/
-			err := client.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+			err := client.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
 			if err != nil {
 				return "", MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", d.DeviceID(), err))
 			}
@@ -232,7 +304,7 @@ func (d *Device) Own(
 		cfg = opt(cfg)
 	}
 
-	ownership, err := d.GetOwnership(ctx)
+	ownership, err := d.GetOwnership(ctx, links)
 	if err != nil {
 		return MakeUnavailable(err)
 	}
@@ -349,14 +421,14 @@ func (d *Device) Own(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwner, nil)
+	err = tlsClient.UpdateResource(ctx, schema.DoxmHref, setDeviceOwner, nil)
 	if err != nil {
 		return MakeUnavailable(fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	/*verify ownership*/
 	var verifyOwner schema.Doxm
-	err = tlsClient.GetResource(ctx, "/oic/sec/doxm", &verifyOwner)
+	err = tlsClient.GetResource(ctx, schema.DoxmHref, &verifyOwner)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -397,7 +469,7 @@ func (d *Device) Own(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+	err = tlsClient.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))

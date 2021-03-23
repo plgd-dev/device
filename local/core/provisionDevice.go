@@ -40,6 +40,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 
 	err = c.UpdateResource(ctx, link, provisioningState, nil)
 	if err != nil {
@@ -59,6 +60,7 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 
 	err = c.UpdateResource(ctx, link, normalOperationState, nil)
 	if err != nil {
@@ -73,6 +75,7 @@ func (c *ProvisioningClient) AddCredentials(ctx context.Context, credential sche
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 	err = c.UpdateResource(ctx, link, credential, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
@@ -117,6 +120,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	if link.Href == "" {
 		return fmt.Errorf("could not resolve cloud resource link of device %s", c.DeviceID())
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 	err := c.UpdateResource(ctx, link, r, nil)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %w", c.DeviceID(), err)
@@ -145,6 +149,7 @@ func (c *ProvisioningClient) SetAccessControl(
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 	err = c.UpdateResource(ctx, link, setACL, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)

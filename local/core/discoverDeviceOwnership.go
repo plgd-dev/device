@@ -43,7 +43,7 @@ func DiscoverDeviceOwnership(
 	var opt kitNetCoap.OptionFunc
 	switch status {
 	case DiscoverAllDevices:
-		return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler))
+		return Discover(ctx, conn, schema.DoxmHref, handleDiscoverOwnershipResponse(ctx, handler))
 	case DiscoverOwnedDevices:
 		opt = func(m message.Options) message.Options {
 			buf := make([]byte, 16)
@@ -60,7 +60,7 @@ func DiscoverDeviceOwnership(
 		return MakeUnimplemented(fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status))
 	}
 
-	return Discover(ctx, conn, "/oic/sec/doxm", handleDiscoverOwnershipResponse(ctx, handler), opt)
+	return Discover(ctx, conn, schema.DoxmHref, handleDiscoverOwnershipResponse(ctx, handler), opt)
 }
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {

@@ -124,6 +124,38 @@ func (r ResourceLink) GetEndpoints() []Endpoint {
 	return eps
 }
 
+// GetSecureEndpoints returns secure endpoints in order of priority.
+func (r ResourceLink) GetSecureEndpoints() []Endpoint {
+	endpoints := make([]Endpoint, 0, 4)
+	for _, ep := range r.GetEndpoints() {
+		addr, err := ep.GetAddr()
+		if err != nil {
+			continue
+		}
+		switch addr.GetScheme() {
+		case string(TCPSecureScheme), string(UDPSecureScheme):
+			endpoints = append(endpoints, ep)
+		}
+	}
+	return endpoints
+}
+
+// GetUnsecureEndpoints returns unsecure endpoints in order of priority.
+func (r ResourceLink) GetUnsecureEndpoints() []Endpoint {
+	endpoints := make([]Endpoint, 0, 4)
+	for _, ep := range r.GetEndpoints() {
+		addr, err := ep.GetAddr()
+		if err != nil {
+			continue
+		}
+		switch addr.GetScheme() {
+		case string(TCPScheme), string(UDPScheme):
+			endpoints = append(endpoints, ep)
+		}
+	}
+	return endpoints
+}
+
 // HasType checks the resource type.
 func (r ResourceLink) HasType(resourceType string) bool {
 	for _, rt := range r.ResourceTypes {

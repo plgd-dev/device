@@ -2,6 +2,8 @@ package schema
 
 import "fmt"
 
+const DoxmHref = "/oic/sec/doxm"
+
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.doxm.swagger.json
 
 type Doxm struct {

@@ -52,7 +52,7 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 			DeviceID: d.ProtocolIndependentID,
 		}
 		/*doxm doesn't send any content for select OTM*/
-		err = client.UpdateResource(ctx, "/oic/sec/doxm", setDeviceOwned, nil)
+		err = client.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
 		if err != nil {
 			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
 		}
