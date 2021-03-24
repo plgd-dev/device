@@ -40,7 +40,7 @@ LOOP:
 						Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
 						Anchor:        "ocf://" + deviceID,
 						Policy: &schema.Policy{
-							BitMask: schema.Discoverable,
+							BitMask: schema.Discoverable | schema.Observable,
 						},
 					},
 					Event: local.DeviceResourcesObservationEvent_ADDED,
