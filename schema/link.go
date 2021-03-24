@@ -124,36 +124,40 @@ func (r ResourceLink) GetEndpoints() []Endpoint {
 	return eps
 }
 
-// GetSecureEndpoints returns secure endpoints in order of priority.
-func (r ResourceLink) GetSecureEndpoints() []Endpoint {
+func (r ResourceLink) getEndpointsWithFilter(filter func(scheme string) bool) []Endpoint {
 	endpoints := make([]Endpoint, 0, 4)
 	for _, ep := range r.GetEndpoints() {
 		addr, err := ep.GetAddr()
 		if err != nil {
 			continue
 		}
-		switch addr.GetScheme() {
-		case string(TCPSecureScheme), string(UDPSecureScheme):
+		if filter(addr.GetScheme()) {
 			endpoints = append(endpoints, ep)
 		}
 	}
 	return endpoints
 }
 
+// GetSecureEndpoints returns secure endpoints in order of priority.
+func (r ResourceLink) GetSecureEndpoints() []Endpoint {
+	return r.getEndpointsWithFilter(func(scheme string) bool {
+		switch scheme {
+		case string(TCPSecureScheme), string(UDPSecureScheme):
+			return true
+		}
+		return false
+	})
+}
+
 // GetUnsecureEndpoints returns unsecure endpoints in order of priority.
 func (r ResourceLink) GetUnsecureEndpoints() []Endpoint {
-	endpoints := make([]Endpoint, 0, 4)
-	for _, ep := range r.GetEndpoints() {
-		addr, err := ep.GetAddr()
-		if err != nil {
-			continue
-		}
-		switch addr.GetScheme() {
+	return r.getEndpointsWithFilter(func(scheme string) bool {
+		switch scheme {
 		case string(TCPScheme), string(UDPScheme):
-			endpoints = append(endpoints, ep)
+			return true
 		}
-	}
-	return endpoints
+		return false
+	})
 }
 
 // HasType checks the resource type.
