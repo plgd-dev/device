@@ -220,11 +220,11 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "oic/sec/pstat",
+						Href:       "/oic/sec/pstat",
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "oic/sec/doxm",
+						Href:       schema.DoxmHref,
 						Interfaces: []string{"*"},
 					},
 				},
