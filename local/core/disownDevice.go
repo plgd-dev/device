@@ -23,7 +23,7 @@ func (d *Device) Disown(
 ) error {
 	const errMsg = "cannot disown: %w"
 
-	ownership, err := d.GetOwnership(ctx)
+	ownership, err := d.GetOwnership(ctx, links)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -50,6 +50,7 @@ func (d *Device) Disown(
 	if err != nil {
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
+	link.Endpoints = link.GetSecureEndpoints()
 
 	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
 	if err != nil {

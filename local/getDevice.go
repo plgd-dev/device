@@ -75,7 +75,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 	}
 	var doxm schema.Doxm
 	if devDetails.IsSecured {
-		doxm, err = refDev.GetOwnership(ctx)
+		doxm, err = refDev.GetOwnership(ctx, links)
 	}
 	if err != nil {
 		return DeviceDetails{}, err

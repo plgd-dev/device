@@ -26,7 +26,7 @@ func TestGetOwnership(t *testing.T) {
 	defer device.Close(ctx)
 
 	// before own
-	got, err := device.GetOwnership(ctx)
+	got, err := device.GetOwnership(ctx, links)
 	require.NoError(t, err)
 	assert.False(t, got.Owned)
 
@@ -34,7 +34,7 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 
 	// after own
-	got, err = device.GetOwnership(ctx)
+	got, err = device.GetOwnership(ctx, links)
 	require.NoError(t, err)
 	assert.True(t, got.Owned)
 	assert.Equal(t, CertIdentity, got.OwnerID)

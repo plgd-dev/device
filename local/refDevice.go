@@ -138,6 +138,6 @@ func (d *RefDevice) Reboot(ctx context.Context, links schema.ResourceLinks) erro
 	return d.Device().Reboot(ctx, links)
 }
 
-func (d *RefDevice) GetOwnership(ctx context.Context) (schema.Doxm, error) {
-	return d.Device().GetOwnership(ctx)
+func (d *RefDevice) GetOwnership(ctx context.Context, links schema.ResourceLinks) (schema.Doxm, error) {
+	return d.Device().GetOwnership(ctx, links)
 }
