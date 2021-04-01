@@ -11,7 +11,7 @@ require (
 	github.com/pion/dtls/v2 v2.0.5-0.20210131130429-43aede6b5060
 	github.com/plgd-dev/cloud v1.0.1
 	github.com/plgd-dev/go-coap/v2 v2.2.0
-	github.com/plgd-dev/kit v0.0.0-20210219103731-1d071c0a34d1
+	github.com/plgd-dev/kit v0.0.0-20210322121129-fa0d31a13679
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/atomic v1.6.0
 	google.golang.org/grpc v1.29.1
