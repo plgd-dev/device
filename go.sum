@@ -363,12 +363,6 @@ github.com/plgd-dev/kit v0.0.0-20200819113605-d5fcf3e94f63 h1:cI6kESUBU1KUHtufZe
 github.com/plgd-dev/kit v0.0.0-20200819113605-d5fcf3e94f63/go.mod h1:Yl9zisyXfPdtP9hTWlJqjJYXmgU/jtSDKttz9/CeD90=
 github.com/plgd-dev/kit v0.0.0-20200917114550-e55124608612 h1:YAzuCNWQgBtIhVPgERZZdweOeQlFENdxmiC51Hse5lU=
 github.com/plgd-dev/kit v0.0.0-20200917114550-e55124608612/go.mod h1:fvVHdNe5H/mKTEt6CbupEx+DXfnIKMcnOxHpwmxC3qs=
-github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe h1:tABxiFuRPzyX0RTbsrBDs6Er1Tqo3i9ZPc+QDSj6tf8=
-github.com/plgd-dev/kit v0.0.0-20201202142530-c7215a26cefe/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
-github.com/plgd-dev/kit v0.0.0-20210215081623-7623f456902b h1:wek0auK8Ll0WcjbQYkOf3hqC9d66PLl0SXmlSbq943A=
-github.com/plgd-dev/kit v0.0.0-20210215081623-7623f456902b/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
-github.com/plgd-dev/kit v0.0.0-20210219091202-c06957d1b139 h1:vmgDlCsjtzu+XGLqXNF5XEbCL9OXDoOOWe6YyzaymDE=
-github.com/plgd-dev/kit v0.0.0-20210219091202-c06957d1b139/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
 github.com/plgd-dev/kit v0.0.0-20210219103731-1d071c0a34d1 h1:5+xINWGc6Kh8HkPs71LNd90nSFCPXvlJtwjfiCWSxFQ=
 github.com/plgd-dev/kit v0.0.0-20210219103731-1d071c0a34d1/go.mod h1:2hMgcklG0UX+HyPAVyodx5cFsQiLN0CbRcmuS0SggDE=
 github.com/plgd-dev/sdk v0.0.0-20200819123823-4047b3e387d9/go.mod h1:8IzIQh/+2ZnNgtdpgWwaiBrI0hSox63ojTWHc4KlPTY=

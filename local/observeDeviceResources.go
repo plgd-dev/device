@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/sdk/schema"
+	"go.uber.org/atomic"
 )
 
 type DeviceResourcesObservationEvent_type uint8
@@ -28,7 +29,7 @@ type DeviceResourcesObservationHandler = interface {
 type deviceResourcesObserver struct {
 	c        *Client
 	deviceID string
-	handler  DeviceResourcesObservationHandler
+	handler  *deviceResourcesObservationHandler
 
 	ctx      context.Context
 	cancel   context.CancelFunc
@@ -37,7 +38,7 @@ type deviceResourcesObserver struct {
 	links    map[string]schema.ResourceLink
 }
 
-func newDeviceResourcesObserver(c *Client, deviceID string, interval time.Duration, handler DeviceResourcesObservationHandler) *deviceResourcesObserver {
+func newDeviceResourcesObserver(c *Client, deviceID string, interval time.Duration, handler *deviceResourcesObservationHandler) *deviceResourcesObserver {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	obs := &deviceResourcesObserver{
@@ -137,6 +138,7 @@ func (o *deviceResourcesObserver) observe(ctx context.Context) (map[string]schem
 }
 
 func (o *deviceResourcesObserver) Cancel() {
+	o.handler.close()
 	o.cancel()
 }
 
@@ -145,20 +147,44 @@ func (o *deviceResourcesObserver) Wait() {
 }
 
 type deviceResourcesObservationHandler struct {
-	handler            DeviceResourcesObservationHandler
+	handlerMutex sync.Mutex
+	handler      DeviceResourcesObservationHandler
+	isClosed     atomic.Bool
+
 	removeSubscription func()
 }
 
+func (h *deviceResourcesObservationHandler) close() {
+	h.isClosed.Store(true)
+}
+
 func (h *deviceResourcesObservationHandler) Handle(ctx context.Context, event DeviceResourcesObservationEvent) error {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return nil
+	}
 	return h.handler.Handle(ctx, event)
 }
 
 func (h *deviceResourcesObservationHandler) OnClose() {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
 	h.removeSubscription()
 	h.handler.OnClose()
 }
 
 func (h *deviceResourcesObservationHandler) Error(err error) {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
 	h.removeSubscription()
 	h.handler.Error(err)
 }

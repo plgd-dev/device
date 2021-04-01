@@ -9,6 +9,7 @@ import (
 	"github.com/plgd-dev/kit/codec/ocf"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/schema"
+	"go.uber.org/atomic"
 )
 
 func (d *Device) ObserveResourceWithCodec(
@@ -77,7 +78,7 @@ func (d *Device) stopObservations(ctx context.Context) error {
 
 type observation struct {
 	id      string
-	handler ObservationHandler
+	handler *observationHandler
 	client  *kitNetCoap.ClientCloseHandler
 
 	lock      sync.Mutex
@@ -104,6 +105,7 @@ func (o *observation) Stop(ctx context.Context) error {
 	onCloseID, obs := o.Get()
 	o.client.UnregisterCloseHandler(onCloseID)
 	if obs != nil {
+		o.handler.close()
 		err := obs.Cancel(ctx)
 		if err != nil {
 			return MakeCanceled(fmt.Errorf("cannot cancel observation %s: %w", o.id, err))
@@ -135,7 +137,7 @@ func (d *Device) observeResource(
 	h := observationHandler{handler: handler}
 	o := &observation{
 		id:      id.String(),
-		handler: handler,
+		handler: &h,
 		client:  client,
 	}
 	onCloseID := client.RegisterCloseHandler(func(err error) {
@@ -158,13 +160,40 @@ func (d *Device) observeResource(
 }
 
 type observationHandler struct {
-	handler ObservationHandler
+	mutex    sync.Mutex
+	handler  ObservationHandler
+	isClosed atomic.Bool
+}
+
+func (h *observationHandler) close() {
+	h.isClosed.Store(true)
 }
 
 func (h *observationHandler) Handle(client *kitNetCoap.Client, body kitNetCoap.DecodeFunc) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
 	h.handler.Handle(client.Context(), body)
 }
 
 func (h *observationHandler) Error(err error) {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
 	h.handler.Error(err)
+}
+
+func (h *observationHandler) OnClose() {
+	h.mutex.Lock()
+	defer h.mutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
+	h.handler.OnClose()
 }
