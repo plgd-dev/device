@@ -5,11 +5,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"github.com/plgd-dev/kit/net/coap"
-	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
+	"go.uber.org/atomic"
 )
 
 type DevicesObservationEvent_type uint8
@@ -30,7 +31,7 @@ type DevicesObservationHandler = interface {
 
 type devicesObserver struct {
 	c                  *Client
-	handler            DevicesObservationHandler
+	handler            *devicesObservationHandler
 	removeSubscription func()
 
 	cancel    context.CancelFunc
@@ -39,7 +40,7 @@ type devicesObserver struct {
 	deviceIDs map[string]bool
 }
 
-func newDevicesObserver(c *Client, interval time.Duration, handler DevicesObservationHandler) *devicesObserver {
+func newDevicesObserver(c *Client, interval time.Duration, handler *devicesObservationHandler) *devicesObserver {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	obs := &devicesObserver{
@@ -172,6 +173,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 }
 
 func (o *devicesObserver) Cancel() {
+	o.handler.close()
 	o.cancel()
 }
 
@@ -180,20 +182,44 @@ func (o *devicesObserver) Wait() {
 }
 
 type devicesObservationHandler struct {
-	handler            DevicesObservationHandler
+	handlerMutex sync.Mutex
+	handler      DevicesObservationHandler
+	isClosed     atomic.Bool
+
 	removeSubscription func()
 }
 
+func (h *devicesObservationHandler) close() {
+	h.isClosed.Store(true)
+}
+
 func (h *devicesObservationHandler) Handle(ctx context.Context, event DevicesObservationEvent) error {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return nil
+	}
 	return h.handler.Handle(ctx, event)
 }
 
 func (h *devicesObservationHandler) OnClose() {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
 	h.removeSubscription()
 	h.handler.OnClose()
 }
 
 func (h *devicesObservationHandler) Error(err error) {
+	h.handlerMutex.Lock()
+	defer h.handlerMutex.Unlock()
+	if h.isClosed.Load() {
+		return
+	}
+	h.isClosed.Store(true)
 	h.removeSubscription()
 	h.handler.Error(err)
 }
