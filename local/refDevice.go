@@ -77,8 +77,8 @@ func (d *RefDevice) StopObservingResource(
 	return d.Device().StopObservingResource(ctx, observationID)
 }
 
-func (d *RefDevice) IsSecured(ctx context.Context, links schema.ResourceLinks) (bool, error) {
-	return d.Device().IsSecured(ctx, links)
+func (d *RefDevice) IsSecured(ctx context.Context) (bool, error) {
+	return d.Device().IsSecured(ctx)
 }
 
 func (d *RefDevice) UpdateResource(

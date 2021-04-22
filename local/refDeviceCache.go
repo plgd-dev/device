@@ -76,6 +76,27 @@ func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, boo
 	return dev, true
 }
 
+func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, deviceID string, device *RefDevice) bool {
+	c.temporaryCacheLock.Lock()
+	defer c.temporaryCacheLock.Unlock()
+	d, ok := c.temporaryCache.Get(deviceID)
+	if !ok {
+		return false
+	}
+	dev := d.(*RefDevice)
+	if device == dev {
+		//remove device from cache
+		c.temporaryCache.Delete(deviceID)
+		return true
+	}
+	return false
+}
+
+func (c *refDeviceCache) RemoveDevice(ctx context.Context, deviceID string, device *RefDevice) bool {
+	ok := c.RemoveDeviceFromTemporaryCache(ctx, deviceID, device)
+	return c.RemoveDeviceFromPermanentCache(ctx, deviceID, device) || ok
+}
+
 func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDevice, bool) {
 	dev, ok := c.getDeviceFromPermanentCache(ctx, deviceID)
 	if ok {
@@ -135,11 +156,10 @@ func (c *refDeviceCache) StoreDeviceToPermanentCache(device *RefDevice) error {
 	return nil
 }
 
-func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, device *RefDevice) error {
-	deviceID := device.DeviceID()
+func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, deviceID string, device *RefDevice) bool {
 	refCacheDev, ok := c.getFromPermanentCache(deviceID)
 	if !ok {
-		return fmt.Errorf("device not found in remove device from permanent cache")
+		return false
 	}
 	defer refCacheDev.Release(ctx)
 
@@ -147,10 +167,11 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 
 	if dev == device {
 		//remove device from cache
-		return refCacheDev.Release(ctx)
+		refCacheDev.Release(ctx)
+		return true
 	}
 
-	return fmt.Errorf("device not found in remove device from permanent cache")
+	return false
 }
 
 func (c *refDeviceCache) popTemporaryCache() map[string]cache.Item {

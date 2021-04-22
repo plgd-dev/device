@@ -13,12 +13,12 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+	d, _, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return "", err
 	}
 	defer d.Release(ctx)
-	ok, err := d.IsSecured(ctx, links)
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -36,7 +36,7 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 		return "", err
 	}
 	defer d.Release(ctx)
-	ok, err := d.IsSecured(ctx, links)
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -60,6 +60,19 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	err = d.Own(ctx, links, otmClient, opts...)
 	if err != nil {
 		return "", err
+	}
+
+	if d.DeviceID() != deviceID {
+		c.deviceCache.RemoveDevice(ctx, deviceID, d)
+		tmp, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
+		if err != nil {
+			return d.DeviceID(), nil
+		}
+		if stored {
+			d.Acquire()
+		} else {
+			tmp.Release(ctx)
+		}
 	}
 
 	return d.DeviceID(), nil

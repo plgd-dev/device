@@ -77,7 +77,7 @@ func (c *Client) OnboardDevice(
 	}
 	defer d.Release(ctx)
 
-	ok, err := d.IsSecured(ctx, links)
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
 		return err
 	}

@@ -30,9 +30,10 @@ type DevicesObservationHandler = interface {
 }
 
 type devicesObserver struct {
-	c                  *Client
-	handler            *devicesObservationHandler
-	removeSubscription func()
+	c                      *Client
+	handler                *devicesObservationHandler
+	removeSubscription     func()
+	discoveryConfiguration core.DiscoveryConfiguration
 
 	cancel    context.CancelFunc
 	interval  time.Duration
@@ -40,13 +41,14 @@ type devicesObserver struct {
 	deviceIDs map[string]bool
 }
 
-func newDevicesObserver(c *Client, interval time.Duration, handler *devicesObservationHandler) *devicesObserver {
+func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	obs := &devicesObserver{
-		c:        c,
-		handler:  handler,
-		interval: interval,
+		c:                      c,
+		handler:                handler,
+		interval:               interval,
+		discoveryConfiguration: discoveryConfiguration,
 
 		cancel: cancel,
 		wait:   wg.Wait,
@@ -135,7 +137,7 @@ func (o *listDeviceIds) Error(err error) {
 }
 
 func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDevicesHandler) error {
-	multicastConn := core.DialDiscoveryAddresses(ctx, o.c.CoreClient().GetDiscoveryConfiguration(), o.c.errors)
+	multicastConn := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, o.c.errors)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -233,13 +235,20 @@ func (c *Client) stopObservingDevices(observationID string) (sync func(), err er
 	return sub.Wait, nil
 }
 
-func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler) (string, error) {
+func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
+	cfg := observeDevicesOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+	}
+	for _, o := range opts {
+		cfg = o.applyOnObserveDevices(cfg)
+	}
+
 	ID, err := uuid.NewV4()
 	if err != nil {
 		return "", err
 	}
 
-	obs := newDevicesObserver(c, c.observerPollingInterval, &devicesObservationHandler{
+	obs := newDevicesObserver(c, c.observerPollingInterval, cfg.discoveryConfiguration, &devicesObservationHandler{
 		handler: handler,
 		removeSubscription: func() {
 			c.stopObservingDevices(ID.String())

@@ -27,11 +27,11 @@ func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLink
 }
 
 // GetDevice performs a multicast and returns a device object if the device responds.
-func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schema.ResourceLinks, error) {
+func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, deviceID string) (*Device, error) {
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(findCtx, c.discoveryConfiguration, c.errFunc)
+	multicastConn := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -42,14 +42,14 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string) (*Device, schem
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
 	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
 	if err != nil {
-		return nil, nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
+		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
-	d, dlinks := h.Device()
+	d := h.Device()
 	if d == nil {
-		return nil, nil, MakeInternal(fmt.Errorf("no response from the device %s", deviceID))
+		return nil, MakeInternal(fmt.Errorf("no response from the device %s", deviceID))
 	}
 
-	return patchDeviceLinks(ctx, d, dlinks)
+	return d, nil
 }
 
 func newDeviceHandler(
@@ -69,16 +69,15 @@ type deviceHandler struct {
 	deviceID  string
 	cancel    context.CancelFunc
 
-	lock        sync.Mutex
-	device      *Device
-	deviceLinks schema.ResourceLinks
-	err         error
+	lock   sync.Mutex
+	device *Device
+	err    error
 }
 
-func (h *deviceHandler) Device() (*Device, schema.ResourceLinks) {
+func (h *deviceHandler) Device() *Device {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	return h.device, h.deviceLinks
+	return h.device
 }
 
 func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
@@ -104,10 +103,9 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 		h.err = MakeDataLoss(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes)
+	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints())
 
 	h.device = d
-	h.deviceLinks = links
 	h.cancel()
 }
 

@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema/acl"
 	"github.com/plgd-dev/sdk/schema/cloud"
 	"github.com/stretchr/testify/require"
@@ -42,9 +43,13 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert, false, false)
 	require.NoError(t, err)
-	d, links, err := c2.GetDevice(ctx, c.DeviceID)
+	d, err := c2.GetDevice(ctx, ocf.DefaultDiscoveryConfiguration(), c.DeviceID)
 	require.NoError(t, err)
 	defer d.Close(ctx)
+	eps, err := d.GetEndpoints(ctx)
+	require.NoError(t, err)
+	links, err := d.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
 	link, ok := links.GetResourceLink("/light/1")
 	require.True(t, ok)
 	err = d.GetResource(ctx, link, nil)

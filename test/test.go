@@ -38,14 +38,17 @@ type findDeviceIDByNameHandler struct {
 	cancel context.CancelFunc
 }
 
-func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device, deviceLinks schema.ResourceLinks) {
+func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device) {
 	defer device.Close(ctx)
-	l, ok := deviceLinks.GetResourceLink("/oic/d")
-	if !ok {
+	eps, err := device.GetEndpoints(ctx)
+	if err != nil {
 		return
 	}
 	var d schema.Device
-	err := device.GetResource(ctx, l, &d)
+	err = device.GetResource(ctx, schema.ResourceLink{
+		Href:      "/oic/d",
+		Endpoints: eps,
+	}, &d)
 	if err != nil {
 		return
 	}
@@ -68,7 +71,7 @@ func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ erro
 		cancel: cancel,
 	}
 
-	err := client.GetDevices(ctx, &h)
+	err := client.GetDevicesV2(ctx, core.DefaultDiscoveryConfiguration(), &h)
 	if err != nil {
 		return "", fmt.Errorf("could not find the device named %s: %w", name, err)
 	}

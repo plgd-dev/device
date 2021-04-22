@@ -2,19 +2,16 @@ package core
 
 import (
 	"context"
-
-	"github.com/plgd-dev/sdk/schema"
 )
 
 // IsSecured returns if device serves secure ports.
-func (d *Device) IsSecured(ctx context.Context, links schema.ResourceLinks) (bool, error) {
-	for _, link := range links {
-		if _, err := link.GetTCPSecureAddr(); err == nil {
-			return true, nil
-		}
-		if _, err := link.GetUDPSecureAddr(); err == nil {
-			return true, nil
-		}
+func (d *Device) IsSecured(ctx context.Context) (bool, error) {
+	eps, err := d.GetEndpoints(ctx)
+	if err != nil {
+		return false, err
+	}
+	if len(eps.FilterSecureEndpoints()) > 0 {
+		return true, nil
 	}
 	return false, nil
 }
