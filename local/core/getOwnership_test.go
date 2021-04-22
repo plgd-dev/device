@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/test"
 
 	"github.com/stretchr/testify/assert"
@@ -21,9 +22,13 @@ func TestGetOwnership(t *testing.T) {
 	defer cancel()
 
 	deviceID := secureDeviceID
-	device, links, err := c.GetDevice(ctx, deviceID)
+	device, err := c.GetDevice(ctx, ocf.DefaultDiscoveryConfiguration(), deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)
+	eps, err := device.GetEndpoints(ctx)
+	require.NoError(t, err)
+	links, err := device.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
 
 	// before own
 	got, err := device.GetOwnership(ctx, links)

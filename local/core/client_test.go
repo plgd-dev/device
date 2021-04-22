@@ -125,7 +125,11 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, links, err := c.GetDevice(timeout, deviceId)
+	device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceId)
+	require.NoError(t, err)
+	eps, err := device.GetEndpoints(timeout)
+	require.NoError(t, err)
+	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
 	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(t, err)
@@ -155,22 +159,11 @@ type testFindDeviceHandler struct {
 	deviceIds map[string]bool
 }
 
-func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
-	secured, err := d.IsSecured(ctx, links)
+func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
+	secured, err := d.IsSecured(ctx)
 	require.NoError(h.t, err)
 	defer d.Close(ctx)
 	if secured != h.secured {
-		return
-	}
-	var found bool
-	for _, l := range links {
-		for _, t := range l.ResourceTypes {
-			if t == "oic.d.cloudDevice" {
-				found = true
-			}
-		}
-	}
-	if !found {
 		return
 	}
 	h.lock.Lock()
@@ -207,7 +200,7 @@ func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
 	timeout, cancel := context.WithTimeout(context.Background(), time.Second*1)
 	defer cancel()
 	h := testFindDeviceHandler{secured: secured, t: t}
-	err := c.GetDevices(timeout, &h)
+	err := c.GetDevicesV2(timeout, ocf.DefaultDiscoveryConfiguration(), &h)
 	require.NoError(t, err)
 	deviceIds := h.PopDeviceIds()
 	require.NotEmpty(t, deviceIds)

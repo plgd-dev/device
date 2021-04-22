@@ -50,7 +50,7 @@ func (d *Device) Disown(
 	if err != nil {
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
-	link.Endpoints = link.GetSecureEndpoints()
+	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
 
 	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
 	if err != nil {

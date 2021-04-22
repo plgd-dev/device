@@ -12,9 +12,10 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string) error {
 	if err != nil {
 		return err
 	}
+	c.deviceCache.RemoveDevice(ctx, d.DeviceID(), d)
 	defer d.Release(ctx)
 
-	ok, err := d.IsSecured(ctx, links)
+	ok, err := d.IsSecured(ctx)
 	if err != nil {
 		return err
 	}

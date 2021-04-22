@@ -10,12 +10,23 @@ import (
 	"github.com/plgd-dev/kit/log"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 
-	codecOcf "github.com/plgd-dev/kit/codec/ocf"
 	kitStrings "github.com/plgd-dev/kit/strings"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/schema/cloud"
 )
+
+func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+	link := links.GetResourceLinks("oic.wk.d")
+	if len(link) == 0 {
+		return nil, fmt.Errorf("cannot find device resource at links %+v", links)
+	}
+	var device schema.Device
+	err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+	if err != nil {
+		return nil, err
+	}
+	return &device, nil
+}
 
 // GetDevices discovers devices in the local mode.
 // The deviceResourceType is applied on the client side, because len(deviceResourceType) > 1 does not work with Iotivity 1.3.
@@ -24,19 +35,9 @@ func (c *Client) GetDevices(
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
-		err: func(err error) { log.Error(err) },
-		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-			link := links.GetResourceLinks("oic.wk.d")
-			if len(link) == 0 {
-				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
-			}
-			var device schema.Device
-			err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
-			if err != nil {
-				return nil, err
-			}
-			return &device, nil
-		},
+		err:                    func(err error) { log.Error(err) },
+		getDetails:             getDetails,
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDevices(cfg)
@@ -64,10 +65,10 @@ func (c *Client) GetDevices(
 	defer cancel()
 
 	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
-	go c.client.GetOwnerships(ctx, core.DiscoverAllDevices, ownershipsHandler)
+	go c.client.GetOwnerships(ctx, cfg.discoveryConfiguration, core.DiscoverAllDevices, ownershipsHandler)
 
-	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, getDetails)
-	if err := c.client.GetDevices(ctx, handler); err != nil {
+	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	if err := c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
 
@@ -81,8 +82,14 @@ func (c *Client) GetDevices(
 
 // GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandler) error {
-	return c.client.GetDevices(ctx, handler)
+func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandlerV2, opts ...GetDevicesWithHandlerOption) error {
+	cfg := getDevicesWithHandlerOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetGetDevicesWithHandler(cfg)
+	}
+	return c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler)
 }
 
 // OwnershipStatus describes ownership status of the device
@@ -123,8 +130,10 @@ func newDiscoveryHandler(
 	errors func(error),
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
+	deviceCache *refDeviceCache,
+	disableUDPEndpoints bool,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails}
+	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
 }
 
 type detailsWasSet struct {
@@ -133,28 +142,17 @@ type detailsWasSet struct {
 }
 
 type discoveryHandler struct {
-	typeFilter []string
-	errors     func(error)
-	devices    func(DeviceDetails)
-	getDetails GetDetailsFunc
+	typeFilter          []string
+	errors              func(error)
+	devices             func(DeviceDetails)
+	getDetails          GetDetailsFunc
+	deviceCache         *refDeviceCache
+	disableUDPEndpoints bool
 
 	getDetailsWasCalled sync.Map
 }
 
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
-
-func getCloudConfiguration(ctx context.Context, d *core.Device, links schema.ResourceLinks) (*cloud.Configuration, error) {
-	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
-		var ob cloud.Configuration
-		var codec codecOcf.VNDOCFCBORCodec
-		err := d.GetResourceWithCodec(ctx, l, codec, &ob)
-		if err != nil {
-			return nil, err
-		}
-		return &ob, err
-	}
-	return nil, fmt.Errorf("not found")
-}
 
 func getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink("/oic/d")
@@ -163,7 +161,7 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 		eps = link.GetEndpoints()
 	}
 
-	isSecured, err := d.IsSecured(ctx, links)
+	isSecured, err := d.IsSecured(ctx)
 	if err != nil {
 		return out, err
 	}
@@ -183,8 +181,40 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 	}, nil
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device, links schema.ResourceLinks) {
-	defer d.Close(ctx)
+func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
+	newRefDev := NewRefDevice(d)
+	refDev, stored, err := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	if err != nil {
+		return
+	}
+	defer refDev.Release(ctx)
+	links, err := getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
+	d = refDev.Device()
+	if err != nil {
+		refDev.Device().Close(ctx)
+		h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+		if stored {
+			return
+		}
+		refDev, stored, err = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+		if !stored {
+			newRefDev.Release(ctx)
+			return
+		}
+		if err != nil {
+			return
+		}
+		links, err = getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
+		if err != nil {
+			refDev.Device().Close(ctx)
+			h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+			refDev.Release(ctx)
+			return
+		}
+		d = refDev.Device()
+	} else if !stored {
+		newRefDev.Release(ctx)
+	}
 
 	deviceTypes := make(kitStrings.Set, len(d.DeviceTypes()))
 	deviceTypes.Add(d.DeviceTypes()...)

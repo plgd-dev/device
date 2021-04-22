@@ -71,6 +71,37 @@ func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions
 	return opts
 }
 
+type DiscoveryConfigrationOption struct {
+	cfg core.DiscoveryConfiguration
+}
+
+func (r DiscoveryConfigrationOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigrationOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigrationOption) applyOnGetGetDevicesWithHandler(opts getDevicesWithHandlerOptions) getDevicesWithHandlerOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigrationOption) applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+// WithDiscoveryConfigration allows to setup multicast request. By defualt it is send to ipv4 and ipv6.
+func WithDiscoveryConfigration(cfg core.DiscoveryConfiguration) DiscoveryConfigrationOption {
+	return DiscoveryConfigrationOption{
+		cfg: cfg,
+	}
+}
+
 // GetOption option definition.
 type GetOption = interface {
 	applyOnGet(opts getOptions) getOptions
@@ -101,6 +132,14 @@ type GetDeviceOption = interface {
 	applyOnGetDevice(opts getDeviceOptions) getDeviceOptions
 }
 
+type GetDevicesWithHandlerOption = interface {
+	applyOnGetGetDevicesWithHandler(opts getDevicesWithHandlerOptions) getDevicesWithHandlerOptions
+}
+
+type ObserveDevicesOption = interface {
+	applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions
+}
+
 type ErrorOption struct {
 	err func(error)
 }
@@ -127,13 +166,23 @@ func (r GetDetailsOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptio
 }
 
 type getDevicesOptions struct {
-	resourceTypes []string
-	err           func(error)
-	getDetails    GetDetailsFunc
+	resourceTypes          []string
+	err                    func(error)
+	getDetails             GetDetailsFunc
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type getDeviceOptions struct {
-	getDetails GetDetailsFunc
+	getDetails             GetDetailsFunc
+	discoveryConfiguration core.DiscoveryConfiguration
+}
+
+type getDevicesWithHandlerOptions struct {
+	discoveryConfiguration core.DiscoveryConfiguration
+}
+
+type observeDevicesOptions struct {
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type ResourceTypesOption struct {

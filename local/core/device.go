@@ -15,18 +15,18 @@ import (
 )
 
 type deviceConfiguration struct {
-	dialDTLS               DialDTLS
-	dialTLS                DialTLS
-	dialUDP                DialUDP
-	dialTCP                DialTCP
-	errFunc                ErrFunc
-	discoveryConfiguration DiscoveryConfiguration
-	tlsConfig              *TLSConfig
+	dialDTLS  DialDTLS
+	dialTLS   DialTLS
+	dialUDP   DialUDP
+	dialTCP   DialTCP
+	errFunc   ErrFunc
+	tlsConfig *TLSConfig
 }
 
 type Device struct {
 	deviceID    string
 	deviceTypes []string
+	endpoints   schema.Endpoints
 	cfg         deviceConfiguration
 
 	conn         map[string]*coap.ClientCloseHandler
@@ -50,11 +50,13 @@ func NewDevice(
 	cfg deviceConfiguration,
 	deviceID string,
 	deviceTypes []string,
+	endpoints schema.Endpoints,
 ) *Device {
 	return &Device{
 		cfg:          cfg,
 		deviceID:     deviceID,
 		deviceTypes:  deviceTypes,
+		endpoints:    endpoints,
 		observations: &sync.Map{},
 		conn:         make(map[string]*coap.ClientCloseHandler),
 	}

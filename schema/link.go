@@ -13,18 +13,20 @@ import (
 // ResourceLink provides a link for retrieving details for its resource types:
 // https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
-	ID                    string     `json:"id,omitempty"`
-	Href                  string     `json:"href"`
-	ResourceTypes         []string   `json:"rt"`
-	Interfaces            []string   `json:"if"`
-	Policy                *Policy    `json:"p,omitempty"`
-	Endpoints             []Endpoint `json:"eps,omitempty"`
-	Anchor                string     `json:"anchor,omitempty"`
-	DeviceID              string     `json:"di,omitempty"`
-	InstanceID            int64      `json:"ins,omitempty"`
-	Title                 string     `json:"title,omitempty"`
-	SupportedContentTypes []string   `json:"type,omitempty"`
+	ID                    string    `json:"id,omitempty"`
+	Href                  string    `json:"href"`
+	ResourceTypes         []string  `json:"rt"`
+	Interfaces            []string  `json:"if"`
+	Policy                *Policy   `json:"p,omitempty"`
+	Endpoints             Endpoints `json:"eps,omitempty"`
+	Anchor                string    `json:"anchor,omitempty"`
+	DeviceID              string    `json:"di,omitempty"`
+	InstanceID            int64     `json:"ins,omitempty"`
+	Title                 string    `json:"title,omitempty"`
+	SupportedContentTypes []string  `json:"type,omitempty"`
 }
+
+type Endpoints []Endpoint
 
 type ResourceLinks []ResourceLink
 
@@ -117,16 +119,27 @@ func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr) ResourceLinks {
 }
 
 // GetEndpoints returns endpoints in order of priority.
-func (r ResourceLink) GetEndpoints() []Endpoint {
-	eps := make([]Endpoint, len(r.Endpoints))
-	copy(eps, r.Endpoints)
+func (d ResourceLink) GetEndpoints() Endpoints {
+	return d.Endpoints.Sort()
+}
+
+// Sort sorts in order priority
+func (r Endpoints) Sort() Endpoints {
+	if len(r) == 0 {
+		return r
+	}
+	eps := make([]Endpoint, len(r))
+	copy(eps, r)
 	sort.Slice(eps, func(i, j int) bool { return eps[i].Priority < eps[j].Priority })
 	return eps
 }
 
-func (r ResourceLink) getEndpointsWithFilter(filter func(scheme string) bool) []Endpoint {
+func (r Endpoints) getEndpointsWithFilter(filter func(scheme string) bool) Endpoints {
+	if len(r) == 0 {
+		return r
+	}
 	endpoints := make([]Endpoint, 0, 4)
-	for _, ep := range r.GetEndpoints() {
+	for _, ep := range r {
 		addr, err := ep.GetAddr()
 		if err != nil {
 			continue
@@ -138,8 +151,15 @@ func (r ResourceLink) getEndpointsWithFilter(filter func(scheme string) bool) []
 	return endpoints
 }
 
-// GetSecureEndpoints returns secure endpoints in order of priority.
-func (r ResourceLink) GetSecureEndpoints() []Endpoint {
+func (d ResourceLink) GetSecureEndpoints() Endpoints {
+	return d.Endpoints.FilterSecureEndpoints()
+}
+
+// FilterSecureEndpoints returns secure endpoints in order of priority.
+func (r Endpoints) FilterSecureEndpoints() Endpoints {
+	if len(r) == 0 {
+		return r
+	}
 	return r.getEndpointsWithFilter(func(scheme string) bool {
 		switch scheme {
 		case string(TCPSecureScheme), string(UDPSecureScheme):
@@ -149,8 +169,15 @@ func (r ResourceLink) GetSecureEndpoints() []Endpoint {
 	})
 }
 
-// GetUnsecureEndpoints returns unsecure endpoints in order of priority.
-func (r ResourceLink) GetUnsecureEndpoints() []Endpoint {
+func (d ResourceLink) GetUnsecureEndpoints() Endpoints {
+	return d.Endpoints.FilterUnsecureEndpoints()
+}
+
+// FilterUnsecureEndpoints returns unsecure endpoints in order of priority.
+func (r Endpoints) FilterUnsecureEndpoints() Endpoints {
+	if len(r) == 0 {
+		return r
+	}
 	return r.getEndpointsWithFilter(func(scheme string) bool {
 		switch scheme {
 		case string(TCPScheme), string(UDPScheme):
@@ -227,8 +254,11 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 	return r.patchEndpoint(addr)
 }
 
-func (r ResourceLink) getEndpoint(scheme Scheme) (kitNet.Addr, error) {
-	for _, ep := range r.Endpoints {
+func (r Endpoints) GetAddr(scheme Scheme) (kitNet.Addr, error) {
+	if len(r) == 0 {
+		return kitNet.Addr{}, fmt.Errorf("no %s endpoinv", scheme)
+	}
+	for _, ep := range r {
 		u, err := ep.GetAddr()
 		if err != nil {
 			return kitNet.Addr{}, err
@@ -237,27 +267,27 @@ func (r ResourceLink) getEndpoint(scheme Scheme) (kitNet.Addr, error) {
 			return u, nil
 		}
 	}
-	return kitNet.Addr{}, fmt.Errorf("no %s endpoint for %v", scheme, r)
+	return kitNet.Addr{}, fmt.Errorf("no %s endpoint", scheme)
 }
 
 // GetTCPAddr parses and finds a TCP endpoint address.
 func (r ResourceLink) GetTCPAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(TCPScheme)
+	return r.Endpoints.GetAddr(TCPScheme)
 }
 
 // GetTCPSecureAddr parses and finds a TCP secure endpoint address.
 func (r ResourceLink) GetTCPSecureAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(TCPSecureScheme)
+	return r.Endpoints.GetAddr(TCPSecureScheme)
 }
 
 // GetUDPAddr parses and finds a UDP endpoint address.
 func (r ResourceLink) GetUDPAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(UDPScheme)
+	return r.Endpoints.GetAddr(UDPScheme)
 }
 
 // GetUDPSecureAddr parses and finds a UDP endpoint address.
 func (r ResourceLink) GetUDPSecureAddr() (_ kitNet.Addr, err error) {
-	return r.getEndpoint(UDPSecureScheme)
+	return r.Endpoints.GetAddr(UDPSecureScheme)
 }
 
 type Scheme string

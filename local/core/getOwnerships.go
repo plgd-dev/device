@@ -19,10 +19,11 @@ type OwnershipHandler interface {
 // It waits for device responses until the context is canceled.
 func (c *Client) GetOwnerships(
 	ctx context.Context,
+	discoveryConfiguration DiscoveryConfiguration,
 	status DiscoverOwnershipStatus,
 	handler OwnershipHandler,
 ) error {
-	multicastConn := DialDiscoveryAddresses(ctx, c.discoveryConfiguration, c.errFunc)
+	multicastConn := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	ocf "github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/schema"
 
 	"github.com/stretchr/testify/require"
 )
@@ -17,14 +16,14 @@ func TestDeviceDiscovery(t *testing.T) {
 	timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	h := testDeviceHandler{}
-	err := c.GetDevices(timeout, &h)
+	err := c.GetDevicesV2(timeout, ocf.DefaultDiscoveryConfiguration(), &h)
 	require.NoError(t, err)
 }
 
 type testDeviceHandler struct {
 }
 
-func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device, links schema.ResourceLinks) {
+func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
 	defer d.Close(ctx)
 }
 

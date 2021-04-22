@@ -76,10 +76,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	defer device.Release(ctx)
 
 	err = device.StopObservingResource(ctx, observationID)
-	err2 := c.deviceCache.RemoveDeviceFromPermanentCache(ctx, device)
-	if err != nil {
-		return err2
-	}
+	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, device.DeviceID(), device)
 	return err
 }
 

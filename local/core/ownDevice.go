@@ -2,12 +2,10 @@ package core
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"fmt"
 
-	"github.com/plgd-dev/go-coap/v2/udp/client"
 	kitNet "github.com/plgd-dev/kit/net"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 	"github.com/plgd-dev/sdk/schema"
@@ -66,104 +64,21 @@ func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMe
 	return conn.UpdateResource(ctx, schema.DoxmHref, selectOTM, nil)
 }
 
-type selectOTMHandler struct {
-	deviceID string
-	cancel   context.CancelFunc
-
-	conn *kitNetCoap.Client
-	lock sync.Mutex
-	err  error
-}
-
-func newSelectOTMHandler(deviceID string, cancel context.CancelFunc) *selectOTMHandler {
-	return &selectOTMHandler{deviceID: deviceID, cancel: cancel}
-}
-
-func (h *selectOTMHandler) Handle(ctx context.Context, clientConn *client.ClientConn, links schema.ResourceLinks) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	link, err := GetResourceLink(links, "/oic/d")
+func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+	endpoints, err := d.GetEndpoints(ctx)
 	if err != nil {
-		h.err = err
-		clientConn.Close()
-		return
+		return fmt.Errorf("cannot get endpoints: %w", err)
 	}
-	deviceID := link.GetDeviceID()
-	if deviceID == "" {
-		clientConn.Close()
-		h.err = fmt.Errorf("cannot determine deviceID")
-		return
-	}
-	if h.conn != nil || deviceID != h.deviceID {
-		clientConn.Close()
-		return
-	}
-	h.conn = kitNetCoap.NewClient(clientConn.Client())
-	h.cancel()
-}
-
-func (h *selectOTMHandler) Error(err error) {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if h.err == nil {
-		h.err = err
-	}
-}
-
-func (h *selectOTMHandler) Err() error {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	return h.err
-}
-
-func (d *Device) selectOTMViaDiscovery(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
-	multicastConn := DialDiscoveryAddresses(ctx, d.cfg.discoveryConfiguration, d.cfg.errFunc)
-	defer func() {
-		for _, conn := range multicastConn {
-			conn.Close()
-		}
-	}()
-
-	ctxSelect, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	h := newSelectOTMHandler(d.DeviceID(), cancel)
-	err := DiscoverDevices(ctxSelect, multicastConn, h)
-	if h.conn != nil {
-		defer h.conn.Close()
-		return setOTM(ctx, h.conn, selectOwnerTransferMethod)
-	}
+	coapAddr, err := endpoints.GetAddr(schema.UDPScheme)
 	if err != nil {
 		return err
 	}
-	err = h.Err()
+	coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
 	if err != nil {
-		return err
+		return MakeInternalStr("cannot connect to "+coapAddr.URL()+" for select OTM: %w", err)
 	}
-
-	return MakeNotFound(fmt.Errorf("device not found"))
-}
-
-func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod, links schema.ResourceLinks) error {
-	var coapAddr kitNet.Addr
-	var coapAddrFound bool
-	var err error
-	for _, link := range links {
-		if coapAddr, err = link.GetUDPAddr(); err == nil {
-			coapAddrFound = true
-			break
-		}
-	}
-	if coapAddrFound {
-		coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
-		if err != nil {
-			return MakeInternalStr("cannot connect to "+coapAddr.URL()+" for select OTM: %w", err)
-		}
-		defer coapConn.Close()
-		return setOTM(ctx, coapConn, selectOwnerTransferMethod)
-	}
-	return d.selectOTMViaDiscovery(ctx, selectOwnerTransferMethod)
+	defer coapConn.Close()
+	return setOTM(ctx, coapConn, selectOwnerTransferMethod)
 }
 
 func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
@@ -333,7 +248,7 @@ func (d *Device) Own(
 		return MakeUnavailable(fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
 	}
 
-	err = d.selectOTM(ctx, otmClient.Type(), links)
+	err = d.selectOTM(ctx, otmClient.Type())
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot select otm: %w", err))
 	}
@@ -534,7 +449,6 @@ func (d *Device) Own(
 		}
 		return fmt.Errorf(errMsg, err)
 	}
-	d.Close(ctx)
 
 	return nil
 }

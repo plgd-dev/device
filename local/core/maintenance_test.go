@@ -44,9 +44,13 @@ func TestDevice_Reboot(t *testing.T) {
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
-			device, links, err := c.GetDevice(timeout, deviceID)
+			device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceID)
 			require.NoError(err)
 			defer device.Close(timeout)
+			eps, err := device.GetEndpoints(timeout)
+			require.NoError(err)
+			links, err := device.GetResourceLinks(timeout, eps)
+			require.NoError(err)
 
 			links = sepEpToLinks(t, links)
 
@@ -68,9 +72,13 @@ func TestDevice_FactoryReset(t *testing.T) {
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelTimeout()
-	device, links, err := c.GetDevice(timeout, deviceID)
+	device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceID)
 	require.NoError(err)
 	defer device.Close(timeout)
+	eps, err := device.GetEndpoints(timeout)
+	require.NoError(err)
+	links, err := device.GetResourceLinks(timeout, eps)
+	require.NoError(err)
 
 	links = sepEpToLinks(t, links)
 

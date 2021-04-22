@@ -19,7 +19,7 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus o
 	defer cancel()
 
 	var h testOwnerShipHandler
-	err := c.GetOwnerships(timeout, ownStatus, &h)
+	err := c.GetOwnerships(timeout, ocf.DefaultDiscoveryConfiguration(), ownStatus, &h)
 	require.NoError(t, err)
 	assert.Equal(t, found, h.anyFound)
 }
@@ -38,9 +38,13 @@ func TestGetOwnerships(t *testing.T) {
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
 	deviceID := secureDeviceID
-	device, links, err := c.GetDevice(ctx, deviceID)
+	device, err := c.GetDevice(ctx, ocf.DefaultDiscoveryConfiguration(), deviceID)
 	require.NoError(t, err)
 	defer device.Close(ctx)
+	eps, err := device.GetEndpoints(ctx)
+	require.NoError(t, err)
+	links, err := device.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
 
 	err = device.Own(ctx, links, c.mfgOtm)
 	require.NoError(t, err)

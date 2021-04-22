@@ -9,37 +9,70 @@ import (
 	"github.com/plgd-dev/sdk/schema"
 )
 
+func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
+	endpoints, err := refDev.GetEndpoints(ctx)
+	if err != nil {
+		return nil, err
+	}
+	links, err := refDev.GetResourceLinks(ctx, endpoints)
+	if err != nil {
+		return nil, err
+	}
+	return patchResourceLinksEndpoints(links, disableUDPEndpoints), nil
+}
+
+func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
+	deviceID string, disableUDPEndpoints bool) (*RefDevice, schema.ResourceLinks, bool) {
+	refDev, ok := deviceCache.GetDevice(ctx, deviceID)
+	if ok {
+		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
+		if err != nil {
+			refDev.Device().Close(ctx)
+			deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+			refDev.Release(ctx)
+			return nil, nil, false
+		}
+		return refDev, links, true
+	}
+	return nil, nil, false
+}
+
 // GetRefDevice returns device, after using call device.Release to free resources.
 func (c *Client) GetRefDevice(
 	ctx context.Context,
 	deviceID string,
+	opts ...GetDeviceOption,
 ) (*RefDevice, schema.ResourceLinks, error) {
-	refDev, ok := c.deviceCache.GetDevice(ctx, deviceID)
-	if ok {
-		endpoints, err := refDev.GetEndpoints(ctx)
-		if err != nil {
-			if err != nil {
-				return nil, nil, err
-			}
-		}
-		links, err := refDev.GetResourceLinks(ctx, endpoints)
-		if err != nil {
-			return nil, nil, err
-		}
-		return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
+	cfg := getDeviceOptions{
+		getDetails:             getDetails,
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
-	dev, links, err := c.client.GetDevice(ctx, deviceID)
+	for _, o := range opts {
+		cfg = o.applyOnGetDevice(cfg)
+	}
+	refDev, links, ok := getRefDeviceFromCache(ctx, c.deviceCache, deviceID, c.disableUDPEndpoints)
+	if ok {
+		return refDev, links, nil
+	}
+	dev, err := c.client.GetDevice(ctx, cfg.discoveryConfiguration, deviceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	newRefDev := NewRefDevice(dev)
 	refDev, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	if err != nil {
+		return nil, nil, err
+	}
 	if !stored {
 		newRefDev.Release(ctx)
 	}
+	links, err = getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
-		return nil, nil, err
+		refDev.Device().Close(ctx)
+		c.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+		refDev.Release(ctx)
+		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
