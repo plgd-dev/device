@@ -82,14 +82,9 @@ func newDiscoveryHandler(
 }
 
 type discoveryHandler struct {
-	deviceCfg             deviceConfiguration
-	handler               DeviceHandlerV2
-	newDeviceWasSetCalled sync.Map
-}
-
-type newDeviceWasSet struct {
-	sync.Mutex
-	wasSet bool
+	deviceCfg               deviceConfiguration
+	handler                 DeviceHandlerV2
+	filterDiscoveredDevices sync.Map
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
@@ -108,16 +103,12 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, 
 		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	v, _ := h.newDeviceWasSetCalled.LoadOrStore(deviceID, &newDeviceWasSet{})
-	m := v.(*newDeviceWasSet)
-	m.Lock()
-	defer m.Unlock()
-	if m.wasSet {
+	_, loaded := h.filterDiscoveredDevices.LoadOrStore(deviceID, true)
+	if loaded {
 		return
 	}
 	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints())
 	h.handler.Handle(ctx, d)
-	m.wasSet = true
 }
 
 func (h *discoveryHandler) Error(err error) {
