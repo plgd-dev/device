@@ -11,6 +11,7 @@ import (
 	"github.com/pion/dtls/v2"
 
 	"github.com/plgd-dev/kit/net/coap"
+	kitSync "github.com/plgd-dev/kit/sync"
 	"github.com/plgd-dev/sdk/local/core"
 )
 
@@ -147,7 +148,7 @@ func NewClient(
 		client:                  oc,
 		app:                     app,
 		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
-		observeDeviceCache:      make(map[string]*RefDevice),
+		observeResourceCache:    kitSync.NewMap(),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
@@ -176,8 +177,7 @@ type Client struct {
 
 	deviceCache *refDeviceCache
 
-	observeDeviceCache      map[string]*RefDevice
-	observeDeviceCacheLock  sync.Mutex
+	observeResourceCache    *kitSync.Map
 	observerPollingInterval time.Duration
 
 	deviceOwner         DeviceOwner
@@ -232,7 +232,7 @@ func (c *Client) Close(ctx context.Context) error {
 		errors = append(errors, err)
 	}
 
-	// observeDeviceCache will be removed by cleaned by close deviceCache
+	// observeResourceCache will be removed by cleaned by close deviceCache
 
 	return nil
 }
