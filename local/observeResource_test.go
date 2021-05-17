@@ -25,30 +25,60 @@ func TestObservingResource(t *testing.T) {
 	defer cancel()
 	id, err := c.ObserveResource(ctx, deviceID, "/light/1", h)
 	require.NoError(t, err)
-	defer func() {
-		err := c.StopObservingResource(ctx, id)
+	defer func(observationID string) {
+		err := c.StopObservingResource(ctx, observationID)
 		require.NoError(t, err)
-	}()
-
-	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
-		"power": uint64(123),
-	}, nil)
-	require.NoError(t, err)
+	}(id)
 
 	var d map[string]interface{}
 	res := <-h.res
 	err = res(&d)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), d["power"].(uint64))
+
+	h2 := makeObservationHandler()
+	id, err = c.ObserveResource(ctx, deviceID, "/light/1", h2)
+	require.NoError(t, err)
+	defer func(observationID string) {
+		err := c.StopObservingResource(ctx, observationID)
+		require.NoError(t, err)
+	}(id)
+
+	var d2 map[string]interface{}
+	res = <-h2.res
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d2["power"].(uint64))
+
+	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
+		"power": uint64(123),
+	}, nil)
+	require.NoError(t, err)
+
 	res = <-h.res
 	err = res(&d)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(123), d["power"].(uint64))
 
+	res = <-h2.res
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(123), d2["power"].(uint64))
+
 	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
 		"power": uint64(0),
 	}, nil)
 	assert.NoError(t, err)
+
+	res = <-h.res
+	err = res(&d)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d["power"].(uint64))
+
+	res = <-h2.res
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d2["power"].(uint64))
 }
 
 func makeObservationHandler() *observationHandler {

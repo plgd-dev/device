@@ -3,12 +3,131 @@ package local
 import (
 	"context"
 	"fmt"
+	"io"
+	"strings"
 	"sync"
 
+	"github.com/gofrs/uuid"
+	"github.com/plgd-dev/go-coap/v2/message"
 	codecOcf "github.com/plgd-dev/kit/codec/ocf"
+	kitSync "github.com/plgd-dev/kit/sync"
 	"github.com/plgd-dev/sdk/local/core"
 	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
 )
+
+type observerCodec struct {
+	contentFormat message.MediaType
+}
+
+// ContentFormat propagates the CoAP media type.
+func (c observerCodec) ContentFormat() message.MediaType { return c.contentFormat }
+
+// Encode propagates the payload without any conversions.
+func (c observerCodec) Encode(v interface{}) ([]byte, error) {
+	return nil, fmt.Errorf("not supported")
+}
+
+// Decode validates the content format and
+// propagates the payload to v as *[]byte without any conversions.
+func (c observerCodec) Decode(m *message.Message, v interface{}) error {
+	if v == nil {
+		return nil
+	}
+	if m.Body == nil {
+		return fmt.Errorf("unexpected empty body")
+	}
+	p, ok := v.(**message.Message)
+	if !ok {
+		return fmt.Errorf("expected **message.Message instead of %T", v)
+	}
+	*p = m
+	return nil
+}
+
+type observationsHandler struct {
+	client *Client
+	device *RefDevice
+	id     string
+
+	sync.Mutex
+
+	observationID string
+	lastMessage   *message.Message
+
+	observations *kitSync.Map
+}
+
+type observationHandler struct {
+	handler      core.ObservationHandler
+	codec        kitNetCoap.Codec
+	lock         sync.Mutex
+	isClosed     bool
+	firstMessage *message.Message
+}
+
+func (h *observationHandler) handleMessageLocked(ctx context.Context, message *message.Message) {
+	if h.isClosed {
+		return
+	}
+	decode := func(v interface{}) error {
+		_, err := message.Body.Seek(0, io.SeekStart)
+		if err != nil {
+			return err
+		}
+		return h.codec.Decode(message, v)
+	}
+	h.handler.Handle(ctx, decode)
+}
+
+func (h *observationHandler) HandleMessage(ctx context.Context, message *message.Message) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	h.firstMessage = nil
+	h.handleMessageLocked(ctx, message)
+}
+
+func (h *observationHandler) HandleFirstMessage() {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if h.firstMessage == nil {
+		return
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	h.handleMessageLocked(ctx, h.firstMessage)
+}
+
+func (h *observationHandler) OnClose() {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if h.isClosed {
+		return
+	}
+	h.isClosed = true
+	h.handler.OnClose()
+}
+
+func (h *observationHandler) Error(err error) {
+	h.lock.Lock()
+	defer h.lock.Unlock()
+	if h.isClosed {
+		return
+	}
+	h.isClosed = true
+	h.handler.Error(err)
+}
+
+func getObservationID(resourceCacheID, resourceObservationID string) string {
+	return strings.Join([]string{resourceCacheID, resourceObservationID}, "/")
+}
+
+func parseIDs(ID string) (string, string, error) {
+	v := strings.Split(ID, "/")
+	if len(v) != 2 {
+		return "", "", fmt.Errorf("invalid ID")
+	}
+	return v[0], v[1], nil
+}
 
 func (c *Client) ObserveResource(
 	ctx context.Context,
@@ -23,22 +142,51 @@ func (c *Client) ObserveResource(
 	for _, o := range opts {
 		cfg = o.applyOnObserve(cfg)
 	}
+	resourceObservationID, err := uuid.NewV4()
+	if err != nil {
+		return "", err
+	}
+
+	key := uuid.NewV5(uuid.NamespaceURL, deviceID+href).String()
+	val, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(value interface{}) interface{} {
+		h := value.(*observationsHandler)
+		h.Lock()
+		return h
+	}, func() interface{} {
+		h := observationsHandler{
+			observations: kitSync.NewMap(),
+			client:       c,
+			id:           key,
+		}
+		h.Lock()
+		return &h
+	})
+	h := val.(*observationsHandler)
+	defer h.Unlock()
+	obsHandler := observationHandler{
+		handler:      handler,
+		codec:        cfg.codec,
+		firstMessage: h.lastMessage,
+	}
+	h.observations.Store(resourceObservationID.String(), &obsHandler)
+	if loaded {
+		go obsHandler.HandleFirstMessage()
+		return getObservationID(key, resourceObservationID.String()), nil
+	}
+
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return "", err
 	}
+
 	defer d.Release(ctx)
-	obsHandler := &observationHandler{
-		obs:    handler,
-		client: c,
-	}
 
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
 		return "", err
 	}
 
-	observationID, err = d.ObserveResourceWithCodec(ctx, link, cfg.codec, obsHandler)
+	observationID, err = d.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h)
 	if err != nil {
 		return "", err
 	}
@@ -49,71 +197,89 @@ func (c *Client) ObserveResource(
 	}
 
 	d.Acquire()
-	obsHandler.Set(observationID)
-	c.observeDeviceCacheLock.Lock()
-	defer c.observeDeviceCacheLock.Unlock()
-	c.observeDeviceCache[observationID] = d
+	h.observationID = observationID
+	h.device = d
 
-	return observationID, err
-}
-
-func (c *Client) popObserveDevice(ctx context.Context, observationID string) (*RefDevice, error) {
-	c.observeDeviceCacheLock.Lock()
-	defer c.observeDeviceCacheLock.Unlock()
-	device, ok := c.observeDeviceCache[observationID]
-	if !ok {
-		return nil, fmt.Errorf("cannot find observation %v", observationID)
-	}
-	delete(c.observeDeviceCache, observationID)
-	return device, nil
+	return getObservationID(key, resourceObservationID.String()), err
 }
 
 func (c *Client) StopObservingResource(ctx context.Context, observationID string) error {
-	device, err := c.popObserveDevice(ctx, observationID)
+	resourceCacheID, internalResourceObservationID, err := parseIDs(observationID)
 	if err != nil {
 		return err
 	}
-	defer device.Release(ctx)
+	var resourceObservationID string
+	var deleteDevice *RefDevice
+	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, delete bool) {
+		if !oldLoaded {
+			return nil, true
+		}
+		h := oldValue.(*observationsHandler)
+		resourceObservationID = h.observationID
+		_, ok := h.observations.PullOut(internalResourceObservationID)
+		if !ok {
+			return h, false
+		}
 
-	err = device.StopObservingResource(ctx, observationID)
-	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, device.DeviceID(), device)
+		if h.observations.Length() == 0 {
+			deleteDevice = h.device
+			return nil, true
+		}
+		return h, false
+	})
+	if deleteDevice == nil {
+		return nil
+	}
+	defer deleteDevice.Release(ctx)
+	err = deleteDevice.StopObservingResource(ctx, resourceObservationID)
+	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deleteDevice.DeviceID(), deleteDevice)
 	return err
 }
 
-type observationHandler struct {
-	obs    core.ObservationHandler
-	client *Client
-
-	lock          sync.Mutex
-	observationID string
+func (c *Client) closeObservingResource(ctx context.Context, o *observationsHandler) {
+	_, ok := c.observeResourceCache.PullOut(o.id)
+	if !ok {
+		return
+	}
+	if o.device != nil {
+		defer o.device.Release(ctx)
+		o.device.StopObservingResource(ctx, o.observationID)
+		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, o.device.DeviceID(), o.device)
+	}
 }
 
-func (o *observationHandler) Set(observationID string) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-	o.observationID = observationID
+func (o *observationsHandler) Handle(ctx context.Context, body kitNetCoap.DecodeFunc) {
+	var message *message.Message
+	err := body(&message)
+	if err != nil {
+		o.Error(err)
+		return
+	}
+	o.lastMessage = message
+	observations := make([]*observationHandler, 0, 4)
+	o.observations.Range(func(key, value interface{}) bool {
+		observations = append(observations, value.(*observationHandler))
+		return true
+	})
+	for _, h := range observations {
+		h.HandleMessage(ctx, message)
+	}
 }
 
-func (o *observationHandler) Get() string {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-	return o.observationID
-}
-
-func (o *observationHandler) Handle(ctx context.Context, body kitNetCoap.DecodeFunc) {
-	o.obs.Handle(ctx, body)
-}
-
-func (o *observationHandler) OnClose() {
+func (o *observationsHandler) OnClose() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	o.client.StopObservingResource(ctx, o.Get())
-	o.obs.OnClose()
+	o.client.closeObservingResource(ctx, o)
+	for _, h := range o.observations.PullOutAll() {
+		h.(*observationHandler).handler.OnClose()
+	}
 }
 
-func (o *observationHandler) Error(err error) {
+func (o *observationsHandler) Error(err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	o.client.StopObservingResource(ctx, o.Get())
-	o.obs.Error(err)
+	o.client.closeObservingResource(ctx, o)
+	for _, h := range o.observations.PullOutAll() {
+		h.(*observationHandler).handler.Error(err)
+	}
 }
