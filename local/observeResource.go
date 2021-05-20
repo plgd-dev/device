@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/gofrs/uuid"
 	"github.com/plgd-dev/go-coap/v2/message"
@@ -52,38 +53,52 @@ type observationsHandler struct {
 	sync.Mutex
 
 	observationID string
-	lastMessage   *message.Message
+	lastMessage   atomic.Value
 
 	observations *kitSync.Map
 }
+
+type decodeFunc = func(v interface{}, codec kitNetCoap.Codec) error
 
 type observationHandler struct {
 	handler      core.ObservationHandler
 	codec        kitNetCoap.Codec
 	lock         sync.Mutex
 	isClosed     bool
-	firstMessage *message.Message
+	firstMessage decodeFunc
 }
 
-func (h *observationHandler) handleMessageLocked(ctx context.Context, message *message.Message) {
-	if h.isClosed {
-		return
-	}
-	decode := func(v interface{}) error {
+func createDecodeFunc(message *message.Message) decodeFunc {
+	var l sync.Mutex
+	return func(v interface{}, codec kitNetCoap.Codec) error {
+		l.Lock()
+		defer l.Unlock()
 		_, err := message.Body.Seek(0, io.SeekStart)
 		if err != nil {
 			return err
 		}
-		return h.codec.Decode(message, v)
+		return codec.Decode(message, v)
 	}
-	h.handler.Handle(ctx, decode)
 }
 
-func (h *observationHandler) HandleMessage(ctx context.Context, message *message.Message) {
+func (h *observationHandler) handleMessageLocked(ctx context.Context, decode decodeFunc) {
+	if decode == nil {
+		return
+	}
+	if h.isClosed {
+		return
+	}
+
+	h.handler.Handle(ctx, func(v interface{}) error {
+		return decode(v, h.codec)
+	})
+}
+
+func (h *observationHandler) HandleMessage(ctx context.Context, decode decodeFunc) {
 	h.lock.Lock()
 	defer h.lock.Unlock()
 	h.firstMessage = nil
-	h.handleMessageLocked(ctx, message)
+	h.handleMessageLocked(ctx, decode)
 }
 
 func (h *observationHandler) HandleFirstMessage() {
@@ -163,10 +178,16 @@ func (c *Client) ObserveResource(
 	})
 	h := val.(*observationsHandler)
 	defer h.Unlock()
+	lastMessage := h.lastMessage.Load()
+	var firstMessage decodeFunc
+	if lastMessage != nil {
+		firstMessage = lastMessage.(decodeFunc)
+	}
+
 	obsHandler := observationHandler{
 		handler:      handler,
 		codec:        cfg.codec,
-		firstMessage: h.lastMessage,
+		firstMessage: firstMessage,
 	}
 	h.observations.Store(resourceObservationID.String(), &obsHandler)
 	if loaded {
@@ -255,14 +276,15 @@ func (o *observationsHandler) Handle(ctx context.Context, body kitNetCoap.Decode
 		o.Error(err)
 		return
 	}
-	o.lastMessage = message
+	decode := createDecodeFunc(message)
+	o.lastMessage.Store(decode)
 	observations := make([]*observationHandler, 0, 4)
 	o.observations.Range(func(key, value interface{}) bool {
 		observations = append(observations, value.(*observationHandler))
 		return true
 	})
 	for _, h := range observations {
-		h.HandleMessage(ctx, message)
+		h.HandleMessage(ctx, decode)
 	}
 }
 
