@@ -25,12 +25,14 @@ type deprecatedDeviceHandler struct {
 func (h deprecatedDeviceHandler) Handle(ctx context.Context, device *Device) {
 	eps, err := device.GetEndpoints(ctx)
 	if err != nil {
+		device.Close(ctx)
 		h.Error(err)
 		return
 	}
 
 	links, err := device.GetResourceLinks(ctx, eps)
 	if err != nil {
+		device.Close(ctx)
 		h.Error(err)
 		return
 	}
