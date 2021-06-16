@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/plgd-dev/kit/codec/json"
-	"github.com/plgd-dev/sdk/app"
 	"github.com/plgd-dev/sdk/local"
 	"github.com/plgd-dev/sdk/test"
 )
@@ -21,90 +20,38 @@ import (
 const Timeout = time.Second * 8
 
 type (
-	// Ocfclient for working with devices
-	Ocfclient struct {
-		localClient        *local.Client
-		secureDevices	  []local.DeviceDetails
+	// OCFClient for working with devices
+	OCFClient struct {
+		client        *local.Client
+		devices	  []local.DeviceDetails
 	}
 )
 
-type testSetupSecureClient struct {
+type SetupSecureClient struct {
 	ca      []*x509.Certificate
 	mfgCA   []*x509.Certificate
 	mfgCert tls.Certificate
 }
 
-func (c *testSetupSecureClient) GetManufacturerCertificate() (tls.Certificate, error) {
+func (c *SetupSecureClient) GetManufacturerCertificate() (tls.Certificate, error) {
 	if c.mfgCert.PrivateKey == nil {
 		return c.mfgCert, fmt.Errorf("not set")
 	}
 	return c.mfgCert, nil
 }
 
-func (c *testSetupSecureClient) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
+func (c *SetupSecureClient) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.mfgCA) == 0 {
 		return nil, fmt.Errorf("not set")
 	}
 	return c.mfgCA, nil
 }
 
-func (c *testSetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
+func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.ca) == 0 {
 		return nil, fmt.Errorf("not set")
 	}
 	return c.ca, nil
-}
-
-func NewTestClient() *local.Client {
-	appCallback, err := app.NewApp(nil)
-	if err != nil {
-		panic(err)
-	}
-	c, err := local.NewClientFromConfig(&local.Config{
-		KeepAliveConnectionTimeoutSeconds: 1,
-		ObserverPollingIntervalSeconds:    1,
-	}, appCallback, test.NewIdentityCertificateSigner, func(error) {})
-	if err != nil {
-		panic(err)
-	}
-	return c
-}
-
-func NewTestSecureClient() (*local.Client, error) {
-	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-	if mfgTrustedCABlock == nil {
-		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
-	}
-	mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
-	if err != nil {
-		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
-	}
-	cfg := local.Config{
-		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-			ID:      CertIdentity,
-			Cert:    string(IdentityIntermediateCA),
-			CertKey: string(IdentityIntermediateCAKey),
-		},
-	}
-
-	client, err := local.NewClientFromConfig(&cfg, &testSetupSecureClient{
-		mfgCA:   mfgCA,
-		mfgCert: mfgCert,
-	}, test.NewIdentityCertificateSigner, func(err error) { fmt.Print(err) },
-	)
-	if err != nil {
-		return nil, err
-	}
-	err = client.Initialization(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
 }
 
 func NewSDKClient() (*local.Client, error) {
@@ -139,7 +86,7 @@ func NewSDKClient() (*local.Client, error) {
 		},
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &testSetupSecureClient{
+	client, err := local.NewClientFromConfig(&cfg, &SetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
 		ca:      append(identityTrustedCACert),
@@ -158,41 +105,44 @@ func NewSDKClient() (*local.Client, error) {
 
 
 // Initialize creates and initializes new local client
-func (c *Ocfclient) Initialize() error {
+func (c *OCFClient) Initialize() error {
 
-	localClient, err := NewTestSecureClient() // or NewSDKClient()
+	localClient, err := NewSDKClient()
 	if err != nil {
 		return err
 	}
 
-	c.localClient = localClient
+	c.client = localClient
 	return nil
 }
 
-func (c *Ocfclient) Close() error {
-	if c.localClient != nil {
-		return c.localClient.Close(context.Background())
+func (c *OCFClient) Close() error {
+	if c.client != nil {
+		return c.client.Close(context.Background())
 	}
 	return nil
 }
 // Discover devices in the local area
-func (c *Ocfclient) Discover(timeoutSeconds int) (string, error) {
+func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
-	res, err := c.localClient.GetDevices(ctx)
+	res, err := c.client.GetDevices(ctx)
 	if err != nil {
 		return "", err
 	}
 
+	deviceInfo := []interface{}{}
 	devices := []local.DeviceDetails{}
 	for _, device := range res {
 		if device.IsSecured {
 			devices = append(devices, device)
+			deviceInfo = append(deviceInfo, device.Details)
 		}
 	}
-	c.secureDevices = devices
+	c.devices = devices
 
-	devicesJSON, err := json.Encode(devices)
+	//devicesJSON, err := json.Encode(deviceInfo)
+	devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -200,19 +150,26 @@ func (c *Ocfclient) Discover(timeoutSeconds int) (string, error) {
 }
 
 // OwnDevice transfers the ownership of the device to user represented by the token
-func (c *Ocfclient) OwnDevice(deviceID string) (string, error) {
+func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	return c.localClient.OwnDevice(ctx, deviceID, local.WithOTM(local.OTMType_JustWorks))
+	return c.client.OwnDevice(ctx, deviceID, local.WithOTM(local.OTMType_JustWorks))
 }
 
 // Get all resource Info of the device
-func (c *Ocfclient) GetResources(deviceID string) (string, error) {
+func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
-	_, links, err := c.localClient.GetRefDevice(ctx, deviceID)
+	_, links, err := c.client.GetRefDevice(ctx, deviceID)
 
-	linksJSON, err := json.Encode(links)
+	resourcesInfo := []map[string]interface{}{}
+	for _, link := range links {
+		info := map[string]interface{}{"Href":link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
+		resourcesInfo = append(resourcesInfo, info)
+	}
+
+	//linksJSON, err := json.Encode(resourcesInfo)
+	linksJSON, err := enjson.MarshalIndent(resourcesInfo, "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -220,18 +177,19 @@ func (c *Ocfclient) GetResources(deviceID string) (string, error) {
 }
 
 // Get a resource Info of the device
-func (c *Ocfclient) GetResource(deviceID, href string) (string, error) {
+func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
-	var got map[string]interface{}
+	var got interface{} // map[string]interface{}
 	opts := []local.GetOption{local.WithInterface("oic.if.baseline")}
-	err := c.localClient.GetResource(ctx, deviceID, href, &got, opts...)
+	err := c.client.GetResource(ctx, deviceID, href, &got, opts...)
 	if err != nil {
 		return "", err
 	}
 
 	resourceJSON, err := json.Encode(got)
+	//resourceJSON, err := enjson.MarshalIndent(string(resourceBytes), "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -239,14 +197,14 @@ func (c *Ocfclient) GetResource(deviceID, href string) (string, error) {
 }
 
 // Update a resource of the device
-func (c *Ocfclient) UpdateResource(deviceID string, href string, data map[string]interface{}) (string, error) {
+func (c *OCFClient) UpdateResource(deviceID string, href string, data map[string]interface{}) (string, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
 	var got interface{}
 	opts := []local.UpdateOption{local.WithInterface("oic.if.rw")}
-	err := c.localClient.UpdateResource(ctx, deviceID, href, data, &got, opts...)
+	err := c.client.UpdateResource(ctx, deviceID, href, data, &got, opts...)
 	if err != nil {
 		return "", err
 	}
@@ -260,10 +218,10 @@ func (c *Ocfclient) UpdateResource(deviceID string, href string, data map[string
 }
 
 // DisownDevice removes the current ownership
-func (c *Ocfclient) DisownDevice(deviceID string) error {
+func (c *OCFClient) DisownDevice(deviceID string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	return c.localClient.DisownDevice(ctx, deviceID)
+	return c.client.DisownDevice(ctx, deviceID)
 }
 
 
@@ -387,7 +345,7 @@ AwEHoUQDQgAEv4FnTHves6rCjDn1rBibR9MEAkWHMG7tHa/iJEL+P7Ur/sDtBFYX
 )
 
 func main() {
-	client := Ocfclient{}
+	client := OCFClient{}
 	err := client.Initialize()
 	if err != nil {
 		fmt.Errorf("OCF Client was failed to initialize")
@@ -398,13 +356,12 @@ func main() {
 }
 
 
-func scanner(client Ocfclient) {
+func scanner(client OCFClient) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	printMenu()
 	var selMenu int64 = 0
 	for scanner.Scan() {
-		//fmt.Println(scanner.Text())
 		selMenu, _ = strconv.ParseInt(scanner.Text(), 10, 32)
 		switch selMenu {
 		case 0 :
@@ -421,7 +378,7 @@ func scanner(client Ocfclient) {
 		case 2 :
 			print("\nInput device ID : ")
 			scanner.Scan()
-			deviceID := scanner.Text() //strconv.ParseInt(scanner.Text(), 10, 32)
+			deviceID := scanner.Text()
 			res, err := client.OwnDevice(deviceID)
 			if err != nil {
 				println("\nTransfer Ownership was failed : " + err.Error())
@@ -432,7 +389,7 @@ func scanner(client Ocfclient) {
 		case 3 :
 			print("\nInput device ID : ")
 			scanner.Scan()
-			deviceID := scanner.Text() //strconv.ParseInt(scanner.Text(), 10, 32)
+			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
 				println("\nGet Resources was failed : " + err.Error())
@@ -444,7 +401,7 @@ func scanner(client Ocfclient) {
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
-			deviceID := scanner.Text() //strconv.ParseInt(scanner.Text(), 10, 32)
+			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
 				println("\nGet Resources was failed : " + err.Error())
@@ -461,13 +418,13 @@ func scanner(client Ocfclient) {
 				println("\nGet Resource was failed : " + err.Error())
 				break
 			}
-			println("\nResource properties of "+deviceID+"/"+href+" : \n" + aRes)
+			println("\nResource properties of "+deviceID+href+" : \n" + aRes)
 			break
 		case 5 :
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
-			deviceID := scanner.Text() //strconv.ParseInt(scanner.Text(), 10, 32)
+			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
 				println("\nGet Resources was failed : " + err.Error())
@@ -484,7 +441,7 @@ func scanner(client Ocfclient) {
 				println("\nGet Resource was failed : " + err.Error())
 				break
 			}
-			println("\nResource properties of "+deviceID+"/"+href+" : \n" + aRes)
+			println("\nResource properties of "+deviceID+href+" : \n" + aRes)
 
 			// Select Property
 			print("\nInput property name : ")
@@ -504,14 +461,14 @@ func scanner(client Ocfclient) {
 				println("\nUpdate resource property was failed : " + err.Error())
 				break
 			}
-			println("\nUpdated resource property of "+deviceID+"/"+href+" : \n" + upRes)
+			println("\nUpdated resource property of "+deviceID+href+" : \n" + upRes)
 			break
 
 		case 6 :
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
-			deviceID := scanner.Text() //strconv.ParseInt(scanner.Text(), 10, 32)
+			deviceID := scanner.Text()
 			err := client.DisownDevice(deviceID)
 			if err != nil {
 				println("\nOff-boarding was failed : " + err.Error())
