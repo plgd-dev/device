@@ -69,8 +69,8 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	}
 	c.devices = devices
 
-	//devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
-	devicesJSON, err := enjson.MarshalIndent(devices, "", "    ")
+	devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
+	//devicesJSON, err := enjson.MarshalIndent(devices, "", "    ")
 	if err != nil {
 		return "", err
 	}
