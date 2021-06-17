@@ -13,7 +13,7 @@ import (
 	"github.com/plgd-dev/sdk/local"
 )
 
-const Timeout = time.Second * 8
+const Timeout = time.Second * 10
 
 type (
 	// OCF Client for working with devices
@@ -69,7 +69,8 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	}
 	c.devices = devices
 
-	devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
+	//devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
+	devicesJSON, err := enjson.MarshalIndent(devices, "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -78,7 +79,7 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 
 // OwnDevice transfers the ownership of the device to user represented by the token
 func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return c.client.OwnDevice(ctx, deviceID, local.WithOTM(local.OTMType_JustWorks))
 }
@@ -148,7 +149,7 @@ func (c *OCFClient) UpdateResource(deviceID string, href string, data map[string
 
 // DisownDevice removes the current ownership
 func (c *OCFClient) DisownDevice(deviceID string) error {
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	return c.client.DisownDevice(ctx, deviceID)
 }

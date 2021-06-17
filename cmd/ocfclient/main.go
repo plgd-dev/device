@@ -5,7 +5,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	enjson "encoding/json"
 	"encoding/pem"
 	"fmt"
 	"github.com/jessevdk/go-flags"
@@ -14,6 +13,7 @@ import (
 	"os"
 	"strconv"
 
+	"github.com/plgd-dev/kit/codec/json"
 	"github.com/plgd-dev/sdk/local"
 	"github.com/plgd-dev/sdk/test"
 )
@@ -290,7 +290,7 @@ func scanner(client OCFClient) {
 			printMenu()
 			break
 		case 1 :
-			res, err := client.Discover(20)
+			res, err := client.Discover(30)
 			if err != nil {
 				println("\nDiscovering devices was failed : " + err.Error())
 				break
@@ -377,7 +377,9 @@ func scanner(client OCFClient) {
 			// Update Property of the Resource
 			jsonString := "{\""+key+"\": "+value+"}"
 			var data map[string]interface{}
-			err = enjson.Unmarshal([]byte(jsonString), &data)
+			err = json.Decode([]byte(jsonString), &data)
+			dataBytes, err := json.Encode(data)
+			println("\nProperty data to update : " + string(dataBytes))
 			upRes, err := client.UpdateResource(deviceID, href, data)
 			if err != nil {
 				println("\nUpdating resource property was failed : " + err.Error())
