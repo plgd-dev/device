@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/gofrs/uuid"
-	"github.com/plgd-dev/kit/log"
 	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
 
 	kitStrings "github.com/plgd-dev/kit/strings"
@@ -35,7 +34,7 @@ func (c *Client) GetDevices(
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
-		err:                    func(err error) { log.Error(err) },
+		err:                    c.errors,
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
