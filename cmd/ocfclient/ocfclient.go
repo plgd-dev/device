@@ -54,7 +54,7 @@ func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate
 func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
 	defer cancel()
-	res, err := c.client.GetDevices(ctx)
+	res, err := c.client.GetDevices(ctx, local.WithError(func(error) {}))
 	if err != nil {
 		return "", err
 	}
@@ -64,13 +64,14 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	for _, device := range res {
 		if device.IsSecured {
 			devices = append(devices, device)
-			deviceInfo = append(deviceInfo, device.Details)
+			devInfo := map[string]interface{}{"id":device.ID, "name":device.Ownership.Name, "owned":device.Ownership.Owned,
+				"ownerID":device.Ownership.OwnerID, "details":device.Details}
+			deviceInfo = append(deviceInfo, devInfo)
 		}
 	}
 	c.devices = devices
 
 	devicesJSON, err := enjson.MarshalIndent(deviceInfo, "", "    ")
-	//devicesJSON, err := enjson.MarshalIndent(devices, "", "    ")
 	if err != nil {
 		return "", err
 	}
@@ -92,7 +93,7 @@ func (c *OCFClient) GetResources(deviceID string) (string, error) {
 
 	resourcesInfo := []map[string]interface{}{}
 	for _, link := range links {
-		info := map[string]interface{}{"Href":link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
+		info := map[string]interface{}{"href":link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
 		resourcesInfo = append(resourcesInfo, info)
 	}
 
@@ -125,25 +126,18 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 }
 
 // Update a resource of the device
-func (c *OCFClient) UpdateResource(deviceID string, href string, data map[string]interface{}) (string, error) {
+func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{}) (string, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
-	var got interface{}
 	opts := []local.UpdateOption{local.WithInterface("oic.if.rw")}
-	err := c.client.UpdateResource(ctx, deviceID, href, data, &got, opts...)
+	err := c.client.UpdateResource(ctx, deviceID, href, data, nil, opts...)
 	if err != nil {
 		return "", err
 	}
 
-	var resourceJSON bytes.Buffer
-	resourceBytes, err := json.Encode(got)
-	err = enjson.Indent(&resourceJSON, resourceBytes, "", "    ")
-	if err != nil {
-		return "", err
-	}
-	return string(resourceJSON.Bytes()), nil
+	return "", nil
 
 }
 

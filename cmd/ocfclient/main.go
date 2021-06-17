@@ -33,6 +33,20 @@ type Options struct {
 }
 
 func ReadCommandOptions(opts Options) {
+
+	fmt.Println("Usage of OCF Client Options :")
+	fmt.Println("    --mfgCert=<Manufacturer Certificate> i.e. mfg_cert.crt")
+	fmt.Println("    --mfgKey=<Manufacturer Private Key> i.e. mfg_cert.key")
+	fmt.Println("    --mfgTrustCA=<Manufacturer Trusted CA Certificate> i.e. mfg_rootca.crt")
+	fmt.Println("    --mfgTrustCAKey=<Manufacturer Trusted CA Private Key> i.e. mfg_rootca.key")
+	fmt.Println("    --identityCert=<Identity Certificate> i.e. end_cert.crt")
+	fmt.Println("    --identityKey=<Identity Certificate> i.e. end_cert.key")
+	fmt.Println("    --identityIntermediateCA=<Identity Intermediate CA Certificate> i.e. subca_cert.crt")
+	fmt.Println("    --identityIntermediateCAKey=<Identity Intermediate CA Private Key> i.e. subca_cert.key")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Certificate> i.e. rootca_cert.crt")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Private Key> i.e. rootca_cert.key")
+	fmt.Println()
+
 	// Mfg Certificates
 	if opts.MfgCert != "" {
 		mfgCert, err := ioutil.ReadFile(opts.MfgCert)
@@ -41,6 +55,16 @@ func ReadCommandOptions(opts Options) {
 		} else {
 			fmt.Println("Reading MfgCert from file (" + opts.MfgCert + ") was successful")
 			MfgCert = mfgCert
+		}
+	} else {
+		filename := "mfg_cert.crt"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, MfgCert, 0644)
+			if err != nil {
+				fmt.Println("Writing MfgCert was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing MfgCert to "+filename+" for sample use ...")
+			}
 		}
 	}
 
@@ -52,6 +76,16 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading MfgKey from file (" + opts.MfgKey+") was successful")
 			MfgKey = mfgKey
 		}
+	} else {
+		filename := "mfg_cert.key"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, MfgKey, 0644)
+			if err != nil {
+				fmt.Println("Writing MfgKey was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing MfgKey to " + filename + " for sample use ...")
+			}
+		}
 	}
 
 	if opts.MfgTrustCA != "" {
@@ -62,6 +96,16 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading MfgTrustCA from file (" + opts.MfgTrustCA + ") was successful")
 			MfgTrustedCA = mfgTrustCA
 		}
+	} else {
+		filename := "mfg_rootca.crt"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, MfgTrustedCA, 0644)
+			if err != nil {
+				fmt.Println("Writing MfgTrustCA was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing MfgTrustCA to " + filename + " for sample use ...")
+			}
+		}
 	}
 
 	if opts.MfgTrustCAKey != "" {
@@ -71,6 +115,16 @@ func ReadCommandOptions(opts Options) {
 		} else {
 			fmt.Println("Reading MfgTrustCAKey from file (" + opts.MfgTrustCAKey + ") was successful")
 			MfgTrustedCAKey = mfgTrustCAKey
+		}
+	} else {
+		filename := "mfg_rootca.key"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, MfgTrustedCAKey, 0644)
+			if err != nil {
+				fmt.Println("Writing MfgTrustedCAKey was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing MfgTrustedCAKey to " + filename + " for sample use ...")
+			}
 		}
 	}
 
@@ -83,6 +137,16 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading IdentityCert from file (" + opts.IdentityCert + ") was successful")
 			IdentityCert = identityCert
 		}
+	} else {
+		filename := "end_cert.crt"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityCert, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityCert was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityCert to " + filename + " for sample use ...")
+			}
+		}
 	}
 
 	if opts.IdentityKey != "" {
@@ -92,6 +156,16 @@ func ReadCommandOptions(opts Options) {
 		} else {
 			fmt.Println("Reading IdentityKey from file (" + opts.IdentityKey + ") was successful")
 			IdentityKey = identityKey
+		}
+	} else {
+		filename := "end_cert.key"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityKey, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityKey was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityKey to " + filename + " for sample use ...")
+			}
 		}
 	}
 
@@ -103,6 +177,16 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading IdentityIntermediateCA from file (" + opts.IdentityIntermediateCA + ") was successful")
 			IdentityIntermediateCA = identityIntermediateCA
 		}
+	} else {
+		filename := "subca_cert.crt"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityIntermediateCA, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityIntermediateCA was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityIntermediateCA to " + filename + " for sample use ...")
+			}
+		}
 	}
 
 	if opts.IdentityIntermediateCAKey != "" {
@@ -112,6 +196,16 @@ func ReadCommandOptions(opts Options) {
 		} else {
 			fmt.Println("Reading IdentityIntermediateCAKey from file (" + opts.IdentityIntermediateCAKey + ") was successful")
 			IdentityIntermediateCAKey = identityIntermediateCAKey
+		}
+	} else {
+		filename := "subca_cert.key"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityIntermediateCAKey, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityIntermediateCAKey was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityIntermediateCAKey to " + filename + " for sample use ...")
+			}
 		}
 	}
 
@@ -123,6 +217,16 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading IdentityTrustCA from file (" + opts.IdentityTrustCA + ") was successful")
 			IdentityTrustedCA = identityTrustCA
 		}
+	} else {
+		filename := "rootca_cert.crt"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityTrustedCA, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityTrustCA was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityTrustCA to " + filename + " for sample use ...")
+			}
+		}
 	}
 
 	if opts.IdentityTrustCAKey != "" {
@@ -133,7 +237,25 @@ func ReadCommandOptions(opts Options) {
 			fmt.Println("Reading IdentityTrustCAKey from file (" + opts.IdentityTrustCAKey + ") was successful")
 			IdentityTrustedCAKey = identityTrustCAKey
 		}
+	} else {
+		filename := "rootca_cert.key"
+		if !fileExists(filename) {
+			err := ioutil.WriteFile(filename, IdentityTrustedCAKey, 0644)
+			if err != nil {
+				fmt.Println("Writing IdentityTrustedCAKey was failed : " + err.Error())
+			} else {
+				fmt.Println("Writing IdentityTrustedCAKey to " + filename + " for sample use ...")
+			}
+		}
 	}
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+	return !info.IsDir()
 }
 
 func NewSDKClient() (*local.Client, error) {
@@ -172,7 +294,7 @@ func NewSDKClient() (*local.Client, error) {
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
 		ca:      append(identityTrustedCACert),
-	}, test.NewIdentityCertificateSigner, func(err error) { fmt.Print(err) },
+	}, test.NewIdentityCertificateSigner, func(err error) {},
 	)
 	if err != nil {
 		return nil, err
@@ -298,6 +420,7 @@ func scanner(client OCFClient) {
 			println("\nDiscovered devices : \n" + res)
 			break
 		case 2 :
+			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
 			deviceID := scanner.Text()
@@ -309,6 +432,7 @@ func scanner(client OCFClient) {
 			println("\nTransferring Ownership of "+deviceID+" was successful  : \n" + res)
 			break
 		case 3 :
+			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
 			deviceID := scanner.Text()
@@ -376,16 +500,16 @@ func scanner(client OCFClient) {
 
 			// Update Property of the Resource
 			jsonString := "{\""+key+"\": "+value+"}"
-			var data map[string]interface{}
+			var data interface{}
 			err = json.Decode([]byte(jsonString), &data)
 			dataBytes, err := json.Encode(data)
 			println("\nProperty data to update : " + string(dataBytes))
-			upRes, err := client.UpdateResource(deviceID, href, data)
+			_, err = client.UpdateResource(deviceID, href, data)
 			if err != nil {
 				println("\nUpdating resource property was failed : " + err.Error())
 				break
 			}
-			println("\nUpdated resource property of "+deviceID+href+" : \n" + upRes)
+			println("\nUpdating resource property of "+deviceID+href+" was successful")
 			break
 
 		case 6 :
