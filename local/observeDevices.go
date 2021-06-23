@@ -155,7 +155,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 		return nil, err
 	}
 	if ctx.Err() == context.Canceled {
-		return nil, err
+		return nil, ctx.Err()
 	}
 
 	added, removed, current := o.processDevices(newDevices.devices)
