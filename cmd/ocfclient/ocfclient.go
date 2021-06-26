@@ -138,7 +138,6 @@ func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{
 	}
 
 	return "", nil
-
 }
 
 // DisownDevice removes the current ownership

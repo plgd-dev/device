@@ -3,15 +3,21 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
 	"github.com/jessevdk/go-flags"
+	"github.com/plgd-dev/kit/security"
+	"github.com/plgd-dev/kit/security/generateCertificate"
 	"github.com/plgd-dev/sdk/app"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/plgd-dev/kit/codec/json"
 	"github.com/plgd-dev/sdk/local"
@@ -19,6 +25,8 @@ import (
 )
 
 type Options struct {
+	CertIdentity string                          `long:"certIdentity"`
+
 	MfgCert     string                           `long:"mfgCert"`
 	MfgKey      string                           `long:"mfgKey"`
 	MfgTrustCA	 	string                       `long:"mfgTrustCA"`
@@ -35,217 +43,274 @@ type Options struct {
 func ReadCommandOptions(opts Options) {
 
 	fmt.Println("Usage of OCF Client Options :")
-	fmt.Println("    --mfgCert=<Manufacturer Certificate> i.e. mfg_cert.crt")
-	fmt.Println("    --mfgKey=<Manufacturer Private Key> i.e. mfg_cert.key")
-	fmt.Println("    --mfgTrustCA=<Manufacturer Trusted CA Certificate> i.e. mfg_rootca.crt")
-	fmt.Println("    --mfgTrustCAKey=<Manufacturer Trusted CA Private Key> i.e. mfg_rootca.key")
-	fmt.Println("    --identityCert=<Identity Certificate> i.e. end_cert.crt")
-	fmt.Println("    --identityKey=<Identity Certificate> i.e. end_cert.key")
-	fmt.Println("    --identityIntermediateCA=<Identity Intermediate CA Certificate> i.e. subca_cert.crt")
-	fmt.Println("    --identityIntermediateCAKey=<Identity Intermediate CA Private Key> i.e. subca_cert.key")
-	fmt.Println("    --identityTrustCA=<Identity Trusted CA Certificate> i.e. rootca_cert.crt")
-	fmt.Println("    --identityTrustCA=<Identity Trusted CA Private Key> i.e. rootca_cert.key")
+	fmt.Println("    --certIdentity=<Device UUID>                               i.e. 00000000-0000-0000-0000-000000000001")
+	fmt.Println("    --mfgCert=<Manufacturer Certificate>                       i.e. mfg_cert.crt")
+	fmt.Println("    --mfgKey=<Manufacturer Private Key>                        i.e. mfg_cert.key")
+	fmt.Println("    --mfgTrustCA=<Manufacturer Trusted CA Certificate>         i.e. mfg_rootca.crt")
+	fmt.Println("    --mfgTrustCAKey=<Manufacturer Trusted CA Private Key>      i.e. mfg_rootca.key")
+	fmt.Println("    --identityCert=<Identity Certificate>                      i.e. end_cert.crt")
+	fmt.Println("    --identityKey=<Identity Certificate>                       i.e. end_cert.key")
+	fmt.Println("    --identityIntermediateCA=<Identity Intermediate CA Certificate>     i.e. subca_cert.crt")
+	fmt.Println("    --identityIntermediateCAKey=<Identity Intermediate CA Private Key>  i.e. subca_cert.key")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Certificate>        i.e. rootca_cert.crt")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Private Key>        i.e. rootca_cert.key")
 	fmt.Println()
 
-	// Mfg Certificates
-	if opts.MfgCert != "" {
-		mfgCert, err := ioutil.ReadFile(opts.MfgCert)
-		if err != nil {
-			fmt.Println("Reading MfgCert was failed : " + err.Error())
-		} else {
-			fmt.Println("Reading MfgCert from file (" + opts.MfgCert + ") was successful")
-			MfgCert = mfgCert
-		}
+	// Load certificate identity
+	if opts.CertIdentity != "" {
+		CertIdentity = opts.CertIdentity
 	} else {
-		filename := "mfg_cert.crt"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, MfgCert, 0644)
-			if err != nil {
-				fmt.Println("Writing MfgCert was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing MfgCert to "+filename+" for sample use ...")
-			}
-		}
+		opts.CertIdentity = CertIdentity
 	}
 
-	if opts.MfgKey != "" {
-		mfgKey, err := ioutil.ReadFile(opts.MfgKey)
-		if err != nil {
-			fmt.Println("Reading MfgKey was failed : " + err.Error())
-		} else {
-			fmt.Println("Reading MfgKey from file (" + opts.MfgKey+") was successful")
-			MfgKey = mfgKey
-		}
-	} else {
-		filename := "mfg_cert.key"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, MfgKey, 0644)
-			if err != nil {
-				fmt.Println("Writing MfgKey was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing MfgKey to " + filename + " for sample use ...")
-			}
-		}
-	}
-
+	// Load mfg root CA certificate and private key
 	if opts.MfgTrustCA != "" {
 		mfgTrustCA, err := ioutil.ReadFile(opts.MfgTrustCA)
 		if err != nil {
-			fmt.Println("Reading MfgTrustCA was failed : " + err.Error())
+			fmt.Println("Unable to read Manufacturer Trust CA's Certificate: " + err.Error())
 		} else {
-			fmt.Println("Reading MfgTrustCA from file (" + opts.MfgTrustCA + ") was successful")
+			fmt.Println("Reading Manufacturer Trust CA's Certificate from " + opts.MfgTrustCA + " was successful.")
 			MfgTrustedCA = mfgTrustCA
 		}
-	} else {
-		filename := "mfg_rootca.crt"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, MfgTrustedCA, 0644)
-			if err != nil {
-				fmt.Println("Writing MfgTrustCA was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing MfgTrustCA to " + filename + " for sample use ...")
-			}
-		}
 	}
-
 	if opts.MfgTrustCAKey != "" {
 		mfgTrustCAKey, err := ioutil.ReadFile(opts.MfgTrustCAKey)
 		if err != nil {
-			fmt.Println("Reading MfgTrustCAKey was failed : " + err.Error())
+			fmt.Println("Unable to read Manufacturer Trust CA's Private Key: " + err.Error())
 		} else {
-			fmt.Println("Reading MfgTrustCAKey from file (" + opts.MfgTrustCAKey + ") was successful")
+			fmt.Println("Reading Manufacturer Trust CA's Private Key from " + opts.MfgTrustCAKey + " was successful.")
 			MfgTrustedCAKey = mfgTrustCAKey
 		}
-	} else {
-		filename := "mfg_rootca.key"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, MfgTrustedCAKey, 0644)
+	}
+
+	// Generate mfg root CA certificate and private key if not exists
+	if opts.MfgTrustCA == "" || opts.MfgTrustCAKey == "" {
+		outCert := "mfg_rootca.crt"
+		outKey := "mfg_rootca.key"
+
+		if !fileExists(outCert) || !fileExists(outKey) {
+			cfg := generateCertificate.Configuration{}
+			cfg.Subject.Organization = []string{"TEST"}
+			cfg.Subject.CommonName = "TEST Mfg ROOT CA"
+			cfg.BasicConstraints.MaxPathLen = -1
+			cfg.ValidFrom = "now"
+			cfg.ValidFor = 8760 * time.Hour
+
+			err := generateRootCA(cfg, outCert, outKey)
 			if err != nil {
-				fmt.Println("Writing MfgTrustedCAKey was failed : " + err.Error())
+				fmt.Println("Unable to generate Manufacturer Trust CA: " + err.Error())
 			} else {
-				fmt.Println("Writing MfgTrustedCAKey to " + filename + " for sample use ...")
+				fmt.Println("Generating Manufacturer Trust CA to " + outCert + ", " + outKey + " was successful.")
 			}
 		}
 	}
 
-	// Identity Certificates
-	if opts.IdentityCert != "" {
-		identityCert, err := ioutil.ReadFile(opts.IdentityCert)
+	// Load mfg certificate and private key
+	if opts.MfgCert != "" && opts.MfgKey != ""{
+		mfgCert, err := ioutil.ReadFile(opts.MfgCert)
 		if err != nil {
-			fmt.Println("Reading IdentityCert was failed : " + err.Error())
+			fmt.Println("Unable to read Manufacturer Certificate: " + err.Error())
 		} else {
-			fmt.Println("Reading IdentityCert from file (" + opts.IdentityCert + ") was successful")
-			IdentityCert = identityCert
+			fmt.Println("Reading Manufacturer Certificate from " + opts.MfgCert + " was successful.")
+			MfgCert = mfgCert
 		}
-	} else {
-		filename := "end_cert.crt"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityCert, 0644)
-			if err != nil {
-				fmt.Println("Writing IdentityCert was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing IdentityCert to " + filename + " for sample use ...")
-			}
-		}
-	}
-
-	if opts.IdentityKey != "" {
-		identityKey, err := ioutil.ReadFile(opts.IdentityKey)
+		mfgKey, err := ioutil.ReadFile(opts.MfgKey)
 		if err != nil {
-			fmt.Println("Reading IdentityKey was failed : " + err.Error())
+			fmt.Println("Unable to read Manufacturer Certificate's Private Key: " + err.Error())
 		} else {
-			fmt.Println("Reading IdentityKey from file (" + opts.IdentityKey + ") was successful")
-			IdentityKey = identityKey
+			fmt.Println("Reading Manufacturer Certificate's Private Key from " + opts.MfgKey+" was successful.")
+			MfgKey = mfgKey
 		}
-	} else {
-		filename := "end_cert.key"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityKey, 0644)
+	}
+
+	// Generate mfg certificate and private key if not exists
+	if opts.MfgCert == "" || opts.MfgKey == "" {
+		outCert := "mfg_cert.crt"
+		outKey := "mfg_cert.key"
+		signerCert := "mfg_rootca.crt"
+		signerKey := "mfg_rootca.key"
+
+		if !fileExists(outCert) || !fileExists(outKey) {
+			cfg := generateCertificate.Configuration{}
+			cfg.Subject.Organization = []string{"TEST"}
+			cfg.ValidFrom = "now"
+			cfg.ValidFor = 8760 * time.Hour
+
+			err := generateIdentityCertificate(cfg, opts.CertIdentity, signerCert, signerKey, outCert, outKey)
 			if err != nil {
-				fmt.Println("Writing IdentityKey was failed : " + err.Error())
+				fmt.Println("Unable to generate Manufacturer Certificate: " + err.Error())
 			} else {
-				fmt.Println("Writing IdentityKey to " + filename + " for sample use ...")
+				fmt.Println("Generating Manufacturer Certificate to " + outCert + ", " + outKey + " was successful.")
 			}
 		}
 	}
 
-	if opts.IdentityIntermediateCA != "" {
-		identityIntermediateCA, err := ioutil.ReadFile(opts.IdentityIntermediateCA)
-		if err != nil {
-			fmt.Println("Reading IdentityIntermediateCA was failed : " + err.Error())
-		} else {
-			fmt.Println("Reading IdentityIntermediateCA from file (" + opts.IdentityIntermediateCA + ") was successful")
-			IdentityIntermediateCA = identityIntermediateCA
-		}
-	} else {
-		filename := "subca_cert.crt"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityIntermediateCA, 0644)
-			if err != nil {
-				fmt.Println("Writing IdentityIntermediateCA was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing IdentityIntermediateCA to " + filename + " for sample use ...")
-			}
-		}
-	}
-
-	if opts.IdentityIntermediateCAKey != "" {
-		identityIntermediateCAKey, err := ioutil.ReadFile(opts.IdentityIntermediateCAKey)
-		if err != nil {
-			fmt.Println("Reading IdentityIntermediateCAKey was failed : " + err.Error())
-		} else {
-			fmt.Println("Reading IdentityIntermediateCAKey from file (" + opts.IdentityIntermediateCAKey + ") was successful")
-			IdentityIntermediateCAKey = identityIntermediateCAKey
-		}
-	} else {
-		filename := "subca_cert.key"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityIntermediateCAKey, 0644)
-			if err != nil {
-				fmt.Println("Writing IdentityIntermediateCAKey was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing IdentityIntermediateCAKey to " + filename + " for sample use ...")
-			}
-		}
-	}
-
+	// Load identity trust CA certificate and private key
 	if opts.IdentityTrustCA != "" {
 		identityTrustCA, err := ioutil.ReadFile(opts.IdentityTrustCA)
 		if err != nil {
-			fmt.Println("Reading IdentityTrustCA was failed : " + err.Error())
+			fmt.Println("Unable to read Identity Trust CA's Certificate: " + err.Error())
 		} else {
-			fmt.Println("Reading IdentityTrustCA from file (" + opts.IdentityTrustCA + ") was successful")
+			fmt.Println("Reading Identity Trust CA's Certificate from " + opts.IdentityTrustCA + " was successful.")
 			IdentityTrustedCA = identityTrustCA
-		}
-	} else {
-		filename := "rootca_cert.crt"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityTrustedCA, 0644)
-			if err != nil {
-				fmt.Println("Writing IdentityTrustCA was failed : " + err.Error())
-			} else {
-				fmt.Println("Writing IdentityTrustCA to " + filename + " for sample use ...")
-			}
 		}
 	}
 
 	if opts.IdentityTrustCAKey != "" {
 		identityTrustCAKey, err := ioutil.ReadFile(opts.IdentityTrustCAKey)
 		if err != nil {
-			fmt.Println("Reading IdentityTrustCAKey was failed : " + err.Error())
+			fmt.Println("Unable to read Identity Trust CA's Private Key: " + err.Error())
 		} else {
-			fmt.Println("Reading IdentityTrustCAKey from file (" + opts.IdentityTrustCAKey + ") was successful")
+			fmt.Println("Reading Identity Trust CA's Private Key from " + opts.IdentityTrustCAKey + " was successful.")
 			IdentityTrustedCAKey = identityTrustCAKey
 		}
-	} else {
-		filename := "rootca_cert.key"
-		if !fileExists(filename) {
-			err := ioutil.WriteFile(filename, IdentityTrustedCAKey, 0644)
+	}
+
+	// Generate identity trust CA certificate and private key if not exists
+	if opts.IdentityTrustCA == "" || opts.IdentityTrustCAKey == ""  {
+		outCert := "rootca_cert.crt"
+		outKey := "rootca_cert.key"
+
+		if !fileExists(outCert) || !fileExists(outKey) {
+			cfg := generateCertificate.Configuration{}
+			cfg.Subject.Organization = []string{"TEST"}
+			cfg.Subject.CommonName = "TEST ROOT CA"
+			cfg.BasicConstraints.MaxPathLen = -1
+			cfg.ValidFrom = "now"
+			cfg.ValidFor = 8760 * time.Hour
+
+			err := generateRootCA(cfg, outCert, outKey)
 			if err != nil {
-				fmt.Println("Writing IdentityTrustedCAKey was failed : " + err.Error())
+				fmt.Println("Unable to generate Identity Trust CA: " + err.Error())
 			} else {
-				fmt.Println("Writing IdentityTrustedCAKey to " + filename + " for sample use ...")
+				fmt.Println("Generating Identity Trust CA to " + outCert + ", " + outKey + " was successful.")
 			}
+		}
+
+		identityTrustCA, err := ioutil.ReadFile(opts.IdentityTrustCA)
+		if err != nil {
+			fmt.Println("Unable to read Identity Trust CA's Certificate: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Trust CA's Certificate from " + opts.IdentityTrustCA + " was successful.")
+			IdentityTrustedCA = identityTrustCA
+		}
+		identityTrustCAKey, err := ioutil.ReadFile(opts.IdentityTrustCAKey)
+		if err != nil {
+			fmt.Println("Unable to read Identity Trust CA's Private Key: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Trust CA's Private Key from " + opts.IdentityTrustCAKey + " was successful.")
+			IdentityTrustedCAKey = identityTrustCAKey
+		}
+	}
+
+	// Load identity intermediate CA certificate and private key
+	if opts.IdentityIntermediateCA != "" {
+		identityIntermediateCA, err := ioutil.ReadFile(opts.IdentityIntermediateCA)
+		if err != nil {
+			fmt.Println("Unable to read Identity Intermediate CA's Certificate: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Intermediate CA's Certificate from " + opts.IdentityIntermediateCA + " was successful.")
+			IdentityIntermediateCA = identityIntermediateCA
+		}
+	}
+
+	if opts.IdentityIntermediateCAKey != "" {
+		identityIntermediateCAKey, err := ioutil.ReadFile(opts.IdentityIntermediateCAKey)
+		if err != nil {
+			fmt.Println("Unable to read Identity Intermediate CA's Private Key: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Intermediate CA's Private Key from " + opts.IdentityIntermediateCAKey + " was successful.")
+			IdentityIntermediateCAKey = identityIntermediateCAKey
+		}
+	}
+
+	// Generate identity intermediate CA certificate and private key if not exists
+	if opts.IdentityIntermediateCA == "" || opts.IdentityIntermediateCAKey == "" {
+		outCert := "subca_cert.crt"
+		outKey := "subca_cert.key"
+		signerCert := "rootca_cert.crt"
+		signerKey := "rootca_cert.key"
+
+		if !fileExists(outCert) || !fileExists(outKey) {
+			cfg := generateCertificate.Configuration{}
+			cfg.Subject.Organization = []string{"TEST"}
+			cfg.Subject.CommonName = "TEST Intermediate CA"
+			cfg.BasicConstraints.MaxPathLen = -1
+			cfg.ValidFrom = "now"
+			cfg.ValidFor = 8760 * time.Hour
+			err := generateIntermediateCertificate(cfg, signerCert, signerKey, outCert, outKey)
+			if err != nil {
+				fmt.Println("Unable to generate Identity Intermediate CA: " + err.Error())
+			} else {
+				fmt.Println("Generating Identity Intermediate CA to " + outCert + ", " + outKey + " was successful.")
+
+			}
+		}
+
+		identityIntermediateCA, err := ioutil.ReadFile(outCert)
+		if err != nil {
+			fmt.Println("Unable to read Identity Intermediate CA's Certificate: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Intermediate CA's Certificate from " + outCert + " was successful.")
+			IdentityIntermediateCA = identityIntermediateCA
+		}
+		identityIntermediateCAKey, err := ioutil.ReadFile(outKey)
+		if err != nil {
+			fmt.Println("Unable to read Identity Intermediate CA's Private Key: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Intermediate CA's Private Key from " + outKey + " was successful.")
+			IdentityIntermediateCAKey = identityIntermediateCAKey
+		}
+	}
+
+	// Load identity certificate and private key
+	if opts.IdentityCert != ""  && opts.IdentityKey != "" {
+		identityCert, err := ioutil.ReadFile(opts.IdentityCert)
+		if err != nil {
+			fmt.Println("Unable to read Identity Certificate: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Certificate from " + opts.IdentityCert + " was successful.")
+			IdentityCert = identityCert
+		}
+		identityKey, err := ioutil.ReadFile(opts.IdentityKey)
+		if err != nil {
+			fmt.Println("Unable to read Identity Private Key: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Private Key from " + opts.IdentityKey + " was successful.")
+			IdentityKey = identityKey
+		}
+	}
+
+	// Generate identity certificate and private key if not exists
+	if opts.IdentityCert == "" || opts.IdentityKey == "" {
+		outCert := "end_cert.crt"
+		outKey := "end_cert.key"
+		signerCert := "subca_cert.crt"
+		signerKey := "subca_cert.key"
+
+		if !fileExists(outCert) || !fileExists(outKey) {
+			certConfig := generateCertificate.Configuration{}
+			err := generateIdentityCertificate(certConfig, opts.CertIdentity, signerCert, signerKey, outCert, outKey)
+			if err != nil {
+				fmt.Println("Unable to generate Identity Certificate: " + err.Error())
+			} else {
+				fmt.Println("Generating Identity Certificate to " + outCert + ", " + outKey + " was successful.")
+			}
+		}
+
+		identityCert, err := ioutil.ReadFile(outCert)
+		if err != nil {
+			fmt.Println("Unable to read Identity Certificate: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Certificate from " + outCert + " was successful.")
+			IdentityCert = identityCert
+		}
+		identityKey, err := ioutil.ReadFile(outKey)
+		if err != nil {
+			fmt.Println("Unable to read Identity Private Key: " + err.Error())
+		} else {
+			fmt.Println("Reading Identity Private Key from " + outKey + " was successful.")
+			IdentityKey = identityKey
 		}
 	}
 }
@@ -258,53 +323,124 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-func NewSDKClient() (*local.Client, error) {
-	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-	if mfgTrustedCABlock == nil {
-		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
+func generateRootCA(certConfig generateCertificate.Configuration, outCert, outKey string) error {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
 	}
-	mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+	cert, err := generateCertificate.GenerateRootCA(certConfig, priv)
+	if err != nil {
+		return err
+	}
+	WriteCertOut(outCert, cert)
+	if err != nil {
+		return err
+	}
+	WritePrivateKey(outKey, priv)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func generateIntermediateCertificate(certConfig generateCertificate.Configuration, signCert, signKey, outCert, outKey string) error {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+	signerCert, err := security.LoadX509(signCert)
+	if err != nil {
+		return err
+	}
+	signerKey, err := security.LoadX509PrivateKey(signKey)
+	if err != nil {
+		return err
+	}
+	cert, err := generateCertificate.GenerateIntermediateCA(certConfig, priv, signerCert, signerKey)
+	if err != nil {
+		return err
+	}
+	WriteCertOut(outCert, cert)
+	if err != nil {
+		return err
+	}
+	WritePrivateKey(outKey, priv)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+func generateIdentityCertificate(certConfig generateCertificate.Configuration, identity, signCert, signKey, outCert, outKey string) error {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return err
+	}
+	signerCert, err := security.LoadX509(signCert)
+	if err != nil {
+		return err
+	}
+	signerKey, err := security.LoadX509PrivateKey(signKey)
+	if err != nil {
+		return err
+	}
+	cert, err := generateCertificate.GenerateIdentityCert(certConfig, identity, priv, signerCert, signerKey)
+	if err != nil {
+		return err
+	}
+	WriteCertOut(outCert, cert)
+	if err != nil {
+		return err
+	}
+	WritePrivateKey(outKey, priv)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func WriteCertOut(filename string, cert []byte) error {
+	certOut, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("failed to open %v for writing: %s", filename, err)
+	}
+	_, err = certOut.Write(cert)
+	if err != nil {
+		return fmt.Errorf("failed to write %v: %s", filename, err)
+	}
+	if err := certOut.Close(); err != nil {
+		return fmt.Errorf("error closing %v: %s", filename, err)
+	}
+	return nil
+}
+
+func WritePrivateKey(filename string, priv *ecdsa.PrivateKey) error {
+	privBlock, err := pemBlockForKey(priv)
+	if err != nil {
+		return fmt.Errorf("failed to encode priv key %v for writing: %v", filename, err)
+	}
+
+	keyOut, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return fmt.Errorf("failed to open %v for writing: %v", filename, err)
+	}
+
+	if err := pem.Encode(keyOut, privBlock); err != nil {
+		return fmt.Errorf("failed to write data to %v: %s", filename, err)
+	}
+	if err := keyOut.Close(); err != nil {
+		return fmt.Errorf("error closing %v: %s", filename, err)
+	}
+	return nil
+}
+
+func pemBlockForKey(k *ecdsa.PrivateKey) (*pem.Block, error) {
+	b, err := x509.MarshalECPrivateKey(k)
 	if err != nil {
 		return nil, err
 	}
-	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
-	if err != nil {
-		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
-	}
-
-	identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
-	if identityTrustedCABlock == nil {
-		return nil, fmt.Errorf("identityTrustedCABlock is empty")
-	}
-	identityTrustedCACert, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse cert: %w", err)
-	}
-
-	cfg := local.Config{
-		DisablePeerTCPSignalMessageCSMs: true,
-		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-			ID:      CertIdentity,
-			Cert:    string(IdentityIntermediateCA),
-			CertKey: string(IdentityIntermediateCAKey),
-		},
-	}
-
-	client, err := local.NewClientFromConfig(&cfg, &SetupSecureClient{
-		mfgCA:   mfgCA,
-		mfgCert: mfgCert,
-		ca:      append(identityTrustedCACert),
-	}, test.NewIdentityCertificateSigner, func(err error) {},
-	)
-	if err != nil {
-		return nil, err
-	}
-	err = client.Initialization(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	return client, nil
+	return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}, nil
 }
 
 func NewClient() *local.Client {
@@ -323,31 +459,63 @@ func NewClient() *local.Client {
 }
 
 func NewSecureClient() (*local.Client, error) {
-	mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-	if mfgTrustedCABlock == nil {
-		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
-	}
-	mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
-	mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
-	if err != nil {
-		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
-	}
-	cfg := local.Config{
-		DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-			ID:      CertIdentity,
-			Cert:    string(IdentityIntermediateCA),
-			CertKey: string(IdentityIntermediateCAKey),
-		},
+
+	var cfg local.Config
+	if len(IdentityIntermediateCA) > 0 && len(IdentityIntermediateCAKey) > 0 {
+		cfg = local.Config{
+			//DisablePeerTCPSignalMessageCSMs: true,
+			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
+				ID:      CertIdentity,
+				Cert:    string(IdentityIntermediateCA),
+				CertKey: string(IdentityIntermediateCAKey),
+			},
+		}
+	} else {
+		cfg = local.Config{
+			//DisablePeerTCPSignalMessageCSMs: true,
+			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
+				ID: CertIdentity,
+			},
+		}
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &SetupSecureClient{
-		mfgCA:   mfgCA,
-		mfgCert: mfgCert,
-	}, test.NewIdentityCertificateSigner, func(err error) { fmt.Print(err) },
-	)
+	var setupSecureClient = SetupSecureClient{}
+	if len(MfgTrustedCA) > 0 {
+		mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
+		if mfgTrustedCABlock != nil {
+			mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+			if err != nil {
+				return nil, err
+			}
+			setupSecureClient.mfgCA = mfgCA
+		} else {
+			fmt.Errorf("mfgTrustedCABlock is empty")
+		}
+	}
+
+	if len(MfgCert) > 0 && len(MfgKey) > 0 {
+		mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
+		if err != nil {
+			fmt.Errorf("cannot X509KeyPair: %w", err)
+		} else {
+			setupSecureClient.mfgCert = mfgCert
+		}
+	}
+
+	if len(IdentityTrustedCA) > 0 {
+		identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
+		if identityTrustedCABlock == nil {
+			return nil, fmt.Errorf("identityTrustedCABlock is empty")
+		}
+		identityTrustedCACert, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
+		if err != nil {
+			fmt.Errorf("cannot parse cert: %w", err)
+		} else {
+			setupSecureClient.ca = append(identityTrustedCACert)
+		}
+	}
+
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, test.NewIdentityCertificateSigner, func(err error) {},)
 	if err != nil {
 		return nil, err
 	}
@@ -362,11 +530,10 @@ func NewSecureClient() (*local.Client, error) {
 // Initialize creates and initializes new local client
 func (c *OCFClient) Initialize() error {
 
-	localClient, err := NewSDKClient()
+	localClient, err := NewSecureClient()
 	if err != nil {
 		return err
 	}
-
 	c.client = localClient
 	return nil
 }
@@ -389,6 +556,7 @@ func main() {
 	// Read Command Options
 	ReadCommandOptions(opts)
 
+	// Create OCF Client
 	client := OCFClient{}
 	err = client.Initialize()
 	if err != nil {
@@ -429,7 +597,7 @@ func scanner(client OCFClient) {
 				println("\nTransferring Ownership was failed : " + err.Error())
 				break
 			}
-			println("\nTransferring Ownership of "+deviceID+" was successful  : \n" + res)
+			println("\nTransferring Ownership of "+deviceID+" was successful : \n" + res)
 			break
 		case 3 :
 			// Select Device
@@ -509,7 +677,7 @@ func scanner(client OCFClient) {
 				println("\nUpdating resource property was failed : " + err.Error())
 				break
 			}
-			println("\nUpdating resource property of "+deviceID+href+" was successful")
+			println("\nUpdating resource property of "+deviceID+href+" was successful.")
 			break
 
 		case 6 :
@@ -522,7 +690,7 @@ func scanner(client OCFClient) {
 				println("\nOff-boarding was failed : " + err.Error())
 				break
 			}
-			println("\nOff-boarding "+deviceID+" was successful" )
+			println("\nOff-boarding "+deviceID+" was successful." )
 			break
 		case 99 :
 			// Close Client
@@ -553,118 +721,15 @@ func printMenu() {
 var (
 	CertIdentity = "00000000-0000-0000-0000-000000000001"
 
-	MfgCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIB9zCCAZygAwIBAgIRAOwIWPAt19w7DswoszkVIEIwCgYIKoZIzj0EAwIwEzER
-MA8GA1UEChMIVGVzdCBPUkcwHhcNMTkwNTAyMjAwNjQ4WhcNMjkwMzEwMjAwNjQ4
-WjBHMREwDwYDVQQKEwhUZXN0IE9SRzEyMDAGA1UEAxMpdXVpZDpiNWEyYTQyZS1i
-Mjg1LTQyZjEtYTM2Yi0wMzRjOGZjOGVmZDUwWTATBgcqhkjOPQIBBggqhkjOPQMB
-BwNCAAQS4eiM0HNPROaiAknAOW08mpCKDQmpMUkywdcNKoJv1qnEedBhWne7Z0jq
-zSYQbyqyIVGujnI3K7C63NRbQOXQo4GcMIGZMA4GA1UdDwEB/wQEAwIDiDAzBgNV
-HSUELDAqBggrBgEFBQcDAQYIKwYBBQUHAwIGCCsGAQUFBwMBBgorBgEEAYLefAEG
-MAwGA1UdEwEB/wQCMAAwRAYDVR0RBD0wO4IJbG9jYWxob3N0hwQAAAAAhwR/AAAB
-hxAAAAAAAAAAAAAAAAAAAAAAhxAAAAAAAAAAAAAAAAAAAAABMAoGCCqGSM49BAMC
-A0kAMEYCIQDuhl6zj6gl2YZbBzh7Th0uu5izdISuU/ESG+vHrEp7xwIhANCA7tSt
-aBlce+W76mTIhwMFXQfyF3awWIGjOcfTV8pU
------END CERTIFICATE-----
-`)
+	MfgCert = []byte{}
+	MfgKey = []byte{}
+	MfgTrustedCA = []byte{}
+	MfgTrustedCAKey = []byte{}
 
-	MfgKey = []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIMPeADszZajrkEy4YvACwcbR0pSdlKG+m8ALJ6lj/ykdoAoGCCqGSM49
-AwEHoUQDQgAEEuHojNBzT0TmogJJwDltPJqQig0JqTFJMsHXDSqCb9apxHnQYVp3
-u2dI6s0mEG8qsiFRro5yNyuwutzUW0Dl0A==
------END EC PRIVATE KEY-----
-`)
-
-	MfgTrustedCA = []byte(`-----BEGIN CERTIFICATE-----
-MIIBaTCCAQ+gAwIBAgIQR33gIB75I7Vi/QnMnmiWvzAKBggqhkjOPQQDAjATMREw
-DwYDVQQKEwhUZXN0IE9SRzAeFw0xOTA1MDIyMDA1MTVaFw0yOTAzMTAyMDA1MTVa
-MBMxETAPBgNVBAoTCFRlc3QgT1JHMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE
-xbwMaS8jcuibSYJkCmuVHfeV3xfYVyUq8Iroz7YlXaTayspW3K4hVdwIsy/5U+3U
-vM/vdK5wn2+NrWy45vFAJqNFMEMwDgYDVR0PAQH/BAQDAgEGMBMGA1UdJQQMMAoG
-CCsGAQUFBwMBMA8GA1UdEwEB/wQFMAMBAf8wCwYDVR0RBAQwAoIAMAoGCCqGSM49
-BAMCA0gAMEUCIBWkxuHKgLSp6OXDJoztPP7/P5VBZiwLbfjTCVRxBvwWAiEAnzNu
-6gKPwtKmY0pBxwCo3NNmzNpA6KrEOXE56PkiQYQ=
------END CERTIFICATE-----
-`)
-	MfgTrustedCAKey = []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEICzfC16AqtSv3wt+qIbrgM8dTqBhHANJhZS5xCpH6P2roAoGCCqGSM49
-AwEHoUQDQgAExbwMaS8jcuibSYJkCmuVHfeV3xfYVyUq8Iroz7YlXaTayspW3K4h
-VdwIsy/5U+3UvM/vdK5wn2+NrWy45vFAJg==
------END EC PRIVATE KEY-----
-`)
-
-	IdentityTrustedCA = []byte(`-----BEGIN CERTIFICATE-----
-MIIBaDCCAQ6gAwIBAgIRANpzWRKheR25RH0CgYYwLzQwCgYIKoZIzj0EAwIwETEP
-MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTEzMTA1M1oYDzIxMTkwNjI1MTMxMDUz
-WjARMQ8wDQYDVQQDEwZSb290Q0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASQ
-TLfEiNgEfqyWmtW1RV9UKgxsMddrNlYFt/+ZpqaJpBQ+hvtGwJenLEv5jzeEcMXr
-gOR4EwjjJSzELk6IibC+o0UwQzAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYI
-KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zALBgNVHREEBDACggAwCgYIKoZIzj0E
-AwIDSAAwRQIhAOUfsOKyjIgYmDd2G46ge+PEPAZ9DS67Q5RjJvLk/lf3AiA6yMxJ
-msmj2nz8VeEkxpKq3gYwJUdJ9jMklTzP+Dcenw==
------END CERTIFICATE-----
-`)
-	IdentityTrustedCAKey = []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIFe+pAuS4dEt1gRZ6Mq1xrgkEHxL191AFzEsNNvTEWOYoAoGCCqGSM49
-AwEHoUQDQgAEkEy3xIjYBH6slprVtUVfVCoMbDHXazZWBbf/maamiaQUPob7RsCX
-pyxL+Y83hHDF64DkeBMI4yUsxC5OiImwvg==
------END EC PRIVATE KEY-----
-`)
-	IdentityIntermediateCA = []byte(`
------BEGIN CERTIFICATE-----
-MIIBczCCARmgAwIBAgIRANntjEpzu9krzL0EG6fcqqgwCgYIKoZIzj0EAwIwETEP
-MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTIwMzczOVoYDzIxMTkwNjI1MjAzNzM5
-WjAZMRcwFQYDVQQDEw5JbnRlcm1lZGlhdGVDQTBZMBMGByqGSM49AgEGCCqGSM49
-AwEHA0IABKw1/6WHFcWtw67hH5DzoZvHgA0suC6IYLKms4IP/pds9wU320eDaENo
-5860TOyKrGn7vW/cj/OVe2Dzr4KSFVijSDBGMA4GA1UdDwEB/wQEAwIBBjATBgNV
-HSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8ECDAGAQH/AgEAMAsGA1UdEQQEMAKC
-ADAKBggqhkjOPQQDAgNIADBFAiEAgPtnYpgwxmPhN0Mo8VX582RORnhcdSHMzFjh
-P/li1WwCIFVVWBOrfBnTt7A6UfjP3ljAyHrJERlMauQR+tkD/aqm
------END CERTIFICATE-----
------BEGIN CERTIFICATE-----
-MIIBaDCCAQ6gAwIBAgIRANpzWRKheR25RH0CgYYwLzQwCgYIKoZIzj0EAwIwETEP
-MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTEzMTA1M1oYDzIxMTkwNjI1MTMxMDUz
-WjARMQ8wDQYDVQQDEwZSb290Q0EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASQ
-TLfEiNgEfqyWmtW1RV9UKgxsMddrNlYFt/+ZpqaJpBQ+hvtGwJenLEv5jzeEcMXr
-gOR4EwjjJSzELk6IibC+o0UwQzAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYI
-KwYBBQUHAwEwDwYDVR0TAQH/BAUwAwEB/zALBgNVHREEBDACggAwCgYIKoZIzj0E
-AwIDSAAwRQIhAOUfsOKyjIgYmDd2G46ge+PEPAZ9DS67Q5RjJvLk/lf3AiA6yMxJ
-msmj2nz8VeEkxpKq3gYwJUdJ9jMklTzP+Dcenw==
------END CERTIFICATE-----
-`)
-	IdentityIntermediateCAKey = []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIPF4DPvFeiRL1G0ROd6MosoUGnvIG/2YxH0CbHwnLKxqoAoGCCqGSM49
-AwEHoUQDQgAErDX/pYcVxa3DruEfkPOhm8eADSy4Lohgsqazgg/+l2z3BTfbR4No
-Q2jnzrRM7Iqsafu9b9yP85V7YPOvgpIVWA==
------END EC PRIVATE KEY-----
-`)
-	IdentityCert = []byte(`-----BEGIN CERTIFICATE-----
-MIIBsTCCAVagAwIBAgIQaxAoemzXSnFWCq/DmVwQIDAKBggqhkjOPQQDAjAZMRcw
-FQYDVQQDEw5JbnRlcm1lZGlhdGVDQTAgFw0xOTA3MTkyMDM3NTFaGA8yMTE5MDYy
-NTIwMzc1MVowNDEyMDAGA1UEAxMpdXVpZDowMDAwMDAwMC0wMDAwLTAwMDAtMDAw
-MC0wMDAwMDAwMDAwMDEwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAS/gWdMe96z
-qsKMOfWsGJtH0wQCRYcwbu0dr+IkQv4/tSv+wO0EVhfvaIAr8lM2xZ6X+uGMcg/Y
-muqOL/nFhadlo2MwYTAOBgNVHQ8BAf8EBAMCA4gwMwYDVR0lBCwwKgYIKwYBBQUH
-AwEGCCsGAQUFBwMCBggrBgEFBQcDAQYKKwYBBAGC3nwBBjAMBgNVHRMBAf8EAjAA
-MAwGA1UdEQQFMAOCATowCgYIKoZIzj0EAwIDSQAwRgIhAJwukCJJtkbgrgrS96uR
-RILQxW0aF8K6+5j+CBeEkwYNAiEAguOX+W1WEu1gAf6pIxMOIF83/X4adJd4KEYs
-7gMgO3Y=
------END CERTIFICATE-----
------BEGIN CERTIFICATE-----
-MIIBczCCARmgAwIBAgIRANntjEpzu9krzL0EG6fcqqgwCgYIKoZIzj0EAwIwETEP
-MA0GA1UEAxMGUm9vdENBMCAXDTE5MDcxOTIwMzczOVoYDzIxMTkwNjI1MjAzNzM5
-WjAZMRcwFQYDVQQDEw5JbnRlcm1lZGlhdGVDQTBZMBMGByqGSM49AgEGCCqGSM49
-AwEHA0IABKw1/6WHFcWtw67hH5DzoZvHgA0suC6IYLKms4IP/pds9wU320eDaENo
-5860TOyKrGn7vW/cj/OVe2Dzr4KSFVijSDBGMA4GA1UdDwEB/wQEAwIBBjATBgNV
-HSUEDDAKBggrBgEFBQcDATASBgNVHRMBAf8ECDAGAQH/AgEAMAsGA1UdEQQEMAKC
-ADAKBggqhkjOPQQDAgNIADBFAiEAgPtnYpgwxmPhN0Mo8VX582RORnhcdSHMzFjh
-P/li1WwCIFVVWBOrfBnTt7A6UfjP3ljAyHrJERlMauQR+tkD/aqm
------END CERTIFICATE-----
-`)
-	IdentityKey = []byte(`-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEICLgYlcG6V0LbI3IqUENYuVLR2s0Tyqkxz0t1+QP2KVLoAoGCCqGSM49
-AwEHoUQDQgAEv4FnTHves6rCjDn1rBibR9MEAkWHMG7tHa/iJEL+P7Ur/sDtBFYX
-72iAK/JTNsWel/rhjHIP2Jrqji/5xYWnZQ==
------END EC PRIVATE KEY-----
-`)
+	IdentityTrustedCA = []byte{}
+	IdentityTrustedCAKey = []byte{}
+	IdentityIntermediateCA = []byte{}
+	IdentityIntermediateCAKey = []byte{}
+	IdentityCert = []byte{}
+	IdentityKey = []byte{}
 )
