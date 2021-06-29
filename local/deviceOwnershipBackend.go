@@ -11,6 +11,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/status"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
 	"github.com/plgd-dev/kit/security"
@@ -216,15 +217,14 @@ func TokenFromOutgoingMD(ctx context.Context) (string, error) {
 	expectedScheme := "bearer"
 	val := metautils.ExtractOutgoing(ctx).Get(headerAuthorize)
 	if val == "" {
-		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
-
+		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 	}
 	splits := strings.SplitN(val, " ", 2)
 	if len(splits) < 2 {
-		return "", grpc.Errorf(codes.Unauthenticated, "Bad authorization string")
+		return "", status.Errorf(codes.Unauthenticated, "Bad authorization string")
 	}
-	if strings.EqualFold(splits[0], expectedScheme) {
-		return "", grpc.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+	if !strings.EqualFold(splits[0], expectedScheme) {
+		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with %v, expected %v", splits[0], expectedScheme)
 	}
 	return splits[1], nil
 }
