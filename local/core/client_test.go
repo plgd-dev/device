@@ -6,7 +6,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"sync"
 	"testing"
 	"time"
 
@@ -148,66 +147,6 @@ func (c *Client) Close() {
 		panic(err)
 	}
 	c.Device.Close(timeout)
-}
-
-type testFindDeviceHandler struct {
-	secured bool
-	t       *testing.T
-
-	lock      sync.Mutex
-	deviceIds map[string]bool
-}
-
-func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
-	secured, err := d.IsSecured(ctx)
-	require.NoError(h.t, err)
-	defer d.Close(ctx)
-	if secured != h.secured {
-		return
-	}
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	if h.deviceIds == nil {
-		h.deviceIds = make(map[string]bool)
-	}
-	h.deviceIds[d.DeviceID()] = true
-}
-
-func (h *testFindDeviceHandler) PopDeviceIds() map[string]bool {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-	tmp := h.deviceIds
-	h.deviceIds = nil
-	return tmp
-}
-
-func (h *testFindDeviceHandler) DeviceIDs() []string {
-	h.lock.Lock()
-	defer h.lock.Unlock()
-
-	out := make([]string, 0, len(h.deviceIds))
-	for id, _ := range h.deviceIds {
-		out = append(out, id)
-	}
-	return out
-}
-
-func (h *testFindDeviceHandler) Error(err error) {
-}
-
-func testGetDeviceID(t *testing.T, c *ocf.Client, secured bool) string {
-	timeout, cancel := context.WithTimeout(context.Background(), time.Second*1)
-	defer cancel()
-	h := testFindDeviceHandler{secured: secured, t: t}
-	err := c.GetDevicesV2(timeout, ocf.DefaultDiscoveryConfiguration(), &h)
-	require.NoError(t, err)
-	deviceIds := h.PopDeviceIds()
-	require.NotEmpty(t, deviceIds)
-	require.Len(t, deviceIds, 1)
-	for key, _ := range deviceIds {
-		return key
-	}
-	return ""
 }
 
 var (

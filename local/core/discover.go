@@ -157,9 +157,7 @@ func runDiscovery(
 				return
 			}
 
-			select {
-			case <-ctx.Done():
-			}
+			<-ctx.Done()
 		}()
 	}
 }

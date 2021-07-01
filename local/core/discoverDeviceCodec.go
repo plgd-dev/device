@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/kit/codec/ocf"
@@ -17,10 +16,6 @@ func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.
 // Encode propagates the payload without any conversions.
 func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
 	return nil, MakeUnimplemented(fmt.Errorf("not supported"))
-}
-
-func anchorToDeviceId(anchor string) string {
-	return strings.TrimPrefix(anchor, "ocf://")
 }
 
 type deviceLink struct {

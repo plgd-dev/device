@@ -10,7 +10,6 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/kit/net"
 	"github.com/plgd-dev/sdk/pkg/net/coap"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -110,7 +109,7 @@ func (d *Device) dialTLS(ctx context.Context, addr string, tlsConfig *TLSConfig,
 		InsecureSkipVerify:    true,
 		ClientCAs:             rootCAs,
 		Certificates:          []tls.Certificate{cert},
-		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
+		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
 
 	return d.cfg.dialTLS(ctx, addr, &tlsCfg, dialOptions...)
@@ -135,7 +134,7 @@ func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig
 		ClientCAs:             rootCAs,
 		CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
 		Certificates:          []tls.Certificate{cert},
-		VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
+		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
 	return d.cfg.dialDTLS(ctx, addr, &tlsCfg, dialOptions...)
 }

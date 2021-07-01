@@ -10,22 +10,6 @@ import (
 	"github.com/plgd-dev/sdk/schema"
 )
 
-// According to Device2Cloud spec the CoAPCloudConf Resource shall expose only secure Endpoints (e.g. CoAPS); see the ISO/IEC 30118-1:2018, clause 10.
-// You have to be secure to talk to it so we try to load device links via secure endpoints if it is possible.
-func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLinks) (*Device, schema.ResourceLinks, error) {
-	dlink, err := GetResourceLink(dlinks, "/oic/d")
-	if err != nil {
-		defer d.Close(ctx)
-		return nil, nil, MakeDataLoss(fmt.Errorf("cannot read device link for secure device %s: %w", d.DeviceID(), err))
-	}
-	dlinks, err = d.GetResourceLinks(ctx, dlink.GetEndpoints())
-	if err != nil {
-		defer d.Close(ctx)
-		return nil, nil, MakeDataLoss(fmt.Errorf("cannot get resource links for secure device %s: %w", d.DeviceID(), err))
-	}
-	return d, dlinks, nil
-}
-
 // GetDevice performs a multicast and returns a device object if the device responds.
 func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, deviceID string) (*Device, error) {
 	findCtx, cancel := context.WithCancel(ctx)

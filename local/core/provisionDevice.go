@@ -86,7 +86,7 @@ func (c *ProvisioningClient) AddCredentials(ctx context.Context, credential sche
 func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subject string, cert *x509.Certificate) error {
 	setCaCredential := schema.CredentialUpdateRequest{
 		Credentials: []schema.Credential{
-			schema.Credential{
+			{
 				Subject: subject,
 				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 				Usage:   schema.CredentialUsage_TRUST_CA,
@@ -137,7 +137,7 @@ func (c *ProvisioningClient) SetAccessControl(
 ) error {
 	setACL := acl.UpdateRequest{
 		AccessControlList: []acl.AccessControl{
-			acl.AccessControl{
+			{
 				Permission: permission,
 				Subject:    subject,
 				Resources:  resources,

@@ -42,7 +42,7 @@ type connUpdateResourcer interface {
 
 func disown(ctx context.Context, conn connUpdateResourcer) error {
 	deadline, ok := ctx.Deadline()
-	if !ok || deadline.Sub(time.Now()) < time.Second {
+	if !ok || time.Until(deadline) < time.Second {
 		ctx1, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		ctx = ctx1
@@ -104,7 +104,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 	/*acl2 set owner of resource*/
 	setACL := acl.UpdateRequest{
 		AccessControlList: []acl.AccessControl{
-			acl.AccessControl{
+			{
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
@@ -113,7 +113,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: acl.AllResources,
 			},
-			acl.AccessControl{
+			{
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
@@ -122,7 +122,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: cloudResources,
 			},
-			acl.AccessControl{
+			{
 				Permission: acl.Permission_READ | acl.Permission_WRITE | acl.Permission_DELETE,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
@@ -144,7 +144,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 					},
 				},
 			},
-			acl.AccessControl{
+			{
 				Permission: acl.Permission_READ,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
@@ -158,7 +158,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 					},
 				},
 			},
-			acl.AccessControl{
+			{
 				Permission: acl.Permission_READ,
 				Subject: acl.Subject{
 					Subject_Connection: &acl.Subject_Connection{

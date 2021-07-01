@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/plgd-dev/sdk/local/core"
-	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/test"
 
 	"github.com/stretchr/testify/require"
@@ -46,7 +45,7 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceId)
+			device, err := c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), deviceId)
 			require.NoError(err)
 			defer device.Close(timeout)
 			eps, err := device.GetEndpoints(timeout)
