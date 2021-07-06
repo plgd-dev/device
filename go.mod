@@ -10,7 +10,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pion/dtls/v2 v2.0.5-0.20210131130429-43aede6b5060
 	github.com/plgd-dev/cloud v1.0.1
-	github.com/plgd-dev/go-coap/v2 v2.2.0
+	github.com/plgd-dev/go-coap/v2 v2.2.0-getDeviceByIP
 	github.com/plgd-dev/kit v0.0.0-20210517115726-034a62788317
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/atomic v1.6.0

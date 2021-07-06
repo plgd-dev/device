@@ -3,6 +3,7 @@ package core
 import (
 	"context"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/plgd-dev/go-coap/v2/udp/client"
@@ -26,8 +27,41 @@ func patchDeviceLinks(ctx context.Context, d *Device, dlinks schema.ResourceLink
 	return d, dlinks, nil
 }
 
+func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) {
+	var discoveryConfiguration DiscoveryConfiguration
+	if strings.Contains(ip, ":") && !strings.Contains(ip, "[") {
+		ip = "[" + ip + "]"
+		discoveryConfiguration.MulticastAddressUDP6 = []string{ip + ":5683"}
+	} else {
+		discoveryConfiguration.MulticastAddressUDP4 = []string{ip + ":5683"}
+	}
+
+	findCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	multicastConn := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	defer func() {
+		for _, conn := range multicastConn {
+			conn.Close()
+		}
+	}()
+
+	h := newDeviceHandler(c.getDeviceConfiguration(), ANY_DEVICE, cancel)
+	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
+	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	if err != nil {
+		return nil, MakeDataLoss(fmt.Errorf("could not get the device from ip %s: %w", ip, err))
+	}
+	d := h.Device()
+	if d == nil {
+		return nil, MakeInternal(fmt.Errorf("no response from the device with ip %s", ip))
+	}
+
+	return d, nil
+}
+
 // GetDevice performs a multicast and returns a device object if the device responds.
-func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, deviceID string) (*Device, error) {
+func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, discoveryConfiguration DiscoveryConfiguration) (*Device, error) {
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -51,6 +85,8 @@ func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration Discovery
 
 	return d, nil
 }
+
+const ANY_DEVICE = "anydevice"
 
 func newDeviceHandler(
 	deviceCfg deviceConfiguration,
@@ -96,7 +132,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 		return
 	}
 
-	if h.device != nil || deviceID != h.deviceID {
+	if h.device != nil || (deviceID != h.deviceID && h.deviceID != ANY_DEVICE) {
 		return
 	}
 	if len(link.ResourceTypes) == 0 {

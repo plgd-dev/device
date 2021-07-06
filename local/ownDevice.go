@@ -18,7 +18,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		return "", err
 	}
 	defer d.Release(ctx)
-	ok, err := d.IsSecured(ctx)
+	ok := d.IsSecured()
 	if err != nil {
 		return "", err
 	}
@@ -36,20 +36,14 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 		return "", err
 	}
 	defer d.Release(ctx)
-	ok, err := d.IsSecured(ctx)
-	if err != nil {
-		return "", err
-	}
+	ok := d.IsSecured()
 	if !ok {
 		// don't own insecure device
 		return d.DeviceID(), nil
 	}
 	if c.disableUDPEndpoints {
 		// we need to get all links because just-works need to use dtls
-		endpoints, err := d.GetEndpoints(ctx)
-		if err != nil {
-			return "", err
-		}
+		endpoints := d.GetEndpoints()
 		links, err = d.GetResourceLinks(ctx, endpoints)
 		if err != nil {
 			return "", err

@@ -65,10 +65,7 @@ func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMe
 }
 
 func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
-	endpoints, err := d.GetEndpoints(ctx)
-	if err != nil {
-		return fmt.Errorf("cannot get endpoints: %w", err)
-	}
+	endpoints := d.GetEndpoints()
 	coapAddr, err := endpoints.GetAddr(schema.UDPScheme)
 	if err != nil {
 		return err

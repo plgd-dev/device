@@ -38,11 +38,10 @@ func TestGetOwnerships(t *testing.T) {
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
 	deviceID := secureDeviceID
-	device, err := c.GetDevice(ctx, ocf.DefaultDiscoveryConfiguration(), deviceID)
+	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer device.Close(ctx)
-	eps, err := device.GetEndpoints(ctx)
-	require.NoError(t, err)
+	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
 

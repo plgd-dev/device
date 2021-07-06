@@ -161,11 +161,7 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 		eps = link.GetEndpoints()
 	}
 
-	isSecured, err := d.IsSecured(ctx)
-	if err != nil {
-		return out, err
-	}
-
+	isSecured := d.IsSecured()
 	details, err := getDetails(ctx, d, links)
 	if err != nil {
 		return DeviceDetails{}, err

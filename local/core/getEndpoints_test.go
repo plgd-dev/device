@@ -18,9 +18,8 @@ func TestDevice_GetEndpoints(t *testing.T) {
 		deviceID string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		wantErr bool
+		name string
+		args args
 	}{
 		{
 			name: "secure",
@@ -40,22 +39,17 @@ func TestDevice_GetEndpoints(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := tt.args.deviceID
+			deviceID := tt.args.deviceID
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceId)
+			device, err := c.GetDeviceByMulticast(timeout, deviceID, ocf.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer device.Close(timeout)
 
-			got, err := device.GetEndpoints(timeout)
-			if tt.wantErr {
-				require.Error(err)
-			} else {
-				require.NoError(err)
-				require.NotEmpty(got)
-			}
+			got := device.GetEndpoints()
+			require.NotEmpty(got)
 		})
 	}
 }

@@ -2,7 +2,7 @@
 
 The **local SDK** enabled interacting with devices in a local network.
 
-The following operations have beed added:
+The following operations have been added:
 - Listing devices 
 - Retrieving and updating resources 
 
