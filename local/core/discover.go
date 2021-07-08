@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/net"
+	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	"github.com/plgd-dev/go-coap/v2/udp"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	udpMessage "github.com/plgd-dev/go-coap/v2/udp/message"
@@ -32,12 +34,12 @@ type DiscoveryClient struct {
 	wg        sync.WaitGroup
 }
 
-func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(error)) (*DiscoveryClient, error) {
+func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Duration, errors func(error)) (*DiscoveryClient, error) {
 	l, err := net.NewListenUDP(network, "", net.WithErrors(errors))
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer(udp.WithErrors(errors))
+	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     uint16(msgID),
@@ -78,8 +80,14 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	msgIDudp4 := udpMessage.GetMID()
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
+	timeout := time.Second * 10
+	v, ok := ctx.Deadline()
+	if ok {
+		timeout = time.Until(v)
+	}
+
 	for _, address := range cfg.MulticastAddressUDP4 {
-		c, err := newDiscoveryClient("udp4", address, msgIDudp4, errors)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors)
 		if err != nil {
 			errors(err)
 			continue
@@ -87,7 +95,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		c, err := newDiscoveryClient("udp6", address, msgIDudp6, errors)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors)
 		if err != nil {
 			errors(err)
 			continue
