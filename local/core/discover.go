@@ -57,6 +57,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(err
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
 	req.SetMessageID(d.msgID)
+	req.SetType(udpMessage.NonConfirmable)
 	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler)
 }
 
