@@ -11,6 +11,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 
+	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	kitSync "github.com/plgd-dev/kit/sync"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/pkg/net/coap"
@@ -35,6 +36,7 @@ type Config struct {
 	MaxMessageSize                    int
 	DisablePeerTCPSignalMessageCSMs   bool
 	HeartBeatSeconds                  uint64
+	DefaultTransferDurationSeconds    uint64 // 0 means default
 
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
@@ -80,6 +82,11 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, createSigner func
 		dialOpts = append(dialOpts, coap.WithErrors(errors))
 	} else {
 		dialOpts = append(dialOpts, coap.WithErrors(func(error) {}))
+	}
+	if cfg.DefaultTransferDurationSeconds > 0 {
+		dialOpts = append(dialOpts, coap.WithBlockwise(true, blockwise.SZX1024, time.Second*time.Duration(cfg.DefaultTransferDurationSeconds)))
+	} else {
+		dialOpts = append(dialOpts, coap.WithBlockwise(true, blockwise.SZX1024, 15*time.Second))
 	}
 
 	dialTLS := func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
@@ -181,10 +188,7 @@ type Client struct {
 	observeResourceCache    *kitSync.Map
 	observerPollingInterval time.Duration
 
-	deviceOwner         DeviceOwner
-	grpcCertificate     tls.Certificate
-	identityCertificate tls.Certificate
-	rootCA              []*x509.Certificate
+	deviceOwner DeviceOwner
 
 	subscriptionsLock sync.Mutex
 	subscriptions     map[string]subscription
@@ -224,18 +228,10 @@ func (c *Client) CoreClient() *core.Client {
 
 // Close clears all connections and spawned goroutines by client.
 func (c *Client) Close(ctx context.Context) error {
-	var errors []error
 	for _, s := range c.popSubscriptions() {
 		s.Cancel()
 	}
-	err := c.deviceCache.Close(ctx)
-	if err != nil {
-		errors = append(errors, err)
-	}
-
-	// observeResourceCache will be removed by cleaned by close deviceCache
-
-	return nil
+	return c.deviceCache.Close(ctx)
 }
 
 func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner, errors func(error)) (DeviceOwner, error) {

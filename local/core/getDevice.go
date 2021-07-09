@@ -15,7 +15,10 @@ func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration Discovery
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	if err != nil {
+		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device %s: %w", deviceID, err))
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -24,7 +27,7 @@ func (c *Client) GetDevice(ctx context.Context, discoveryConfiguration Discovery
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}

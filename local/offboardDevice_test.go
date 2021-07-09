@@ -12,7 +12,6 @@ import (
 func TestClient_OffboardDevice(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
-		token    string
 		deviceID string
 	}
 	tests := []struct {

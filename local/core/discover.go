@@ -71,7 +71,12 @@ func (d *DiscoveryClient) Close() error {
 }
 
 // DialDiscoveryAddresses connects to discovery endpoints.
-func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*DiscoveryClient {
+func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) ([]*DiscoveryClient, error) {
+	v, ok := ctx.Deadline()
+	if !ok {
+		return nil, fmt.Errorf("context has not set deadline")
+	}
+	timeout := time.Until(v)
 	var out []*DiscoveryClient
 
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
@@ -79,12 +84,6 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
 	msgIDudp4 := udpMessage.GetMID()
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
-
-	timeout := time.Second * 10
-	v, ok := ctx.Deadline()
-	if ok {
-		timeout = time.Until(v)
-	}
 
 	for _, address := range cfg.MulticastAddressUDP4 {
 		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors)
@@ -102,7 +101,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		}
 		out = append(out, c)
 	}
-	return out
+	return out, nil
 }
 
 // Discover discovers devices using a CoAP multicast request via UDP.

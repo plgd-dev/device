@@ -31,7 +31,6 @@ type deviceResourcesObserver struct {
 	deviceID string
 	handler  *deviceResourcesObservationHandler
 
-	ctx      context.Context
 	cancel   context.CancelFunc
 	interval time.Duration
 	wait     func()

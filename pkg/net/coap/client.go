@@ -17,6 +17,7 @@ import (
 	uuid "github.com/gofrs/uuid"
 	piondtls "github.com/pion/dtls/v2"
 	"github.com/plgd-dev/go-coap/v2/dtls"
+	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	"github.com/plgd-dev/go-coap/v2/net/monitor/inactivity"
 	"github.com/plgd-dev/go-coap/v2/tcp"
 	"github.com/plgd-dev/go-coap/v2/udp"
@@ -426,6 +427,12 @@ func newClientCloseHandler(conn ClientConn, onClose *OnCloseHandler) *ClientClos
 	return &ClientCloseHandler{Client: NewClient(conn), onClose: onClose}
 }
 
+type bwt struct {
+	enable          bool
+	szx             blockwise.SZX
+	transferTimeout time.Duration
+}
+
 type dialOptions struct {
 	DisableTCPSignalMessageCSM      bool
 	DisablePeerTCPSignalMessageCSMs bool
@@ -434,6 +441,7 @@ type dialOptions struct {
 	maxMessageSize                  int
 	dialer                          *net.Dialer
 	heartBeat                       time.Duration
+	blockwise                       *bwt
 }
 
 type DialOptionFunc func(dialOptions) dialOptions
@@ -492,6 +500,17 @@ func WithHeartBeat(heartBeat time.Duration) DialOptionFunc {
 	}
 }
 
+func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration) DialOptionFunc {
+	return func(c dialOptions) dialOptions {
+		c.blockwise = &bwt{
+			enable:          enable,
+			szx:             szx,
+			transferTimeout: transferTimeout,
+		}
+		return c
+	}
+}
+
 func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
 	var cfg dialOptions
@@ -508,6 +527,9 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	if cfg.errors != nil {
 		dopts = append(dopts, udp.WithErrors(cfg.errors))
 	}
+	if cfg.blockwise != nil {
+		dopts = append(dopts, udp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+	}
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, udp.WithMaxMessageSize(cfg.maxMessageSize))
 	}
@@ -520,7 +542,7 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		deadline, ok := ctx.Deadline()
 		if ok {
 			dopts = append(dopts, udp.WithDialer(&net.Dialer{
-				Timeout: deadline.Sub(time.Now()),
+				Timeout: time.Until(deadline),
 			}))
 		}
 	}
@@ -555,6 +577,9 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	}
 	if cfg.errors != nil {
 		dopts = append(dopts, tcp.WithErrors(cfg.errors))
+	}
+	if cfg.blockwise != nil {
+		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
@@ -641,6 +666,9 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	if cfg.errors != nil {
 		dopts = append(dopts, tcp.WithErrors(cfg.errors))
 	}
+	if cfg.blockwise != nil {
+		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+	}
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
 	}
@@ -653,7 +681,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 		deadline, ok := ctx.Deadline()
 		if ok {
 			dopts = append(dopts, tcp.WithDialer(&net.Dialer{
-				Timeout: deadline.Sub(time.Now()),
+				Timeout: time.Until(deadline),
 			}))
 		}
 	}
@@ -689,6 +717,9 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	}
 	if cfg.errors != nil {
 		dopts = append(dopts, dtls.WithErrors(cfg.errors))
+	}
+	if cfg.blockwise != nil {
+		dopts = append(dopts, dtls.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, dtls.WithMaxMessageSize(cfg.maxMessageSize))
