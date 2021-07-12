@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	uuid "github.com/gofrs/uuid"
@@ -25,7 +24,6 @@ import (
 	"github.com/plgd-dev/go-coap/v2/net/monitor/inactivity"
 	"github.com/plgd-dev/go-coap/v2/tcp"
 	"github.com/plgd-dev/go-coap/v2/udp"
-	udpMessage "github.com/plgd-dev/go-coap/v2/udp/message"
 	codecOcf "github.com/plgd-dev/kit/codec/ocf"
 )
 
@@ -524,12 +522,14 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 			cc.Close()
 			cfg.errors(fmt.Errorf("keep alive was reached fail limit:: closing connection"))
 		}))
-		dopts = append(dopts, udp.WithGetMIDFactory(func() func() uint16 {
-			mid := uint32(udpMessage.GetMID() - 0xffff/2)
-			return func() uint16 {
-				return uint16(atomic.AddUint32(&mid, 1))
-			}
-		}))
+		/*
+			dopts = append(dopts, udp.WithGetMIDFactory(func() func() uint16 {
+				mid := uint32(udpMessage.GetMID() - 0xffff/2)
+				return func() uint16 {
+					return uint16(atomic.AddUint32(&mid, 1))
+				}
+			}))
+		*/
 	}
 	if cfg.errors != nil {
 		dopts = append(dopts, udp.WithErrors(cfg.errors))
@@ -716,12 +716,14 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 		cfg = o(cfg)
 	}
 	dopts := make([]dtls.DialOption, 0, 4)
-	dopts = append(dopts, dtls.WithGetMIDFactory(func() func() uint16 {
-		mid := uint32(udpMessage.GetMID() - 0xffff/2)
-		return func() uint16 {
-			return uint16(atomic.AddUint32(&mid, 1))
-		}
-	}))
+	/*
+		dopts = append(dopts, dtls.WithGetMIDFactory(func() func() uint16 {
+			mid := uint32(udpMessage.GetMID() - 0xffff/2)
+			return func() uint16 {
+				return uint16(atomic.AddUint32(&mid, 1))
+			}
+		}))
+	*/
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, dtls.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
 			cc.Close()
