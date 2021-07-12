@@ -36,7 +36,7 @@ type Config struct {
 	MaxMessageSize                    int
 	DisablePeerTCPSignalMessageCSMs   bool
 	HeartBeatSeconds                  uint64
-	DefaultTransferDurationSeconds    uint64 // 0 means default
+	DefaultTransferDurationSeconds    uint64 // 0 means 15 seconds
 
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
