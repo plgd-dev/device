@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/net"
+	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	"github.com/plgd-dev/go-coap/v2/udp"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	udpMessage "github.com/plgd-dev/go-coap/v2/udp/message"
@@ -32,12 +34,12 @@ type DiscoveryClient struct {
 	wg        sync.WaitGroup
 }
 
-func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(error)) (*DiscoveryClient, error) {
+func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Duration, errors func(error)) (*DiscoveryClient, error) {
 	l, err := net.NewListenUDP(network, "", net.WithErrors(errors))
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer(udp.WithErrors(errors))
+	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     uint16(msgID),
@@ -57,6 +59,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, errors func(err
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
 	req.SetMessageID(d.msgID)
+	req.SetType(udpMessage.NonConfirmable)
 	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler)
 }
 
@@ -68,7 +71,12 @@ func (d *DiscoveryClient) Close() error {
 }
 
 // DialDiscoveryAddresses connects to discovery endpoints.
-func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) []*DiscoveryClient {
+func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) ([]*DiscoveryClient, error) {
+	v, ok := ctx.Deadline()
+	if !ok {
+		return nil, fmt.Errorf("context has not set deadline")
+	}
+	timeout := time.Until(v)
 	var out []*DiscoveryClient
 
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
@@ -78,7 +86,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
-		c, err := newDiscoveryClient("udp4", address, msgIDudp4, errors)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors)
 		if err != nil {
 			errors(err)
 			continue
@@ -86,14 +94,14 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		c, err := newDiscoveryClient("udp6", address, msgIDudp6, errors)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors)
 		if err != nil {
 			errors(err)
 			continue
 		}
 		out = append(out, c)
 	}
-	return out
+	return out, nil
 }
 
 // Discover discovers devices using a CoAP multicast request via UDP.

@@ -40,12 +40,9 @@ type findDeviceIDByNameHandler struct {
 
 func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device) {
 	defer device.Close(ctx)
-	eps, err := device.GetEndpoints(ctx)
-	if err != nil {
-		return
-	}
+	eps := device.GetEndpoints()
 	var d schema.Device
-	err = device.GetResource(ctx, schema.ResourceLink{
+	err := device.GetResource(ctx, schema.ResourceLink{
 		Href:      "/oic/d",
 		Endpoints: eps,
 	}, &d)
@@ -80,4 +77,40 @@ func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ erro
 		return "", fmt.Errorf("could not find the device named %s: not found", name)
 	}
 	return id, nil
+}
+
+func FindDeviceIP(ctx context.Context, deviceName string) (string, error) {
+	deviceID := MustFindDeviceByName(deviceName)
+	client := core.NewClient()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
+	if err != nil {
+		return "", err
+	}
+	defer device.Close(ctx)
+
+	if len(device.GetEndpoints()) == 0 {
+		return "", fmt.Errorf("endpoints are not set for device %v", device)
+	}
+	addr, err := device.GetEndpoints().GetAddr("coap")
+	if err != nil {
+		return "", fmt.Errorf("cannot get coap endpoint %v", device)
+	}
+	return addr.GetHostname(), nil
+}
+
+func MustFindDeviceIP(name string) (ip string) {
+	var err error
+	for i := 0; i < 3; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		ip, err = FindDeviceIP(ctx, name)
+		if err == nil {
+			return ip
+		}
+	}
+	panic(err)
 }

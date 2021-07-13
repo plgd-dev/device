@@ -77,8 +77,8 @@ func (d *RefDevice) StopObservingResource(
 	return d.Device().StopObservingResource(ctx, observationID)
 }
 
-func (d *RefDevice) IsSecured(ctx context.Context) (bool, error) {
-	return d.Device().IsSecured(ctx)
+func (d *RefDevice) IsSecured() bool {
+	return d.Device().IsSecured()
 }
 
 func (d *RefDevice) UpdateResource(
@@ -122,8 +122,8 @@ func (d *RefDevice) Provision(ctx context.Context, links schema.ResourceLinks) (
 	return d.Device().Provision(ctx, links)
 }
 
-func (d *RefDevice) GetEndpoints(ctx context.Context) ([]schema.Endpoint, error) {
-	return d.Device().GetEndpoints(ctx)
+func (d *RefDevice) GetEndpoints() []schema.Endpoint {
+	return d.Device().GetEndpoints()
 }
 
 func (d *RefDevice) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoint, options ...coap.OptionFunc) (schema.ResourceLinks, error) {

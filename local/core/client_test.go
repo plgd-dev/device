@@ -23,7 +23,7 @@ import (
 	"github.com/plgd-dev/sdk/test"
 )
 
-var TestDeviceName = "devsim-core-" + test.MustGetHostname()
+var TestDeviceName = "devsim-" + test.MustGetHostname()
 
 type Client struct {
 	*ocf.Client
@@ -121,20 +121,18 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
-	deviceId := secureDeviceID
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, err := c.GetDevice(timeout, ocf.DefaultDiscoveryConfiguration(), deviceId)
+	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
-	eps, err := device.GetEndpoints(timeout)
-	require.NoError(t, err)
+	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
 	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(t, err)
 	c.Device = device
-	c.DeviceID = deviceId
+	c.DeviceID = secureDeviceID
 	c.DeviceLinks = links
 }
 
@@ -160,8 +158,7 @@ type testFindDeviceHandler struct {
 }
 
 func (h *testFindDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
-	secured, err := d.IsSecured(ctx)
-	require.NoError(h.t, err)
+	secured := d.IsSecured()
 	defer d.Close(ctx)
 	if secured != h.secured {
 		return

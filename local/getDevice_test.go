@@ -123,12 +123,71 @@ func TestClient_GetDevice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			got, err := c.GetDevice(ctx, tt.args.deviceID)
+			got, err := c.GetDeviceByMulticast(ctx, tt.args.deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
+			got.Resources = cleanUpResources(sortResources(got.Resources))
+			got.Endpoints = nil
+			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)
+			got.Details.(*schema.Device).ProtocolIndependentID = ""
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestClient_GetDeviceByIP(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	ip := test.MustFindDeviceIP(test.TestSecureDeviceName)
+	type args struct {
+		ip string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    local.DeviceDetails
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			args: args{
+				ip: ip,
+			},
+			want: NewTestSecureDeviceSimulator(deviceID, test.TestSecureDeviceName),
+		},
+		{
+			name: "not-found",
+			args: args{
+				ip: "1.2.3.4",
+			},
+			wantErr: true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer c.Close(context.Background())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			got, err := c.GetDeviceByIP(ctx, tt.args.ip)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			var v interface{}
+			err = c.GetResource(ctx, got.ID, "/oic/d", &v)
+			require.NoError(t, err)
+
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
 			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)

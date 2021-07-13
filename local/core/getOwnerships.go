@@ -2,6 +2,7 @@ package core
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"github.com/plgd-dev/sdk/schema"
@@ -23,7 +24,10 @@ func (c *Client) GetOwnerships(
 	status DiscoverOwnershipStatus,
 	handler OwnershipHandler,
 ) error {
-	multicastConn := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	if err != nil {
+		return MakeInvalidArgument(fmt.Errorf("could not get the ownerships: %w", err))
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
