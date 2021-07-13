@@ -200,20 +200,23 @@ func (c *refDeviceCache) Close(ctx context.Context) error {
 		d := val.Object.(*RefDevice)
 		err := d.Release(ctx)
 		if err != nil {
-			errors = append(errors)
+			errors = append(errors, err)
 		}
 	}
 	for _, d := range c.getPermanentCacheDevices() {
 		// release acquire from getPermanentCacheDevices
 		err := d.Release(ctx)
 		if err != nil {
-			errors = append(errors)
+			errors = append(errors, err)
 		}
 		// remove device from cache
 		err = d.Release(ctx)
 		if err != nil {
-			errors = append(errors)
+			errors = append(errors, err)
 		}
 	}
-	return fmt.Errorf("%v", errors)
+	if len(errors) > 0 {
+		return fmt.Errorf("%v", errors)
+	}
+	return nil
 }

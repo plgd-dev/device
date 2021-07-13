@@ -13,7 +13,6 @@ import (
 func TestClient_OnboardDevice(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
-		token                 string
 		deviceID              string
 		authorizationProvider string
 		authorizationCode     string

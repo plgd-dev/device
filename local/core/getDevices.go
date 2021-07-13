@@ -63,7 +63,10 @@ type DeviceHandlerV2 interface {
 // GetDevices discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
 func (c *Client) GetDevicesV2(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, handler DeviceHandlerV2) error {
-	multicastConn := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	if err != nil {
+		return MakeInvalidArgument(fmt.Errorf("could not get the devices: %w", err))
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()

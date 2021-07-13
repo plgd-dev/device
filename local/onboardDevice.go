@@ -19,11 +19,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDev
 	}
 
 	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
-		err := d.UpdateResource(ctx, l, ob, nil)
-		if err != nil {
-			return err
-		}
-		return nil
+		return d.UpdateResource(ctx, l, ob, nil)
 	}
 
 	return fmt.Errorf("cloud resource not found")
@@ -51,7 +47,7 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 
 	cloudACL := acl.UpdateRequest{
 		AccessControlList: []acl.AccessControl{
-			acl.AccessControl{
+			{
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
 					Subject_Device: &acl.Subject_Device{
