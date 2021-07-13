@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -145,11 +146,27 @@ func (s *IdentityCertificateSigner) Sign(ctx context.Context, csr []byte) (signe
 	return security.CreatePemChain(s.caCert, signedCsr)
 }
 
-func FindDeviceIP(ctx context.Context, deviceName string) (string, error) {
+type IPType int
+
+const (
+	ANY IPType = 0
+	IP4 IPType = 1
+	IP6 IPType = 2
+)
+
+func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
 	deviceID := MustFindDeviceByName(deviceName)
 	client := core.NewClient()
 
-	device, err := client.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
+	discoveryCfg := core.DefaultDiscoveryConfiguration()
+	switch ipType {
+	case IP4:
+		discoveryCfg.MulticastAddressUDP6 = nil
+	case IP6:
+		discoveryCfg.MulticastAddressUDP4 = nil
+	}
+
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
 	if err != nil {
 		return "", err
 	}
@@ -158,22 +175,38 @@ func FindDeviceIP(ctx context.Context, deviceName string) (string, error) {
 	if len(device.GetEndpoints()) == 0 {
 		return "", fmt.Errorf("endpoints are not set for device %v", device)
 	}
-	addr, err := device.GetEndpoints().GetAddr("coap")
-	if err != nil {
-		return "", fmt.Errorf("cannot get coap endpoint %v", device)
+	eps := device.GetEndpoints().FilterUnsecureEndpoints()
+	if ipType == ANY {
+		addr, err := eps.GetAddr(schema.UDPScheme)
+		if err != nil {
+			return "", fmt.Errorf("cannot get coap endpoint %v", device)
+		}
+		return addr.GetHostname(), nil
 	}
-	return addr.GetHostname(), nil
+	for _, e := range eps {
+		addr, err := e.GetAddr()
+		if err != nil {
+			continue
+		}
+		if schema.Scheme(addr.GetScheme()) != schema.UDPScheme {
+			continue
+		}
+		if strings.Contains(addr.GetHostname(), ":") && ipType == IP6 {
+			return addr.GetHostname(), nil
+		}
+		if ipType == IP4 {
+			return addr.GetHostname(), nil
+		}
+	}
+	return "", fmt.Errorf("ipType(%v) not found in %v", ipType, eps)
 }
 
-func MustFindDeviceIP(name string) (ip string) {
-	var err error
-	for i := 0; i < 3; i++ {
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-		defer cancel()
-		ip, err = FindDeviceIP(ctx, name)
-		if err == nil {
-			return ip
-		}
+func MustFindDeviceIP(name string, ipType IPType) (ip string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	ip, err := FindDeviceIP(ctx, name, ipType)
+	if err == nil {
+		return ip
 	}
 	panic(err)
 }

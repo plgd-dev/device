@@ -140,7 +140,8 @@ func TestClient_GetDevice(t *testing.T) {
 
 func TestClient_GetDeviceByIP(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
-	ip := test.MustFindDeviceIP(test.TestSecureDeviceName)
+	ip4 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP4)
+	ip6 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
 	type args struct {
 		ip string
 	}
@@ -151,9 +152,16 @@ func TestClient_GetDeviceByIP(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "valid",
+			name: "ip4",
 			args: args{
-				ip: ip,
+				ip: ip4,
+			},
+			want: NewTestSecureDeviceSimulator(deviceID, test.TestSecureDeviceName),
+		},
+		{
+			name: "ip6",
+			args: args{
+				ip: ip6,
 			},
 			want: NewTestSecureDeviceSimulator(deviceID, test.TestSecureDeviceName),
 		},
