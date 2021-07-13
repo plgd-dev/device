@@ -47,7 +47,7 @@ func TestClient_OwnDevice(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			device1, err := c.GetDevice(ctx, deviceID)
+			device1, err := c.GetDeviceByMulticast(ctx, deviceID)
 			require.NoError(t, err)
 			require.Equal(t, device1.OwnershipStatus, local.OwnershipStatus_Owned)
 			err = c.DisownDevice(ctx, deviceID)
@@ -56,7 +56,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 			deviceID, err = c.OwnDevice(ctx, deviceID)
 			require.NoError(t, err)
-			device2, err := c.GetDevice(ctx, deviceID)
+			device2, err := c.GetDeviceByMulticast(ctx, deviceID)
 			require.NoError(t, err)
 			require.Equal(t, device1.Details.(*schema.Device).ProtocolIndependentID, device2.Details.(*schema.Device).ProtocolIndependentID)
 			require.Equal(t, device1.OwnershipStatus, local.OwnershipStatus_Owned)

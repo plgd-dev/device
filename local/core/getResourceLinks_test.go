@@ -40,16 +40,15 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceId := tt.args.deviceID
+			deviceID := tt.args.deviceID
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), deviceId)
+			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer device.Close(timeout)
-			eps, err := device.GetEndpoints(timeout)
-			require.NoError(err)
+			eps := device.GetEndpoints()
 			links, err := device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
 

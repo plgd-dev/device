@@ -48,12 +48,9 @@ type findDeviceIDByNameHandler struct {
 
 func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device) {
 	defer device.Close(ctx)
-	eps, err := device.GetEndpoints(ctx)
-	if err != nil {
-		return
-	}
+	eps := device.GetEndpoints()
 	var d schema.Device
-	err = device.GetResource(ctx, schema.ResourceLink{
+	err := device.GetResource(ctx, schema.ResourceLink{
 		Href:      "/oic/d",
 		Endpoints: eps,
 	}, &d)
@@ -122,6 +119,9 @@ func (s *IdentityCertificateSigner) Sign(ctx context.Context, csr []byte) (signe
 	notAfter := s.validNotAfter
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return
+	}
 
 	template := x509.Certificate{
 		SerialNumber:       serialNumber,
@@ -143,4 +143,37 @@ func (s *IdentityCertificateSigner) Sign(ctx context.Context, csr []byte) (signe
 		return
 	}
 	return security.CreatePemChain(s.caCert, signedCsr)
+}
+
+func FindDeviceIP(ctx context.Context, deviceName string) (string, error) {
+	deviceID := MustFindDeviceByName(deviceName)
+	client := core.NewClient()
+
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
+	if err != nil {
+		return "", err
+	}
+	defer device.Close(ctx)
+
+	if len(device.GetEndpoints()) == 0 {
+		return "", fmt.Errorf("endpoints are not set for device %v", device)
+	}
+	addr, err := device.GetEndpoints().GetAddr("coap")
+	if err != nil {
+		return "", fmt.Errorf("cannot get coap endpoint %v", device)
+	}
+	return addr.GetHostname(), nil
+}
+
+func MustFindDeviceIP(name string) (ip string) {
+	var err error
+	for i := 0; i < 3; i++ {
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		defer cancel()
+		ip, err = FindDeviceIP(ctx, name)
+		if err == nil {
+			return ip
+		}
+	}
+	panic(err)
 }

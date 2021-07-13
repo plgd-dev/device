@@ -132,6 +132,11 @@ type GetDeviceOption = interface {
 	applyOnGetDevice(opts getDeviceOptions) getDeviceOptions
 }
 
+// GetDeviceByIPOption option definition.
+type GetDeviceByIPOption = interface {
+	applyOnGetDeviceByIP(opts getDeviceByIPOptions) getDeviceByIPOptions
+}
+
 type GetDevicesWithHandlerOption = interface {
 	applyOnGetGetDevicesWithHandler(opts getDevicesWithHandlerOptions) getDevicesWithHandlerOptions
 }
@@ -165,6 +170,11 @@ func (r GetDetailsOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptio
 	return opts
 }
 
+func (r GetDetailsOption) applyOnGetDeviceByIP(opts getDevicesOptions) getDevicesOptions {
+	opts.getDetails = r.getDetails
+	return opts
+}
+
 type getDevicesOptions struct {
 	resourceTypes          []string
 	err                    func(error)
@@ -175,6 +185,10 @@ type getDevicesOptions struct {
 type getDeviceOptions struct {
 	getDetails             GetDetailsFunc
 	discoveryConfiguration core.DiscoveryConfiguration
+}
+
+type getDeviceByIPOptions struct {
+	getDetails GetDetailsFunc
 }
 
 type getDevicesWithHandlerOptions struct {
