@@ -39,7 +39,10 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	if err != nil {
+		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device via ip %s: %w", ip, err))
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -48,7 +51,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), ANY_DEVICE, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device from ip %s: %w", ip, err))
 	}
@@ -65,7 +68,10 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	if err != nil {
+		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device %s: %w", deviceID, err))
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
@@ -74,7 +80,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err := DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}

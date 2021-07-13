@@ -2,6 +2,7 @@ package local
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -137,7 +138,10 @@ func (o *listDeviceIds) Error(err error) {
 }
 
 func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDevicesHandler) error {
-	multicastConn := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, o.c.errors)
+	multicastConn, err := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, o.c.errors)
+	if err != nil {
+		return fmt.Errorf("could not discover devices: %w", err)
+	}
 	defer func() {
 		for _, conn := range multicastConn {
 			conn.Close()
