@@ -34,7 +34,7 @@ func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 	return nil, nil, false
 }
 
-// GetRefDeviceByIP returns a device, after using call device.Release to free resources.
+// GetRefDeviceByIP gets the device directly via IP address and multicast listen port 5683. After using it, call device.Release to free resources.
 func (c *Client) GetRefDeviceByIP(
 	ctx context.Context,
 	ip string,
@@ -146,6 +146,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	})[devDetails.ID], nil
 }
 
+// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
 	cfg := getDeviceByIPOptions{
 		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
