@@ -15,7 +15,7 @@ import (
 
 const TestTimeout = time.Second * 8
 
-var TestDeviceName = "devsim-local-" + test.MustGetHostname()
+var TestDeviceName = test.TestDeviceName
 
 type testSetupSecureClient struct {
 	ca      []*x509.Certificate

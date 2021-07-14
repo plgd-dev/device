@@ -123,12 +123,80 @@ func TestClient_GetDevice(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			got, err := c.GetDevice(ctx, tt.args.deviceID)
+			got, err := c.GetDeviceByMulticast(ctx, tt.args.deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
+			got.Resources = cleanUpResources(sortResources(got.Resources))
+			got.Endpoints = nil
+			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)
+			got.Details.(*schema.Device).ProtocolIndependentID = ""
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestClient_GetDeviceByIP(t *testing.T) {
+	deviceIDip4 := test.MustFindDeviceByName(test.TestDeviceName)
+	ip4 := test.MustFindDeviceIP(test.TestDeviceName, test.IP4)
+	deviceIDip6 := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	ip6 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
+	type args struct {
+		ip string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    local.DeviceDetails
+		wantErr bool
+	}{
+		{
+			name: "ip4",
+			args: args{
+				ip: ip4,
+			},
+			want: NewTestDeviceSimulator(deviceIDip4, test.TestDeviceName),
+		},
+		{
+			name: "ip6",
+			args: args{
+				ip: ip6,
+			},
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.TestSecureDeviceName),
+		},
+		{
+			name: "not-found",
+			args: args{
+				ip: "1.2.3.4",
+			},
+			wantErr: true,
+		},
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer c.Close(context.Background())
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			defer cancel()
+			got, err := c.GetDeviceByIP(ctx, tt.args.ip)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+
+			var v interface{}
+			err = c.GetResource(ctx, got.ID, "/oic/d", &v)
+			require.NoError(t, err)
+
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
 			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)

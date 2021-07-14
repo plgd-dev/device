@@ -15,10 +15,7 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string) error {
 	c.deviceCache.RemoveDevice(ctx, d.DeviceID(), d)
 	defer d.Release(ctx)
 
-	ok, err := d.IsSecured(ctx)
-	if err != nil {
-		return err
-	}
+	ok := d.IsSecured()
 	if !ok {
 		return d.FactoryReset(ctx, links)
 	}

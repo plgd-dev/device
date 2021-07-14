@@ -18,16 +18,15 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
-	deviceId := secureDeviceID
+	deviceID := secureDeviceID
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancelTimeout()
 
-	device, err := c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), deviceId)
+	device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer device.Close(timeout)
-	eps, err := device.GetEndpoints(timeout)
-	require.NoError(err)
+	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 
@@ -38,21 +37,19 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 
 	// try disown second time
 	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
-	device, err = c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), secureDeviceID)
+	device, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer device.Close(timeout)
-	eps, err = device.GetEndpoints(timeout)
-	require.NoError(err)
+	eps = device.GetEndpoints()
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)
 
 	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
-	device, err = c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), secureDeviceID)
+	device, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
-	eps, err = device.GetEndpoints(timeout)
-	require.NoError(err)
+	eps = device.GetEndpoints()
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 	err = device.Own(timeout, links, c.mfgOtm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
@@ -74,10 +71,9 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 	require.NoError(err)
 	require.NotEqual(t, secureDeviceID, device.DeviceID())
 
-	device, err = c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), device.DeviceID())
+	device, err = c.GetDeviceByMulticast(timeout, device.DeviceID(), core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
-	eps, err = device.GetEndpoints(timeout)
-	require.NoError(err)
+	eps = device.GetEndpoints()
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
@@ -89,16 +85,14 @@ func TestClient_ownDeviceJustWorks(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
-	deviceId := secureDeviceID
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancelTimeout()
 
-	device, err := c.GetDevice(timeout, core.DefaultDiscoveryConfiguration(), deviceId)
+	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer device.Close(timeout)
-	eps, err := device.GetEndpoints(timeout)
-	require.NoError(err)
+	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 

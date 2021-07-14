@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"math/big"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -48,12 +49,9 @@ type findDeviceIDByNameHandler struct {
 
 func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device) {
 	defer device.Close(ctx)
-	eps, err := device.GetEndpoints(ctx)
-	if err != nil {
-		return
-	}
+	eps := device.GetEndpoints()
 	var d schema.Device
-	err = device.GetResource(ctx, schema.ResourceLink{
+	err := device.GetResource(ctx, schema.ResourceLink{
 		Href:      "/oic/d",
 		Endpoints: eps,
 	}, &d)
@@ -122,6 +120,9 @@ func (s *IdentityCertificateSigner) Sign(ctx context.Context, csr []byte) (signe
 	notAfter := s.validNotAfter
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return
+	}
 
 	template := x509.Certificate{
 		SerialNumber:       serialNumber,
@@ -143,4 +144,69 @@ func (s *IdentityCertificateSigner) Sign(ctx context.Context, csr []byte) (signe
 		return
 	}
 	return security.CreatePemChain(s.caCert, signedCsr)
+}
+
+type IPType int
+
+const (
+	ANY IPType = 0
+	IP4 IPType = 1
+	IP6 IPType = 2
+)
+
+func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
+	deviceID := MustFindDeviceByName(deviceName)
+	client := core.NewClient()
+
+	discoveryCfg := core.DefaultDiscoveryConfiguration()
+	switch ipType {
+	case IP4:
+		discoveryCfg.MulticastAddressUDP6 = nil
+	case IP6:
+		discoveryCfg.MulticastAddressUDP4 = nil
+	}
+
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
+	if err != nil {
+		return "", err
+	}
+	defer device.Close(ctx)
+
+	if len(device.GetEndpoints()) == 0 {
+		return "", fmt.Errorf("endpoints are not set for device %v", device)
+	}
+	eps := device.GetEndpoints().FilterUnsecureEndpoints()
+	if ipType == ANY {
+		addr, err := eps.GetAddr(schema.UDPScheme)
+		if err != nil {
+			return "", fmt.Errorf("cannot get coap endpoint %v", device)
+		}
+		return addr.GetHostname(), nil
+	}
+	for _, e := range eps {
+		addr, err := e.GetAddr()
+		if err != nil {
+			continue
+		}
+		if schema.Scheme(addr.GetScheme()) != schema.UDPScheme {
+			continue
+		}
+		if strings.Contains(addr.GetHostname(), ":") && ipType == IP6 {
+			return addr.GetHostname(), nil
+		}
+		if ipType == IP4 {
+			return addr.GetHostname(), nil
+		}
+	}
+	return "", fmt.Errorf("ipType(%v) not found in %v", ipType, eps)
+}
+
+func MustFindDeviceIP(name string, ipType IPType) (ip string) {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	ip, err := FindDeviceIP(ctx, name, ipType)
+	if err == nil {
+		return ip
+	}
+	panic(err)
 }
