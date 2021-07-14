@@ -139,10 +139,10 @@ func TestClient_GetDevice(t *testing.T) {
 }
 
 func TestClient_GetDeviceByIP(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
-	ip4 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP4)
-	// TODO: fix docker to run with ipv6
-	//ip6 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
+	deviceIDip4 := test.MustFindDeviceByName(test.TestDeviceName)
+	ip4 := test.MustFindDeviceIP(test.TestDeviceName, test.IP4)
+	deviceIDip6 := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	ip6 := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
 	type args struct {
 		ip string
 	}
@@ -157,17 +157,15 @@ func TestClient_GetDeviceByIP(t *testing.T) {
 			args: args{
 				ip: ip4,
 			},
-			want: NewTestSecureDeviceSimulator(deviceID, test.TestSecureDeviceName),
+			want: NewTestDeviceSimulator(deviceIDip4, test.TestDeviceName),
 		},
-		/*
-			{
-				name: "ip6",
-				args: args{
-					ip: ip6,
-				},
-				want: NewTestSecureDeviceSimulator(deviceID, test.TestSecureDeviceName),
+		{
+			name: "ip6",
+			args: args{
+				ip: ip6,
 			},
-		*/
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.TestSecureDeviceName),
+		},
 		{
 			name: "not-found",
 			args: args{

@@ -10,7 +10,7 @@ import (
 )
 
 func TestClient_GetDeviceByIP_IP4(t *testing.T) {
-	ip := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP4)
+	ip := test.MustFindDeviceIP(test.TestDeviceName, test.IP4)
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -23,14 +23,13 @@ func TestClient_GetDeviceByIP_IP4(t *testing.T) {
 	require.NotEmpty(t, got)
 	links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)
-
-	err = got.Own(ctx, links, c.justWorksOtm)
+	link, ok := links.GetResourceLink("/oic/p")
+	require.True(t, ok)
+	var v interface{}
+	err = got.GetResource(ctx, link, &v)
 	require.NoError(t, err)
-	defer got.Disown(ctx, links)
 }
 
-// TODO: fix docker to run with ipv6
-/*
 func TestClient_GetDeviceByIP_IP6(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
 
@@ -50,4 +49,3 @@ func TestClient_GetDeviceByIP_IP6(t *testing.T) {
 	require.NoError(t, err)
 	defer got.Disown(ctx, links)
 }
-*/
