@@ -170,7 +170,7 @@ func (r GetDetailsOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptio
 	return opts
 }
 
-func (r GetDetailsOption) applyOnGetDeviceByIP(opts getDevicesOptions) getDevicesOptions {
+func (r GetDetailsOption) applyOnGetDeviceByIP(opts getDeviceByIPOptions) getDeviceByIPOptions {
 	opts.getDetails = r.getDetails
 	return opts
 }
