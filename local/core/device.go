@@ -32,6 +32,7 @@ type Device struct {
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
 	lock         sync.Mutex
+	numConn      sync.WaitGroup
 }
 
 // GetCertificateFunc returns certificate for connection
@@ -87,6 +88,8 @@ func (d *Device) Close(ctx context.Context) error {
 			errors = append(errors, err)
 		}
 	}
+	d.numConn.Wait()
+
 	if len(errors) > 0 {
 		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errors))
 	}
@@ -189,10 +192,12 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		c.Close()
 		return addr, conn, nil
 	}
+	d.numConn.Add(1)
 	c.RegisterCloseHandler(func(error) {
 		d.lock.Lock()
 		defer d.lock.Unlock()
 		delete(d.conn, addr.URL())
+		d.numConn.Done()
 	})
 	d.conn[addr.URL()] = c
 	return addr, c, nil

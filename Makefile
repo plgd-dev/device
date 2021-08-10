@@ -26,8 +26,8 @@ env: clean
 	fi
 	docker build ./device-simulator --network=host -t device-simulator --target service
 	docker build ./device-simulator -f ./device-simulator/Dockerfile.insecure --network=host -t device-simulator-insecure --target service
-	docker run -d --name devsimsec device-simulator devsimsec-$(SIMULATOR_NAME_SUFFIX)
-	docker run -d --name devsim device-simulator-insecure devsim-$(SIMULATOR_NAME_SUFFIX)
+	docker run --privileged -d --name devsimsec device-simulator devsimsec-$(SIMULATOR_NAME_SUFFIX)
+	docker run --privileged -d --name devsim device-simulator-insecure devsim-$(SIMULATOR_NAME_SUFFIX)
 
 test: env build-testcontainer 
 	docker run \
