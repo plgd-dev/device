@@ -62,6 +62,7 @@ func (d *Device) Disown(
 
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
+	d.Close(ctx)
 
 	return nil
 }

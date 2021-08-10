@@ -26,5 +26,8 @@ func TestClient_GetDeviceByIP(t *testing.T) {
 
 	err = got.Own(ctx, links, c.justWorksOtm)
 	require.NoError(t, err)
-	defer got.Disown(ctx, links)
+	links, err = got.GetResourceLinks(ctx, got.GetEndpoints())
+	require.NoError(t, err)
+	err = got.Disown(ctx, links)
+	require.NoError(t, err)
 }

@@ -20,7 +20,7 @@ func TestProvisioning(t *testing.T) {
 	c.SetUpTestDevice(t)
 	defer c.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	pc, err := c.Provision(ctx, c.DeviceLinks)

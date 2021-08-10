@@ -131,6 +131,8 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	require.NoError(t, err)
 	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(t, err)
+	links, err = device.GetResourceLinks(timeout, eps)
+	require.NoError(t, err)
 	c.Device = device
 	c.DeviceID = secureDeviceID
 	c.DeviceLinks = links

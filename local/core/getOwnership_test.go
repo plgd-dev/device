@@ -38,6 +38,8 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 
 	// after own
+	links, err = device.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
 	got, err = device.GetOwnership(ctx, links)
 	require.NoError(t, err)
 	assert.True(t, got.Owned)
