@@ -42,7 +42,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	}
 	d := h.Device()
 	if d == nil {
-		return nil, MakeInternal(fmt.Errorf("no response from the device with ip %s", ip))
+		return nil, MakeNotFound(fmt.Errorf("no response from the device with ip %s", ip))
 	}
 
 	return d, nil
