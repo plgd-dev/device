@@ -37,7 +37,7 @@ func TestClient_OwnDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
 			deviceID, err := test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)

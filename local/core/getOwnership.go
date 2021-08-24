@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/plgd-dev/sdk/pkg/net/coap"
 	"github.com/plgd-dev/sdk/schema"
 )
 
@@ -15,8 +16,11 @@ func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (
 	}
 	getOwnlink := ownLink
 	getOwnlink.Endpoints = ownLink.GetUnsecureEndpoints()
+	if len(getOwnlink.Endpoints) == 0 {
+		getOwnlink.Endpoints = ownLink.GetSecureEndpoints()
+	}
 
 	var ownership schema.Doxm
-	err := d.GetResource(ctx, getOwnlink, &ownership)
+	err := d.GetResource(ctx, getOwnlink, &ownership, coap.WithInterface("oic.if.baseline"))
 	return ownership, err
 }

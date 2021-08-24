@@ -57,7 +57,7 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) local.DeviceDetai
 			OwnerID:                       "00000000-0000-0000-0000-000000000000",
 			DeviceID:                      deviceID,
 			SupportedCredentialTypes:      schema.CredentialType(schema.CredentialType_SYMMETRIC_PAIR_WISE | schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE),
-			SelectedOwnerTransferMethod:   schema.JustWorks,
+			SelectedOwnerTransferMethod:   schema.Self,
 			Interfaces:                    []string{"oic.if.rw", "oic.if.baseline"},
 			ResourceTypes:                 []string{"oic.r.doxm"},
 		},
