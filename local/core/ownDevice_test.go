@@ -20,7 +20,7 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 	defer c.Close()
 	deviceID := secureDeviceID
 	require := require.New(t)
-	timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTimeout()
 
 	device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
@@ -32,8 +32,12 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 
 	err = device.Own(timeout, links, c.mfgOtm)
 	require.NoError(err)
+	links, err = device.GetResourceLinks(timeout, eps)
+	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)
+
+	time.Sleep(time.Second)
 
 	// try disown second time
 	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
@@ -59,7 +63,7 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 			return "", core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, err))
 		}
 		setDeviceOwned := schema.DoxmUpdate{
-			DeviceID: d.ProtocolIndependentID,
+			DeviceID: &d.ProtocolIndependentID,
 		}
 		/*doxm doesn't send any content for select OTM*/
 		err = client.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
@@ -86,7 +90,7 @@ func TestClient_ownDeviceJustWorks(t *testing.T) {
 	require.NoError(t, err)
 	defer c.Close()
 	require := require.New(t)
-	timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTimeout()
 
 	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
@@ -97,6 +101,8 @@ func TestClient_ownDeviceJustWorks(t *testing.T) {
 	require.NoError(err)
 
 	err = device.Own(timeout, links, c.justWorksOtm)
+	require.NoError(err)
+	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)

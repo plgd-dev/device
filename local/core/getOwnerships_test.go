@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/atomic"
 
 	ocf "github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/schema"
@@ -21,7 +22,7 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus o
 	var h testOwnerShipHandler
 	err := c.GetOwnerships(timeout, ocf.DefaultDiscoveryConfiguration(), ownStatus, &h)
 	require.NoError(t, err)
-	assert.Equal(t, found, h.anyFound)
+	assert.Equal(t, found, h.anyFound.Load())
 }
 
 func TestGetOwnerships(t *testing.T) {
@@ -48,19 +49,21 @@ func TestGetOwnerships(t *testing.T) {
 	err = device.Own(ctx, links, c.mfgOtm)
 	require.NoError(t, err)
 
+	links, err = device.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
+
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, true)
 
 	err = device.Disown(ctx, links)
 	require.NoError(t, err)
 }
 
 type testOwnerShipHandler struct {
-	anyFound bool
+	anyFound atomic.Bool
 }
 
 func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm schema.Doxm) {
-	h.anyFound = true
+	h.anyFound.Store(true)
 }
 
 func (h *testOwnerShipHandler) Error(err error) {}

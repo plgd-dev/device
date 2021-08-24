@@ -58,7 +58,7 @@ func disown(ctx context.Context, conn connUpdateResourcer) error {
 
 func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
 	selectOTM := schema.DoxmUpdate{
-		SelectOwnerTransferMethod: selectOwnerTransferMethod,
+		SelectOwnerTransferMethod: &selectOwnerTransferMethod,
 	}
 	/*doxm doesn't send any content for update*/
 	return conn.UpdateResource(ctx, schema.DoxmHref, selectOTM, nil)
@@ -200,15 +200,16 @@ func (d *Device) Own(
 ) error {
 	cfg := ownCfg{
 		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error) {
+			deviceID := d.DeviceID()
 			setDeviceOwned := schema.DoxmUpdate{
-				DeviceID: d.DeviceID(),
+				DeviceID: &deviceID,
 			}
 			/*doxm doesn't send any content for select OTM*/
 			err := client.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
 			if err != nil {
-				return "", MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", d.DeviceID(), err))
+				return "", MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", deviceID, err))
 			}
-			return d.DeviceID(), nil
+			return deviceID, nil
 		},
 	}
 	const errMsg = "cannot own device: %w"
@@ -218,7 +219,7 @@ func (d *Device) Own(
 
 	ownership, err := d.GetOwnership(ctx, links)
 	if err != nil {
-		return MakeUnavailable(err)
+		return MakeUnavailable(fmt.Errorf("cannot get ownership: %w", err))
 	}
 
 	sdkID, err := d.GetSdkOwnerID()
@@ -249,19 +250,14 @@ func (d *Device) Own(
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot select otm: %w", err))
 	}
-
 	var tlsClient *kitNetCoap.ClientCloseHandler
+	var tlsAddr kitNet.Addr
 	var errors []error
-	var secureEndpoints []schema.Endpoint
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr)
 			if err == nil {
-				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
-				addr, err = link.GetTCPSecureAddr()
-				if err == nil {
-					secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
-				}
+				tlsAddr = addr
 				break
 			}
 			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
@@ -269,11 +265,7 @@ func (d *Device) Own(
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr)
 			if err == nil {
-				secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
-				addr, err = link.GetUDPSecureAddr()
-				if err == nil {
-					secureEndpoints = append(secureEndpoints, schema.Endpoint{URI: addr.URL()})
-				}
+				tlsAddr = addr
 				break
 			}
 			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
@@ -329,7 +321,7 @@ func (d *Device) Own(
 	}
 
 	setDeviceOwner := schema.DoxmUpdate{
-		OwnerID: sdkID,
+		OwnerID: &sdkID,
 	}
 
 	/*doxm doesn't send any content for select OTM*/
@@ -351,9 +343,10 @@ func (d *Device) Own(
 		return MakeInternal(err)
 	}
 
+	owned := true
 	setDeviceOwned := schema.DoxmUpdate{
-		ResourceOwner: sdkID,
-		Owned:         true,
+		ResourceOwner: &sdkID,
+		Owned:         &owned,
 	}
 
 	/*pstat set owner of resource*/
@@ -404,16 +397,7 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
 	}
 
-	//For Servers based on OCF 1.0, PostOwnerAcl can be executed using
-	//the already-existing session. However, get ready here to use the
-	//Owner Credential for establishing future secure sessions.
-	//
-	//For Servers based on OIC 1.1, PostOwnerAcl might fail with status
-	//OC_STACK_UNAUTHORIZED_REQ. After such a failure, OwnerAclHandler
-	//will close the current session and re-establish a new session,
-	//using the Owner Credential.
-
-	links, err = d.GetResourceLinks(ctx, secureEndpoints)
+	links, err = getResourceLinks(ctx, tlsAddr, tlsClient)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -438,7 +422,6 @@ func (d *Device) Own(
 		}
 		return fmt.Errorf(errMsg, err)
 	}
-
 	err = p.Close(ctx)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
@@ -446,6 +429,5 @@ func (d *Device) Own(
 		}
 		return fmt.Errorf(errMsg, err)
 	}
-
 	return nil
 }

@@ -21,11 +21,11 @@ type Doxm struct {
 }
 
 type DoxmUpdate struct {
-	ResourceOwner             string              `json:"rowneruuid,omitempty"`
-	OwnerID                   string              `json:"devowneruuid,omitempty"`
-	DeviceID                  string              `json:"deviceuuid,omitempty"`
-	Owned                     bool                `json:"owned,omitempty"`
-	SelectOwnerTransferMethod OwnerTransferMethod `json:"oxmsel,omitempty"`
+	ResourceOwner             *string              `json:"rowneruuid,omitempty"`
+	OwnerID                   *string              `json:"devowneruuid,omitempty"`
+	DeviceID                  *string              `json:"deviceuuid,omitempty"`
+	Owned                     *bool                `json:"owned,omitempty"`
+	SelectOwnerTransferMethod *OwnerTransferMethod `json:"oxmsel,omitempty"`
 }
 
 type OwnerTransferMethod int
