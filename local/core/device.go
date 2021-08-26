@@ -31,7 +31,6 @@ type Device struct {
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
 	lock         sync.Mutex
-	numConn      sync.WaitGroup
 }
 
 // GetCertificateFunc returns certificate for connection
@@ -62,13 +61,19 @@ func NewDevice(
 	}
 }
 
-func (d *Device) popConnections() []*coap.ClientCloseHandler {
+func (d *Device) popConnections(wg *sync.WaitGroup) []*coap.ClientCloseHandler {
 	conns := make([]*coap.ClientCloseHandler, 0, 4)
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	for key, conn := range d.conn {
-		conns = append(conns, conn)
 		delete(d.conn, key)
+		if conn.Context().Err() == nil {
+			conns = append(conns, conn)
+			wg.Add(1)
+			conn.RegisterCloseHandler(func(err error) {
+				wg.Done()
+			})
+		}
 	}
 	return conns
 }
@@ -81,13 +86,14 @@ func (d *Device) Close(ctx context.Context) error {
 		errors = append(errors, err)
 	}
 
-	for _, conn := range d.popConnections() {
+	var wg sync.WaitGroup
+	for _, conn := range d.popConnections(&wg) {
 		err = conn.Close()
 		if err != nil {
 			errors = append(errors, err)
 		}
 	}
-	d.numConn.Wait()
+	wg.Wait()
 
 	if len(errors) > 0 {
 		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errors))
@@ -191,12 +197,10 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		c.Close()
 		return addr, conn, nil
 	}
-	d.numConn.Add(1)
 	c.RegisterCloseHandler(func(error) {
 		d.lock.Lock()
 		defer d.lock.Unlock()
 		delete(d.conn, addr.URL())
-		d.numConn.Done()
 	})
 	d.conn[addr.URL()] = c
 	return addr, c, nil
