@@ -94,13 +94,3 @@ func (c *Client) GetIdentityCertificate() (tls.Certificate, error) {
 func (c *Client) GetIdentityCACerts() ([]*x509.Certificate, error) {
 	return c.deviceOwner.GetIdentityCACerts()
 }
-
-// GetAccessTokenURL returns access token url.
-func (c *Client) GetAccessTokenURL(ctx context.Context) (string, error) {
-	return c.deviceOwner.GetAccessTokenURL(ctx)
-}
-
-// GetOnboardAuthorizationCodeURL returns access auth code url.
-func (c *Client) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
-	return c.deviceOwner.GetOnboardAuthorizationCodeURL(ctx, deviceID)
-}

@@ -29,8 +29,6 @@ type deviceOwnershipBackend struct {
 	caConn                          *grpc.ClientConn
 	identityCertificate             tls.Certificate
 	identityCACert                  []*x509.Certificate
-	authCodeURL                     string
-	accessTokenURL                  string
 	jwtClaimOwnerID                 string
 	app                             ApplicationCallback
 	acquireManufacturerCertificates bool
@@ -67,16 +65,6 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 		cfg.JWTClaimOwnerID = "sub"
 	}
 
-	err := validateURL(cfg.AuthCodeURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid AuthCodeURL: %w", err)
-	}
-
-	err = validateURL(cfg.AccessTokenURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid AccessTokenURL: %w", err)
-	}
-
 	rootCA, err := app.GetRootCertificateAuthorities()
 	if err != nil {
 		return nil, fmt.Errorf("cannot get root CAs: %w", err)
@@ -91,8 +79,6 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 	return &deviceOwnershipBackend{
 		caClient:                        caClient,
 		caConn:                          conn,
-		accessTokenURL:                  cfg.AccessTokenURL,
-		authCodeURL:                     cfg.AuthCodeURL,
 		app:                             app,
 		jwtClaimOwnerID:                 cfg.JWTClaimOwnerID,
 		acquireManufacturerCertificates: cfg.AcquireManufacturerCertificates,
@@ -255,32 +241,6 @@ func (o *deviceOwnershipBackend) GetIdentityCACerts() ([]*x509.Certificate, erro
 		return nil, fmt.Errorf("client is not initialized")
 	}
 	return o.identityCACert, nil
-}
-
-func (o *deviceOwnershipBackend) GetAccessTokenURL(ctx context.Context) (string, error) {
-	return o.accessTokenURL, nil
-}
-
-func (o *deviceOwnershipBackend) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
-	if deviceID == "" {
-		return "", fmt.Errorf("invalid deviceID: empty")
-	}
-	_, err := uuid.FromString(deviceID)
-	if err != nil {
-		return "", fmt.Errorf("invalid deviceID: %w", err)
-	}
-
-	u, err := url.Parse(o.authCodeURL)
-	if err != nil {
-		return "", err
-	}
-	q, err := url.ParseQuery(u.RawQuery)
-	if err != nil {
-		return "", err
-	}
-	q.Add("deviceId", deviceID)
-	u.RawQuery = q.Encode()
-	return u.String(), nil
 }
 
 func (o *deviceOwnershipBackend) Close(ctx context.Context) error {

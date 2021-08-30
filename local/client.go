@@ -171,8 +171,6 @@ type DeviceOwner interface {
 	Initialization(ctx context.Context) error
 	OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error)
 
-	GetAccessTokenURL(ctx context.Context) (string, error)
-	GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error)
 	GetIdentityCertificate() (tls.Certificate, error)
 	GetIdentityCACerts() ([]*x509.Certificate, error)
 	Close(ctx context.Context) error
