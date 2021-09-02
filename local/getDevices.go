@@ -181,6 +181,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 	newRefDev := NewRefDevice(d)
 	refDev, stored, err := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
 	if err != nil {
+		newRefDev.Release(ctx)
 		return
 	}
 	defer refDev.Release(ctx)
@@ -193,11 +194,12 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 			return
 		}
 		refDev, stored, err = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-		if !stored {
+		if err != nil {
 			newRefDev.Release(ctx)
 			return
 		}
-		if err != nil {
+		if !stored {
+			newRefDev.Release(ctx)
 			return
 		}
 		links, err = getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
