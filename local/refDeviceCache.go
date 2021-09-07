@@ -215,5 +215,8 @@ func (c *refDeviceCache) Close(ctx context.Context) error {
 			errors = append(errors)
 		}
 	}
-	return fmt.Errorf("%v", errors)
+	if len(errors) > 0 {
+		return fmt.Errorf("%v", errors)
+	}
+	return nil
 }

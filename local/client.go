@@ -223,18 +223,10 @@ func (c *Client) CoreClient() *core.Client {
 
 // Close clears all connections and spawned goroutines by client.
 func (c *Client) Close(ctx context.Context) error {
-	var errors []error
 	for _, s := range c.popSubscriptions() {
 		s.Cancel()
 	}
-	err := c.deviceCache.Close(ctx)
-	if err != nil {
-		errors = append(errors, err)
-	}
-
-	// observeResourceCache will be removed by cleaned by close deviceCache
-
-	return nil
+	return c.deviceCache.Close(ctx)
 }
 
 func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {

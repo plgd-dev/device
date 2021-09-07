@@ -26,7 +26,6 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		// don't own insecure device
 		return deviceID, nil
 	}
-
 	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, c.ownDeviceWithSigners, cfg.opts...)
 }
 
@@ -57,15 +56,11 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	}
 
 	if d.DeviceID() != deviceID {
-		c.deviceCache.RemoveDevice(ctx, deviceID, d)
-		tmp, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
-		if err != nil {
-			return d.DeviceID(), nil
-		}
-		if stored {
-			d.Acquire()
-		} else {
-			tmp.Release(ctx)
+		if c.deviceCache.RemoveDevice(ctx, deviceID, d) {
+			storedDev, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
+			if err == nil && !stored {
+				storedDev.Release(ctx)
+			}
 		}
 	}
 
