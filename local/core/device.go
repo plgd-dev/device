@@ -61,19 +61,13 @@ func NewDevice(
 	}
 }
 
-func (d *Device) popConnections(wg *sync.WaitGroup) []*coap.ClientCloseHandler {
+func (d *Device) popConnections() []*coap.ClientCloseHandler {
 	conns := make([]*coap.ClientCloseHandler, 0, 4)
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	for key, conn := range d.conn {
 		delete(d.conn, key)
-		if conn.Context().Err() == nil {
-			conns = append(conns, conn)
-			wg.Add(1)
-			conn.RegisterCloseHandler(func(err error) {
-				wg.Done()
-			})
-		}
+		conns = append(conns, conn)
 	}
 	return conns
 }
@@ -86,14 +80,12 @@ func (d *Device) Close(ctx context.Context) error {
 		errors = append(errors, err)
 	}
 
-	var wg sync.WaitGroup
-	for _, conn := range d.popConnections(&wg) {
+	for _, conn := range d.popConnections() {
 		err = conn.Close()
 		if err != nil {
 			errors = append(errors, err)
 		}
 	}
-	wg.Wait()
 
 	if len(errors) > 0 {
 		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errors))
@@ -158,7 +150,7 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 		}
 		delete(d.conn, addr)
 	}
-	return
+	return nil, false
 }
 
 func (d *Device) dial(ctx context.Context, addr net.Addr, dialOptions ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
