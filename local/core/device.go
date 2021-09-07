@@ -149,17 +149,16 @@ func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig
 	return d.cfg.dialDTLS(ctx, addr, &tlsCfg, dialOptions...)
 }
 
-func (d *Device) getConnLocked(addr string) (c *coap.ClientCloseHandler, ok bool) {
+func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	c, ok = d.conn[addr]
-	if !ok {
-		return nil, false
+	if ok {
+		if c.Context().Err() == nil {
+			return c, ok
+		}
+		delete(d.conn, addr)
 	}
-	if c.Context().Err() == nil {
-		return c, true
-	}
-	delete(d.conn, addr)
 	return nil, false
 }
 
@@ -184,15 +183,20 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		return net.Addr{}, nil, err
 	}
 
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	conn, ok := d.getConnLocked(addr.URL())
+	conn, ok := d.getConn(addr.URL())
 	if ok {
 		return addr, conn, nil
 	}
 	c, err := d.dial(ctx, addr)
 	if err != nil {
 		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	conn, ok = d.conn[addr.URL()]
+	if ok {
+		c.Close()
+		return addr, conn, nil
 	}
 	c.RegisterCloseHandler(func(error) {
 		d.lock.Lock()
