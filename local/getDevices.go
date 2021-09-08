@@ -193,11 +193,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 			return
 		}
 		refDev, stored, err = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-		if err != nil {
-			newRefDev.Release(ctx)
-			return
-		}
-		if !stored {
+		if err != nil || !stored {
 			newRefDev.Release(ctx)
 			return
 		}
