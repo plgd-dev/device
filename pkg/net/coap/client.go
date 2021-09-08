@@ -40,6 +40,7 @@ type ClientConn = interface {
 	RemoteAddr() net.Addr
 	Close() error
 	Context() context.Context
+	Done() <-chan struct{}
 }
 
 type Client struct {
@@ -360,6 +361,10 @@ func (c *Client) RemoteAddr() net.Addr {
 
 func (c *Client) Context() context.Context {
 	return c.conn.Context()
+}
+
+func (c *Client) Done() <-chan struct{} {
+	return c.conn.Done()
 }
 
 type CloseHandlerFunc = func(err error)

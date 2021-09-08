@@ -85,6 +85,8 @@ func (d *Device) Close(ctx context.Context) error {
 		if err != nil {
 			errors = append(errors, err)
 		}
+		// wait for closing socket
+		<-conn.Done()
 	}
 
 	if len(errors) > 0 {
