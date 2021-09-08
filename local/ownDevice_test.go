@@ -12,6 +12,7 @@ import (
 )
 
 func TestClient_OwnDevice(t *testing.T) {
+	_ = test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceName string
 	}
@@ -37,7 +38,7 @@ func TestClient_OwnDevice(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 			defer cancel()
 			deviceID, err := test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
@@ -52,6 +53,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.Equal(t, device1.OwnershipStatus, local.OwnershipStatus_Owned)
 			err = c.DisownDevice(ctx, deviceID)
 			require.NoError(t, err)
+			_ = test.MustFindDeviceByName(test.TestSecureDeviceName)
 			deviceID, err = test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
 			deviceID, err = c.OwnDevice(ctx, deviceID)
