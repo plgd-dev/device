@@ -59,7 +59,6 @@ func (h *findDeviceIDByNameHandler) Error(err error) {}
 
 func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ error) {
 	client := core.NewClient()
-
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
