@@ -45,10 +45,7 @@ func (c *Client) GetRefDeviceByIP(
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-	if err != nil {
-		return nil, nil, err
-	}
+	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}
@@ -84,10 +81,7 @@ func (c *Client) GetRefDevice(
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-	if err != nil {
-		return nil, nil, err
-	}
+	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}
