@@ -178,11 +178,7 @@ func getDeviceDetails(ctx context.Context, d *core.Device, links schema.Resource
 
 func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 	newRefDev := NewRefDevice(d)
-	refDev, stored, err := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-	if err != nil {
-		newRefDev.Release(ctx)
-		return
-	}
+	refDev, stored := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
 	defer refDev.Release(ctx)
 	links, err := getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
 	d = refDev.Device()
@@ -192,8 +188,8 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 		if stored {
 			return
 		}
-		refDev, stored, err = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-		if err != nil || !stored {
+		refDev, stored = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+		if !stored {
 			newRefDev.Release(ctx)
 			return
 		}

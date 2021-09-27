@@ -109,23 +109,25 @@ func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDe
 	return nil, false
 }
 
-func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*RefDevice, bool, error) {
+func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*RefDevice, bool) {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	deviceID := device.DeviceID()
-	d, ok := c.temporaryCache.Get(deviceID)
-	if ok {
-		// record is already in cache
-		dev := d.(*RefDevice)
-		dev.Acquire()
-		return dev, false, nil
+	for {
+		d, ok := c.temporaryCache.Get(deviceID)
+		if ok {
+			// record is already in cache
+			dev := d.(*RefDevice)
+			dev.Acquire()
+			return dev, false
+		}
+		err := c.temporaryCache.Add(deviceID, device, cache.DefaultExpiration)
+		if err != nil {
+			continue
+		}
+		device.Acquire()
+		return device, true
 	}
-	err := c.temporaryCache.Add(deviceID, device, cache.DefaultExpiration)
-	if err != nil {
-		return nil, false, err
-	}
-	device.Acquire()
-	return device, true, err
 }
 
 func (c *refDeviceCache) StoreDeviceToPermanentCache(device *RefDevice) error {
