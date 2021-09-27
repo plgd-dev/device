@@ -57,8 +57,12 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 
 	if d.DeviceID() != deviceID {
 		if c.deviceCache.RemoveDevice(ctx, deviceID, d) {
-			storedDev, stored, err := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
-			if err == nil && !stored {
+			for {
+				storedDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
+				if stored {
+					break
+				}
+				c.deviceCache.RemoveDevice(ctx, storedDev.DeviceID(), storedDev)
 				storedDev.Release(ctx)
 			}
 		}
