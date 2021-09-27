@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/plgd-dev/go-coap/v2/message"
 	codecOcf "github.com/plgd-dev/kit/codec/ocf"
 	kitSync "github.com/plgd-dev/kit/sync"
@@ -157,12 +157,12 @@ func (c *Client) ObserveResource(
 	for _, o := range opts {
 		cfg = o.applyOnObserve(cfg)
 	}
-	resourceObservationID, err := uuid.NewV4()
+	resourceObservationID, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
 
-	key := uuid.NewV5(uuid.NamespaceURL, deviceID+href).String()
+	key := uuid.NewSHA1(uuid.NameSpaceURL, []byte(deviceID+href)).String()
 	val, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(value interface{}) interface{} {
 		h := value.(*observationsHandler)
 		h.Lock()

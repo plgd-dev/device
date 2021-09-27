@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
 
 	kitStrings "github.com/plgd-dev/kit/strings"

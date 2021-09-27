@@ -18,8 +18,8 @@ import (
 	"github.com/plgd-dev/sdk/local/core"
 	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
 
-	jwt "github.com/dgrijalva/jwt-go"
-	"github.com/gofrs/uuid"
+	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/plgd-dev/cloud/certificate-authority/pb"
 	caSigner "github.com/plgd-dev/cloud/certificate-authority/signer"
 )
@@ -148,9 +148,9 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
 	}
 	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
-	ownerID, err := uuid.FromString(ownerStr)
+	ownerID, err := uuid.Parse(ownerStr)
 	if err != nil || ownerStr == uuid.Nil.String() {
-		ownerID = uuid.NewV5(uuid.NamespaceURL, ownerStr)
+		ownerID = uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerStr))
 	}
 	signer := caSigner.NewIdentityCertificateSigner(o.caClient)
 	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, ownerID.String())
@@ -177,7 +177,7 @@ func (o *deviceOwnershipBackend) setManufacturerCertificate(ctx context.Context,
 		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
 	}
 	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
-	deviceID := uuid.NewV5(uuid.NamespaceURL, ownerStr)
+	deviceID := uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerStr))
 
 	signer := caSigner.NewBasicCertificateSigner(o.caClient)
 	cert, caCert, err := GenerateSDKManufacturerCertificate(ctx, signer, deviceID.String())

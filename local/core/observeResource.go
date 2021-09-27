@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/plgd-dev/kit/codec/ocf"
 	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
 	"github.com/plgd-dev/sdk/schema"
@@ -130,7 +130,7 @@ func (d *Device) observeResource(
 
 	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
 
-	id, err := uuid.NewV4()
+	id, err := uuid.NewRandom()
 	if err != nil {
 		return "", MakeInternal(fmt.Errorf("observation id generation failed: %w", err))
 	}

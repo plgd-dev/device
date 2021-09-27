@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"github.com/plgd-dev/sdk/local/core"
 	"github.com/plgd-dev/sdk/pkg/net/coap"
@@ -246,7 +246,7 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 		cfg = o.applyOnObserveDevices(cfg)
 	}
 
-	ID, err := uuid.NewV4()
+	ID, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
