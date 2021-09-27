@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	uuid "github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	piondtls "github.com/pion/dtls/v2"
 	"github.com/plgd-dev/go-coap/v2/dtls"
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
@@ -95,7 +95,7 @@ func GetDeviceIDFromIndetityCertificate(cert *x509.Certificate) (string, error) 
 	if strings.ToLower(cn[0]) != "uuid" {
 		return "", fmt.Errorf("invalid subject common name %v: 'uuid' - not found", cert.Subject.CommonName)
 	}
-	deviceId, err := uuid.FromString(cn[1])
+	deviceId, err := uuid.Parse(cn[1])
 	if err != nil {
 		return "", fmt.Errorf("invalid subject common name %v: %w", cert.Subject.CommonName, err)
 	}

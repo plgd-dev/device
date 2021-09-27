@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gofrs/uuid"
+	"github.com/google/uuid"
 	"github.com/plgd-dev/sdk/schema"
 	"go.uber.org/atomic"
 )
@@ -198,7 +198,7 @@ func (c *Client) stopObservingDeviceResources(observationID string) (sync func()
 }
 
 func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler) (string, error) {
-	ID, err := uuid.NewV4()
+	ID, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
 	}
