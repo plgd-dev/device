@@ -202,7 +202,7 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 }
 
 func MustFindDeviceIP(name string, ipType IPType) (ip string) {
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	ip, err := FindDeviceIP(ctx, name, ipType)
 	if err == nil {
