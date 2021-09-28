@@ -13,7 +13,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
-	"github.com/grpc-ecosystem/go-grpc-middleware/util/metautils"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/kit/security"
 	"github.com/plgd-dev/sdk/local/core"
 	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
