@@ -110,10 +110,10 @@ func (d ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr) ResourceLinks {
+func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLinks {
 	links := make(ResourceLinks, 0, len(d))
 	for _, r := range d {
-		links = append(links, r.PatchEndpoint(addr))
+		links = append(links, r.PatchEndpoint(addr, deviceEndpoints))
 	}
 	return links
 }
@@ -155,22 +155,32 @@ func (d ResourceLink) GetSecureEndpoints() Endpoints {
 	return d.Endpoints.FilterSecureEndpoints()
 }
 
+func isSecuredScheme(scheme string) bool {
+	switch scheme {
+	case string(TCPSecureScheme), string(UDPSecureScheme):
+		return true
+	}
+	return false
+}
+
 // FilterSecureEndpoints returns secure endpoints in order of priority.
 func (r Endpoints) FilterSecureEndpoints() Endpoints {
 	if len(r) == 0 {
 		return r
 	}
-	return r.getEndpointsWithFilter(func(scheme string) bool {
-		switch scheme {
-		case string(TCPSecureScheme), string(UDPSecureScheme):
-			return true
-		}
-		return false
-	})
+	return r.getEndpointsWithFilter(isSecuredScheme)
 }
 
 func (d ResourceLink) GetUnsecureEndpoints() Endpoints {
 	return d.Endpoints.FilterUnsecureEndpoints()
+}
+
+func isUnsecuredScheme(scheme string) bool {
+	switch scheme {
+	case string(TCPScheme), string(UDPScheme):
+		return true
+	}
+	return false
 }
 
 // FilterUnsecureEndpoints returns unsecure endpoints in order of priority.
@@ -178,13 +188,7 @@ func (r Endpoints) FilterUnsecureEndpoints() Endpoints {
 	if len(r) == 0 {
 		return r
 	}
-	return r.getEndpointsWithFilter(func(scheme string) bool {
-		switch scheme {
-		case string(TCPScheme), string(UDPScheme):
-			return true
-		}
-		return false
-	})
+	return r.getEndpointsWithFilter(isUnsecuredScheme)
 }
 
 // HasType checks the resource type.
@@ -198,7 +202,7 @@ func (r ResourceLink) HasType(resourceType string) bool {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
+func (r ResourceLink) patchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLink {
 	if len(r.Endpoints) > 0 {
 		return r
 	}
@@ -219,11 +223,22 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr) ResourceLink {
 	if r.Policy.TCPTLSPort != 0 {
 		r.Endpoints = append(r.Endpoints, tcpTlsEndpoint(addr.SetPort(r.Policy.TCPTLSPort)))
 	}
+	if len(r.Endpoints) == 0 {
+		// When the device running in docker, sometimes it cannot fill endpoints for links,
+		// because packet at device comes from loopback interface instead of docker_gwbridge.
+		// And the loopback is not used for generating endpoints.
+		// It seems like a BUG in the kernel (4.4.0-210-generic) with docker/bridge interfaces.
+		if isSecuredScheme(addr.GetScheme()) {
+			r.Endpoints = deviceEndpoints.FilterSecureEndpoints()
+		} else {
+			r.Endpoints = deviceEndpoints
+		}
+	}
 	return r
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
+func (r ResourceLink) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLink {
 	if len(r.Endpoints) > 0 {
 		// we need to remove link-local interfaces, because we cannot determine interface
 		// which need to be used in Dial
@@ -249,9 +264,9 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr) ResourceLink {
 			endpoints = append(endpoints, endpoint)
 		}
 		r.Endpoints = endpoints
-		return r.patchEndpoint(addr)
+		return r.patchEndpoint(addr, deviceEndpoints)
 	}
-	return r.patchEndpoint(addr)
+	return r.patchEndpoint(addr, deviceEndpoints)
 }
 
 func (r Endpoints) GetAddr(scheme Scheme) (kitNet.Addr, error) {

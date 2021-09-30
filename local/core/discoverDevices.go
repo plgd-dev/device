@@ -60,7 +60,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*c
 			handler.Error(fmt.Errorf("invalid address %v: %w", cc.RemoteAddr(), err))
 			return
 		}
-		links = links.PatchEndpoint(addr)
+		links = links.PatchEndpoint(addr, nil)
 		if len(links) > 0 {
 			handler.Handle(ctx, cc, links)
 		}

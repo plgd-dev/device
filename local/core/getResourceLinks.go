@@ -10,7 +10,7 @@ import (
 	"github.com/plgd-dev/sdk/schema"
 )
 
-func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
+func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, deviceEndpoints schema.Endpoints, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
 	options = append(options, coap.WithAccept(message.AppOcfCbor))
 	var links schema.ResourceLinks
 
@@ -20,7 +20,7 @@ func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientClo
 	if err != nil {
 		return nil, err
 	}
-	return links.PatchEndpoint(addr), nil
+	return links.PatchEndpoint(addr, deviceEndpoints), nil
 }
 
 func (d *Device) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoint, options ...coap.OptionFunc) (schema.ResourceLinks, error) {
@@ -28,7 +28,7 @@ func (d *Device) GetResourceLinks(ctx context.Context, endpoints []schema.Endpoi
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("cannot get resource links for %v with endpoints %+v: %w", d.DeviceID(), endpoints, err))
 	}
-	links, err := getResourceLinks(ctx, addr, client, options...)
+	links, err := getResourceLinks(ctx, addr, client, d.GetEndpoints(), options...)
 	if err != nil {
 		return links, MakeDataLoss(fmt.Errorf("cannot get resource links for %v: %w", d.DeviceID(), err))
 	}
