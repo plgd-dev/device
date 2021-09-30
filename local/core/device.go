@@ -199,7 +199,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 	return addr, c, nil
 }
 
-func (d *Device) connectToEndpoints(ctx context.Context, endpoints []schema.Endpoint) (net.Addr, *coap.ClientCloseHandler, error) {
+func (d *Device) connectToEndpoints(ctx context.Context, endpoints schema.Endpoints) (net.Addr, *coap.ClientCloseHandler, error) {
 	errors := make([]error, 0, 4)
 
 	for _, endpoint := range endpoints {
