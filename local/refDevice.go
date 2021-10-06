@@ -3,10 +3,10 @@ package local
 import (
 	"context"
 
-	"github.com/plgd-dev/kit/sync"
-	"github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/sync"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 type RefDevice struct {

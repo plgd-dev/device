@@ -10,9 +10,9 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	kitSecurity "github.com/plgd-dev/kit/security"
-	"github.com/plgd-dev/kit/security/generateCertificate"
-	"github.com/plgd-dev/sdk/local/core"
+	kitSecurity "github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
+	"github.com/plgd-dev/sdk/v2/local/core"
 )
 
 func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, []*x509.Certificate, error) {

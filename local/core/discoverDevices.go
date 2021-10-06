@@ -9,10 +9,10 @@ import (
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
 
-	"github.com/plgd-dev/kit/codec/ocf"
-	"github.com/plgd-dev/kit/net"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/kit/v2/net"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 // DiscoverDevicesHandler receives device links and errors from the discovery multicast request.

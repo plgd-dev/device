@@ -3,7 +3,7 @@ package local
 import (
 	"context"
 
-	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/v2/local/core"
 )
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {

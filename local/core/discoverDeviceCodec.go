@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/kit/codec/ocf"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 type DiscoverDeviceCodec struct{}

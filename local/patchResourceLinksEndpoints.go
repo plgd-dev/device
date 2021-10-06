@@ -1,6 +1,6 @@
 package local
 
-import "github.com/plgd-dev/sdk/schema"
+import "github.com/plgd-dev/sdk/v2/schema"
 
 // To support a keepalive feature, we need to filter tcp endpoints because:
 // - iotivity-classic doesn't support ping over udp/dtls.

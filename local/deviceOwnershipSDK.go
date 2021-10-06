@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/plgd-dev/sdk/local/core"
-	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
-	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	justworks "github.com/plgd-dev/sdk/v2/local/core/otm/just-works"
+	"github.com/plgd-dev/sdk/v2/local/core/otm/manufacturer"
 
 	"github.com/google/uuid"
 	"github.com/karrick/tparse/v2"
-	"github.com/plgd-dev/kit/security"
+	"github.com/plgd-dev/kit/v2/security"
 )
 
 type Signer = interface {

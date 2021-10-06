@@ -8,11 +8,11 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	kitNet "github.com/plgd-dev/kit/net"
-	kitSecurity "github.com/plgd-dev/kit/security"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	kitNet "github.com/plgd-dev/kit/v2/net"
+	kitSecurity "github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 type CertificateSigner = interface {

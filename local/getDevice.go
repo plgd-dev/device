@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/sdk/local/core"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {

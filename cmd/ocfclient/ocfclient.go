@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/plgd-dev/kit/codec/json"
-	"github.com/plgd-dev/sdk/local"
+	"github.com/plgd-dev/kit/v2/codec/json"
+	"github.com/plgd-dev/sdk/v2/local"
 )
 
 const Timeout = time.Second * 10

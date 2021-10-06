@@ -14,10 +14,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/plgd-dev/kit/security"
-	"github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 func MustGetHostname() string {

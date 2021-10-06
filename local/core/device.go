@@ -8,9 +8,9 @@ import (
 	"sync"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/kit/net"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/net"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 type deviceConfiguration struct {

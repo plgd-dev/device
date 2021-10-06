@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/schema/acl"
-	"github.com/plgd-dev/sdk/schema/cloud"
+	ocf "github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/schema/acl"
+	"github.com/plgd-dev/sdk/v2/schema/cloud"
 	"github.com/stretchr/testify/require"
 )
 

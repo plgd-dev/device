@@ -3,9 +3,9 @@ package local
 import (
 	"context"
 
-	"github.com/plgd-dev/sdk/local/core"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 // WithInterface updates/gets resource with interface directly from a device.

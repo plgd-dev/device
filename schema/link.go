@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
-	kitNet "github.com/plgd-dev/kit/net"
-	kitStrings "github.com/plgd-dev/kit/strings"
+	kitNet "github.com/plgd-dev/kit/v2/net"
+	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
 // ResourceLink provides a link for retrieving details for its resource types:

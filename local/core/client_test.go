@@ -12,13 +12,13 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/plgd-dev/kit/security"
-	ocf "github.com/plgd-dev/sdk/local/core"
-	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
-	"github.com/plgd-dev/sdk/local/core/otm/manufacturer"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/test"
+	"github.com/plgd-dev/kit/v2/security"
+	ocf "github.com/plgd-dev/sdk/v2/local/core"
+	justworks "github.com/plgd-dev/sdk/v2/local/core/otm/just-works"
+	"github.com/plgd-dev/sdk/v2/local/core/otm/manufacturer"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
+	"github.com/plgd-dev/sdk/v2/test"
 )
 
 var TestDeviceName = "devsim-" + test.MustGetHostname()
