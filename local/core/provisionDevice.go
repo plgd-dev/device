@@ -6,10 +6,10 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/kit/strings"
-	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/schema/acl"
-	"github.com/plgd-dev/sdk/schema/cloud"
+	"github.com/plgd-dev/kit/v2/strings"
+	"github.com/plgd-dev/sdk/v2/schema"
+	"github.com/plgd-dev/sdk/v2/schema/acl"
+	"github.com/plgd-dev/sdk/v2/schema/cloud"
 )
 
 func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks) (*ProvisioningClient, error) {

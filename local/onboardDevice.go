@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/schema/acl"
-	"github.com/plgd-dev/sdk/schema/cloud"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/schema"
+	"github.com/plgd-dev/sdk/v2/schema/acl"
+	"github.com/plgd-dev/sdk/v2/schema/cloud"
 )
 
 func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {

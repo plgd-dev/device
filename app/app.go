@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/kit/security"
+	"github.com/plgd-dev/kit/v2/security"
 )
 
 type AppConfig struct {

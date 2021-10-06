@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/go-coap/v2/udp/client"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 // OwnershipHandler conveys device ownership and errors during discovery.

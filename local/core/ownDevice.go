@@ -6,11 +6,11 @@ import (
 
 	"fmt"
 
-	kitNet "github.com/plgd-dev/kit/net"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/schema/acl"
-	"github.com/plgd-dev/sdk/schema/cloud"
+	kitNet "github.com/plgd-dev/kit/v2/net"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
+	"github.com/plgd-dev/sdk/v2/schema/acl"
+	"github.com/plgd-dev/sdk/v2/schema/cloud"
 )
 
 type OTMClient interface {

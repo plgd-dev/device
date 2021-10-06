@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 func connectionWasClosed(ctx context.Context, err error) bool {

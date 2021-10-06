@@ -5,9 +5,9 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/kit/net"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/net"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientCloseHandler, deviceEndpoints schema.Endpoints, options ...coap.OptionFunc) (schema.ResourceLinks, error) {

@@ -25,7 +25,7 @@ import (
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/message/codes"
 	"github.com/plgd-dev/go-coap/v2/message/status"
-	codecOcf "github.com/plgd-dev/kit/codec/ocf"
+	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
 type Observation = interface {

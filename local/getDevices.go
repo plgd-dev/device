@@ -7,11 +7,11 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
 
-	kitStrings "github.com/plgd-dev/kit/strings"
-	"github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/schema"
+	kitStrings "github.com/plgd-dev/kit/v2/strings"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {

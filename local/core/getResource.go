@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/kit/codec/ocf"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
-	"github.com/plgd-dev/sdk/schema"
+	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/schema"
 )
 
 // GetResource queries a device for a resource value in CBOR.

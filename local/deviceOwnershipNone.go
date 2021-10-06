@@ -6,7 +6,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/sdk/local/core"
+	"github.com/plgd-dev/sdk/v2/local/core"
 )
 
 type deviceOwnershipNone struct {

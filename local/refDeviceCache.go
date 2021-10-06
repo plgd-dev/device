@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	kitSync "github.com/plgd-dev/kit/sync"
+	kitSync "github.com/plgd-dev/kit/v2/sync"
 
 	cache "github.com/patrickmn/go-cache"
 )

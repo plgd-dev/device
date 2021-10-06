@@ -10,10 +10,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/go-coap/v2/message"
-	codecOcf "github.com/plgd-dev/kit/codec/ocf"
-	kitSync "github.com/plgd-dev/kit/sync"
-	"github.com/plgd-dev/sdk/local/core"
-	kitNetCoap "github.com/plgd-dev/sdk/pkg/net/coap"
+	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
+	kitSync "github.com/plgd-dev/kit/v2/sync"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	kitNetCoap "github.com/plgd-dev/sdk/v2/pkg/net/coap"
 )
 
 type observerCodec struct {

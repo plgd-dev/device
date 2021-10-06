@@ -12,9 +12,9 @@ import (
 	"github.com/pion/dtls/v2"
 
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
-	kitSync "github.com/plgd-dev/kit/sync"
-	"github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
+	kitSync "github.com/plgd-dev/kit/v2/sync"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
 )
 
 type ApplicationCallback = interface {

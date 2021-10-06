@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/sdk/pkg/net/coap"
+	"github.com/plgd-dev/sdk/v2/pkg/net/coap"
 
-	"github.com/plgd-dev/kit/log"
+	"github.com/plgd-dev/kit/v2/log"
 )
 
 // ErrFunc to log errors in goroutines

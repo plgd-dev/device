@@ -11,17 +11,17 @@ import (
 	"encoding/pem"
 	"fmt"
 	"github.com/jessevdk/go-flags"
-	"github.com/plgd-dev/kit/security"
-	"github.com/plgd-dev/kit/security/generateCertificate"
-	"github.com/plgd-dev/sdk/app"
+	"github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
+	"github.com/plgd-dev/sdk/v2/app"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
 
-	"github.com/plgd-dev/kit/codec/json"
-	"github.com/plgd-dev/sdk/local"
-	"github.com/plgd-dev/sdk/test"
+	"github.com/plgd-dev/kit/v2/codec/json"
+	"github.com/plgd-dev/sdk/v2/local"
+	"github.com/plgd-dev/sdk/v2/test"
 )
 
 type Options struct {

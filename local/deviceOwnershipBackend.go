@@ -14,9 +14,9 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
-	"github.com/plgd-dev/kit/security"
-	"github.com/plgd-dev/sdk/local/core"
-	justworks "github.com/plgd-dev/sdk/local/core/otm/just-works"
+	"github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/sdk/v2/local/core"
+	justworks "github.com/plgd-dev/sdk/v2/local/core/otm/just-works"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"

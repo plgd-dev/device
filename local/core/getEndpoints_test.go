@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/plgd-dev/sdk/local/core"
-	"github.com/plgd-dev/sdk/test"
+	ocf "github.com/plgd-dev/sdk/v2/local/core"
+	"github.com/plgd-dev/sdk/v2/test"
 
 	"github.com/stretchr/testify/require"
 )

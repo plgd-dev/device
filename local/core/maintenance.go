@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/plgd-dev/sdk/schema"
-	"github.com/plgd-dev/sdk/schema/maintenance"
+	"github.com/plgd-dev/sdk/v2/schema"
+	"github.com/plgd-dev/sdk/v2/schema/maintenance"
 )
 
 func (d *Device) Reboot(
