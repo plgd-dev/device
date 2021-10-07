@@ -173,7 +173,6 @@ type DeviceOwner interface {
 
 	GetIdentityCertificate() (tls.Certificate, error)
 	GetIdentityCACerts() ([]*x509.Certificate, error)
-	Close(ctx context.Context) error
 }
 
 // Client uses the underlying OCF local client.

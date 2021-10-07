@@ -14,9 +14,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/plgd-dev/device/v2/client/core"
-	"github.com/plgd-dev/device/v2/pkg/net/coap"
-	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/security"
 )
 

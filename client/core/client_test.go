@@ -89,8 +89,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		}))
 	}
 
-	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, signer, manOpts...)
-	justWorksOtm := justworks.NewClient(signer)
+	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, signer.Sign, manOpts...)
+	justWorksOtm := justworks.NewClient(signer.Sign)
 
 	var opts []ocf.OptionFunc
 	if disableDTLS {
