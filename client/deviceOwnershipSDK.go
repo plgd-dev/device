@@ -91,11 +91,7 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 	}, nil
 }
 
-func (o *deviceOwnershipSDK) Close(ctx context.Context) error {
-	return nil
-}
-
-func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner, dialTLS core.DialTLS,
+func getOTMManufacturer(app ApplicationCallback, signer SignFunc, dialTLS core.DialTLS,
 	dialDTLS core.DialDTLS) (core.OTMClient, error) {
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
@@ -117,13 +113,13 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, signer, o.dialTLS, o.dialDTLS)
+		otm, err := getOTMManufacturer(o.app, signer.Sign, o.dialTLS, o.dialDTLS)
 		if err != nil {
 			return "", err
 		}
 		otmClient = otm
 	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(signer, justworks.WithDialDTLS(o.dialDTLS))
+		otmClient = justworks.NewClient(signer.Sign, justworks.WithDialDTLS(o.dialDTLS))
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
@@ -135,7 +131,7 @@ func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, o.sdkDeviceID)
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer.Sign, o.sdkDeviceID)
 	o.identityCertificate = cert
 	o.identityCACert = caCert
 	return err

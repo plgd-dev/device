@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"time"
 
-	local "github.com/plgd-dev/device/v2/client"
+	local "github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/kit/v2/codec/json"
 )
 

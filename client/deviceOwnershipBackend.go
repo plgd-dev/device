@@ -5,52 +5,34 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"net/url"
 	"strings"
 
-	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/status"
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/device/client/core"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
-	"github.com/plgd-dev/kit/v2/security"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
-	"github.com/plgd-dev/cloud/certificate-authority/pb"
-	caSigner "github.com/plgd-dev/cloud/certificate-authority/signer"
 )
 
+type SignFunc = func(ctx context.Context, csr []byte) (signedCsr []byte, err error)
+
 type deviceOwnershipBackend struct {
-	caClient                        pb.CertificateAuthorityClient
-	caConn                          *grpc.ClientConn
-	identityCertificate             tls.Certificate
-	identityCACert                  []*x509.Certificate
-	jwtClaimOwnerID                 string
-	app                             ApplicationCallback
-	acquireManufacturerCertificates bool
-	dialTLS                         core.DialTLS
-	dialDTLS                        core.DialDTLS
+	identityCertificate tls.Certificate
+	identityCACert      []*x509.Certificate
+	jwtClaimOwnerID     string
+	app                 ApplicationCallback
+	dialTLS             core.DialTLS
+	dialDTLS            core.DialDTLS
+	sign                SignFunc
 }
 
 type DeviceOwnershipBackendConfig struct {
-	SigningServerAddress            string
-	JWTClaimOwnerID                 string
-	AcquireManufacturerCertificates bool
-}
-
-func validateURL(URL string) error {
-	if URL == "" {
-		return fmt.Errorf("empty url")
-	}
-	_, err := url.Parse(URL)
-	if err != nil {
-		return err
-	}
-	return nil
+	JWTClaimOwnerID string
+	Sign            SignFunc
 }
 
 func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
@@ -63,64 +45,26 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 		cfg.JWTClaimOwnerID = "sub"
 	}
 
-	rootCA, err := app.GetRootCertificateAuthorities()
-	if err != nil {
-		return nil, fmt.Errorf("cannot get root CAs: %w", err)
-	}
-
-	conn, err := grpc.Dial(cfg.SigningServerAddress, grpc.WithTransportCredentials(credentials.NewTLS(security.NewDefaultTLSConfig(rootCA))))
-	if err != nil {
-		return nil, fmt.Errorf("cannot create certificate authority client: %w", err)
-	}
-	caClient := pb.NewCertificateAuthorityClient(conn)
-
 	return &deviceOwnershipBackend{
-		caClient:                        caClient,
-		caConn:                          conn,
-		app:                             app,
-		jwtClaimOwnerID:                 cfg.JWTClaimOwnerID,
-		acquireManufacturerCertificates: cfg.AcquireManufacturerCertificates,
-		dialTLS:                         dialTLS,
-		dialDTLS:                        dialDTLS,
+		sign:            cfg.Sign,
+		app:             app,
+		jwtClaimOwnerID: cfg.JWTClaimOwnerID,
+		dialTLS:         dialTLS,
+		dialDTLS:        dialDTLS,
 	}, nil
 }
 
-type appDeviceOwnershipBackend struct {
-	getRootCertificateAuthorities func() ([]*x509.Certificate, error)
-	manufacturerCertificate       tls.Certificate
-	manufacturerCACert            []*x509.Certificate
-}
-
-func (a appDeviceOwnershipBackend) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
-	return a.getRootCertificateAuthorities()
-}
-
-func (a appDeviceOwnershipBackend) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
-	if len(a.manufacturerCACert) == 0 {
-		return nil, fmt.Errorf("missing Manufacturer's CA")
-	}
-	return a.manufacturerCACert, nil
-}
-
-func (a appDeviceOwnershipBackend) GetManufacturerCertificate() (tls.Certificate, error) {
-	if a.manufacturerCertificate.Certificate == nil {
-		return a.manufacturerCertificate, fmt.Errorf("missing Manufacturer's certificate")
-	}
-	return a.manufacturerCertificate, nil
-}
-
 func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
-	identCert := caSigner.NewIdentityCertificateSigner(o.caClient)
 	var otmClient core.OTMClient
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, identCert, o.dialTLS, o.dialDTLS)
+		otm, err := getOTMManufacturer(o.app, o.sign, o.dialTLS, o.dialDTLS)
 		if err != nil {
 			return "", err
 		}
 		otmClient = otm
 	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(identCert, justworks.WithDialDTLS(o.dialDTLS))
+		otmClient = justworks.NewClient(o.sign, justworks.WithDialDTLS(o.dialDTLS))
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
@@ -150,44 +94,13 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	if err != nil || ownerStr == uuid.Nil.String() {
 		ownerID = uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerStr))
 	}
-	signer := caSigner.NewIdentityCertificateSigner(o.caClient)
-	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, signer, ownerID.String())
+	cert, caCert, err := GenerateSDKIdentityCertificate(ctx, o.sign, ownerID.String())
 	if err != nil {
 		return err
 	}
 
 	o.identityCertificate = cert
 	o.identityCACert = caCert
-
-	return nil
-}
-
-func (o *deviceOwnershipBackend) setManufacturerCertificate(ctx context.Context, accessToken string) error {
-	parser := &jwt.Parser{
-		SkipClaimsValidation: true,
-	}
-	var claims claims
-	_, _, err := parser.ParseUnverified(accessToken, &claims)
-	if err != nil {
-		return fmt.Errorf("cannot parse jwt token: %w", err)
-	}
-	if claims[o.jwtClaimOwnerID] == nil {
-		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
-	}
-	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
-	deviceID := uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerStr))
-
-	signer := caSigner.NewBasicCertificateSigner(o.caClient)
-	cert, caCert, err := GenerateSDKManufacturerCertificate(ctx, signer, deviceID.String())
-	if err != nil {
-		return err
-	}
-
-	o.app = appDeviceOwnershipBackend{
-		getRootCertificateAuthorities: o.app.GetRootCertificateAuthorities,
-		manufacturerCACert:            caCert,
-		manufacturerCertificate:       cert,
-	}
 
 	return nil
 }
@@ -218,12 +131,6 @@ func (o *deviceOwnershipBackend) Initialization(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if o.acquireManufacturerCertificates {
-		err = o.setManufacturerCertificate(ctx, token)
-		if err != nil {
-			return err
-		}
-	}
 	return o.setIdentityCertificate(ctx, token)
 }
 
@@ -239,8 +146,4 @@ func (o *deviceOwnershipBackend) GetIdentityCACerts() ([]*x509.Certificate, erro
 		return nil, fmt.Errorf("client is not initialized")
 	}
 	return o.identityCACert, nil
-}
-
-func (o *deviceOwnershipBackend) Close(ctx context.Context) error {
-	return o.caConn.Close()
 }

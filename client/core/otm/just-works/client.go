@@ -14,13 +14,11 @@ import (
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
 
-type CertificateSigner = interface {
-	//csr is encoded by PEM and returns PEM
-	Sign(ctx context.Context, csr []byte) ([]byte, error)
-}
+//csr is encoded by PEM and returns PEM
+type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client struct {
-	signer   CertificateSigner
+	sign     SignFunc
 	dialDTLS DialDTLS
 }
 
@@ -37,9 +35,9 @@ func WithDialDTLS(dial DialDTLS) OptionFunc {
 	}
 }
 
-func NewClient(signer CertificateSigner, opts ...OptionFunc) *Client {
+func NewClient(sign SignFunc, opts ...OptionFunc) *Client {
 	c := Client{
-		signer:   signer,
+		sign:     sign,
 		dialDTLS: kitNetCoap.DialUDPSecure,
 	}
 	for _, o := range opts {
@@ -86,7 +84,7 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 
 	pemCSR := encodeToPem(csr.Encoding, csr.CSR())
 
-	signedCsr, err := c.signer.Sign(ctx, pemCSR)
+	signedCsr, err := c.sign(ctx, pemCSR)
 	if err != nil {
 		return fmt.Errorf("cannot sign csr for setup device owner credentials: %w", err)
 	}

@@ -10,12 +10,11 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
 
-func GenerateSDKIdentityCertificate(ctx context.Context, signer core.CertificateSigner, sdkDeviceID string) (tls.Certificate, []*x509.Certificate, error) {
+func GenerateSDKIdentityCertificate(ctx context.Context, sign SignFunc, sdkDeviceID string) (tls.Certificate, []*x509.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
@@ -24,7 +23,7 @@ func GenerateSDKIdentityCertificate(ctx context.Context, signer core.Certificate
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate identity csr: %w", err)
 	}
-	cert, err := signer.Sign(ctx, csr)
+	cert, err := sign(ctx, csr)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot sign csr: %w", err)
 	}
@@ -47,7 +46,7 @@ func GenerateSDKIdentityCertificate(ctx context.Context, signer core.Certificate
 	return tlsCert, []*x509.Certificate{certsFromChain[len(certsFromChain)-1]}, nil
 }
 
-func GenerateSDKManufacturerCertificate(ctx context.Context, signer core.CertificateSigner, ID string) (tls.Certificate, []*x509.Certificate, error) {
+func GenerateSDKManufacturerCertificate(ctx context.Context, signer SignFunc, ID string) (tls.Certificate, []*x509.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
@@ -59,7 +58,7 @@ func GenerateSDKManufacturerCertificate(ctx context.Context, signer core.Certifi
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate identity csr: %w", err)
 	}
-	cert, err := signer.Sign(ctx, csr)
+	cert, err := signer(ctx, csr)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot sign csr: %w", err)
 	}
