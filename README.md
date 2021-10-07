@@ -3,9 +3,9 @@
 [![Go Report Card](https://goreportcard.com/badge/plgd-dev/sdk)](https://goreportcard.com/report/plgd-dev/sdk)
 [![Gitter](https://badges.gitter.im/ocfcloud/Lobby.svg)](https://gitter.im/ocfcloud/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-# SDK
+# Device
 
-The **local SDK** enables interacting with devices in a local network:
+The **client** enables interacting with devices in a local network:
 - Listing devices 
 - Retrieving and updating resources
 - Secure ownership transfer via coaps+tcp and coaps
