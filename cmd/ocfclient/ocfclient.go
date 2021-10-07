@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"time"
 
+	local "github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/kit/v2/codec/json"
-	"github.com/plgd-dev/sdk/v2/local"
 )
 
 const Timeout = time.Second * 10
@@ -18,8 +18,8 @@ const Timeout = time.Second * 10
 type (
 	// OCF Client for working with devices
 	OCFClient struct {
-		client        *local.Client
-		devices	  []local.DeviceDetails
+		client  *local.Client
+		devices []local.DeviceDetails
 	}
 )
 
@@ -64,8 +64,8 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	for _, device := range res {
 		if device.IsSecured {
 			devices = append(devices, device)
-			devInfo := map[string]interface{}{"id":device.ID, "name":device.Ownership.Name, "owned":device.Ownership.Owned,
-				"ownerID":device.Ownership.OwnerID, "details":device.Details}
+			devInfo := map[string]interface{}{"id": device.ID, "name": device.Ownership.Name, "owned": device.Ownership.Owned,
+				"ownerID": device.Ownership.OwnerID, "details": device.Details}
 			deviceInfo = append(deviceInfo, devInfo)
 		}
 	}
@@ -93,7 +93,7 @@ func (c *OCFClient) GetResources(deviceID string) (string, error) {
 
 	resourcesInfo := []map[string]interface{}{}
 	for _, link := range links {
-		info := map[string]interface{}{"href":link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
+		info := map[string]interface{}{"href": link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
 		resourcesInfo = append(resourcesInfo, info)
 	}
 

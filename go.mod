@@ -1,4 +1,4 @@
-module github.com/plgd-dev/sdk/v2
+module github.com/plgd-dev/device/v2
 
 go 1.16
 
