@@ -10,34 +10,35 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"github.com/jessevdk/go-flags"
-	"github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
-	"github.com/plgd-dev/sdk/v2/app"
 	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
 
+	"github.com/jessevdk/go-flags"
+	"github.com/plgd-dev/device/v2/app"
+	"github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
+
+	local "github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/plgd-dev/kit/v2/codec/json"
-	"github.com/plgd-dev/sdk/v2/local"
-	"github.com/plgd-dev/sdk/v2/test"
 )
 
 type Options struct {
-	CertIdentity string                          `long:"certIdentity"`
+	CertIdentity string `long:"certIdentity"`
 
-	MfgCert     string                           `long:"mfgCert"`
-	MfgKey      string                           `long:"mfgKey"`
-	MfgTrustCA	 	string                       `long:"mfgTrustCA"`
-	MfgTrustCAKey  	string                       `long:"mfgTrustCAKey"`
+	MfgCert       string `long:"mfgCert"`
+	MfgKey        string `long:"mfgKey"`
+	MfgTrustCA    string `long:"mfgTrustCA"`
+	MfgTrustCAKey string `long:"mfgTrustCAKey"`
 
-	IdentityCert string                          `long:"identityCert"`
-	IdentityKey string                           `long:"identityKey"`
-	IdentityIntermediateCA string                `long:"identityIntermediateCA"`
-	IdentityIntermediateCAKey string             `long:"identityIntermediateCAKey"`
-	IdentityTrustCA string                       `long:"identityTrustCA"`
-	IdentityTrustCAKey string                    `long:"identityTrustCAKey"`
+	IdentityCert              string `long:"identityCert"`
+	IdentityKey               string `long:"identityKey"`
+	IdentityIntermediateCA    string `long:"identityIntermediateCA"`
+	IdentityIntermediateCAKey string `long:"identityIntermediateCAKey"`
+	IdentityTrustCA           string `long:"identityTrustCA"`
+	IdentityTrustCAKey        string `long:"identityTrustCAKey"`
 }
 
 func ReadCommandOptions(opts Options) {
@@ -106,7 +107,7 @@ func ReadCommandOptions(opts Options) {
 	}
 
 	// Load mfg certificate and private key
-	if opts.MfgCert != "" && opts.MfgKey != ""{
+	if opts.MfgCert != "" && opts.MfgKey != "" {
 		mfgCert, err := ioutil.ReadFile(opts.MfgCert)
 		if err != nil {
 			fmt.Println("Unable to read Manufacturer Certificate: " + err.Error())
@@ -118,7 +119,7 @@ func ReadCommandOptions(opts Options) {
 		if err != nil {
 			fmt.Println("Unable to read Manufacturer Certificate's Private Key: " + err.Error())
 		} else {
-			fmt.Println("Reading Manufacturer Certificate's Private Key from " + opts.MfgKey+" was successful.")
+			fmt.Println("Reading Manufacturer Certificate's Private Key from " + opts.MfgKey + " was successful.")
 			MfgKey = mfgKey
 		}
 	}
@@ -167,7 +168,7 @@ func ReadCommandOptions(opts Options) {
 	}
 
 	// Generate identity trust CA certificate and private key if not exists
-	if opts.IdentityTrustCA == "" || opts.IdentityTrustCAKey == ""  {
+	if opts.IdentityTrustCA == "" || opts.IdentityTrustCAKey == "" {
 		outCert := "rootca_cert.crt"
 		outKey := "rootca_cert.key"
 
@@ -264,7 +265,7 @@ func ReadCommandOptions(opts Options) {
 	}
 
 	// Load identity certificate and private key
-	if opts.IdentityCert != ""  && opts.IdentityKey != "" {
+	if opts.IdentityCert != "" && opts.IdentityKey != "" {
 		identityCert, err := ioutil.ReadFile(opts.IdentityCert)
 		if err != nil {
 			fmt.Println("Unable to read Identity Certificate: " + err.Error())
@@ -370,7 +371,6 @@ func generateIntermediateCertificate(certConfig generateCertificate.Configuratio
 	}
 	return nil
 }
-
 
 func generateIdentityCertificate(certConfig generateCertificate.Configuration, identity, signCert, signKey, outCert, outKey string) error {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
@@ -515,7 +515,7 @@ func NewSecureClient() (*local.Client, error) {
 		}
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, test.NewIdentityCertificateSigner, func(err error) {},)
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, test.NewIdentityCertificateSigner, func(err error) {})
 	if err != nil {
 		return nil, err
 	}
@@ -567,7 +567,6 @@ func main() {
 	scanner(client)
 }
 
-
 func scanner(client OCFClient) {
 
 	scanner := bufio.NewScanner(os.Stdin)
@@ -576,10 +575,10 @@ func scanner(client OCFClient) {
 	for scanner.Scan() {
 		selMenu, _ = strconv.ParseInt(scanner.Text(), 10, 32)
 		switch selMenu {
-		case 0 :
+		case 0:
 			printMenu()
 			break
-		case 1 :
+		case 1:
 			res, err := client.Discover(30)
 			if err != nil {
 				println("\nDiscovering devices was failed : " + err.Error())
@@ -587,7 +586,7 @@ func scanner(client OCFClient) {
 			}
 			println("\nDiscovered devices : \n" + res)
 			break
-		case 2 :
+		case 2:
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
@@ -597,9 +596,9 @@ func scanner(client OCFClient) {
 				println("\nTransferring Ownership was failed : " + err.Error())
 				break
 			}
-			println("\nTransferring Ownership of "+deviceID+" was successful : \n" + res)
+			println("\nTransferring Ownership of " + deviceID + " was successful : \n" + res)
 			break
-		case 3 :
+		case 3:
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
@@ -609,9 +608,9 @@ func scanner(client OCFClient) {
 				println("\nGetting Resources was failed : " + err.Error())
 				break
 			}
-			println("\nResources of "+deviceID+" : \n" + res)
+			println("\nResources of " + deviceID + " : \n" + res)
 			break
-		case 4 :
+		case 4:
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
@@ -621,7 +620,7 @@ func scanner(client OCFClient) {
 				println("\nGetting Resources was failed : " + err.Error())
 				break
 			}
-			println("\nResources of "+deviceID+" : \n" + res)
+			println("\nResources of " + deviceID + " : \n" + res)
 
 			// Select Resource
 			print("\nInput resource href : ")
@@ -632,9 +631,9 @@ func scanner(client OCFClient) {
 				println("\nGetting Resource was failed : " + err.Error())
 				break
 			}
-			println("\nResource properties of "+deviceID+href+" : \n" + aRes)
+			println("\nResource properties of " + deviceID + href + " : \n" + aRes)
 			break
-		case 5 :
+		case 5:
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
@@ -644,7 +643,7 @@ func scanner(client OCFClient) {
 				println("\nGetting Resources was failed : " + err.Error())
 				break
 			}
-			println("\nResources of "+deviceID+" : \n" + res)
+			println("\nResources of " + deviceID + " : \n" + res)
 
 			// Select Resource
 			print("\nInput resource href : ")
@@ -655,7 +654,7 @@ func scanner(client OCFClient) {
 				println("\nGetting Resource was failed : " + err.Error())
 				break
 			}
-			println("\nResource properties of "+deviceID+href+" : \n" + aRes)
+			println("\nResource properties of " + deviceID + href + " : \n" + aRes)
 
 			// Select Property
 			print("\nInput property name : ")
@@ -667,7 +666,7 @@ func scanner(client OCFClient) {
 			value := scanner.Text()
 
 			// Update Property of the Resource
-			jsonString := "{\""+key+"\": "+value+"}"
+			jsonString := "{\"" + key + "\": " + value + "}"
 			var data interface{}
 			err = json.Decode([]byte(jsonString), &data)
 			dataBytes, err := json.Encode(data)
@@ -677,10 +676,10 @@ func scanner(client OCFClient) {
 				println("\nUpdating resource property was failed : " + err.Error())
 				break
 			}
-			println("\nUpdating resource property of "+deviceID+href+" was successful.")
+			println("\nUpdating resource property of " + deviceID + href + " was successful.")
 			break
 
-		case 6 :
+		case 6:
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()
@@ -690,9 +689,9 @@ func scanner(client OCFClient) {
 				println("\nOff-boarding was failed : " + err.Error())
 				break
 			}
-			println("\nOff-boarding "+deviceID+" was successful." )
+			println("\nOff-boarding " + deviceID + " was successful.")
 			break
-		case 99 :
+		case 99:
 			// Close Client
 			client.Close()
 			os.Exit(0)
@@ -721,15 +720,15 @@ func printMenu() {
 var (
 	CertIdentity = "00000000-0000-0000-0000-000000000001"
 
-	MfgCert = []byte{}
-	MfgKey = []byte{}
-	MfgTrustedCA = []byte{}
+	MfgCert         = []byte{}
+	MfgKey          = []byte{}
+	MfgTrustedCA    = []byte{}
 	MfgTrustedCAKey = []byte{}
 
-	IdentityTrustedCA = []byte{}
-	IdentityTrustedCAKey = []byte{}
-	IdentityIntermediateCA = []byte{}
+	IdentityTrustedCA         = []byte{}
+	IdentityTrustedCAKey      = []byte{}
+	IdentityIntermediateCA    = []byte{}
 	IdentityIntermediateCAKey = []byte{}
-	IdentityCert = []byte{}
-	IdentityKey = []byte{}
+	IdentityCert              = []byte{}
+	IdentityKey               = []byte{}
 )

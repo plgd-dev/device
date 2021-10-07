@@ -1,8 +1,8 @@
 package test
 
 import (
-	"github.com/plgd-dev/sdk/v2/schema"
-	"github.com/plgd-dev/sdk/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/cloud"
 )
 
 var (
