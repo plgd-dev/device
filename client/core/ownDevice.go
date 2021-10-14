@@ -10,11 +10,19 @@ import (
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
+	"github.com/plgd-dev/device/schema/csr"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/platform"
+	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/schema/resources"
+	"github.com/plgd-dev/device/schema/sdi"
+	"github.com/plgd-dev/device/schema/sp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
 type OTMClient interface {
-	Type() schema.OwnerTransferMethod
+	Type() doxm.OwnerTransferMethod
 	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
 	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
 }
@@ -48,23 +56,23 @@ func disown(ctx context.Context, conn connUpdateResourcer) error {
 		ctx = ctx1
 
 	}
-	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RESET,
+	setResetProvisionState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: pstat.OperationalState_RESET,
 		},
 	}
-	return conn.UpdateResource(ctx, "/oic/sec/pstat", setResetProvisionState, nil)
+	return conn.UpdateResource(ctx, pstat.ResourceURI, setResetProvisionState, nil)
 }
 
-func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
-	selectOTM := schema.DoxmUpdate{
+func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod doxm.OwnerTransferMethod) error {
+	selectOTM := doxm.DoxmUpdate{
 		SelectOwnerTransferMethod: &selectOwnerTransferMethod,
 	}
 	/*doxm doesn't send any content for update*/
-	return conn.UpdateResource(ctx, schema.DoxmHref, selectOTM, nil)
+	return conn.UpdateResource(ctx, doxm.ResourceURI, selectOTM, nil)
 }
 
-func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema.OwnerTransferMethod) error {
+func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.OwnerTransferMethod) error {
 	endpoints := d.GetEndpoints()
 	coapAddr, err := endpoints.GetAddr(schema.UDPScheme)
 	if err != nil {
@@ -79,7 +87,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod schema
 }
 
 func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
-	link, err := GetResourceLink(links, "/oic/sec/acl2")
+	link, err := GetResourceLink(links, acl.ResourceURI)
 	if err != nil {
 		return err
 	}
@@ -128,15 +136,15 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: []acl.Resource{
 					{
-						Href:       "/oic/sec/sp",
+						Href:       sp.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "/oic/sec/pstat",
+						Href:       pstat.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       schema.DoxmHref,
+						Href:       doxm.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 				},
@@ -150,7 +158,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: []acl.Resource{
 					{
-						Href:       "/oic/sec/csr",
+						Href:       csr.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 				},
@@ -164,23 +172,23 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 				},
 				Resources: []acl.Resource{
 					{
-						Href:       "/oic/d",
+						Href:       device.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "/oic/p",
+						Href:       platform.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "/oic/res",
+						Href:       resources.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       "/oic/sec/sdi",
+						Href:       sdi.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 					{
-						Href:       schema.DoxmHref,
+						Href:       doxm.ResourceURI,
 						Interfaces: []string{"*"},
 					},
 				},
@@ -201,11 +209,11 @@ func (d *Device) Own(
 	cfg := ownCfg{
 		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error) {
 			deviceID := d.DeviceID()
-			setDeviceOwned := schema.DoxmUpdate{
+			setDeviceOwned := doxm.DoxmUpdate{
 				DeviceID: &deviceID,
 			}
 			/*doxm doesn't send any content for select OTM*/
-			err := client.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
+			err := client.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
 			if err != nil {
 				return "", MakeInternal(fmt.Errorf("cannot set device id %v for owned device: %w", deviceID, err))
 			}
@@ -279,8 +287,8 @@ func (d *Device) Own(
 	}
 	defer tlsClient.Close()
 
-	var provisionState schema.ProvisionStatusResponse
-	err = tlsClient.GetResource(ctx, "/oic/sec/pstat", &provisionState)
+	var provisionState pstat.ProvisionStatusResponse
+	err = tlsClient.GetResource(ctx, pstat.ResourceURI, &provisionState)
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot get provision state %w", err))
 	}
@@ -289,19 +297,19 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
 	}
 
-	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != schema.OperationalState_RFOTM {
-		return MakeInternal(fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, schema.OperationalState_RFOTM))
+	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != pstat.OperationalState_RFOTM {
+		return MakeInternal(fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, pstat.OperationalState_RFOTM))
 	}
 
-	if !provisionState.SupportedOperationalModes.Has(schema.OperationalMode_CLIENT_DIRECTED) {
-		return MakeUnavailable(fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, schema.OperationalMode_CLIENT_DIRECTED))
+	if !provisionState.SupportedOperationalModes.Has(pstat.OperationalMode_CLIENT_DIRECTED) {
+		return MakeUnavailable(fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, pstat.OperationalMode_CLIENT_DIRECTED))
 	}
 
-	updateProvisionState := schema.ProvisionStatusUpdateRequest{
-		CurrentOperationalMode: schema.OperationalMode_CLIENT_DIRECTED,
+	updateProvisionState := pstat.ProvisionStatusUpdateRequest{
+		CurrentOperationalMode: pstat.OperationalMode_CLIENT_DIRECTED,
 	}
 	/*pstat doesn't send any content for select OperationalMode*/
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", updateProvisionState, nil)
+	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, updateProvisionState, nil)
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot update provision state %w", err))
 	}
@@ -320,19 +328,19 @@ func (d *Device) Own(
 		return MakeAborted(fmt.Errorf("cannot provision owner %w", err))
 	}
 
-	setDeviceOwner := schema.DoxmUpdate{
+	setDeviceOwner := doxm.DoxmUpdate{
 		OwnerID: &sdkID,
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResource(ctx, schema.DoxmHref, setDeviceOwner, nil)
+	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwner, nil)
 	if err != nil {
 		return MakeUnavailable(fmt.Errorf("cannot set device owner %w", err))
 	}
 
 	/*verify ownership*/
-	var verifyOwner schema.Doxm
-	err = tlsClient.GetResource(ctx, schema.DoxmHref, &verifyOwner)
+	var verifyOwner doxm.Doxm
+	err = tlsClient.GetResource(ctx, doxm.ResourceURI, &verifyOwner)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -344,16 +352,16 @@ func (d *Device) Own(
 	}
 
 	owned := true
-	setDeviceOwned := schema.DoxmUpdate{
+	setDeviceOwned := doxm.DoxmUpdate{
 		ResourceOwner: &sdkID,
 		Owned:         &owned,
 	}
 
 	/*pstat set owner of resource*/
-	setOwnerProvisionState := schema.ProvisionStatusUpdateRequest{
+	setOwnerProvisionState := pstat.ProvisionStatusUpdateRequest{
 		ResourceOwner: sdkID,
 	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", setOwnerProvisionState, nil)
+	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setOwnerProvisionState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -365,7 +373,7 @@ func (d *Device) Own(
 	setOwnerACL := acl.UpdateRequest{
 		ResourceOwner: sdkID,
 	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/acl2", setOwnerACL, nil)
+	err = tlsClient.UpdateResource(ctx, acl.ResourceURI, setOwnerACL, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -374,7 +382,7 @@ func (d *Device) Own(
 	}
 
 	/*doxm doesn't send any content for select OTM*/
-	err = tlsClient.UpdateResource(ctx, schema.DoxmHref, setDeviceOwned, nil)
+	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
@@ -383,13 +391,13 @@ func (d *Device) Own(
 	}
 
 	/*set device to provision opertaion mode*/
-	provisionOperationState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
+	provisionOperationState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: pstat.OperationalState_RFPRO,
 		},
 	}
 
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/pstat", provisionOperationState, nil)
+	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, provisionOperationState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))

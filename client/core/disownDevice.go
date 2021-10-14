@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/pstat"
 )
 
 func connectionWasClosed(ctx context.Context, err error) bool {
@@ -40,13 +41,13 @@ func (d *Device) Disown(
 		return MakePermissionDenied(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
 	}
 
-	setResetProvisionState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RESET,
+	setResetProvisionState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: pstat.OperationalState_RESET,
 		},
 	}
 
-	link, err := GetResourceLink(links, "/oic/sec/pstat")
+	link, err := GetResourceLink(links, pstat.ResourceURI)
 	if err != nil {
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}

@@ -10,6 +10,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"go.uber.org/atomic"
 )
@@ -120,9 +121,9 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, device schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, dev schema.ResourceLinks) {
 	defer client.Close()
-	d, ok := device.GetResourceLink("/oic/d")
+	d, ok := dev.GetResourceLink(device.ResourceURI)
 	if !ok {
 		return
 	}
@@ -147,7 +148,7 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 		}
 	}()
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType("oic.wk.d"))
+	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType(device.ResourceType))
 }
 
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {

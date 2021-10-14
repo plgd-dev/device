@@ -9,6 +9,8 @@ import (
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
+	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/schema/pstat"
 	"github.com/plgd-dev/kit/v2/strings"
 )
 
@@ -30,13 +32,13 @@ type ProvisioningClient struct {
 }
 
 func (c *ProvisioningClient) start(ctx context.Context) error {
-	provisioningState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RFPRO,
+	provisioningState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: pstat.OperationalState_RFPRO,
 		},
 	}
 	const errMsg = "could not start provisioning the device: %w"
-	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
+	link, err := GetResourceLink(c.links, pstat.ResourceURI)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -44,19 +46,19 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 
 	err = c.UpdateResource(ctx, link, provisioningState, nil)
 	if err != nil {
-		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisionin state %+v: %w", link, err))
+		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisioning state %+v: %w", link, err))
 	}
 	return nil
 }
 
 func (c *ProvisioningClient) Close(ctx context.Context) error {
-	normalOperationState := schema.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &schema.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: schema.OperationalState_RFNOP,
+	normalOperationState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: pstat.OperationalState_RFNOP,
 		},
 	}
 	const errMsg = "could not finalize provisioning the device: %w"
-	link, err := GetResourceLink(c.links, "/oic/sec/pstat")
+	link, err := GetResourceLink(c.links, pstat.ResourceURI)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -69,14 +71,14 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 	return nil
 }
 
-func (c *ProvisioningClient) AddCredentials(ctx context.Context, credential schema.CredentialUpdateRequest) error {
+func (c *ProvisioningClient) AddCredentials(ctx context.Context, cr credential.CredentialUpdateRequest) error {
 	const errMsg = "could not add credentials to the device: %w"
-	link, err := GetResourceLink(c.links, "/oic/sec/cred")
+	link, err := GetResourceLink(c.links, credential.ResourceURI)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
 	link.Endpoints = link.GetSecureEndpoints()
-	err = c.UpdateResource(ctx, link, credential, nil)
+	err = c.UpdateResource(ctx, link, cr, nil)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -84,15 +86,15 @@ func (c *ProvisioningClient) AddCredentials(ctx context.Context, credential sche
 }
 
 func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subject string, cert *x509.Certificate) error {
-	setCaCredential := schema.CredentialUpdateRequest{
-		Credentials: []schema.Credential{
+	setCaCredential := credential.CredentialUpdateRequest{
+		Credentials: []credential.Credential{
 			{
 				Subject: subject,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_TRUST_CA,
-				PublicData: &schema.CredentialPublicData{
+				Type:    credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   credential.CredentialUsage_TRUST_CA,
+				PublicData: &credential.CredentialPublicData{
 					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})),
-					Encoding:     schema.CredentialPublicDataEncoding_PEM,
+					Encoding:     credential.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
@@ -145,7 +147,7 @@ func (c *ProvisioningClient) SetAccessControl(
 		},
 	}
 	const errMsg = "could not update ACL of the device: %w"
-	link, err := GetResourceLink(c.links, "/oic/sec/acl2")
+	link, err := GetResourceLink(c.links, acl.ResourceURI)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

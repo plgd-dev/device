@@ -4,19 +4,18 @@ import (
 	"context"
 	"fmt"
 
+	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/message/codes"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
-
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
 // DiscoverDeviceOwnershipHandler receives devices ownership info.
 type DiscoverDeviceOwnershipHandler interface {
-	Handle(ctx context.Context, client *client.ClientConn, device schema.Doxm)
+	Handle(ctx context.Context, client *client.ClientConn, device doxm.Doxm)
 	Error(err error)
 }
 
@@ -43,7 +42,7 @@ func DiscoverDeviceOwnership(
 	var opt kitNetCoap.OptionFunc
 	switch status {
 	case DiscoverAllDevices:
-		return Discover(ctx, conn, schema.DoxmHref, handleDiscoverOwnershipResponse(ctx, handler))
+		return Discover(ctx, conn, doxm.ResourceURI, handleDiscoverOwnershipResponse(ctx, handler))
 	case DiscoverOwnedDevices:
 		opt = func(m message.Options) message.Options {
 			buf := make([]byte, 16)
@@ -60,7 +59,7 @@ func DiscoverDeviceOwnership(
 		return MakeUnimplemented(fmt.Errorf("unsupported DiscoverOwnershipStatus(%v)", status))
 	}
 
-	return Discover(ctx, conn, schema.DoxmHref, handleDiscoverOwnershipResponse(ctx, handler), opt)
+	return Discover(ctx, conn, doxm.ResourceURI, handleDiscoverOwnershipResponse(ctx, handler), opt)
 }
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {
@@ -75,7 +74,7 @@ func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDevice
 			return
 		}
 
-		var doxm schema.Doxm
+		var doxm doxm.Doxm
 		var codec ocf.VNDOCFCBORCodec
 		err = codec.Decode(req, &doxm)
 		if err != nil {

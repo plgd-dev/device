@@ -1,11 +1,14 @@
 package cloud
 
-const StatusResourceType string = "x.cloud.device.status"
+import "github.com/plgd-dev/device/schema/interfaces"
 
-var StatusInterfaces = []string{"oic.if.baseline"}
+const (
+	StatusResourceType = "x.cloud.device.status"
+	StatusResourceURI  = "/oic/cloud/s"
+)
+
+var StatusInterfaces = []string{interfaces.OC_IF_BASELINE}
 var StatusResourceTypes = []string{StatusResourceType}
-
-const StatusHref = "/oic/cloud/s"
 
 // Status is resource published by OCF Cloud.
 // - signup: resource published

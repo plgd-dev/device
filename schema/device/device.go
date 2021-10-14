@@ -1,9 +1,12 @@
-package schema
-
-const DeviceResourceType = "oic.wk.d"
-
 // Device info.
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.d.swagger.json
+package device
+
+const (
+	ResourceType = "oic.wk.d"
+	ResourceURI  = "/oic/d"
+)
+
 type Device struct {
 	ID                    string            `json:"di"`
 	ResourceTypes         []string          `json:"rt"`

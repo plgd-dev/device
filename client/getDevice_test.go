@@ -8,7 +8,12 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
+	testTypes "github.com/plgd-dev/device/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,11 +34,11 @@ func sortResources(s []schema.ResourceLink) []schema.ResourceLink {
 func NewTestDeviceSimulator(deviceID, deviceName string) client.DeviceDetails {
 	return client.DeviceDetails{
 		ID: deviceID,
-		Details: &schema.Device{
+		Details: &device.Device{
 			ID:            deviceID,
 			Name:          deviceName,
-			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
-			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+			ResourceTypes: []string{testTypes.DEVICE_CLOUD, device.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 		},
 		Resources:       sortResources(append(test.TestDevsimResources, test.TestDevsimPrivateResources...)),
 		OwnershipStatus: client.OwnershipStatus_Unknown,
@@ -43,22 +48,22 @@ func NewTestDeviceSimulator(deviceID, deviceName string) client.DeviceDetails {
 func NewTestSecureDeviceSimulator(deviceID, deviceName string) client.DeviceDetails {
 	return client.DeviceDetails{
 		ID: deviceID,
-		Details: &schema.Device{
+		Details: &device.Device{
 			ID:            deviceID,
 			Name:          deviceName,
-			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
-			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+			ResourceTypes: []string{testTypes.DEVICE_CLOUD, device.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 		},
 		IsSecured: true,
-		Ownership: &schema.Doxm{
+		Ownership: &doxm.Doxm{
 			ResourceOwner:                 "00000000-0000-0000-0000-000000000000",
-			SupportedOwnerTransferMethods: []schema.OwnerTransferMethod{schema.JustWorks, schema.ManufacturerCertificate},
+			SupportedOwnerTransferMethods: []doxm.OwnerTransferMethod{doxm.JustWorks, doxm.ManufacturerCertificate},
 			OwnerID:                       "00000000-0000-0000-0000-000000000000",
 			DeviceID:                      deviceID,
-			SupportedCredentialTypes:      schema.CredentialType(schema.CredentialType_SYMMETRIC_PAIR_WISE | schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE),
-			SelectedOwnerTransferMethod:   schema.Self,
-			Interfaces:                    []string{"oic.if.rw", "oic.if.baseline"},
-			ResourceTypes:                 []string{"oic.r.doxm"},
+			SupportedCredentialTypes:      credential.CredentialType(credential.CredentialType_SYMMETRIC_PAIR_WISE | credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE),
+			SelectedOwnerTransferMethod:   doxm.Self,
+			Interfaces:                    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
+			ResourceTypes:                 []string{doxm.ResourceType},
 		},
 		Resources:       sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
 		OwnershipStatus: client.OwnershipStatus_ReadyToBeOwned,
@@ -130,8 +135,8 @@ func TestClient_GetDevice(t *testing.T) {
 			require.NoError(t, err)
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
-			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)
-			got.Details.(*schema.Device).ProtocolIndependentID = ""
+			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
+			got.Details.(*device.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -193,13 +198,13 @@ func TestClient_GetDeviceByIP(t *testing.T) {
 			require.NoError(t, err)
 
 			var v interface{}
-			err = c.GetResource(ctx, got.ID, "/oic/d", &v)
+			err = c.GetResource(ctx, got.ID, device.ResourceURI, &v)
 			require.NoError(t, err)
 
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
-			require.NotEmpty(t, got.Details.(*schema.Device).ProtocolIndependentID)
-			got.Details.(*schema.Device).ProtocolIndependentID = ""
+			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
+			got.Details.(*device.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
 		})
 	}

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/schema/platform"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +24,7 @@ func TestClient_GetDeviceByIP_IP4(t *testing.T) {
 	require.NotEmpty(t, got)
 	links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)
-	link, ok := links.GetResourceLink("/oic/p")
+	link, ok := links.GetResourceLink(platform.ResourceURI)
 	require.True(t, ok)
 	var v interface{}
 	err = got.GetResource(ctx, link, &v)

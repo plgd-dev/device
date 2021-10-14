@@ -2,7 +2,11 @@ package maintenance
 
 // Maintenance.
 // https://github.com/openconnectivityfoundation/core-extensions/blob/master/swagger2.0/oic.wk.mnt.swagger.json
-const MaintenanceResourceType = "oic.wk.mnt"
+
+const (
+	ResourceType = "oic.wk.mnt"
+	ResourceURI  = "/oic/mnt"
+)
 
 type Maintenance struct {
 	ResourceTypes []string `json:"rt"`

@@ -2,7 +2,24 @@ package test
 
 import (
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/acl"
+	"github.com/plgd-dev/device/schema/ael"
 	"github.com/plgd-dev/device/schema/cloud"
+	"github.com/plgd-dev/device/schema/configuration"
+	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/schema/csr"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/schema/introspection"
+	"github.com/plgd-dev/device/schema/maintenance"
+	"github.com/plgd-dev/device/schema/platform"
+	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/schema/resources"
+	"github.com/plgd-dev/device/schema/roles"
+	"github.com/plgd-dev/device/schema/sdi"
+	"github.com/plgd-dev/device/schema/sp"
+	testTypes "github.com/plgd-dev/device/test/resource/types"
 )
 
 var (
@@ -20,105 +37,105 @@ func init() {
 
 	TestDevsimResources = []schema.ResourceLink{
 		{
-			Href:          "/oic/p",
-			ResourceTypes: []string{"oic.wk.p"},
-			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+			Href:          platform.ResourceURI,
+			ResourceTypes: []string{platform.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 		},
 
 		{
-			Href:          "/oic/d",
-			ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
-			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+			Href:          device.ResourceURI,
+			ResourceTypes: []string{testTypes.DEVICE_CLOUD, device.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 		},
 
 		{
-			Href:          "/oic/res",
-			ResourceTypes: []string{"oic.wk.res"},
-			Interfaces:    []string{"oic.if.ll", "oic.if.b", "oic.if.baseline"},
+			Href:          resources.ResourceURI,
+			ResourceTypes: []string{resources.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_LL, interfaces.OC_IF_B, interfaces.OC_IF_BASELINE},
 		},
 
 		{
-			Href:          "/oc/con",
-			ResourceTypes: []string{"oic.wk.con"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          configuration.ResourceURI,
+			ResourceTypes: []string{configuration.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 
 		{
 			Href:          "/light/1",
-			ResourceTypes: []string{"core.light"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			ResourceTypes: []string{testTypes.CORE_LIGHT},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 
 		{
 			Href:          "/light/2",
-			ResourceTypes: []string{"core.light"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			ResourceTypes: []string{testTypes.CORE_LIGHT},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 	}
 
 	TestDevsimPrivateResources = []schema.ResourceLink{
 		{
-			Href:          cloud.ConfigurationResourceHref,
-			ResourceTypes: cloud.ConfigurationResourceTypes,
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          cloud.ConfigurationResourceURI,
+			ResourceTypes: []string{cloud.ConfigurationResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oc/wk/introspection",
-			ResourceTypes: []string{"oic.wk.introspection"},
-			Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+			Href:          introspection.ResourceURI,
+			ResourceTypes: []string{introspection.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/mnt",
-			ResourceTypes: []string{"oic.wk.mnt"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          maintenance.ResourceURI,
+			ResourceTypes: []string{maintenance.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 	}
 
 	TestDevsimSecResources = []schema.ResourceLink{
 		{
-			Href:          "/oic/sec/sp",
-			ResourceTypes: []string{"oic.r.sp"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          sp.ResourceURI,
+			ResourceTypes: []string{sp.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/roles",
-			ResourceTypes: []string{"oic.r.roles"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          roles.ResourceURI,
+			ResourceTypes: []string{roles.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/pstat",
-			ResourceTypes: []string{"oic.r.pstat"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          pstat.ResourceURI,
+			ResourceTypes: []string{pstat.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          schema.DoxmHref,
-			ResourceTypes: []string{"oic.r.doxm"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          doxm.ResourceURI,
+			ResourceTypes: []string{doxm.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/csr",
-			ResourceTypes: []string{"oic.r.csr"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          csr.ResourceURI,
+			ResourceTypes: []string{csr.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/cred",
-			ResourceTypes: []string{"oic.r.cred"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          credential.ResourceURI,
+			ResourceTypes: []string{credential.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/acl2",
-			ResourceTypes: []string{"oic.r.acl2"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          acl.ResourceURI,
+			ResourceTypes: []string{acl.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/ael",
-			ResourceTypes: []string{"oic.r.ael"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          ael.ResourceURI,
+			ResourceTypes: []string{ael.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{
-			Href:          "/oic/sec/sdi",
-			ResourceTypes: []string{"oic.r.sdi"},
-			Interfaces:    []string{"oic.if.rw", "oic.if.baseline"},
+			Href:          sdi.ResourceURI,
+			ResourceTypes: []string{sdi.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 	}
 

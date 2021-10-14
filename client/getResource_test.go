@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema/configuration"
+	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +29,7 @@ func TestClient_GetResource(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
-				href:     "/oc/con",
+				href:     configuration.ResourceURI,
 			},
 			want: map[string]interface{}{
 				"n": test.TestDeviceName,
@@ -37,14 +39,14 @@ func TestClient_GetResource(t *testing.T) {
 			name: "valid with interface",
 			args: args{
 				deviceID: deviceID,
-				href:     "/oc/con",
-				opts:     []client.GetOption{client.WithInterface("oic.if.baseline")},
+				href:     configuration.ResourceURI,
+				opts:     []client.GetOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
 			},
 			wantErr: false,
 			want: map[string]interface{}{
-				"if": []interface{}{"oic.if.rw", "oic.if.baseline"},
+				"if": []interface{}{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 				"n":  test.TestDeviceName,
-				"rt": []interface{}{"oic.wk.con"},
+				"rt": []interface{}{configuration.ResourceType},
 			},
 		},
 		{

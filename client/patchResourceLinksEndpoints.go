@@ -1,6 +1,9 @@
 package client
 
-import "github.com/plgd-dev/device/schema"
+import (
+	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
+)
 
 // To support a keepalive feature, we need to filter tcp endpoints because:
 // - iotivity-classic doesn't support ping over udp/dtls.
@@ -19,7 +22,7 @@ func filterTCPEndpoints(eps []schema.Endpoint) []schema.Endpoint {
 	return tcpDevEndpoints
 }
 func patchResourceLinksEndpoints(links schema.ResourceLinks, disableUDPEndpoints bool) schema.ResourceLinks {
-	devLink, ok := links.GetResourceLink("/oic/d")
+	devLink, ok := links.GetResourceLink(device.ResourceURI)
 	if !ok {
 		return links
 	}

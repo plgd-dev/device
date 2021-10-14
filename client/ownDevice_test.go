@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +60,7 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 			device2, err := c.GetDeviceByMulticast(ctx, deviceID)
 			require.NoError(t, err)
-			require.Equal(t, device1.Details.(*schema.Device).ProtocolIndependentID, device2.Details.(*schema.Device).ProtocolIndependentID)
+			require.Equal(t, device1.Details.(*device.Device).ProtocolIndependentID, device2.Details.(*device.Device).ProtocolIndependentID)
 			require.Equal(t, device1.OwnershipStatus, client.OwnershipStatus_Owned)
 			err = c.DisownDevice(ctx, deviceID)
 			require.NoError(t, err)

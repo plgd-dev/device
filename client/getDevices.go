@@ -7,24 +7,26 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
-
 	"github.com/plgd-dev/device/client/core"
+	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/interfaces"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
 func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-	link := links.GetResourceLinks("oic.wk.d")
+	link := links.GetResourceLinks(device.ResourceType)
 	if len(link) == 0 {
 		return nil, fmt.Errorf("cannot find device resource at links %+v", links)
 	}
-	var device schema.Device
-	err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+	var dev device.Device
+	err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
 	if err != nil {
 		return nil, err
 	}
-	return &device, nil
+	return &dev, nil
 }
 
 // GetDevices discovers devices in the local mode.
@@ -53,8 +55,8 @@ func (c *Client) GetDevices(
 		res = append(res, d)
 	}
 
-	resOwnerships := make(map[string]schema.Doxm)
-	ownerships := func(d schema.Doxm) {
+	resOwnerships := make(map[string]doxm.Doxm)
+	ownerships := func(d doxm.Doxm) {
 		m.Lock()
 		defer m.Unlock()
 		resOwnerships[d.DeviceID] = d
@@ -114,7 +116,7 @@ type DeviceDetails struct {
 	// IsSecured is secured.
 	IsSecured bool
 	// Ownership describes ownership of the device, for unsecure device it is nil.
-	Ownership *schema.Doxm
+	Ownership *doxm.Doxm
 	// Resources list of the device resources.
 	Resources []schema.ResourceLink
 	// Resources list of the device endpoints.
@@ -154,7 +156,7 @@ type discoveryHandler struct {
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
 
 func getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
-	link, ok := links.GetResourceLink("/oic/d")
+	link, ok := links.GetResourceLink(device.ResourceURI)
 	var eps []schema.Endpoint
 	if ok {
 		eps = link.GetEndpoints()
@@ -241,17 +243,17 @@ func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device,
 func newDiscoveryOwnershipsHandler(
 	ctx context.Context,
 	errors func(error),
-	ownerships func(schema.Doxm),
+	ownerships func(doxm.Doxm),
 ) *discoveryOwnershipsHandler {
 	return &discoveryOwnershipsHandler{errors: errors, ownerships: ownerships}
 }
 
 type discoveryOwnershipsHandler struct {
 	errors     func(error)
-	ownerships func(schema.Doxm)
+	ownerships func(doxm.Doxm)
 }
 
-func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm schema.Doxm) {
+func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm doxm.Doxm) {
 	h.ownerships(doxm)
 }
 
@@ -292,7 +294,7 @@ func mergeEndpoints(a, b []schema.Endpoint) []schema.Endpoint {
 	return out
 }
 
-func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string]schema.Doxm) map[string]DeviceDetails {
+func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string]doxm.Doxm) map[string]DeviceDetails {
 	for _, o := range owns {
 		v := o
 		d, ok := devs[o.DeviceID]

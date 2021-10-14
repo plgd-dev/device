@@ -26,7 +26,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDev
 }
 
 func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID string, links schema.ResourceLinks) error {
-	link, err := core.GetResourceLink(links, "/oic/sec/acl2")
+	link, err := core.GetResourceLink(links, acl.ResourceURI)
 	if err != nil {
 		return err
 	}

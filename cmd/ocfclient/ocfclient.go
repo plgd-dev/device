@@ -10,6 +10,7 @@ import (
 	"time"
 
 	local "github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/kit/v2/codec/json"
 )
 
@@ -110,7 +111,7 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 	defer cancel()
 
 	var got interface{} // map[string]interface{}
-	opts := []local.GetOption{local.WithInterface("oic.if.baseline")}
+	opts := []local.GetOption{local.WithInterface(interfaces.OC_IF_BASELINE)}
 	err := c.client.GetResource(ctx, deviceID, href, &got, opts...)
 	if err != nil {
 		return "", err
@@ -131,7 +132,7 @@ func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
-	opts := []local.UpdateOption{local.WithInterface("oic.if.rw")}
+	opts := []local.UpdateOption{local.WithInterface(interfaces.OC_IF_RW)}
 	err := c.client.UpdateResource(ctx, deviceID, href, data, nil, opts...)
 	if err != nil {
 		return "", err

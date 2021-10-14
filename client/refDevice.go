@@ -6,6 +6,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/kit/v2/sync"
 )
 
@@ -138,6 +139,6 @@ func (d *RefDevice) Reboot(ctx context.Context, links schema.ResourceLinks) erro
 	return d.Device().Reboot(ctx, links)
 }
 
-func (d *RefDevice) GetOwnership(ctx context.Context, links schema.ResourceLinks) (schema.Doxm, error) {
+func (d *RefDevice) GetOwnership(ctx context.Context, links schema.ResourceLinks) (doxm.Doxm, error) {
 	return d.Device().GetOwnership(ctx, links)
 }
