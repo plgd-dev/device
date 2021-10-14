@@ -91,7 +91,9 @@ func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 	_, links, err := c.client.GetRefDevice(ctx, deviceID)
-
+	if err != nil {
+		return "", err
+	}
 	resourcesInfo := []map[string]interface{}{}
 	for _, link := range links {
 		info := map[string]interface{}{"href": link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
@@ -119,11 +121,14 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 
 	var resourceJSON bytes.Buffer
 	resourceBytes, err := json.Encode(got)
+	if err != nil {
+		return "", err
+	}
 	err = enjson.Indent(&resourceJSON, resourceBytes, "", "    ")
 	if err != nil {
 		return "", err
 	}
-	return string(resourceJSON.Bytes()), nil
+	return resourceJSON.String(), nil
 }
 
 // Update a resource of the device
