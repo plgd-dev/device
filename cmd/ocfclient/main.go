@@ -16,7 +16,6 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/plgd-dev/device/app"
 	"github.com/plgd-dev/kit/v2/security"
 	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 
@@ -333,11 +332,11 @@ func generateRootCA(certConfig generateCertificate.Configuration, outCert, outKe
 	if err != nil {
 		return err
 	}
-	WriteCertOut(outCert, cert)
+	err = WriteCertOut(outCert, cert)
 	if err != nil {
 		return err
 	}
-	WritePrivateKey(outKey, priv)
+	err = WritePrivateKey(outKey, priv)
 	if err != nil {
 		return err
 	}
@@ -361,11 +360,11 @@ func generateIntermediateCertificate(certConfig generateCertificate.Configuratio
 	if err != nil {
 		return err
 	}
-	WriteCertOut(outCert, cert)
+	err = WriteCertOut(outCert, cert)
 	if err != nil {
 		return err
 	}
-	WritePrivateKey(outKey, priv)
+	err = WritePrivateKey(outKey, priv)
 	if err != nil {
 		return err
 	}
@@ -389,11 +388,11 @@ func generateIdentityCertificate(certConfig generateCertificate.Configuration, i
 	if err != nil {
 		return err
 	}
-	WriteCertOut(outCert, cert)
+	err = WriteCertOut(outCert, cert)
 	if err != nil {
 		return err
 	}
-	WritePrivateKey(outKey, priv)
+	err = WritePrivateKey(outKey, priv)
 	if err != nil {
 		return err
 	}
@@ -443,21 +442,6 @@ func pemBlockForKey(k *ecdsa.PrivateKey) (*pem.Block, error) {
 	return &pem.Block{Type: "EC PRIVATE KEY", Bytes: b}, nil
 }
 
-func NewClient() *local.Client {
-	appCallback, err := app.NewApp(nil)
-	if err != nil {
-		panic(err)
-	}
-	c, err := local.NewClientFromConfig(&local.Config{
-		KeepAliveConnectionTimeoutSeconds: 3600,
-		ObserverPollingIntervalSeconds:    10,
-	}, appCallback, test.NewIdentityCertificateSigner, func(error) {})
-	if err != nil {
-		panic(err)
-	}
-	return c
-}
-
 func NewSecureClient() (*local.Client, error) {
 
 	var cfg local.Config
@@ -489,14 +473,14 @@ func NewSecureClient() (*local.Client, error) {
 			}
 			setupSecureClient.mfgCA = mfgCA
 		} else {
-			fmt.Errorf("mfgTrustedCABlock is empty")
+			return nil, fmt.Errorf("mfgTrustedCABlock is empty")
 		}
 	}
 
 	if len(MfgCert) > 0 && len(MfgKey) > 0 {
 		mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 		if err != nil {
-			fmt.Errorf("cannot X509KeyPair: %w", err)
+			return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
 		} else {
 			setupSecureClient.mfgCert = mfgCert
 		}
@@ -509,9 +493,9 @@ func NewSecureClient() (*local.Client, error) {
 		}
 		identityTrustedCACert, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
 		if err != nil {
-			fmt.Errorf("cannot parse cert: %w", err)
+			return nil, fmt.Errorf("cannot parse cert: %w", err)
 		} else {
-			setupSecureClient.ca = append(identityTrustedCACert)
+			setupSecureClient.ca = identityTrustedCACert
 		}
 	}
 
@@ -550,7 +534,7 @@ func main() {
 	parser := flags.NewParser(&opts, flags.Default)
 	_, err := parser.Parse()
 	if err != nil {
-		fmt.Println("Parsing command options was failed : " + err.Error())
+		fmt.Println("Parsing command options has failed : " + err.Error())
 	}
 
 	// Read Command Options
@@ -560,7 +544,7 @@ func main() {
 	client := OCFClient{}
 	err = client.Initialize()
 	if err != nil {
-		fmt.Println("OCF Client was failed to initialize : " + err.Error())
+		fmt.Println("OCF Client has failed to initialize : " + err.Error())
 	}
 
 	// Console Input
@@ -571,21 +555,18 @@ func scanner(client OCFClient) {
 
 	scanner := bufio.NewScanner(os.Stdin)
 	printMenu()
-	var selMenu int64 = 0
 	for scanner.Scan() {
-		selMenu, _ = strconv.ParseInt(scanner.Text(), 10, 32)
+		selMenu, _ := strconv.ParseInt(scanner.Text(), 10, 32)
 		switch selMenu {
 		case 0:
 			printMenu()
-			break
 		case 1:
 			res, err := client.Discover(30)
 			if err != nil {
-				println("\nDiscovering devices was failed : " + err.Error())
+				println("\nDiscovering devices has failed : " + err.Error())
 				break
 			}
 			println("\nDiscovered devices : \n" + res)
-			break
 		case 2:
 			// Select Device
 			print("\nInput device ID : ")
@@ -593,11 +574,10 @@ func scanner(client OCFClient) {
 			deviceID := scanner.Text()
 			res, err := client.OwnDevice(deviceID)
 			if err != nil {
-				println("\nTransferring Ownership was failed : " + err.Error())
+				println("\nTransferring Ownership has failed : " + err.Error())
 				break
 			}
 			println("\nTransferring Ownership of " + deviceID + " was successful : \n" + res)
-			break
 		case 3:
 			// Select Device
 			print("\nInput device ID : ")
@@ -605,11 +585,10 @@ func scanner(client OCFClient) {
 			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
-				println("\nGetting Resources was failed : " + err.Error())
+				println("\nGetting Resources has failed : " + err.Error())
 				break
 			}
 			println("\nResources of " + deviceID + " : \n" + res)
-			break
 		case 4:
 			// Select Device
 			print("\nInput device ID : ")
@@ -617,7 +596,7 @@ func scanner(client OCFClient) {
 			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
-				println("\nGetting Resources was failed : " + err.Error())
+				println("\nGetting Resources has failed : " + err.Error())
 				break
 			}
 			println("\nResources of " + deviceID + " : \n" + res)
@@ -628,11 +607,10 @@ func scanner(client OCFClient) {
 			href := scanner.Text()
 			aRes, err := client.GetResource(deviceID, href)
 			if err != nil {
-				println("\nGetting Resource was failed : " + err.Error())
+				println("\nGetting Resource has failed : " + err.Error())
 				break
 			}
 			println("\nResource properties of " + deviceID + href + " : \n" + aRes)
-			break
 		case 5:
 			// Select Device
 			print("\nInput device ID : ")
@@ -640,7 +618,7 @@ func scanner(client OCFClient) {
 			deviceID := scanner.Text()
 			res, err := client.GetResources(deviceID)
 			if err != nil {
-				println("\nGetting Resources was failed : " + err.Error())
+				println("\nGetting Resources has failed : " + err.Error())
 				break
 			}
 			println("\nResources of " + deviceID + " : \n" + res)
@@ -651,7 +629,7 @@ func scanner(client OCFClient) {
 			href := scanner.Text()
 			aRes, err := client.GetResource(deviceID, href)
 			if err != nil {
-				println("\nGetting Resource was failed : " + err.Error())
+				println("\nGetting Resource has failed : " + err.Error())
 				break
 			}
 			println("\nResource properties of " + deviceID + href + " : \n" + aRes)
@@ -669,16 +647,22 @@ func scanner(client OCFClient) {
 			jsonString := "{\"" + key + "\": " + value + "}"
 			var data interface{}
 			err = json.Decode([]byte(jsonString), &data)
+			if err != nil {
+				println("\nDecoding resource property has failed : " + err.Error())
+				break
+			}
 			dataBytes, err := json.Encode(data)
+			if err != nil {
+				println("\nEncoding resource property has failed : " + err.Error())
+				break
+			}
 			println("\nProperty data to update : " + string(dataBytes))
 			_, err = client.UpdateResource(deviceID, href, data)
 			if err != nil {
-				println("\nUpdating resource property was failed : " + err.Error())
+				println("\nUpdating resource property has failed : " + err.Error())
 				break
 			}
 			println("\nUpdating resource property of " + deviceID + href + " was successful.")
-			break
-
 		case 6:
 			// Select Device
 			print("\nInput device ID : ")
@@ -686,16 +670,14 @@ func scanner(client OCFClient) {
 			deviceID := scanner.Text()
 			err := client.DisownDevice(deviceID)
 			if err != nil {
-				println("\nOff-boarding was failed : " + err.Error())
+				println("\nOff-boarding has failed : " + err.Error())
 				break
 			}
 			println("\nOff-boarding " + deviceID + " was successful.")
-			break
 		case 99:
 			// Close Client
 			client.Close()
 			os.Exit(0)
-			break
 		}
 		printMenu()
 	}

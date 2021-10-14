@@ -598,7 +598,7 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		deadline, ok := ctx.Deadline()
 		if ok {
 			dopts = append(dopts, tcp.WithDialer(&net.Dialer{
-				Timeout: deadline.Sub(time.Now()),
+				Timeout: time.Until(deadline),
 			}))
 		}
 	}
@@ -738,7 +738,7 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 		deadline, ok := ctx.Deadline()
 		if ok {
 			dopts = append(dopts, dtls.WithDialer(&net.Dialer{
-				Timeout: deadline.Sub(time.Now()),
+				Timeout: time.Until(deadline),
 			}))
 		}
 	}
