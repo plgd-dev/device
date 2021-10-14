@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 )
 
 // OwnershipHandler conveys device ownership and errors during discovery.
 type OwnershipHandler interface {
 	// Handle gets a device ownership.
-	Handle(ctx context.Context, doxm schema.Doxm)
+	Handle(ctx context.Context, doxm doxm.Doxm)
 	// Error gets errors during discovery.
 	Error(err error)
 }
@@ -49,7 +49,7 @@ type ownershipHandler struct {
 	handler OwnershipHandler
 }
 
-func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm schema.Doxm) {
+func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm doxm.Doxm) {
 	conn.Close()
 	h.handler.Handle(ctx, doxm)
 }

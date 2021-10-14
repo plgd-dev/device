@@ -1,7 +1,12 @@
-package schema
-
 // Platform info
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.p.swagger.json
+package platform
+
+const (
+	ResourceType = "oic.wk.p"
+	ResourceURI  = "/oic/p"
+)
+
 type Platform struct {
 	Interfaces                      []string `json:"if,omitempty"`
 	ResourceTypes                   []string `json:"rt,omitempty"`

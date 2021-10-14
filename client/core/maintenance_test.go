@@ -7,12 +7,13 @@ import (
 
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
 
 func sepEpToLinks(t *testing.T, links schema.ResourceLinks) schema.ResourceLinks {
-	dlink, err := ocf.GetResourceLink(links, "/oic/d")
+	dlink, err := ocf.GetResourceLink(links, device.ResourceURI)
 	require.NoError(t, err)
 	updateLinks := make(schema.ResourceLinks, 0, len(links))
 	for _, l := range links {

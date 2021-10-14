@@ -8,8 +8,10 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
-
+	testTypes "github.com/plgd-dev/device/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,13 +33,13 @@ LOOP:
 	for {
 		select {
 		case res := <-h.res:
-			if res.Link.Href == "/oic/d" {
+			if res.Link.Href == device.ResourceURI {
 				res.Link.Endpoints = nil
 				require.Equal(t, client.DeviceResourcesObservationEvent{
 					Link: schema.ResourceLink{
-						Href:          "/oic/d",
-						ResourceTypes: []string{"oic.d.cloudDevice", "oic.wk.d"},
-						Interfaces:    []string{"oic.if.r", "oic.if.baseline"},
+						Href:          device.ResourceURI,
+						ResourceTypes: []string{testTypes.DEVICE_CLOUD, device.ResourceType},
+						Interfaces:    []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
 						Anchor:        "ocf://" + deviceID,
 						Policy: &schema.Policy{
 							BitMask: schema.Discoverable | schema.Observable,

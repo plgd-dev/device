@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	ResourceType = "oic.r.acl2"
+	ResourceURI  = "/oic/sec/acl2"
+)
+
 type Response struct {
 	ResourceOwner     string          `json:"rowneruuid"`
 	Interfaces        []string        `json:"if"`
@@ -80,10 +85,12 @@ type Resource struct {
 	Wildcard      ResourceWildcard `json:"wc,omitempty"`
 }
 
-var AllResources = []Resource{Resource{
-	Interfaces: []string{"*"},
-	Wildcard:   ResourceWildcard_NONCFG_ALL,
-}}
+var AllResources = []Resource{
+	{
+		Interfaces: []string{"*"},
+		Wildcard:   ResourceWildcard_NONCFG_ALL,
+	},
+}
 
 type ResourceWildcard string
 

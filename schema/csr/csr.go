@@ -1,4 +1,11 @@
-package schema
+// Certificate Signing Request
+// https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.csr.swagger.json
+package csr
+
+const (
+	ResourceType = "oic.r.csr"
+	ResourceURI  = "/oic/sec/csr"
+)
 
 type CertificateSigningRequestResponse struct {
 	Interfaces                []string            `json:"if"`

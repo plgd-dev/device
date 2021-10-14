@@ -8,9 +8,11 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/pkg/net/coap"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/schema/csr"
+	"github.com/plgd-dev/device/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
@@ -18,8 +20,8 @@ import (
 //csr is encoded by PEM and returns PEM
 type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...kitNetCoap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
+type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
 
 type Client struct {
 	manufacturerCertificate tls.Certificate
@@ -69,8 +71,8 @@ func NewClient(
 	return &c
 }
 
-func (*Client) Type() schema.OwnerTransferMethod {
-	return schema.ManufacturerCertificate
+func (*Client) Type() doxm.OwnerTransferMethod {
+	return doxm.ManufacturerCertificate
 }
 
 func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
@@ -103,8 +105,8 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
 
-func encodeToPem(encoding schema.CertificateEncoding, data []byte) []byte {
-	if encoding == schema.CertificateEncoding_DER {
+func encodeToPem(encoding csr.CertificateEncoding, data []byte) []byte {
+	if encoding == csr.CertificateEncoding_DER {
 		return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: data})
 	}
 	return data
@@ -112,13 +114,13 @@ func encodeToPem(encoding schema.CertificateEncoding, data []byte) []byte {
 
 func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error {
 	/*setup credentials - PostOwnerCredential*/
-	var csr schema.CertificateSigningRequestResponse
-	err := tlsClient.GetResource(ctx, "/oic/sec/csr", &csr)
+	var r csr.CertificateSigningRequestResponse
+	err := tlsClient.GetResource(ctx, csr.ResourceURI, &r)
 	if err != nil {
 		return fmt.Errorf("cannot get csr for setup device owner credentials: %w", err)
 	}
 
-	pemCSR := encodeToPem(csr.Encoding, csr.CSR())
+	pemCSR := encodeToPem(r.Encoding, r.CSR())
 
 	signedCsr, err := c.sign(ctx, pemCSR)
 	if err != nil {
@@ -127,50 +129,50 @@ func (c *Client) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 
 	certsFromChain, err := kitSecurity.ParseX509FromPEM(signedCsr)
 	if err != nil {
-		return fmt.Errorf("Failed to parse chain of X509 certs: %w", err)
+		return fmt.Errorf("failed to parse chain of X509 certs: %w", err)
 	}
 
-	var deviceCredential schema.CredentialResponse
-	err = tlsClient.GetResource(ctx, "/oic/sec/cred", &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
+	var deviceCredential credential.CredentialResponse
+	err = tlsClient.GetResource(ctx, credential.ResourceURI, &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
 	if err != nil {
 		return fmt.Errorf("cannot get device credential to setup device owner credentials: %w", err)
 	}
 
 	for _, cred := range deviceCredential.Credentials {
 		switch {
-		case cred.Usage == schema.CredentialUsage_CERT && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-			cred.Usage == schema.CredentialUsage_TRUST_CA && cred.Type == schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-			err = tlsClient.DeleteResource(ctx, "/oic/sec/cred", nil, kitNetCoap.WithCredentialId(cred.ID))
+		case cred.Usage == credential.CredentialUsage_CERT && cred.Type == credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+			cred.Usage == credential.CredentialUsage_TRUST_CA && cred.Type == credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
+			err = tlsClient.DeleteResource(ctx, credential.ResourceURI, nil, kitNetCoap.WithCredentialId(cred.ID))
 			if err != nil {
 				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %w", cred.ID, cred.Usage, err)
 			}
 		}
 	}
 
-	setIdentityDeviceCredential := schema.CredentialUpdateRequest{
+	setIdentityDeviceCredential := credential.CredentialUpdateRequest{
 		ResourceOwner: ownerID,
-		Credentials: []schema.Credential{
-			schema.Credential{
+		Credentials: []credential.Credential{
+			{
 				Subject: deviceID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_CERT,
-				PublicData: &schema.CredentialPublicData{
+				Type:    credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   credential.CredentialUsage_CERT,
+				PublicData: &credential.CredentialPublicData{
 					DataInternal: string(signedCsr),
-					Encoding:     schema.CredentialPublicDataEncoding_PEM,
+					Encoding:     credential.CredentialPublicDataEncoding_PEM,
 				},
 			},
-			schema.Credential{
+			{
 				Subject: ownerID,
-				Type:    schema.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-				Usage:   schema.CredentialUsage_TRUST_CA,
-				PublicData: &schema.CredentialPublicData{
+				Type:    credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
+				Usage:   credential.CredentialUsage_TRUST_CA,
+				PublicData: &credential.CredentialPublicData{
 					DataInternal: string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certsFromChain[len(certsFromChain)-1].Raw})),
-					Encoding:     schema.CredentialPublicDataEncoding_PEM,
+					Encoding:     credential.CredentialPublicDataEncoding_PEM,
 				},
 			},
 		},
 	}
-	err = tlsClient.UpdateResource(ctx, "/oic/sec/cred", setIdentityDeviceCredential, nil)
+	err = tlsClient.UpdateResource(ctx, credential.ResourceURI, setIdentityDeviceCredential, nil)
 	if err != nil {
 		return fmt.Errorf("cannot set device identity credentials: %w", err)
 	}

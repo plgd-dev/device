@@ -1,11 +1,18 @@
-package schema
+// Credential
+// https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
+package credential
 
 import (
 	"fmt"
 	"strings"
+
+	"github.com/plgd-dev/device/schema/csr"
 )
 
-// https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.cred.swagger.json
+const (
+	ResourceType = "oic.r.cred"
+	ResourceURI  = "/oic/sec/cred"
+)
 
 type Credential struct {
 	ID                      int                       `json:"credid,omitempty"`
@@ -118,8 +125,8 @@ const (
 	CredentialOptionalDataEncoding_JWT    CredentialOptionalDataEncoding = "oic.sec.encoding.jwt"
 	CredentialOptionalDataEncoding_CWT    CredentialOptionalDataEncoding = "oic.sec.encoding.cwt"
 	CredentialOptionalDataEncoding_BASE64 CredentialOptionalDataEncoding = "oic.sec.encoding.base64"
-	CredentialOptionalDataEncoding_PEM    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(CertificateEncoding_PEM)
-	CredentialOptionalDataEncoding_DER    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(CertificateEncoding_DER) // iotivity-lite doesn't support it
+	CredentialOptionalDataEncoding_PEM    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(csr.CertificateEncoding_PEM)
+	CredentialOptionalDataEncoding_DER    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(csr.CertificateEncoding_DER) // iotivity-lite doesn't support it
 	CredentialOptionalDataEncoding_RAW    CredentialOptionalDataEncoding = "oic.sec.encoding.raw"
 )
 
@@ -178,8 +185,8 @@ const (
 	CredentialPublicDataEncoding_CWT    CredentialPublicDataEncoding = "oic.sec.encoding.cwt"
 	CredentialPublicDataEncoding_BASE64 CredentialPublicDataEncoding = "oic.sec.encoding.base64"
 	CredentialPublicDataEncoding_URI    CredentialPublicDataEncoding = "oic.sec.encoding.uri"
-	CredentialPublicDataEncoding_PEM    CredentialPublicDataEncoding = CredentialPublicDataEncoding(CertificateEncoding_PEM)
-	CredentialPublicDataEncoding_DER    CredentialPublicDataEncoding = CredentialPublicDataEncoding(CertificateEncoding_DER) // iotivity-lite doesn't support it
+	CredentialPublicDataEncoding_PEM    CredentialPublicDataEncoding = CredentialPublicDataEncoding(csr.CertificateEncoding_PEM)
+	CredentialPublicDataEncoding_DER    CredentialPublicDataEncoding = CredentialPublicDataEncoding(csr.CertificateEncoding_DER) // iotivity-lite doesn't support it
 	CredentialPublicDataEncoding_RAW    CredentialPublicDataEncoding = "oic.sec.encoding.raw"
 )
 

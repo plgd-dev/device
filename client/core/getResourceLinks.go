@@ -6,6 +6,7 @@ import (
 
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/resources"
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/kit/v2/net"
 )
@@ -15,7 +16,7 @@ func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientClo
 	var links schema.ResourceLinks
 
 	var codec DiscoverDeviceCodec
-	err := client.GetResourceWithCodec(ctx, "/oic/res", codec, &links, options...)
+	err := client.GetResourceWithCodec(ctx, resources.ResourceURI, codec, &links, options...)
 
 	if err != nil {
 		return nil, err

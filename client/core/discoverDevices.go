@@ -11,6 +11,7 @@ import (
 
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/resources"
 	"github.com/plgd-dev/kit/v2/codec/ocf"
 	"github.com/plgd-dev/kit/v2/net"
 )
@@ -33,7 +34,7 @@ func DiscoverDevices(
 	options ...coap.OptionFunc,
 ) error {
 	options = append(options, coap.WithAccept(message.AppOcfCbor))
-	return Discover(ctx, conn, "/oic/res", handleResponse(ctx, handler), options...)
+	return Discover(ctx, conn, resources.ResourceURI, handleResponse(ctx, handler), options...)
 }
 
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*client.ClientConn, *pool.Message) {

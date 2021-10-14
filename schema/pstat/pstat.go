@@ -1,11 +1,16 @@
-package schema
+// Device Provisioning Status
+// https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
+package pstat
 
 import (
 	"fmt"
 	"strings"
 )
 
-//https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
+const (
+	ResourceType = "oic.r.pstat"
+	ResourceURI  = "/oic/sec/pstat"
+)
 
 type DeviceOnboardingState struct {
 	Pending                          bool             `json:"p,omitempty"`

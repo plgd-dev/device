@@ -6,13 +6,15 @@ import (
 
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/interfaces"
 )
 
 // GetOwnership gets device's ownership resource.
-func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (schema.Doxm, error) {
-	ownLink, ok := links.GetResourceLink(schema.DoxmHref)
+func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (doxm.Doxm, error) {
+	ownLink, ok := links.GetResourceLink(doxm.ResourceURI)
 	if !ok {
-		return schema.Doxm{}, fmt.Errorf("not found")
+		return doxm.Doxm{}, fmt.Errorf("not found")
 	}
 	getOwnlink := ownLink
 	getOwnlink.Endpoints = ownLink.GetUnsecureEndpoints()
@@ -20,7 +22,7 @@ func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (
 		getOwnlink.Endpoints = ownLink.GetSecureEndpoints()
 	}
 
-	var ownership schema.Doxm
-	err := d.GetResource(ctx, getOwnlink, &ownership, coap.WithInterface("oic.if.baseline"))
+	var ownership doxm.Doxm
+	err := d.GetResource(ctx, getOwnlink, &ownership, coap.WithInterface(interfaces.OC_IF_BASELINE))
 	return ownership, err
 }

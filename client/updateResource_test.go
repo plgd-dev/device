@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema/configuration"
+	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +30,7 @@ func TestClient_UpdateResource(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
-				href:     "/oc/con",
+				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
 					"n": t.Name() + "-valid",
 				},
@@ -41,11 +43,11 @@ func TestClient_UpdateResource(t *testing.T) {
 			name: "valid with interface",
 			args: args{
 				deviceID: deviceID,
-				href:     "/oc/con",
+				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
 					"n": t.Name() + "-valid with interface",
 				},
-				opts: []client.UpdateOption{client.WithInterface("oic.if.baseline")},
+				opts: []client.UpdateOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
 			},
 			want: map[interface{}]interface{}{
 				"n": t.Name() + "-valid with interface",
@@ -55,7 +57,7 @@ func TestClient_UpdateResource(t *testing.T) {
 			name: "valid - revert update",
 			args: args{
 				deviceID: deviceID,
-				href:     "/oc/con",
+				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
 					"n": test.TestDeviceName,
 				},

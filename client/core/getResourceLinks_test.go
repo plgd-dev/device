@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
 
 	"github.com/stretchr/testify/require"
@@ -45,22 +46,22 @@ func TestDevice_GetResourceLinks(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
+			dev, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
-			defer device.Close(timeout)
-			eps := device.GetEndpoints()
-			links, err := device.GetResourceLinks(timeout, eps)
+			defer dev.Close(timeout)
+			eps := dev.GetEndpoints()
+			links, err := dev.GetResourceLinks(timeout, eps)
 			require.NoError(err)
 
-			dlink, err := core.GetResourceLink(links, "/oic/d")
+			dlink, err := core.GetResourceLink(links, device.ResourceURI)
 			require.NoError(err)
-			got, err := device.GetResourceLinks(timeout, dlink.GetEndpoints())
+			got, err := dev.GetResourceLinks(timeout, dlink.GetEndpoints())
 			if tt.wantErr {
 				require.Error(err)
-			} else {
-				require.NoError(err)
-				require.NotEmpty(got)
+				return
 			}
+			require.NoError(err)
+			require.NotEmpty(got)
 		})
 	}
 }

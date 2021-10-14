@@ -1,3 +1,5 @@
+// ResourceLink provides a link for retrieving details for its resource types:
+// https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 package schema
 
 import (
@@ -10,8 +12,6 @@ import (
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
-// ResourceLink provides a link for retrieving details for its resource types:
-// https://github.com/openconnectivityfoundation/core/blob/OCF-v2.0.0/schemas/oic.oic-link-schema.json
 type ResourceLink struct {
 	ID                    string    `json:"id,omitempty"`
 	Href                  string    `json:"href"`

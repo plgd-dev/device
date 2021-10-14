@@ -17,6 +17,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/kit/v2/security"
 )
 
@@ -47,12 +48,12 @@ type findDeviceIDByNameHandler struct {
 	cancel context.CancelFunc
 }
 
-func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, device *core.Device) {
-	defer device.Close(ctx)
-	eps := device.GetEndpoints()
-	var d schema.Device
-	err := device.GetResource(ctx, schema.ResourceLink{
-		Href:      "/oic/d",
+func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, dev *core.Device) {
+	defer dev.Close(ctx)
+	eps := dev.GetEndpoints()
+	var d device.Device
+	err := dev.GetResource(ctx, schema.ResourceLink{
+		Href:      device.ResourceURI,
 		Endpoints: eps,
 	}, &d)
 	if err != nil {

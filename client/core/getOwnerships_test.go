@@ -9,7 +9,7 @@ import (
 	"go.uber.org/atomic"
 
 	ocf "github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
 
 	"github.com/stretchr/testify/require"
@@ -62,7 +62,7 @@ type testOwnerShipHandler struct {
 	anyFound atomic.Bool
 }
 
-func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm schema.Doxm) {
+func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm doxm.Doxm) {
 	h.anyFound.Store(true)
 }
 

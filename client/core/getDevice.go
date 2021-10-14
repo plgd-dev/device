@@ -8,6 +8,7 @@ import (
 
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/go-coap/v2/udp/client"
 )
 
@@ -36,7 +37,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), ANY_DEVICE, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device from ip %s: %w", ip, err))
 	}
@@ -65,7 +66,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType("oic.wk.d"))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
@@ -112,7 +113,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 	h.lock.Lock()
 	defer h.lock.Unlock()
 
-	link, err := GetResourceLink(links, "/oic/d")
+	link, err := GetResourceLink(links, device.ResourceURI)
 	if err != nil {
 		h.err = err
 		return

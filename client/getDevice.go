@@ -7,6 +7,9 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/interfaces"
 )
 
 func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
@@ -98,16 +101,16 @@ func (c *Client) GetRefDevice(
 func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
 	cfg := getDeviceOptions{
 		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-			link := links.GetResourceLinks("oic.wk.d")
+			link := links.GetResourceLinks(device.ResourceType)
 			if len(link) == 0 {
 				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
 			}
-			var device schema.Device
-			err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+			var dev device.Device
+			err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
 			if err != nil {
 				return nil, err
 			}
-			return &device, nil
+			return &dev, nil
 		},
 	}
 	for _, o := range opts {
@@ -124,9 +127,9 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	var doxm schema.Doxm
+	var d doxm.Doxm
 	if devDetails.IsSecured {
-		doxm, err = refDev.GetOwnership(ctx, links)
+		d, err = refDev.GetOwnership(ctx, links)
 	}
 	if err != nil {
 		return DeviceDetails{}, err
@@ -135,8 +138,8 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 
 	return setOwnership(ownerID, map[string]DeviceDetails{
 		devDetails.ID: devDetails,
-	}, map[string]schema.Doxm{
-		doxm.DeviceID: doxm,
+	}, map[string]doxm.Doxm{
+		d.DeviceID: d,
 	})[devDetails.ID], nil
 }
 
@@ -144,16 +147,16 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
 	cfg := getDeviceByIPOptions{
 		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-			link := links.GetResourceLinks("oic.wk.d")
+			link := links.GetResourceLinks(device.ResourceType)
 			if len(link) == 0 {
 				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
 			}
-			var device schema.Device
-			err := d.GetResource(ctx, link[0], &device, kitNetCoap.WithInterface("oic.if.baseline"))
+			var dev device.Device
+			err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
 			if err != nil {
 				return nil, err
 			}
-			return &device, nil
+			return &dev, nil
 		},
 	}
 	for _, o := range opts {
@@ -170,9 +173,9 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	var doxm schema.Doxm
+	var d doxm.Doxm
 	if devDetails.IsSecured {
-		doxm, err = refDev.GetOwnership(ctx, links)
+		d, err = refDev.GetOwnership(ctx, links)
 	}
 	if err != nil {
 		return DeviceDetails{}, err
@@ -181,7 +184,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 
 	return setOwnership(ownerID, map[string]DeviceDetails{
 		devDetails.ID: devDetails,
-	}, map[string]schema.Doxm{
-		doxm.DeviceID: doxm,
+	}, map[string]doxm.Doxm{
+		d.DeviceID: d,
 	})[devDetails.ID], nil
 }
