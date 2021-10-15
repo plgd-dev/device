@@ -15,6 +15,7 @@ import (
 	ocf "github.com/plgd-dev/device/client/core"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
+	pkgError "github.com/plgd-dev/device/pkg/error"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/test"
@@ -80,12 +81,12 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	var manOpts []manufacturer.OptionFunc
 	if disableDTLS {
 		manOpts = append(manOpts, manufacturer.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-			return nil, fmt.Errorf("not supported")
+			return nil, pkgError.NotSupported()
 		}))
 	}
 	if disableTCPTLS {
 		manOpts = append(manOpts, manufacturer.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-			return nil, fmt.Errorf("not supported")
+			return nil, pkgError.NotSupported()
 		}))
 	}
 
@@ -95,12 +96,12 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	var opts []ocf.OptionFunc
 	if disableDTLS {
 		opts = append(opts, ocf.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-			return nil, fmt.Errorf("not supported")
+			return nil, pkgError.NotSupported()
 		}))
 	}
 	if disableTCPTLS {
 		opts = append(opts, ocf.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-			return nil, fmt.Errorf("not supported")
+			return nil, pkgError.NotSupported()
 		}))
 	}
 	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{

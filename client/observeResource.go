@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/client/core"
+	pkgError "github.com/plgd-dev/device/pkg/error"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v2/message"
 	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
@@ -25,7 +26,7 @@ func (c observerCodec) ContentFormat() message.MediaType { return c.contentForma
 
 // Encode propagates the payload without any conversions.
 func (c observerCodec) Encode(v interface{}) ([]byte, error) {
-	return nil, fmt.Errorf("not supported")
+	return nil, pkgError.NotSupported()
 }
 
 // Decode validates the content format and

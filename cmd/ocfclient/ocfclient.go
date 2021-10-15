@@ -32,21 +32,21 @@ type SetupSecureClient struct {
 
 func (c *SetupSecureClient) GetManufacturerCertificate() (tls.Certificate, error) {
 	if c.mfgCert.PrivateKey == nil {
-		return c.mfgCert, fmt.Errorf("not set")
+		return c.mfgCert, fmt.Errorf("private key not set")
 	}
 	return c.mfgCert, nil
 }
 
 func (c *SetupSecureClient) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.mfgCA) == 0 {
-		return nil, fmt.Errorf("not set")
+		return nil, fmt.Errorf("certificate authority not set")
 	}
 	return c.mfgCA, nil
 }
 
 func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.ca) == 0 {
-		return nil, fmt.Errorf("not set")
+		return nil, fmt.Errorf("certificate authorities not set")
 	}
 	return c.ca, nil
 }

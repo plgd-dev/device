@@ -199,6 +199,10 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 	return d.UpdateResource(ctx, link, setACL, nil)
 }
 
+func disownError(err error) error {
+	return fmt.Errorf("cannot disown device: %w", err)
+}
+
 // Own set ownership of device
 func (d *Device) Own(
 	ctx context.Context,
@@ -343,7 +347,7 @@ func (d *Device) Own(
 	err = tlsClient.GetResource(ctx, doxm.ResourceURI, &verifyOwner)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeUnavailable(fmt.Errorf("cannot verify owner %w", err))
 	}
@@ -364,7 +368,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setOwnerProvisionState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeInternal(fmt.Errorf("cannot set owner of resource pstat %w", err))
 	}
@@ -376,7 +380,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, acl.ResourceURI, setOwnerACL, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeInternal(fmt.Errorf("cannot set owner of resource acl2: %w", err))
 	}
@@ -385,7 +389,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeInternal(fmt.Errorf("cannot set device owned %w", err))
 	}
@@ -400,7 +404,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, provisionOperationState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
 	}
@@ -408,7 +412,7 @@ func (d *Device) Own(
 	links, err = getResourceLinks(ctx, tlsAddr, tlsClient, d.GetEndpoints())
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeUnavailable(fmt.Errorf("cannot get resource links: %w", err))
 	}
@@ -417,7 +421,7 @@ func (d *Device) Own(
 	err = d.setACL(ctx, links, sdkID)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return MakeInternal(fmt.Errorf("cannot update resource acl: %w", err))
 	}
@@ -426,14 +430,14 @@ func (d *Device) Own(
 	p, err := d.Provision(ctx, links)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return fmt.Errorf(errMsg, err)
 	}
 	err = p.Close(ctx)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(fmt.Errorf("cannot disown device: %w", errDisown))
+			d.cfg.errFunc(disownError(errDisown))
 		}
 		return fmt.Errorf(errMsg, err)
 	}

@@ -2,17 +2,16 @@ package core_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"go.uber.org/atomic"
 
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
-
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/atomic"
 )
 
 func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus ocf.DiscoverOwnershipStatus, found bool) {
@@ -66,4 +65,6 @@ func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm doxm.Doxm) {
 	h.anyFound.Store(true)
 }
 
-func (h *testOwnerShipHandler) Error(err error) {}
+func (h *testOwnerShipHandler) Error(err error) {
+	fmt.Print(err)
+}

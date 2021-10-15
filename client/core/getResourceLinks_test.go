@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDevice_GetResourceLinks(t *testing.T) {
+func TestDeviceGetResourceLinks(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
