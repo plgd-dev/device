@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_GetDeviceByIP_IP4(t *testing.T) {
+func TestClientGetDeviceByIPWithIP4(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.TestDeviceName, test.IP4)
 
 	c, err := NewTestSecureClient()
@@ -31,7 +31,7 @@ func TestClient_GetDeviceByIP_IP4(t *testing.T) {
 	require.NoError(t, err)
 }
 
-func TestClient_GetDeviceByIP_IP6(t *testing.T) {
+func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.TestSecureDeviceName, test.IP6)
 
 	c, err := NewTestSecureClient()

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/client/core"
+	pkgError "github.com/plgd-dev/device/pkg/error"
 )
 
 type deviceOwnershipNone struct {
@@ -36,17 +37,17 @@ func (o *deviceOwnershipNone) Initialization(ctx context.Context) error {
 }
 
 func (o *deviceOwnershipNone) GetIdentityCertificate() (tls.Certificate, error) {
-	return tls.Certificate{}, fmt.Errorf("not supported")
+	return tls.Certificate{}, pkgError.NotSupported()
 }
 
 func (o *deviceOwnershipNone) GetAccessTokenURL(ctx context.Context) (string, error) {
-	return "", fmt.Errorf("not supported")
+	return "", pkgError.NotSupported()
 }
 
 func (o *deviceOwnershipNone) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
-	return "", fmt.Errorf("not supported")
+	return "", pkgError.NotSupported()
 }
 
 func (o *deviceOwnershipNone) GetIdentityCACerts() ([]*x509.Certificate, error) {
-	return nil, fmt.Errorf("not supported")
+	return nil, pkgError.NotSupported()
 }

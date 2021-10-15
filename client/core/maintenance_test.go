@@ -25,7 +25,7 @@ func sepEpToLinks(t *testing.T, links schema.ResourceLinks) schema.ResourceLinks
 	return updateLinks
 }
 
-func TestDevice_Reboot(t *testing.T) {
+func TestDeviceReboot(t *testing.T) {
 	tests := []struct {
 		name    string
 		wantErr bool
@@ -64,7 +64,7 @@ func TestDevice_Reboot(t *testing.T) {
 	}
 }
 
-func TestDevice_FactoryReset(t *testing.T) {
+func TestDeviceFactoryReset(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()

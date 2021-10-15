@@ -4,11 +4,10 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"fmt"
 
 	"github.com/pion/dtls/v2"
+	pkgError "github.com/plgd-dev/device/pkg/error"
 	"github.com/plgd-dev/device/pkg/net/coap"
-
 	"github.com/plgd-dev/kit/v2/log"
 )
 
@@ -31,12 +30,12 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 	}
 	if cfg.GetCertificate == nil {
 		cfg.GetCertificate = func() (tls.Certificate, error) {
-			return tls.Certificate{}, MakeUnimplemented(fmt.Errorf("not supported"))
+			return tls.Certificate{}, MakeUnimplemented(pkgError.NotSupported())
 		}
 	}
 	if cfg.GetCertificateAuthorities == nil {
 		cfg.GetCertificateAuthorities = func() ([]*x509.Certificate, error) {
-			return nil, MakeUnimplemented(fmt.Errorf("not supported"))
+			return nil, MakeUnimplemented(pkgError.NotSupported())
 		}
 	}
 	return cfg

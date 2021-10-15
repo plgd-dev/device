@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 
+	pkgError "github.com/plgd-dev/device/pkg/error"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/kit/v2/codec/ocf"
@@ -15,7 +16,7 @@ func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.
 
 // Encode propagates the payload without any conversions.
 func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
-	return nil, MakeUnimplemented(fmt.Errorf("not supported"))
+	return nil, MakeUnimplemented(pkgError.NotSupported())
 }
 
 type deviceLink struct {

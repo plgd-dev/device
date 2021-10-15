@@ -11,6 +11,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
+	pkgError "github.com/plgd-dev/device/pkg/error"
 
 	"github.com/google/uuid"
 	"github.com/karrick/tparse/v2"
@@ -152,9 +153,9 @@ func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
 }
 
 func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {
-	return "", fmt.Errorf("not supported")
+	return "", pkgError.NotSupported()
 }
 
 func (o *deviceOwnershipSDK) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
-	return "", fmt.Errorf("not supported")
+	return "", pkgError.NotSupported()
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestDevice_GetEndpoints(t *testing.T) {
+func TestDeviceGetEndpoints(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(TestDeviceName)
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {

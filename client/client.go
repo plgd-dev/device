@@ -78,11 +78,14 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, createSigner func
 	if cfg.DisablePeerTCPSignalMessageCSMs {
 		dialOpts = append(dialOpts, coap.WithDialDisablePeerTCPSignalMessageCSMs())
 	}
-	if errors != nil {
-		dialOpts = append(dialOpts, coap.WithErrors(errors))
-	} else {
-		dialOpts = append(dialOpts, coap.WithErrors(func(error) {}))
+
+	errFn := func(error) {
+		// ignore error
 	}
+	if errors != nil {
+		errFn = errors
+	}
+	dialOpts = append(dialOpts, coap.WithErrors(errFn))
 	if cfg.DefaultTransferDurationSeconds > 0 {
 		dialOpts = append(dialOpts, coap.WithBlockwise(true, blockwise.SZX1024, time.Second*time.Duration(cfg.DefaultTransferDurationSeconds)))
 	} else {
