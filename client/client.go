@@ -12,6 +12,7 @@ import (
 	"github.com/pion/dtls/v2"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
@@ -168,7 +169,7 @@ func NewClient(
 	return &client, nil
 }
 
-type ownFunc = func(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error)
+type ownFunc = func(ctx context.Context, deviceID string, otmClient otm.Client, opts ...core.OwnOption) (string, error)
 
 type DeviceOwner interface {
 	Initialization(ctx context.Context) error

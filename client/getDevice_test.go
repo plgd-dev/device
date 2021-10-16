@@ -81,7 +81,7 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 	return a
 }
 
-func TestClient_GetDevice(t *testing.T) {
+func TestClientGetDevice(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
@@ -142,7 +142,7 @@ func TestClient_GetDevice(t *testing.T) {
 	}
 }
 
-func TestClient_GetDeviceByIP(t *testing.T) {
+func TestClientGetDeviceByIP(t *testing.T) {
 	deviceIDip4 := test.MustFindDeviceByName(test.TestDeviceName)
 	ip4 := test.MustFindDeviceIP(test.TestDeviceName, test.IP4)
 	deviceIDip6 := test.MustFindDeviceByName(test.TestSecureDeviceName)

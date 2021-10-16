@@ -2,10 +2,10 @@ package core
 
 import (
 	"context"
+	"fmt"
 	"time"
 
-	"fmt"
-
+	"github.com/plgd-dev/device/client/core/otm"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/acl"
@@ -20,12 +20,6 @@ import (
 	"github.com/plgd-dev/device/schema/sp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
-
-type OTMClient interface {
-	Type() doxm.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
-	ProvisionOwnerCredentials(ctx context.Context, client *kitNetCoap.ClientCloseHandler, ownerID, deviceID string) error
-}
 
 type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
 
@@ -207,7 +201,7 @@ func disownError(err error) error {
 func (d *Device) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
-	otmClient OTMClient,
+	otmClient otm.Client,
 	options ...OwnOption,
 ) error {
 	cfg := ownCfg{

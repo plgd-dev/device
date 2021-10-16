@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_OnboardDevice(t *testing.T) {
+func TestClientOnboardDevice(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceID              string

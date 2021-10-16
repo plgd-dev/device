@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/pkg/error"
@@ -93,7 +94,7 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 }
 
 func getOTMManufacturer(app ApplicationCallback, signer SignFunc, dialTLS core.DialTLS,
-	dialDTLS core.DialDTLS) (core.OTMClient, error) {
+	dialDTLS core.DialDTLS) (otm.Client, error) {
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err
@@ -111,7 +112,7 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	if err != nil {
 		return "", err
 	}
-	var otmClient core.OTMClient
+	var otmClient otm.Client
 	switch otmType {
 	case OTMType_Manufacturer:
 		otm, err := getOTMManufacturer(o.app, signer.Sign, o.dialTLS, o.dialDTLS)

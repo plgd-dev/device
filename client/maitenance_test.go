@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_FactoryReset(t *testing.T) {
+func TestClientFactoryReset(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
 
 	type args struct {

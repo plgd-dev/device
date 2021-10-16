@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
@@ -106,7 +107,7 @@ func (d *RefDevice) UpdateResourceWithCodec(
 func (d *RefDevice) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
-	otmClient core.OTMClient,
+	otmClient otm.Client,
 	ownOptions ...core.OwnOption,
 ) error {
 	return d.Device().Own(ctx, links, otmClient, ownOptions...)

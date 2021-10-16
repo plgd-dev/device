@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 )
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
@@ -29,7 +30,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, opts ...core.OwnOption) (string, error) {
+func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient otm.Client, opts ...core.OwnOption) (string, error) {
 	d, links, err := c.GetRefDevice(ctx, deviceID)
 	if err != nil {
 		return "", err
