@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_OwnDevice(t *testing.T) {
+func TestClientOwnDevice(t *testing.T) {
 	_ = test.MustFindDeviceByName(test.TestSecureDeviceName)
 	type args struct {
 		deviceName string
@@ -66,5 +66,4 @@ func TestClient_OwnDevice(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-
 }

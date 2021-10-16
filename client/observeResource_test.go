@@ -23,7 +23,7 @@ func TestObservingResource(t *testing.T) {
 	h := makeObservationHandler()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
-	id, err := c.ObserveResource(ctx, deviceID, "/light/1", h)
+	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
 	defer func(observationID string) {
 		err := c.StopObservingResource(ctx, observationID)
@@ -37,7 +37,7 @@ func TestObservingResource(t *testing.T) {
 	assert.Equal(t, uint64(0), d["power"].(uint64))
 
 	h2 := makeObservationHandler()
-	id, err = c.ObserveResource(ctx, deviceID, "/light/1", h2)
+	id, err = c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h2)
 	require.NoError(t, err)
 	defer func(observationID string) {
 		err := c.StopObservingResource(ctx, observationID)
@@ -50,7 +50,7 @@ func TestObservingResource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), d2["power"].(uint64))
 
-	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
+	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
 		"power": uint64(123),
 	}, nil)
 	require.NoError(t, err)
@@ -65,7 +65,7 @@ func TestObservingResource(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, uint64(123), d2["power"].(uint64))
 
-	err = c.UpdateResource(ctx, deviceID, "/light/1", map[string]interface{}{
+	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
 		"power": uint64(0),
 	}, nil)
 	assert.NoError(t, err)

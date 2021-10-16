@@ -18,6 +18,7 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/kit/v2/log"
 	"github.com/plgd-dev/kit/v2/security"
 )
 
@@ -65,7 +66,9 @@ func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, dev *core.Device
 	}
 }
 
-func (h *findDeviceIDByNameHandler) Error(err error) {}
+func (h *findDeviceIDByNameHandler) Error(err error) {
+	log.Debug(err)
+}
 
 func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ error) {
 	client := core.NewClient()
@@ -155,10 +158,7 @@ const (
 	IP6 IPType = 2
 )
 
-func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
-	deviceID := MustFindDeviceByName(deviceName)
-	client := core.NewClient()
-
+func getDiscoveryConfiguration(ipType IPType) core.DiscoveryConfiguration {
 	discoveryCfg := core.DefaultDiscoveryConfiguration()
 	switch ipType {
 	case IP4:
@@ -166,7 +166,13 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 	case IP6:
 		discoveryCfg.MulticastAddressUDP4 = nil
 	}
+	return discoveryCfg
+}
 
+func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
+	deviceID := MustFindDeviceByName(deviceName)
+	client := core.NewClient()
+	discoveryCfg := getDiscoveryConfiguration(ipType)
 	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
 	if err != nil {
 		return "", err

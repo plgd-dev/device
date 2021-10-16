@@ -5,11 +5,8 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/client/core"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/interfaces"
 )
 
 func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
@@ -98,32 +95,8 @@ func (c *Client) GetRefDevice(
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
 
-func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
-	cfg := getDeviceOptions{
-		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-			link := links.GetResourceLinks(device.ResourceType)
-			if len(link) == 0 {
-				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
-			}
-			var dev device.Device
-			err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
-			if err != nil {
-				return nil, err
-			}
-			return &dev, nil
-		},
-	}
-	for _, o := range opts {
-		cfg = o.applyOnGetDevice(cfg)
-	}
-
-	refDev, links, err := c.GetRefDevice(ctx, deviceID, opts...)
-	if err != nil {
-		return DeviceDetails{}, err
-	}
-	defer refDev.Release(ctx)
-
-	devDetails, err := refDev.GetDeviceDetails(ctx, links, cfg.getDetails)
+func (c *Client) getDevice(ctx context.Context, refDev *RefDevice, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
+	devDetails, err := refDev.GetDeviceDetails(ctx, links, getDetails)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
@@ -143,21 +116,26 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	})[devDetails.ID], nil
 }
 
+func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
+	cfg := getDeviceOptions{
+		getDetails: getDetails,
+	}
+	for _, o := range opts {
+		cfg = o.applyOnGetDevice(cfg)
+	}
+
+	refDev, links, err := c.GetRefDevice(ctx, deviceID, opts...)
+	if err != nil {
+		return DeviceDetails{}, err
+	}
+	defer refDev.Release(ctx)
+	return c.getDevice(ctx, refDev, links, cfg.getDetails)
+}
+
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
 	cfg := getDeviceByIPOptions{
-		getDetails: func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-			link := links.GetResourceLinks(device.ResourceType)
-			if len(link) == 0 {
-				return nil, fmt.Errorf("cannot find device resource at links %+v", links)
-			}
-			var dev device.Device
-			err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
-			if err != nil {
-				return nil, err
-			}
-			return &dev, nil
-		},
+		getDetails: getDetails,
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDeviceByIP(cfg)
@@ -168,23 +146,5 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 		return DeviceDetails{}, err
 	}
 	defer refDev.Release(ctx)
-
-	devDetails, err := refDev.GetDeviceDetails(ctx, links, cfg.getDetails)
-	if err != nil {
-		return DeviceDetails{}, err
-	}
-	var d doxm.Doxm
-	if devDetails.IsSecured {
-		d, err = refDev.GetOwnership(ctx, links)
-	}
-	if err != nil {
-		return DeviceDetails{}, err
-	}
-	ownerID, _ := c.client.GetSdkOwnerID()
-
-	return setOwnership(ownerID, map[string]DeviceDetails{
-		devDetails.ID: devDetails,
-	}, map[string]doxm.Doxm{
-		d.DeviceID: d,
-	})[devDetails.ID], nil
+	return c.getDevice(ctx, refDev, links, cfg.getDetails)
 }

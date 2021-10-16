@@ -12,6 +12,7 @@ import (
 
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 
 	jwt "github.com/golang-jwt/jwt/v4"
@@ -55,7 +56,7 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 }
 
 func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
-	var otmClient core.OTMClient
+	var otmClient otm.Client
 	switch otmType {
 	case OTMType_Manufacturer:
 		otm, err := getOTMManufacturer(o.app, o.sign, o.dialTLS, o.dialDTLS)

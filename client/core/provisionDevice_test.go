@@ -11,6 +11,7 @@ import (
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
+	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +50,7 @@ func TestProvisioning(t *testing.T) {
 	eps := d.GetEndpoints()
 	links, err := d.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
-	link, ok := links.GetResourceLink("/light/1")
+	link, ok := links.GetResourceLink(test.TestResourceLightInstanceHref("1"))
 	require.True(t, ok)
 	err = d.GetResource(ctx, link, nil)
 	require.NoError(t, err)

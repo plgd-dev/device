@@ -239,33 +239,33 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints)
 
 // PatchEndpoint adds Endpoint information where missing.
 func (r ResourceLink) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLink {
-	if len(r.Endpoints) > 0 {
-		// we need to remove link-local interfaces, because we cannot determine interface
-		// which need to be used in Dial
-		endpoints := make([]Endpoint, 0, 8)
-		for _, endpoint := range r.Endpoints {
-			addrEp, err := endpoint.GetAddr()
-			if err != nil {
-				continue
-			}
-			ip, zone := kitNet.ParseIPZone(addrEp.GetHostname())
-			if ip == nil {
-				continue
-			}
-			if ip.To4() == nil && zone == "" && ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
-				if !strings.Contains(addr.URL(), ip.String()) {
-					continue
-				}
-				endpoint = Endpoint{
-					URI:      addr.SetScheme(addrEp.GetScheme()).SetPort(addrEp.GetPort()).URL(),
-					Priority: endpoint.Priority,
-				}
-			}
-			endpoints = append(endpoints, endpoint)
-		}
-		r.Endpoints = endpoints
+	if len(r.Endpoints) == 0 {
 		return r.patchEndpoint(addr, deviceEndpoints)
 	}
+	// we need to remove link-local interfaces, because we cannot determine interface
+	// which need to be used in Dial
+	endpoints := make([]Endpoint, 0, 8)
+	for _, endpoint := range r.Endpoints {
+		addrEp, err := endpoint.GetAddr()
+		if err != nil {
+			continue
+		}
+		ip, zone := kitNet.ParseIPZone(addrEp.GetHostname())
+		if ip == nil {
+			continue
+		}
+		if ip.To4() == nil && zone == "" && ip.IsLinkLocalUnicast() || ip.IsLinkLocalMulticast() {
+			if !strings.Contains(addr.URL(), ip.String()) {
+				continue
+			}
+			endpoint = Endpoint{
+				URI:      addr.SetScheme(addrEp.GetScheme()).SetPort(addrEp.GetPort()).URL(),
+				Priority: endpoint.Priority,
+			}
+		}
+		endpoints = append(endpoints, endpoint)
+	}
+	r.Endpoints = endpoints
 	return r.patchEndpoint(addr, deviceEndpoints)
 }
 

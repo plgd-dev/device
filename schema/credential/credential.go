@@ -119,15 +119,24 @@ func (c CredentialOptionalData) Data() []byte {
 	return nil
 }
 
+const (
+	dataEncoding_JWT    string = "oic.sec.encoding.jwt"
+	dataEncoding_CWT    string = "oic.sec.encoding.cwt"
+	dataEncoding_BASE64 string = "oic.sec.encoding.base64"
+	dataEncoding_URI    string = "oic.sec.encoding.uri"
+	dataEncoding_HANDLE string = "oic.sec.encoding.handle"
+	dataEncoding_RAW    string = "oic.sec.encoding.raw"
+)
+
 type CredentialOptionalDataEncoding string
 
 const (
-	CredentialOptionalDataEncoding_JWT    CredentialOptionalDataEncoding = "oic.sec.encoding.jwt"
-	CredentialOptionalDataEncoding_CWT    CredentialOptionalDataEncoding = "oic.sec.encoding.cwt"
-	CredentialOptionalDataEncoding_BASE64 CredentialOptionalDataEncoding = "oic.sec.encoding.base64"
+	CredentialOptionalDataEncoding_JWT    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(dataEncoding_JWT)
+	CredentialOptionalDataEncoding_CWT    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(dataEncoding_CWT)
+	CredentialOptionalDataEncoding_BASE64 CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(dataEncoding_BASE64)
 	CredentialOptionalDataEncoding_PEM    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(csr.CertificateEncoding_PEM)
 	CredentialOptionalDataEncoding_DER    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(csr.CertificateEncoding_DER) // iotivity-lite doesn't support it
-	CredentialOptionalDataEncoding_RAW    CredentialOptionalDataEncoding = "oic.sec.encoding.raw"
+	CredentialOptionalDataEncoding_RAW    CredentialOptionalDataEncoding = CredentialOptionalDataEncoding(dataEncoding_RAW)
 )
 
 type CredentialPrivateData struct {
@@ -152,12 +161,12 @@ func (c CredentialPrivateData) Data() []byte {
 type CredentialPrivateDataEncoding string
 
 const (
-	CredentialPrivateDataEncoding_JWT    CredentialPrivateDataEncoding = "oic.sec.encoding.jwt"
-	CredentialPrivateDataEncoding_CWT    CredentialPrivateDataEncoding = "oic.sec.encoding.cwt"
-	CredentialPrivateDataEncoding_BASE64 CredentialPrivateDataEncoding = "oic.sec.encoding.base64"
-	CredentialPrivateDataEncoding_URI    CredentialPrivateDataEncoding = "oic.sec.encoding.uri"
-	CredentialPrivateDataEncoding_HANDLE CredentialPrivateDataEncoding = "oic.sec.encoding.handle"
-	CredentialPrivateDataEncoding_RAW    CredentialPrivateDataEncoding = "oic.sec.encoding.raw"
+	CredentialPrivateDataEncoding_JWT    CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_JWT)
+	CredentialPrivateDataEncoding_CWT    CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_CWT)
+	CredentialPrivateDataEncoding_BASE64 CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_BASE64)
+	CredentialPrivateDataEncoding_URI    CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_URI)
+	CredentialPrivateDataEncoding_HANDLE CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_HANDLE)
+	CredentialPrivateDataEncoding_RAW    CredentialPrivateDataEncoding = CredentialPrivateDataEncoding(dataEncoding_RAW)
 )
 
 type CredentialPublicData struct {
@@ -181,13 +190,13 @@ func (c CredentialPublicData) Data() []byte {
 type CredentialPublicDataEncoding string
 
 const (
-	CredentialPublicDataEncoding_JWT    CredentialPublicDataEncoding = "oic.sec.encoding.jwt"
-	CredentialPublicDataEncoding_CWT    CredentialPublicDataEncoding = "oic.sec.encoding.cwt"
-	CredentialPublicDataEncoding_BASE64 CredentialPublicDataEncoding = "oic.sec.encoding.base64"
-	CredentialPublicDataEncoding_URI    CredentialPublicDataEncoding = "oic.sec.encoding.uri"
+	CredentialPublicDataEncoding_JWT    CredentialPublicDataEncoding = CredentialPublicDataEncoding(dataEncoding_JWT)
+	CredentialPublicDataEncoding_CWT    CredentialPublicDataEncoding = CredentialPublicDataEncoding(dataEncoding_CWT)
+	CredentialPublicDataEncoding_BASE64 CredentialPublicDataEncoding = CredentialPublicDataEncoding(dataEncoding_BASE64)
+	CredentialPublicDataEncoding_URI    CredentialPublicDataEncoding = CredentialPublicDataEncoding(dataEncoding_URI)
 	CredentialPublicDataEncoding_PEM    CredentialPublicDataEncoding = CredentialPublicDataEncoding(csr.CertificateEncoding_PEM)
 	CredentialPublicDataEncoding_DER    CredentialPublicDataEncoding = CredentialPublicDataEncoding(csr.CertificateEncoding_DER) // iotivity-lite doesn't support it
-	CredentialPublicDataEncoding_RAW    CredentialPublicDataEncoding = "oic.sec.encoding.raw"
+	CredentialPublicDataEncoding_RAW    CredentialPublicDataEncoding = CredentialPublicDataEncoding(dataEncoding_RAW)
 )
 
 type CredentialRoleID struct {

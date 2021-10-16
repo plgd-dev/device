@@ -40,51 +40,41 @@ type Options struct {
 	IdentityTrustCAKey        string `long:"identityTrustCAKey"`
 }
 
-func ReadCommandOptions(opts Options) {
-
-	fmt.Println("Usage of OCF Client Options :")
-	fmt.Println("    --certIdentity=<Device UUID>                               i.e. 00000000-0000-0000-0000-000000000001")
-	fmt.Println("    --mfgCert=<Manufacturer Certificate>                       i.e. mfg_cert.crt")
-	fmt.Println("    --mfgKey=<Manufacturer Private Key>                        i.e. mfg_cert.key")
-	fmt.Println("    --mfgTrustCA=<Manufacturer Trusted CA Certificate>         i.e. mfg_rootca.crt")
-	fmt.Println("    --mfgTrustCAKey=<Manufacturer Trusted CA Private Key>      i.e. mfg_rootca.key")
-	fmt.Println("    --identityCert=<Identity Certificate>                      i.e. end_cert.crt")
-	fmt.Println("    --identityKey=<Identity Certificate>                       i.e. end_cert.key")
-	fmt.Println("    --identityIntermediateCA=<Identity Intermediate CA Certificate>     i.e. subca_cert.crt")
-	fmt.Println("    --identityIntermediateCAKey=<Identity Intermediate CA Private Key>  i.e. subca_cert.key")
-	fmt.Println("    --identityTrustCA=<Identity Trusted CA Certificate>        i.e. rootca_cert.crt")
-	fmt.Println("    --identityTrustCA=<Identity Trusted CA Private Key>        i.e. rootca_cert.key")
-	fmt.Println()
-
-	// Load certificate identity
-	if opts.CertIdentity != "" {
-		CertIdentity = opts.CertIdentity
-	} else {
-		opts.CertIdentity = CertIdentity
+func loadCertificateIdentity(certIdentity string) {
+	if certIdentity == "" {
+		return
 	}
+	CertIdentity = certIdentity
+}
 
-	// Load mfg root CA certificate and private key
-	if opts.MfgTrustCA != "" {
-		mfgTrustCA, err := ioutil.ReadFile(opts.MfgTrustCA)
-		if err != nil {
-			fmt.Println("Unable to read Manufacturer Trust CA's Certificate: " + err.Error())
-		} else {
-			fmt.Println("Reading Manufacturer Trust CA's Certificate from " + opts.MfgTrustCA + " was successful.")
-			MfgTrustedCA = mfgTrustCA
-		}
+func loadMfgTrustCA(mTrustCA string) {
+	if mTrustCA == "" {
+		return
 	}
-	if opts.MfgTrustCAKey != "" {
-		mfgTrustCAKey, err := ioutil.ReadFile(opts.MfgTrustCAKey)
-		if err != nil {
-			fmt.Println("Unable to read Manufacturer Trust CA's Private Key: " + err.Error())
-		} else {
-			fmt.Println("Reading Manufacturer Trust CA's Private Key from " + opts.MfgTrustCAKey + " was successful.")
-			MfgTrustedCAKey = mfgTrustCAKey
-		}
+	mfgTrustCA, err := ioutil.ReadFile(mTrustCA)
+	if err != nil {
+		fmt.Println("Unable to read Manufacturer Trust CA's Certificate: " + err.Error())
+		return
 	}
+	fmt.Println("Reading Manufacturer Trust CA's Certificate from " + mTrustCA + " was successful.")
+	MfgTrustedCA = mfgTrustCA
+}
 
-	// Generate mfg root CA certificate and private key if not exists
-	if opts.MfgTrustCA == "" || opts.MfgTrustCAKey == "" {
+func loadMfgTrustCAKey(mTrustCAKey string) {
+	if mTrustCAKey == "" {
+		return
+	}
+	mfgTrustCAKey, err := ioutil.ReadFile(mTrustCAKey)
+	if err != nil {
+		fmt.Println("Unable to read Manufacturer Trust CA's Private Key: " + err.Error())
+		return
+	}
+	fmt.Println("Reading Manufacturer Trust CA's Private Key from " + mTrustCAKey + " was successful.")
+	MfgTrustedCAKey = mfgTrustCAKey
+}
+
+func generateMfgTrustCA(mTrustCA, mTrustCAKey string) {
+	if mTrustCA == "" || mTrustCAKey == "" {
 		outCert := "mfg_rootca.crt"
 		outKey := "mfg_rootca.key"
 
@@ -104,6 +94,33 @@ func ReadCommandOptions(opts Options) {
 			}
 		}
 	}
+}
+
+func ReadCommandOptions(opts Options) {
+
+	fmt.Println("Usage of OCF Client Options :")
+	fmt.Println("    --certIdentity=<Device UUID>                               i.e. 00000000-0000-0000-0000-000000000001")
+	fmt.Println("    --mfgCert=<Manufacturer Certificate>                       i.e. mfg_cert.crt")
+	fmt.Println("    --mfgKey=<Manufacturer Private Key>                        i.e. mfg_cert.key")
+	fmt.Println("    --mfgTrustCA=<Manufacturer Trusted CA Certificate>         i.e. mfg_rootca.crt")
+	fmt.Println("    --mfgTrustCAKey=<Manufacturer Trusted CA Private Key>      i.e. mfg_rootca.key")
+	fmt.Println("    --identityCert=<Identity Certificate>                      i.e. end_cert.crt")
+	fmt.Println("    --identityKey=<Identity Certificate>                       i.e. end_cert.key")
+	fmt.Println("    --identityIntermediateCA=<Identity Intermediate CA Certificate>     i.e. subca_cert.crt")
+	fmt.Println("    --identityIntermediateCAKey=<Identity Intermediate CA Private Key>  i.e. subca_cert.key")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Certificate>        i.e. rootca_cert.crt")
+	fmt.Println("    --identityTrustCA=<Identity Trusted CA Private Key>        i.e. rootca_cert.key")
+	fmt.Println()
+
+	// Load certificate identity
+	loadCertificateIdentity(opts.CertIdentity)
+
+	// Load mfg root CA certificate and private key
+	loadMfgTrustCA(opts.MfgTrustCA)
+	loadMfgTrustCAKey(opts.MfgTrustCAKey)
+
+	// Generate mfg root CA certificate and private key if they don't exist
+	generateMfgTrustCA(opts.MfgTrustCA, opts.MfgTrustCAKey)
 
 	// Load mfg certificate and private key
 	if opts.MfgCert != "" && opts.MfgKey != "" {
@@ -136,7 +153,7 @@ func ReadCommandOptions(opts Options) {
 			cfg.ValidFrom = "now"
 			cfg.ValidFor = 8760 * time.Hour
 
-			err := generateIdentityCertificate(cfg, opts.CertIdentity, signerCert, signerKey, outCert, outKey)
+			err := generateIdentityCertificate(cfg, CertIdentity, signerCert, signerKey, outCert, outKey)
 			if err != nil {
 				fmt.Println("Unable to generate Manufacturer Certificate: " + err.Error())
 			} else {
@@ -238,6 +255,7 @@ func ReadCommandOptions(opts Options) {
 			cfg.BasicConstraints.MaxPathLen = -1
 			cfg.ValidFrom = "now"
 			cfg.ValidFor = 8760 * time.Hour
+
 			err := generateIntermediateCertificate(cfg, signerCert, signerKey, outCert, outKey)
 			if err != nil {
 				fmt.Println("Unable to generate Identity Intermediate CA: " + err.Error())
@@ -290,7 +308,7 @@ func ReadCommandOptions(opts Options) {
 
 		if !fileExists(outCert) || !fileExists(outKey) {
 			certConfig := generateCertificate.Configuration{}
-			err := generateIdentityCertificate(certConfig, opts.CertIdentity, signerCert, signerKey, outCert, outKey)
+			err := generateIdentityCertificate(certConfig, CertIdentity, signerCert, signerKey, outCert, outKey)
 			if err != nil {
 				fmt.Println("Unable to generate Identity Certificate: " + err.Error())
 			} else {

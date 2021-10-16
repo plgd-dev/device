@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestClient_ownDeviceMfg(t *testing.T) {
+func TestClientOwnDeviceMfg(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -85,7 +85,7 @@ func TestClient_ownDeviceMfg(t *testing.T) {
 	require.NoError(err)
 }
 
-func TestClient_ownDeviceJustWorks(t *testing.T) {
+func TestClientOwnDeviceJustWorks(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)

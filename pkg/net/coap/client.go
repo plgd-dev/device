@@ -516,6 +516,10 @@ func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration
 	}
 }
 
+func keepAliveTimeoutError() error {
+	return fmt.Errorf("keep alive has reached fail limit: closing connection")
+}
+
 func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
 	var cfg dialOptions
@@ -526,7 +530,7 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, udp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
 			cc.Close()
-			cfg.errors(fmt.Errorf("keep alive was reached fail limit:: closing connection"))
+			cfg.errors(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.errors != nil {
@@ -571,7 +575,7 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
 			cc.Close()
-			cfg.errors(fmt.Errorf("keep alive was reached fail limit:: closing connection"))
+			cfg.errors(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
@@ -659,7 +663,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
 			cc.Close()
-			cfg.errors(fmt.Errorf("keep alive was reached fail limit:: closing connection"))
+			cfg.errors(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
@@ -717,7 +721,7 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, dtls.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
 			cc.Close()
-			cfg.errors(fmt.Errorf("keep alive was reached fail limit:: closing connection"))
+			cfg.errors(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.errors != nil {

@@ -31,6 +31,10 @@ var (
 	TestDevsimSecResources     []schema.ResourceLink
 )
 
+func TestResourceLightInstanceHref(id string) string {
+	return "/light/" + id
+}
+
 func init() {
 	TestDeviceName = "devsim-" + MustGetHostname()
 	TestSecureDeviceName = "devsimsec-" + MustGetHostname()
@@ -61,13 +65,13 @@ func init() {
 		},
 
 		{
-			Href:          "/light/1",
+			Href:          TestResourceLightInstanceHref("1"),
 			ResourceTypes: []string{testTypes.CORE_LIGHT},
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 
 		{
-			Href:          "/light/2",
+			Href:          TestResourceLightInstanceHref("2"),
 			ResourceTypes: []string{testTypes.CORE_LIGHT},
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
@@ -138,5 +142,4 @@ func init() {
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 	}
-
 }
