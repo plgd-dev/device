@@ -42,7 +42,7 @@ type connUpdateResourcer interface {
 
 func disown(ctx context.Context, conn connUpdateResourcer) error {
 	deadline, ok := ctx.Deadline()
-	if !ok || deadline.Sub(time.Now()) < time.Second {
+	if ctx.Err() != nil || !ok || deadline.Sub(time.Now()) < time.Second {
 		ctx1, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		ctx = ctx1
