@@ -121,8 +121,12 @@ func (d *Device) observeResource(
 	handler ObservationHandler,
 	options ...kitNetCoap.OptionFunc,
 ) (observationID string, _ error) {
+	eps := link.GetSecureEndpoints()
+	if len(eps) == 0 {
+		eps = link.GetEndpoints()
+	}
 
-	_, client, err := d.connectToEndpoints(ctx, link.GetEndpoints())
+	_, client, err := d.connectToEndpoints(ctx, eps)
 
 	if err != nil {
 		return "", MakeInternal(fmt.Errorf("cannot observe resource %v: %w", link.Href, err))

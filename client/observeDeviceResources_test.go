@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema"
@@ -16,16 +15,25 @@ import (
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
-	c := NewTestClient()
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
 
-	h := makeTestDeviceResourcesObservationHandler()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer func() {
+		err := c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
+
+	h := makeTestDeviceResourcesObservationHandler()
 	ID, err := c.ObserveDeviceResources(ctx, deviceID, h)
 	require.NoError(t, err)
 

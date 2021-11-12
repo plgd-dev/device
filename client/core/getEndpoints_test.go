@@ -12,8 +12,8 @@ import (
 )
 
 func TestDeviceGetEndpoints(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(TestDeviceName)
-	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	deviceID := test.MustFindDeviceByName(DevsimNetHost)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
 	type args struct {
 		deviceID string
 	}

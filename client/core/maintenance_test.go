@@ -41,7 +41,7 @@ func TestDeviceReboot(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer c.Close()
-			deviceID := test.MustFindDeviceByName(TestDeviceName)
+			deviceID := test.MustFindDeviceByName(DevsimNetHost)
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
@@ -51,8 +51,15 @@ func TestDeviceReboot(t *testing.T) {
 			eps := device.GetEndpoints()
 			links, err := device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
-
+			err = device.Own(timeout, links, c.justWorksOtm)
+			require.NoError(err)
+			links, err = device.GetResourceLinks(timeout, eps)
+			require.NoError(err)
 			links = sepEpToLinks(t, links)
+			defer func() {
+				err := device.Disown(timeout, links)
+				require.NoError(err)
+			}()
 
 			err = device.Reboot(timeout, links)
 			if tt.wantErr {
@@ -68,7 +75,7 @@ func TestDeviceFactoryReset(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
-	deviceID := test.MustFindDeviceByName(TestDeviceName)
+	deviceID := test.MustFindDeviceByName(DevsimNetHost)
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelTimeout()
@@ -77,6 +84,8 @@ func TestDeviceFactoryReset(t *testing.T) {
 	defer device.Close(timeout)
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
+	require.NoError(err)
+	err = device.Own(timeout, links, c.justWorksOtm)
 	require.NoError(err)
 
 	links = sepEpToLinks(t, links)

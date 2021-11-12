@@ -230,7 +230,7 @@ func (c *Client) UpdateResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could not query %s: %w", href, err)
 	}
-	if resp.Code != codes.Changed && resp.Code != codes.Valid {
+	if resp.Code != codes.Changed && resp.Code != codes.Valid && resp.Code != codes.Created {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
 	}
 	if err := codec.Decode(resp, response); err != nil {

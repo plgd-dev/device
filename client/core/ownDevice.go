@@ -13,6 +13,7 @@ import (
 	"github.com/plgd-dev/device/schema/csr"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/schema/maintenance"
 	"github.com/plgd-dev/device/schema/platform"
 	"github.com/plgd-dev/device/schema/pstat"
 	"github.com/plgd-dev/device/schema/resources"
@@ -92,9 +93,15 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 		return err
 	}
 
-	cloudResources := make([]acl.Resource, 0, 1)
+	confResources := make([]acl.Resource, 0, 1)
 	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
-		cloudResources = append(cloudResources, acl.Resource{
+		confResources = append(confResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
+	for _, href := range links.GetResourceHrefs(maintenance.ResourceType) {
+		confResources = append(confResources, acl.Resource{
 			Href:       href,
 			Interfaces: []string{"*"},
 		})
@@ -119,7 +126,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 						DeviceID: ownerID,
 					},
 				},
-				Resources: cloudResources,
+				Resources: confResources,
 			},
 			{
 				Permission: acl.Permission_READ | acl.Permission_WRITE | acl.Permission_DELETE,

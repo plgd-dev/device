@@ -15,7 +15,7 @@ import (
 )
 
 func TestClientOwnDeviceMfg(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
@@ -41,7 +41,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	time.Sleep(time.Second)
 
 	// try disown second time
-	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID = test.MustFindDeviceByName(test.DevsimNetBridge)
 	dev, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer dev.Close(timeout)
@@ -51,7 +51,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	err = dev.Disown(timeout, links)
 	require.NoError(err)
 
-	secureDeviceID = test.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID = test.MustFindDeviceByName(test.DevsimNetBridge)
 	dev, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	eps = dev.GetEndpoints()
@@ -86,7 +86,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 }
 
 func TestClientOwnDeviceJustWorks(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.TestSecureDeviceName)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()

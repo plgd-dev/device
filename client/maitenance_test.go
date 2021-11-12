@@ -3,14 +3,13 @@ package client_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
 
 func TestClientFactoryReset(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
 
 	type args struct {
 		deviceID string
@@ -35,17 +34,19 @@ func TestClientFactoryReset(t *testing.T) {
 		},
 	}
 
-	c := NewTestClient()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
-
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
-			defer cancel()
-			err := c.FactoryReset(ctx, tt.args.deviceID)
+			err := c.FactoryReset(ctx, deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -57,7 +58,7 @@ func TestClientFactoryReset(t *testing.T) {
 
 /* TODO: not supported by iotivity-lite devsim
 func TestClient_Reboot(t *testing.T) {
-	deviceID = test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID = test.MustFindDeviceByName(test.DevsimNetHost)
 	type args struct {
 		deviceID string
 	}

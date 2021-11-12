@@ -64,6 +64,14 @@ func (r ResourceInterfaceOption) applyOnGet(opts getOptions) getOptions {
 	return opts
 }
 
+func (r ResourceInterfaceOption) applyOnObserve(opts observeOptions) observeOptions {
+	if r.resourceInterface != "" {
+		opts.opts = append(opts.opts, kitNetCoap.WithInterface(r.resourceInterface))
+		opts.resourceInterface = r.resourceInterface
+	}
+	return opts
+}
+
 func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions {
 	if r.resourceInterface != "" {
 		opts.opts = append(opts.opts, kitNetCoap.WithInterface(r.resourceInterface))
@@ -115,6 +123,26 @@ type getOptions struct {
 type updateOptions struct {
 	opts  []kitNetCoap.OptionFunc
 	codec kitNetCoap.Codec
+}
+
+type createOptions struct {
+	opts  []kitNetCoap.OptionFunc
+	codec kitNetCoap.Codec
+}
+
+type deleteOptions struct {
+	opts  []kitNetCoap.OptionFunc
+	codec kitNetCoap.Codec
+}
+
+// CreateOption option definition.
+type CreateOption = interface {
+	applyOnCreate(opts createOptions) createOptions
+}
+
+// UpdateOption option definition.
+type DeleteOption = interface {
+	applyOnDelete(opts deleteOptions) deleteOptions
 }
 
 // UpdateOption option definition.
@@ -212,6 +240,16 @@ type CodecOption struct {
 	codec kitNetCoap.Codec
 }
 
+func (r CodecOption) applyOnCreate(opts createOptions) createOptions {
+	opts.codec = r.codec
+	return opts
+}
+
+func (r CodecOption) applyOnDelete(opts deleteOptions) deleteOptions {
+	opts.codec = r.codec
+	return opts
+}
+
 func (r CodecOption) applyOnGet(opts getOptions) getOptions {
 	opts.codec = r.codec
 	return opts
@@ -228,7 +266,9 @@ func (r CodecOption) applyOnObserve(opts observeOptions) observeOptions {
 }
 
 type observeOptions struct {
-	codec kitNetCoap.Codec
+	codec             kitNetCoap.Codec
+	opts              []kitNetCoap.OptionFunc
+	resourceInterface string
 }
 
 // ObserveOption option definition.

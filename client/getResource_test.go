@@ -3,7 +3,6 @@ package client_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema/configuration"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestClientGetResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
 	type args struct {
 		deviceID string
 		href     string
@@ -32,7 +31,7 @@ func TestClientGetResource(t *testing.T) {
 				href:     configuration.ResourceURI,
 			},
 			want: map[string]interface{}{
-				"n": test.TestDeviceName,
+				"n": test.DevsimNetHost,
 			},
 		},
 		{
@@ -45,7 +44,7 @@ func TestClientGetResource(t *testing.T) {
 			wantErr: false,
 			want: map[string]interface{}{
 				"if": []interface{}{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
-				"n":  test.TestDeviceName,
+				"n":  test.DevsimNetHost,
 				"rt": []interface{}{configuration.ResourceType},
 			},
 		},
@@ -59,18 +58,24 @@ func TestClientGetResource(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
 	defer cancel()
-
-	c := NewTestClient()
-	defer c.Close(context.Background())
-
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer func() {
+		err := c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
 			var got map[string]interface{}
-			err := c.GetResource(ctx, tt.args.deviceID, tt.args.href, &got, tt.args.opts...)
+			err := c.GetResource(ctx, deviceID, tt.args.href, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

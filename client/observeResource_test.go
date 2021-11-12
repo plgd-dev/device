@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/test"
@@ -13,16 +12,25 @@ import (
 )
 
 func TestObservingResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
-	c := NewTestClient()
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
 
-	h := makeObservationHandler()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer func() {
+		err := c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
+
+	h := makeObservationHandler()
 	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
 	defer func(observationID string) {
