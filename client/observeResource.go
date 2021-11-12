@@ -163,7 +163,7 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
-	key := uuid.NewSHA1(uuid.NameSpaceURL, []byte(deviceID+href)).String()
+	key := uuid.NewSHA1(uuid.NameSpaceURL, []byte(deviceID+href+"?if="+cfg.resourceInterface)).String()
 	val, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(value interface{}) interface{} {
 		h := value.(*observationsHandler)
 		h.Lock()
@@ -208,7 +208,7 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
-	observationID, err = d.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h)
+	observationID, err = d.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h, cfg.opts...)
 	if err != nil {
 		return "", err
 	}

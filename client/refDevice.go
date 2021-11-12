@@ -104,6 +104,16 @@ func (d *RefDevice) UpdateResourceWithCodec(
 	return d.Device().UpdateResourceWithCodec(ctx, link, codec, request, response, options...)
 }
 
+func (d *RefDevice) DeleteResourceWithCodec(
+	ctx context.Context,
+	link schema.ResourceLink,
+	codec coap.Codec,
+	response interface{},
+	options ...coap.OptionFunc,
+) error {
+	return d.Device().DeleteResourceWithCodec(ctx, link, codec, response, options...)
+}
+
 func (d *RefDevice) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,

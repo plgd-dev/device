@@ -3,7 +3,6 @@ package client_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema/configuration"
@@ -13,7 +12,7 @@ import (
 )
 
 func TestClientUpdateResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
 	type args struct {
 		deviceID string
 		href     string
@@ -59,11 +58,11 @@ func TestClientUpdateResource(t *testing.T) {
 				deviceID: deviceID,
 				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
-					"n": test.TestDeviceName,
+					"n": test.DevsimNetHost,
 				},
 			},
 			want: map[interface{}]interface{}{
-				"n": test.TestDeviceName,
+				"n": test.DevsimNetHost,
 			},
 		},
 		{
@@ -81,15 +80,24 @@ func TestClientUpdateResource(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
-	c := NewTestClient()
-	defer c.Close(context.Background())
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer func() {
+		err := c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
 			var got interface{}
-			err := c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
+			err = c.UpdateResource(ctx, deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

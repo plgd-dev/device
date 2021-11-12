@@ -10,5 +10,6 @@ vendor/
 
 # IDE
 .vscode/
+.tmp/
 debug
 

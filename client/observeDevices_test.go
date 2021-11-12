@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"runtime/debug"
 	"testing"
-	"time"
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/test"
@@ -30,14 +29,15 @@ LOOP:
 }
 
 func TestObserveDevices(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.TestDeviceName)
-	c := NewTestClient()
+	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
 	defer func() {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()
