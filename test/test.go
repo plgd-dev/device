@@ -18,6 +18,8 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/test/resource/types"
 	"github.com/plgd-dev/kit/v2/log"
 	"github.com/plgd-dev/kit/v2/security"
 )
@@ -216,4 +218,45 @@ func MustFindDeviceIP(name string, ipType IPType) (ip string) {
 		return ip
 	}
 	panic(err)
+}
+
+func DefaultSwitchResourceLink(id string) schema.ResourceLink {
+	return schema.ResourceLink{
+		Href:          TestResourceSwitchesInstanceHref(id),
+		ResourceTypes: []string{types.BINARY_SWITCH},
+		Interfaces:    []string{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
+		Policy: &schema.Policy{
+			BitMask: schema.BitMask(schema.Discoverable | schema.Observable),
+		},
+	}
+}
+
+func MakeSwitchResourceDefaultData() map[string]interface{} {
+	s := DefaultSwitchResourceLink("")
+	rif := make([]interface{}, 0, len(s.Interfaces))
+	for _, i := range s.Interfaces {
+		rif = append(rif, i)
+	}
+	rt := make([]interface{}, 0, len(s.ResourceTypes))
+	for _, i := range s.ResourceTypes {
+		rt = append(rt, i)
+	}
+	return map[string]interface{}{
+		"if": rif,
+		"rt": rt,
+		"rep": map[interface{}]interface{}{
+			"value": false,
+		},
+		"p": map[interface{}]interface{}{
+			"bm": uint64(s.Policy.BitMask),
+		},
+	}
+}
+
+func MakeSwitchResourceData(overrides map[string]interface{}) map[string]interface{} {
+	data := MakeSwitchResourceDefaultData()
+	for k, v := range overrides {
+		data[k] = v
+	}
+	return data
 }
