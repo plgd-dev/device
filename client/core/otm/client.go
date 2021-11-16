@@ -53,23 +53,6 @@ func (c *Signer) ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNe
 		return fmt.Errorf("failed to parse chain of X509 certs: %w", err)
 	}
 
-	var deviceCredential credential.CredentialResponse
-	err = tlsClient.GetResource(ctx, credential.ResourceURI, &deviceCredential, kitNetCoap.WithCredentialSubject(deviceID))
-	if err != nil {
-		return fmt.Errorf("cannot get device credential to setup device owner credentials: %w", err)
-	}
-
-	for _, cred := range deviceCredential.Credentials {
-		switch {
-		case cred.Usage == credential.CredentialUsage_CERT && cred.Type == credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
-			cred.Usage == credential.CredentialUsage_TRUST_CA && cred.Type == credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE:
-			err = tlsClient.DeleteResource(ctx, credential.ResourceURI, nil, kitNetCoap.WithCredentialId(cred.ID))
-			if err != nil {
-				return fmt.Errorf("cannot delete device credentials %v (%v) to setup device owner credentials: %w", cred.ID, cred.Usage, err)
-			}
-		}
-	}
-
 	setIdentityDeviceCredential := credential.CredentialUpdateRequest{
 		ResourceOwner: ownerID,
 		Credentials: []credential.Credential{
