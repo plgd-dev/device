@@ -26,6 +26,12 @@ jobs:
       - name: Run a test
         run: make test
       
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      
       - name: Collect iotivity logs for devsim-net-host failed test
         if: ${{ failure() }}
         run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
