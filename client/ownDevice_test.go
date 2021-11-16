@@ -22,9 +22,10 @@ func TestClientDiscoveryBatch(t *testing.T) {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTM(client.OTMType_JustWorks))
-	require.NoError(t, err)
-	defer c.DisownDevice(ctx, deviceID)
+
+		deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTM(client.OTMType_JustWorks))
+		require.NoError(t, err)
+		defer c.DisownDevice(ctx, deviceID)
 
 	var wg sync.WaitGroup
 
@@ -47,131 +48,131 @@ func TestClientDiscoveryBatch(t *testing.T) {
 			fmt.Printf("baseline discovery observation: %v\n--------------\n", string(val))
 		}
 	}()
+	/*
+		o2 := makeObservationHandler()
+		id2, err := c.ObserveResource(ctx, deviceID, "/oic/res", o2)
+		require.NoError(t, err)
+		defer func() {
+			fmt.Printf("stopping %v /oic/res", id2)
+			// c.StopObservingResource(ctx, id2)
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for f := range o2.res {
+				var v interface{}
+				err := f(&v)
+				require.NoError(t, err)
+				val, err := json.Encode(v)
+				require.NoError(t, err)
+				fmt.Printf("default discovery observation: %v\n--------------\n", string(val))
+			}
+		}()
 
-	o2 := makeObservationHandler()
-	id2, err := c.ObserveResource(ctx, deviceID, "/oic/res", o2)
-	require.NoError(t, err)
-	defer func() {
-		fmt.Printf("stopping %v /oic/res", id2)
-		// c.StopObservingResource(ctx, id2)
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for f := range o2.res {
-			var v interface{}
-			err := f(&v)
-			require.NoError(t, err)
-			val, err := json.Encode(v)
-			require.NoError(t, err)
-			fmt.Printf("default discovery observation: %v\n--------------\n", string(val))
-		}
-	}()
+		o := makeObservationHandler()
+		id, err := c.ObserveResource(ctx, deviceID, "/oic/res", o, client.WithInterface("oic.if.b"))
+		require.NoError(t, err)
+		defer func() {
+			fmt.Printf("stopping %v /oic/res?if=oic.if.b", id)
+			// c.StopObservingResource(ctx, id)
+		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for f := range o.res {
+				var v interface{}
+				err := f(&v)
+				require.NoError(t, err)
+				val, err := json.Encode(v)
+				require.NoError(t, err)
+				fmt.Printf("batch observation: %v\n--------------\n", string(val))
+			}
+		}()
 
-	o := makeObservationHandler()
-	id, err := c.ObserveResource(ctx, deviceID, "/oic/res", o, client.WithInterface("oic.if.b"))
-	require.NoError(t, err)
-	defer func() {
-		fmt.Printf("stopping %v /oic/res?if=oic.if.b", id)
-		// c.StopObservingResource(ctx, id)
-	}()
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for f := range o.res {
-			var v interface{}
-			err := f(&v)
-			require.NoError(t, err)
-			val, err := json.Encode(v)
-			require.NoError(t, err)
-			fmt.Printf("batch observation: %v\n--------------\n", string(val))
-		}
-	}()
+		for i := uint64(0); i < 1; i++ {
+			fmt.Printf("%v\n", i)
+			v := make([]byte, 0, 1)
+			for i := 0; i < cap(v); i++ {
+				v = append(v, 'a')
+			}
 
-	for i := uint64(0); i < 1; i++ {
-		fmt.Printf("%v\n", i)
-		v := make([]byte, 0, 1)
-		for i := 0; i < cap(v); i++ {
-			v = append(v, 'a')
+			err = c.UpdateResource(ctx, deviceID, "/oc/con", map[string]interface{}{
+				"n": fmt.Sprintf("devname-%v-%v", i, string(v)),
+			}, nil)
+			require.NoError(t, err)
 		}
+
+		o3 := makeObservationHandler()
+		id3, err := c.ObserveResource(ctx, deviceID, "/oc/con", o3)
+		require.NoError(t, err)
+		stop := func() {
+			fmt.Printf("stopping %v /oc/con", id3)
+			c.StopObservingResource(ctx, id3)
+		}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for f := range o2.res {
+				var v interface{}
+				err := f(&v)
+				require.NoError(t, err)
+				val, err := json.Encode(v)
+				require.NoError(t, err)
+				fmt.Printf("default observation /oc/con: %v\n--------------\n", string(val))
+			}
+		}()
 
 		err = c.UpdateResource(ctx, deviceID, "/oc/con", map[string]interface{}{
-			"n": fmt.Sprintf("devname-%v-%v", i, string(v)),
+			"n": "aa",
 		}, nil)
 		require.NoError(t, err)
-	}
+		stop()
 
-	o3 := makeObservationHandler()
-	id3, err := c.ObserveResource(ctx, deviceID, "/oc/con", o3)
-	require.NoError(t, err)
-	stop := func() {
-		fmt.Printf("stopping %v /oc/con", id3)
-		c.StopObservingResource(ctx, id3)
-	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for f := range o2.res {
-			var v interface{}
-			err := f(&v)
-			require.NoError(t, err)
-			val, err := json.Encode(v)
-			require.NoError(t, err)
-			fmt.Printf("default observation /oc/con: %v\n--------------\n", string(val))
-		}
-	}()
+		time.Sleep(time.Second)
 
-	err = c.UpdateResource(ctx, deviceID, "/oc/con", map[string]interface{}{
-		"n": "aa",
-	}, nil)
-	require.NoError(t, err)
-	stop()
+		//create
+		err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
+			"rt": []string{"oic.r.switch.binary"},
+			"if": []string{"oic.if.a", "oic.if.baseline"},
+			"rep": map[string]interface{}{
+				"value": false,
+			},
+			"p": map[string]interface{}{
+				"bm": uint64(3),
+			},
+		}, nil)
+		require.NoError(t, err)
 
-	time.Sleep(time.Second)
+		//delete
+		err = c.DeleteResource(ctx, deviceID, "/switches/1", nil)
+		require.NoError(t, err)
 
-	//create
-	err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
-		"rt": []string{"oic.r.switch.binary"},
-		"if": []string{"oic.if.a", "oic.if.baseline"},
-		"rep": map[string]interface{}{
-			"value": false,
-		},
-		"p": map[string]interface{}{
-			"bm": uint64(3),
-		},
-	}, nil)
-	require.NoError(t, err)
+		//create
+		err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
+			"rt": []string{"oic.r.switch.binary"},
+			"if": []string{"oic.if.a", "oic.if.baseline"},
+			"rep": map[string]interface{}{
+				"value": false,
+			},
+			"p": map[string]interface{}{
+				"bm": uint64(3),
+			},
+		}, nil)
+		require.NoError(t, err)
+		//create
+		err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
+			"rt": []string{"oic.r.switch.binary"},
+			"if": []string{"oic.if.a", "oic.if.baseline"},
+			"rep": map[string]interface{}{
+				"value": false,
+			},
+			"p": map[string]interface{}{
+				"bm": uint64(3),
+			},
+		}, nil)
+		require.NoError(t, err)
 
-	//delete
-	err = c.DeleteResource(ctx, deviceID, "/switches/1", nil)
-	require.NoError(t, err)
-
-	//create
-	err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
-		"rt": []string{"oic.r.switch.binary"},
-		"if": []string{"oic.if.a", "oic.if.baseline"},
-		"rep": map[string]interface{}{
-			"value": false,
-		},
-		"p": map[string]interface{}{
-			"bm": uint64(3),
-		},
-	}, nil)
-	require.NoError(t, err)
-	//create
-	err = c.CreateResource(ctx, deviceID, "/switches", map[string]interface{}{
-		"rt": []string{"oic.r.switch.binary"},
-		"if": []string{"oic.if.a", "oic.if.baseline"},
-		"rep": map[string]interface{}{
-			"value": false,
-		},
-		"p": map[string]interface{}{
-			"bm": uint64(3),
-		},
-	}, nil)
-	require.NoError(t, err)
-
-	time.Sleep(time.Second)
+		time.Sleep(time.Second)
 
 	stopBaseline()
 }
