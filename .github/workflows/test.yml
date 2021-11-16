@@ -26,10 +26,10 @@ jobs:
       - name: Run a test
         run: make test
       
-      - name: Collect iotivity logs for devsimsec failed test
+      - name: Collect iotivity logs for devsim-net-host failed test
         if: ${{ failure() }}
-        run: docker logs -t devsimsec
+        run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
       
-      - name: Collect iotivity logs for devsim failed test
+      - name: Collect iotivity logs for devsim-net-bridge failed test
         if: ${{ failure() }}
-        run: docker logs -t devsim
+        run: docker logs -t devsim-net-bridge && cat .tmp/devsim-net-bridge/0.log
