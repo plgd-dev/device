@@ -8,7 +8,7 @@ CERT_PATH = $(TMP_PATH)/pki_certs
 DEVSIM_NET_HOST_PATH = $(shell pwd)/.tmp/devsim-net-host
 DEVSIM_NET_BRIDGE_PATH = $(shell pwd)/.tmp/devsim-net-bridge
 CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
-DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-debug:latest
+DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
 
 default: build
 
