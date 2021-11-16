@@ -15,24 +15,10 @@ import (
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
-	}()
+	testDevice(t, test.DevsimNetHost, runObserveDeviceResourcesTest)
+}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
-	defer cancel()
-
-	deviceID, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
-
+func runObserveDeviceResourcesTest(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
 	h := makeTestDeviceResourcesObservationHandler()
 	ID, err := c.ObserveDeviceResources(ctx, deviceID, h)
 	require.NoError(t, err)
