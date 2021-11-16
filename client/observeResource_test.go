@@ -5,14 +5,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/plgd-dev/device/client"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestObservingResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+func testDevice(t *testing.T, name string, runTest func(t *testing.T, ctx context.Context, c *client.Client, deviceID string)) {
+	deviceID := test.MustFindDeviceByName(name)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
@@ -30,6 +31,10 @@ func TestObservingResource(t *testing.T) {
 		require.NoError(t, err)
 	}()
 
+	runTest(t, ctx, c, deviceID)
+}
+
+func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
 	h := makeObservationHandler()
 	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
@@ -87,6 +92,10 @@ func TestObservingResource(t *testing.T) {
 	err = res(&d2)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(0), d2["power"].(uint64))
+}
+
+func TestObservingResource(t *testing.T) {
+	testDevice(t, test.DevsimNetHost, runObservingResourceTest)
 }
 
 func makeObservationHandler() *observationHandler {
