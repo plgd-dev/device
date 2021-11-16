@@ -44,6 +44,14 @@ var (
 	TestDevsimSecResources     []schema.ResourceLink
 )
 
+const (
+	TestResourceSwitchesHref = "/switches"
+)
+
+func TestResourceSwitchesInstanceHref(id string) string {
+	return TestResourceSwitchesHref + "/" + id
+}
+
 func TestResourceLightInstanceHref(id string) string {
 	return "/light/" + id
 }
@@ -84,7 +92,7 @@ func init() {
 		},
 
 		{
-			Href:          "/switches",
+			Href:          TestResourceSwitchesHref,
 			ResourceTypes: []string{collection.ResourceType},
 			Interfaces:    []string{interfaces.OC_IF_LL, interfaces.OC_IF_CREATE, interfaces.OC_IF_B, interfaces.OC_IF_BASELINE},
 		},
