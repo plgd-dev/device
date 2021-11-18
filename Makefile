@@ -8,7 +8,7 @@ CERT_PATH = $(TMP_PATH)/pki_certs
 DEVSIM_NET_HOST_PATH = $(shell pwd)/.tmp/devsim-net-host
 DEVSIM_NET_BRIDGE_PATH = $(shell pwd)/.tmp/devsim-net-bridge
 CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
-DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
 
 default: build
 
@@ -47,14 +47,7 @@ env: clean certificates
 		--name devsim-net-host \
 		-v $(DEVSIM_NET_HOST_PATH):/tmp \
 		-v $(CERT_PATH):/pki_certs \
-		$(DEVSIM_IMAGE) devsim-net-host-$(SIMULATOR_NAME_SUFFIX)
-	mkdir -p $(DEVSIM_NET_BRIDGE_PATH)
-	docker run -d \
-		--privileged \
-		--name devsim-net-bridge \
-		-v $(DEVSIM_NET_BRIDGE_PATH):/tmp \
-		-v $(CERT_PATH):/pki_certs \
-		$(DEVSIM_IMAGE) devsim-net-bridge-$(SIMULATOR_NAME_SUFFIX)
+		$(DEVSIM_IMAGE) devsim-$(SIMULATOR_NAME_SUFFIX)
 
 test: env build-testcontainer 
 	docker run \
@@ -74,7 +67,6 @@ test: env build-testcontainer
 
 clean:
 	docker rm -f devsim-net-host || true
-	docker rm -f devsim-net-bridge || true
 	sudo rm -rf .tmp/*
 
 .PHONY: build-testcontainer build test clean env make-ca make-mongo make-nats

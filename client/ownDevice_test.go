@@ -12,7 +12,7 @@ import (
 )
 
 func TestClientOwnDevice(t *testing.T) {
-	_ = test.MustFindDeviceByName(test.DevsimNetHost)
+	_ = test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceName string
 	}
@@ -24,7 +24,7 @@ func TestClientOwnDevice(t *testing.T) {
 		{
 			name: "valid",
 			args: args{
-				deviceName: test.DevsimNetHost,
+				deviceName: test.DevsimName,
 			},
 		},
 	}

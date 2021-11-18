@@ -13,7 +13,7 @@ import (
 )
 
 func TestClientDeleteResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceID string
 		href     string

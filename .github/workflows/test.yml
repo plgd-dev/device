@@ -5,7 +5,7 @@ name: Test
 # Controls when the action will run. Triggers the workflow on push or pull request
 # events but only for the master branch
 on:
-  pull_request:
+  push:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -13,6 +13,15 @@ jobs:
   test:
     # The type of runner that the job will run on
     runs-on: ubuntu-20.04
+    strategy:
+      matrix:
+        include:
+          - name: cloud-server-debug
+            coverage: false
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+          - name: cloud-server-discovery-resource-observable-debug
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -24,18 +33,20 @@ jobs:
 
       # Runs a single command using the runners shell
       - name: Run a test
-        run: make test
-      
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: make test DEVSIM_IMAGE=${{ matrix.tag }}
       
       - name: Collect iotivity logs for devsim-net-host failed test
         if: ${{ failure() }}
         run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
-      
-      - name: Collect iotivity logs for devsim-net-bridge failed test
-        if: ${{ failure() }}
-        run: docker logs -t devsim-net-bridge && cat .tmp/devsim-net-bridge/0.log
+
+      - name: SonarCloud Scan
+        if: ${{ matrix.coverage }}
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Publish the coverage
+        if: ${{ matrix.coverage }}
+        run: bash <(curl -s https://codecov.io/bash)
+

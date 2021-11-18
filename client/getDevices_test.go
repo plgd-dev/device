@@ -14,8 +14,8 @@ import (
 )
 
 func TestDeviceDiscovery(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 
@@ -30,18 +30,18 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
-	assert.Equal(t, test.DevsimNetHost, d.Details.(*device.Device).Name)
+	assert.Equal(t, test.DevsimName, d.Details.(*device.Device).Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)
 	require.NotNil(t, d)
-	assert.Equal(t, test.DevsimNetBridge, d.Details.(*device.Device).Name)
+	assert.Equal(t, test.DevsimName, d.Details.(*device.Device).Name)
 	require.NotNil(t, d.Ownership)
 	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
 }
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {

@@ -29,7 +29,7 @@ LOOP:
 }
 
 func TestObserveDevices(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {

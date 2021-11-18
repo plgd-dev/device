@@ -13,7 +13,7 @@ import (
 )
 
 func TestClientUpdateResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceID string
 		href     string
@@ -59,11 +59,11 @@ func TestClientUpdateResource(t *testing.T) {
 				deviceID: deviceID,
 				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
-					"n": test.DevsimNetHost,
+					"n": test.DevsimName,
 				},
 			},
 			want: map[interface{}]interface{}{
-				"n": test.DevsimNetHost,
+				"n": test.DevsimName,
 			},
 		},
 		{

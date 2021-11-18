@@ -15,7 +15,7 @@ import (
 )
 
 func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus ocf.DiscoverOwnershipStatus, found bool) {
-	timeout, cancel := context.WithTimeout(ctx, 1*time.Second)
+	timeout, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var h testOwnerShipHandler
@@ -44,8 +44,7 @@ func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) fu
 }
 
 func TestGetOwnerships(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
-	secureDeviceID1 := test.MustFindDeviceByName(test.DevsimNetHost)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()
@@ -57,14 +56,10 @@ func TestGetOwnerships(t *testing.T) {
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
 
-	disown0 := ownDevice(ctx, t, c, secureDeviceID)
-	defer disown0()
-
-	disown1 := ownDevice(ctx, t, c, secureDeviceID1)
-	defer disown1()
+	disown := ownDevice(ctx, t, c, secureDeviceID)
+	defer disown()
 
 	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)
-
 }
 
 type testOwnerShipHandler struct {

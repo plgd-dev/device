@@ -15,7 +15,7 @@ import (
 )
 
 func TestObserveDeviceResources(t *testing.T) {
-	testDevice(t, test.DevsimNetHost, runObserveDeviceResourcesTest)
+	testDevice(t, test.DevsimName, runObserveDeviceResourcesTest)
 }
 
 func runObserveDeviceResourcesTest(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {

@@ -82,7 +82,7 @@ func cleanUpResources(s []schema.ResourceLink) []schema.ResourceLink {
 }
 
 func TestClientGetDevice(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceID string
 	}
@@ -97,7 +97,7 @@ func TestClientGetDevice(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
-			want: NewTestSecureDeviceSimulator(deviceID, test.DevsimNetHost),
+			want: NewTestSecureDeviceSimulator(deviceID, test.DevsimName),
 		},
 		{
 			name: "not-found",
@@ -135,10 +135,10 @@ func TestClientGetDevice(t *testing.T) {
 }
 
 func TestClientGetDeviceByIP(t *testing.T) {
-	deviceIDip4 := test.MustFindDeviceByName(test.DevsimNetBridge)
-	ip4 := test.MustFindDeviceIP(test.DevsimNetBridge, test.IP4)
-	deviceIDip6 := test.MustFindDeviceByName(test.DevsimNetHost)
-	ip6 := test.MustFindDeviceIP(test.DevsimNetHost, test.IP6)
+	deviceIDip4 := test.MustFindDeviceByName(test.DevsimName)
+	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+	deviceIDip6 := test.MustFindDeviceByName(test.DevsimName)
+	ip6 := test.MustFindDeviceIP(test.DevsimName, test.IP6)
 	type args struct {
 		ip string
 	}
@@ -153,14 +153,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			args: args{
 				ip: ip4,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimNetBridge),
+			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName),
 		},
 		{
 			name: "ip6",
 			args: args{
 				ip: ip6,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimNetHost),
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName),
 		},
 		{
 			name: "not-found",

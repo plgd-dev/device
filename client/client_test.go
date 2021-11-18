@@ -16,8 +16,6 @@ import (
 
 const TestTimeout = time.Second * 8
 
-var DevsimNetHost = test.DevsimNetHost
-
 type testSetupSecureClient struct {
 	ca      []*x509.Certificate
 	mfgCA   []*x509.Certificate
