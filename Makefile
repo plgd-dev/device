@@ -1,12 +1,10 @@
 SHELL = /bin/bash
-SERVICE_NAME = $(notdir $(CURDIR))
-LATEST_TAG = vnext
+SERVICE_NAME = cloud-server-test
 VERSION_TAG = vnext-$(shell git rev-parse --short=7 --verify HEAD)
 SIMULATOR_NAME_SUFFIX ?= $(shell hostname)
 TMP_PATH = $(shell pwd)/.tmp
 CERT_PATH = $(TMP_PATH)/pki_certs
 DEVSIM_NET_HOST_PATH = $(shell pwd)/.tmp/devsim-net-host
-DEVSIM_NET_BRIDGE_PATH = $(shell pwd)/.tmp/devsim-net-bridge
 CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
 DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
 
@@ -15,14 +13,14 @@ default: build
 define build-docker-image
 	docker build \
 		--network=host \
-		--tag ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
-		--tag ocfcloud/$(SERVICE_NAME):$(LATEST_TAG) \
+		--tag $(SERVICE_NAME):$(VERSION_TAG) \
 		--target $(1) \
+		-f test/cloud-server/Dockerfile \
 		.
 endef
 
 build-testcontainer:
-	$(call build-docker-image,build)
+	$(call build-docker-image,service)
 
 build: build-testcontainer
 
@@ -52,18 +50,10 @@ env: clean certificates
 test: env build-testcontainer 
 	docker run \
 		--network=host \
-		-e ROOT_CA_CRT="/pki_certs/cloudca.pem" \
-        -e ROOT_CA_KEY="/pki_certs/cloudcakey.pem" \
-        -e INTERMEDIATE_CA_CRT="/pki_certs/intermediatecacrt.pem" \
-        -e INTERMEDIATE_CA_KEY="/pki_certs/intermediatecakey.pem" \
-        -e MFG_CRT="/pki_certs/mfgcrt.pem" \
-        -e MFG_KEY="/pki_certs/mfgkey.pem" \
-		-e IDENTITY_CRT="/pki_certs/identitycrt.pem" \
-        -e IDENTITY_KEY="/pki_certs/identitykey.pem" \
+		--rm \
 		-v $(CERT_PATH):/pki_certs \
-		-v $(TMP_PATH):/shared \
-		ocfcloud/$(SERVICE_NAME):$(VERSION_TAG) \
-		go test -p 1 -race -v ./... -coverpkg=./... -covermode=atomic -coverprofile=/shared/coverage.txt
+		-v $(TMP_PATH):/tmp \
+		$(SERVICE_NAME):$(VERSION_TAG) -test.parallel 1 -test.v -test.coverprofile=/tmp/coverage.txt
 
 clean:
 	docker rm -f devsim-net-host || true
