@@ -6,10 +6,12 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"testing"
 	"time"
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/test"
+	"github.com/stretchr/testify/require"
 )
 
 const TestTimeout = time.Second * 8
@@ -78,6 +80,13 @@ func NewTestSecureClient() (*client.Client, error) {
 	}
 
 	return client, nil
+}
+
+func disown(t *testing.T, c *client.Client, deviceID string) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	defer cancel()
+	err := c.DisownDevice(ctx, deviceID)
+	require.NoError(t, err)
 }
 
 var (
