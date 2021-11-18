@@ -36,8 +36,7 @@ import (
 )
 
 var (
-	DevsimNetBridge string
-	DevsimNetHost   string
+	DevsimName string
 
 	TestDevsimResources        []schema.ResourceLink
 	TestDevsimPrivateResources []schema.ResourceLink
@@ -57,8 +56,7 @@ func TestResourceLightInstanceHref(id string) string {
 }
 
 func init() {
-	DevsimNetHost = "devsim-net-host-" + MustGetHostname()
-	DevsimNetBridge = "devsim-net-bridge-" + MustGetHostname()
+	DevsimName = "devsim-" + MustGetHostname()
 
 	TestDevsimResources = []schema.ResourceLink{
 		{

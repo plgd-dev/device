@@ -13,7 +13,7 @@ import (
 )
 
 func TestGetOwnership(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer c.Close()

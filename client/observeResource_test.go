@@ -92,7 +92,7 @@ func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Clien
 }
 
 func TestObservingResource(t *testing.T) {
-	testDevice(t, test.DevsimNetHost, runObservingResourceTest)
+	testDevice(t, test.DevsimName, runObservingResourceTest)
 }
 
 func makeObservationHandler() *observationHandler {

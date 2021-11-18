@@ -22,8 +22,6 @@ import (
 	"github.com/plgd-dev/kit/v2/security"
 )
 
-var DevsimNetHost = "devsim-net-bridge-" + test.MustGetHostname()
-
 type Client struct {
 	*ocf.Client
 	mfgOtm       *manufacturer.Client
@@ -113,7 +111,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()

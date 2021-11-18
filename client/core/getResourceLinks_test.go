@@ -13,8 +13,7 @@ import (
 )
 
 func TestDeviceGetResourceLinks(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(DevsimNetHost)
-	secureDeviceID := test.MustFindDeviceByName(test.DevsimNetBridge)
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceID string
 	}
@@ -27,12 +26,6 @@ func TestDeviceGetResourceLinks(t *testing.T) {
 			name: "secure",
 			args: args{
 				deviceID: secureDeviceID,
-			},
-		},
-		{
-			name: "insecure",
-			args: args{
-				deviceID: deviceID,
 			},
 		},
 	}

@@ -13,7 +13,7 @@ import (
 )
 
 func TestClientGetResource(t *testing.T) {
-	deviceID := test.MustFindDeviceByName(test.DevsimNetHost)
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
 		deviceID string
 		href     string
@@ -32,7 +32,7 @@ func TestClientGetResource(t *testing.T) {
 				href:     configuration.ResourceURI,
 			},
 			want: map[string]interface{}{
-				"n": test.DevsimNetHost,
+				"n": test.DevsimName,
 			},
 		},
 		{
@@ -45,7 +45,7 @@ func TestClientGetResource(t *testing.T) {
 			wantErr: false,
 			want: map[string]interface{}{
 				"if": []interface{}{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
-				"n":  test.DevsimNetHost,
+				"n":  test.DevsimName,
 				"rt": []interface{}{configuration.ResourceType},
 			},
 		},
