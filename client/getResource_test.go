@@ -6,6 +6,7 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema/configuration"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
@@ -56,6 +57,14 @@ func TestClientGetResource(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid deviceID",
+			args: args{
+				deviceID: "notfound",
+				href:     device.ResourceURI,
+			},
+			wantErr: true,
+		},
 	}
 
 	c, err := NewTestSecureClient()
@@ -68,14 +77,11 @@ func TestClientGetResource(t *testing.T) {
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
+	defer disown(t, c, deviceID)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got map[string]interface{}
-			err := c.GetResource(ctx, deviceID, tt.args.href, &got, tt.args.opts...)
+			err := c.GetResource(ctx, tt.args.deviceID, tt.args.href, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

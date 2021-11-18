@@ -6,6 +6,7 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema/configuration"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,14 @@ func TestClientUpdateResource(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid deviceID",
+			args: args{
+				deviceID: "notfound",
+				href:     device.ResourceURI,
+			},
+			wantErr: true,
+		},
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
@@ -89,15 +98,12 @@ func TestClientUpdateResource(t *testing.T) {
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
+	defer disown(t, c, deviceID)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got interface{}
-			err = c.UpdateResource(ctx, deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
+			err = c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

@@ -42,11 +42,11 @@ func TestClientFactoryReset(t *testing.T) {
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID)
+	_, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.FactoryReset(ctx, deviceID)
+			err := c.FactoryReset(ctx, tt.args.deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

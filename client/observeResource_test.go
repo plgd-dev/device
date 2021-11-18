@@ -26,10 +26,7 @@ func testDevice(t *testing.T, name string, runTest func(t *testing.T, ctx contex
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
+	defer disown(t, c, deviceID)
 
 	runTest(t, ctx, c, deviceID)
 }

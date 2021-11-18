@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/plgd-dev/device/test/resource/types"
@@ -49,6 +50,14 @@ func TestClientCreateResource(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid deviceID",
+			args: args{
+				deviceID: "notfound",
+				href:     device.ResourceURI,
+			},
+			wantErr: true,
+		},
 	}
 
 	c, err := NewTestSecureClient()
@@ -57,18 +66,16 @@ func TestClientCreateResource(t *testing.T) {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID)
+	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTM(client.OTMType_JustWorks))
 	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
+	defer disown(t, c, deviceID)
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got map[string]interface{}
-			err := c.CreateResource(ctx, deviceID, tt.args.href, tt.args.body, &got, tt.args.opts...)
+			err := c.CreateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.body, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

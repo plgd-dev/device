@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	"github.com/plgd-dev/device/test/resource/types"
@@ -38,6 +39,14 @@ func TestClientDeleteResource(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "invalid deviceID",
+			args: args{
+				deviceID: "notfound",
+				href:     device.ResourceURI,
+			},
+			wantErr: true,
+		},
 	}
 
 	c, err := NewTestSecureClient()
@@ -46,14 +55,11 @@ func TestClientDeleteResource(t *testing.T) {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID)
+	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTM(client.OTMType_JustWorks))
 	require.NoError(t, err)
-	defer func() {
-		err := c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
-	}()
+	defer disown(t, c, deviceID)
 
 	var got map[string]interface{}
 	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), &got)
@@ -70,7 +76,7 @@ func TestClientDeleteResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.DeleteResource(ctx, deviceID, tt.args.href, nil, tt.args.opts...)
+			err := c.DeleteResource(ctx, tt.args.deviceID, tt.args.href, nil, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
