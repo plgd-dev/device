@@ -2,7 +2,6 @@ package client_test
 
 import (
 	"context"
-	"sort"
 	"testing"
 	"time"
 
@@ -17,17 +16,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type sortResourcesByHref []schema.ResourceLink
-
-func (a sortResourcesByHref) Len() int      { return len(a) }
-func (a sortResourcesByHref) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a sortResourcesByHref) Less(i, j int) bool {
-	return a[i].Href < a[j].Href
-}
-
 func sortResources(s []schema.ResourceLink) []schema.ResourceLink {
-	v := sortResourcesByHref(s)
-	sort.Sort(v)
+	v := schema.ResourceLinks(s)
+	v.Sort()
 	return v
 }
 

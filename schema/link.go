@@ -118,6 +118,16 @@ func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints
 	return links
 }
 
+func (a ResourceLinks) Len() int      { return len(a) }
+func (a ResourceLinks) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
+func (a ResourceLinks) Less(i, j int) bool {
+	return a[i].Href < a[j].Href
+}
+
+func (a ResourceLinks) Sort() {
+	sort.Sort(a)
+}
+
 // GetEndpoints returns endpoints in order of priority.
 func (d ResourceLink) GetEndpoints() Endpoints {
 	return d.Endpoints.Sort()
