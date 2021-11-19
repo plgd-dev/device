@@ -12,6 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func createSwitch(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+	var got map[string]interface{}
+	err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), &got)
+	require.NoError(t, err)
+	delete(got, "ins")
+	require.Equal(t, test.MakeSwitchResourceData(map[string]interface{}{
+		"href": test.TestResourceSwitchesInstanceHref("1"),
+		"rep": map[interface{}]interface{}{
+			"if":    []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
+			"rt":    []interface{}{types.BINARY_SWITCH},
+			"value": false,
+		},
+	}), got)
+}
+
 func TestClientDeleteResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	type args struct {
@@ -61,18 +76,7 @@ func TestClientDeleteResource(t *testing.T) {
 	require.NoError(t, err)
 	defer disown(t, c, deviceID)
 
-	var got map[string]interface{}
-	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), &got)
-	require.NoError(t, err)
-	delete(got, "ins")
-	require.Equal(t, test.MakeSwitchResourceData(map[string]interface{}{
-		"href": test.TestResourceSwitchesInstanceHref("1"),
-		"rep": map[interface{}]interface{}{
-			"if":    []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
-			"rt":    []interface{}{types.BINARY_SWITCH},
-			"value": false,
-		},
-	}), got)
+	createSwitch(ctx, t, c, deviceID)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

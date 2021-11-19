@@ -263,6 +263,8 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	if !ok {
 		return
 	}
+	o.Lock()
+	defer o.Unlock()
 	if o.device != nil {
 		defer o.device.Release(ctx)
 		o.device.StopObservingResource(ctx, o.observationID)

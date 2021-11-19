@@ -192,6 +192,10 @@ func (h *observationHandler) Error(err error) {
 	h.handler.Error(err)
 }
 
+func (h *observationHandler) Close() {
+	h.OnClose()
+}
+
 func (h *observationHandler) OnClose() {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
