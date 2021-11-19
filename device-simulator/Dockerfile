@@ -1,11 +1,11 @@
-FROM alpine:3.12 AS build
+FROM alpine:3.15 AS build
 
 RUN apk add --no-cache curl git build-base gcc linux-headers patch
 RUN git clone --recursive -b master https://github.com/iotivity/iotivity-lite.git
 COPY ./src/ /iotivity-lite/
 RUN make -C /iotivity-lite/port/linux CLOUD=1 SECURE=1 OSCORE=0 DEBUG=1 MNT=1 cloud_server
 
-FROM alpine:3.12 AS service
+FROM alpine:3.15 AS service
 RUN apk add --no-cache curl gdb tar bash
 RUN curl -sSfL https://github.com/mapbox/logbt/archive/v3.0.0.tar.gz | tar --gunzip --extract --strip-components=1 --exclude="*md" --exclude="test*" --directory=/usr/local
 RUN which logbt
