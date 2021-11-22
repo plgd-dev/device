@@ -14,6 +14,6 @@ require (
 	github.com/plgd-dev/go-coap/v2 v2.4.1-0.20211110101437-7ea9e9fa2084
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.7.0
-	go.uber.org/atomic v1.7.0
+	go.uber.org/atomic v1.9.0
 	google.golang.org/grpc v1.37.1
 )
