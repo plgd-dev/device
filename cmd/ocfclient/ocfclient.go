@@ -52,8 +52,8 @@ func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate
 }
 
 // Discover devices in the local area
-func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(timeoutSeconds)*time.Second)
+func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), discoveryTimeout)
 	defer cancel()
 	res, err := c.client.GetDevices(ctx, local.WithError(func(error) {}))
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *OCFClient) Discover(timeoutSeconds int) (string, error) {
 	deviceInfo := []interface{}{}
 	devices := []local.DeviceDetails{}
 	for _, device := range res {
-		if device.IsSecured {
+		if device.IsSecured && device.Ownership != nil {
 			devices = append(devices, device)
 			devInfo := map[string]interface{}{"id": device.ID, "name": device.Ownership.Name, "owned": device.Ownership.Owned,
 				"ownerID": device.Ownership.OwnerID, "details": device.Details}

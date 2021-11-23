@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -20,12 +21,14 @@ import (
 	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 
 	local "github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/pkg/security/signer"
 	"github.com/plgd-dev/kit/v2/codec/json"
 )
 
 type Options struct {
-	CertIdentity string `long:"certIdentity"`
+	CertIdentity     string        `long:"certIdentity"`
+	DiscoveryTimeout time.Duration `long:"discoveryTimeout"`
 
 	MfgCert       string `long:"mfgCert"`
 	MfgKey        string `long:"mfgKey"`
@@ -99,6 +102,7 @@ func generateMfgTrustCA(mTrustCA, mTrustCAKey string) {
 func ReadCommandOptions(opts Options) {
 
 	fmt.Println("Usage of OCF Client Options :")
+	fmt.Println("    --discoveryTimeout=<Duration>                              i.e. 5s")
 	fmt.Println("    --certIdentity=<Device UUID>                               i.e. 00000000-0000-0000-0000-000000000001")
 	fmt.Println("    --mfgCert=<Manufacturer Certificate>                       i.e. mfg_cert.crt")
 	fmt.Println("    --mfgKey=<Manufacturer Private Key>                        i.e. mfg_cert.key")
@@ -517,7 +521,9 @@ func NewSecureClient() (*local.Client, error) {
 		}
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, test.NewIdentityCertificateSigner, func(err error) {})
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner {
+		return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter)
+	}, func(err error) {})
 	if err != nil {
 		return nil, err
 	}
@@ -566,10 +572,13 @@ func main() {
 	}
 
 	// Console Input
-	scanner(client)
+	scanner(client, opts.DiscoveryTimeout)
 }
 
-func scanner(client OCFClient) {
+func scanner(client OCFClient, discoveryTimeout time.Duration) {
+	if discoveryTimeout <= 0 {
+		discoveryTimeout = time.Second * 5
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	printMenu()
@@ -579,7 +588,7 @@ func scanner(client OCFClient) {
 		case 0:
 			printMenu()
 		case 1:
-			res, err := client.Discover(30)
+			res, err := client.Discover(discoveryTimeout)
 			if err != nil {
 				println("\nDiscovering devices has failed : " + err.Error())
 				break
