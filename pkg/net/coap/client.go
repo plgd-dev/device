@@ -30,6 +30,7 @@ import (
 
 type Observation = interface {
 	Cancel(context.Context) error
+	Canceled() bool
 }
 
 type ClientConn = interface {
