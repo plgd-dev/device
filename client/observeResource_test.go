@@ -173,7 +173,8 @@ func TestObservingDiscoveryResource(t *testing.T) {
 			return
 		}
 		defer func(observationID string) {
-			_ = c.StopObservingResource(ctx, observationID)
+			err = c.StopObservingResource(ctx, observationID)
+			require.NoError(t, err)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
@@ -201,6 +202,62 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		err = res(&d2)
 		require.NoError(t, err)
 		d2.Sort()
+		require.Equal(t, d, d2)
+	})
+}
+
+func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
+	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+		h := makeObservationHandler()
+		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_BASELINE))
+		require.NoError(t, err)
+		var d resources.BaselineResourceDiscovery
+		res, err := h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d)
+		require.NoError(t, err)
+		require.NotEmpty(t, d)
+		numResources := len(d[0].Links)
+		d[0].Links.Sort()
+		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		err = h.waitForClose(checkForNonObservationCtx)
+		if err == nil {
+			// oic/res doesn't support observation
+			return
+		}
+		defer func(observationID string) {
+			err = c.StopObservingResource(ctx, observationID)
+			require.NoError(t, err)
+		}(id)
+		require.Equal(t, context.DeadlineExceeded, err)
+		createSwitch(ctx, t, c, deviceID)
+		var d1 resources.BaselineResourceDiscovery
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d1)
+		require.NoError(t, err)
+		require.NotEmpty(t, d1)
+		d1[0].Links.Sort()
+		require.Equal(t, numResources+1, len(d1[0].Links))
+		var j int
+		for i := range d1 {
+			if j < len(d) && d[0].Links[j].Href == d1[0].Links[i].Href {
+				require.Equal(t, d[0].Links[j], d1[0].Links[i])
+				j++
+			} else {
+				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1[0].Links[i].Href)
+			}
+		}
+		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
+		require.NoError(t, err)
+		var d2 resources.BaselineResourceDiscovery
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d2)
+		require.NoError(t, err)
+		require.NotEmpty(t, d1)
+		d2[0].Links.Sort()
 		require.Equal(t, d, d2)
 	})
 }

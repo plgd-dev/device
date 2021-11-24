@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/configuration"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
@@ -90,4 +91,27 @@ func TestClientGetResource(t *testing.T) {
 			require.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestClientGetDiscoveryResourceWithResourceTypeFilter(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	var v schema.ResourceLinks
+	err = c.GetResource(ctx, deviceID, "/oic/res", &v, client.WithResourceTypes("oic.wk.res", "oic.wk.d"))
+	require.NoError(t, err)
+	require.Len(t, v, 2)
+	v.Sort()
+	v = cleanUpResources(v)
+	require.Equal(t, test.TestDevsimResources.GetResourceLinks("oic.wk.res", "oic.wk.d").Sort(), v)
 }

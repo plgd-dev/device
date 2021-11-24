@@ -236,6 +236,13 @@ func (r ResourceTypesOption) applyOnGetDevices(opts getDevicesOptions) getDevice
 	return opts
 }
 
+func (r ResourceTypesOption) applyOnGet(opts getOptions) getOptions {
+	for _, r := range r.resourceTypes {
+		opts.opts = append(opts.opts, kitNetCoap.WithResourceType(r))
+	}
+	return opts
+}
+
 type CodecOption struct {
 	codec kitNetCoap.Codec
 }

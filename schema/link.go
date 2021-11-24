@@ -124,8 +124,9 @@ func (a ResourceLinks) Less(i, j int) bool {
 	return a[i].Href < a[j].Href
 }
 
-func (a ResourceLinks) Sort() {
+func (a ResourceLinks) Sort() ResourceLinks {
 	sort.Sort(a)
+	return a
 }
 
 // GetEndpoints returns endpoints in order of priority.
