@@ -7,12 +7,21 @@ import (
 	"strings"
 
 	"github.com/fxamacker/cbor/v2"
+	"github.com/plgd-dev/device/schema"
 )
 
 const (
 	ResourceType = "oic.wk.res"
 	ResourceURI  = "/oic/res"
 )
+
+type BaselineResourceDiscovery []BaselineRepresentation
+
+type BaselineRepresentation struct {
+	Interfaces    []string             `json:"if,omitempty"`
+	ResourceTypes []string             `json:"rt,omitempty"`
+	Links         schema.ResourceLinks `json:"links"`
+}
 
 type BatchResourceDiscovery []BatchRepresentation
 

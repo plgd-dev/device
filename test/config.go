@@ -38,9 +38,9 @@ import (
 var (
 	DevsimName string
 
-	TestDevsimResources        []schema.ResourceLink
-	TestDevsimPrivateResources []schema.ResourceLink
-	TestDevsimSecResources     []schema.ResourceLink
+	TestDevsimResources        schema.ResourceLinks
+	TestDevsimPrivateResources schema.ResourceLinks
+	TestDevsimSecResources     schema.ResourceLinks
 )
 
 const (
@@ -58,7 +58,7 @@ func TestResourceLightInstanceHref(id string) string {
 func init() {
 	DevsimName = "devsim-" + MustGetHostname()
 
-	TestDevsimResources = []schema.ResourceLink{
+	TestDevsimResources = schema.ResourceLinks{
 		{
 			Href:          platform.ResourceURI,
 			ResourceTypes: []string{platform.ResourceType},
