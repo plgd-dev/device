@@ -20,7 +20,9 @@ import (
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	"github.com/plgd-dev/go-coap/v2/net/monitor/inactivity"
 	"github.com/plgd-dev/go-coap/v2/tcp"
+	"github.com/plgd-dev/go-coap/v2/tcp/message/pool"
 	"github.com/plgd-dev/go-coap/v2/udp"
+	udppool "github.com/plgd-dev/go-coap/v2/udp/message/pool"
 
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/message/codes"
@@ -456,7 +458,6 @@ type dialOptions struct {
 	errors                          func(err error)
 	maxMessageSize                  int
 	dialer                          *net.Dialer
-	heartBeat                       time.Duration
 	blockwise                       *bwt
 }
 
@@ -509,13 +510,6 @@ func WithDialer(dialer *net.Dialer) DialOptionFunc {
 	}
 }
 
-func WithHeartBeat(heartBeat time.Duration) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.heartBeat = heartBeat
-		return c
-	}
-}
-
 func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration) DialOptionFunc {
 	return func(c dialOptions) dialOptions {
 		c.blockwise = &bwt{
@@ -553,9 +547,6 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, udp.WithMaxMessageSize(cfg.maxMessageSize))
 	}
-	if cfg.heartBeat > 0 {
-		dopts = append(dopts, udp.WithHeartBeat(cfg.heartBeat))
-	}
 	if cfg.dialer != nil {
 		dopts = append(dopts, udp.WithDialer(cfg.dialer))
 	} else {
@@ -566,6 +557,7 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 			}))
 		}
 	}
+	dopts = append(dopts, udp.WithMessagePool(udppool.New(0, 0)))
 	c, err := udp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -604,9 +596,6 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
 	}
-	if cfg.heartBeat > 0 {
-		dopts = append(dopts, tcp.WithHeartBeat(cfg.heartBeat))
-	}
 	if cfg.dialer != nil {
 		dopts = append(dopts, tcp.WithDialer(cfg.dialer))
 	} else {
@@ -617,6 +606,7 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 			}))
 		}
 	}
+	dopts = append(dopts, tcp.WithMessagePool(pool.New(0, 0)))
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -692,9 +682,6 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
 	}
-	if cfg.heartBeat > 0 {
-		dopts = append(dopts, tcp.WithHeartBeat(cfg.heartBeat))
-	}
 	if cfg.dialer != nil {
 		dopts = append(dopts, tcp.WithDialer(cfg.dialer))
 	} else {
@@ -705,6 +692,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 			}))
 		}
 	}
+	dopts = append(dopts, tcp.WithMessagePool(pool.New(0, 0)))
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -744,9 +732,6 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	if cfg.maxMessageSize > 0 {
 		dopts = append(dopts, dtls.WithMaxMessageSize(cfg.maxMessageSize))
 	}
-	if cfg.heartBeat > 0 {
-		dopts = append(dopts, dtls.WithHeartBeat(cfg.heartBeat))
-	}
 	if cfg.dialer != nil {
 		dopts = append(dopts, dtls.WithDialer(cfg.dialer))
 	} else {
@@ -757,6 +742,7 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 			}))
 		}
 	}
+	dopts = append(dopts, dtls.WithMessagePool(udppool.New(0, 0)))
 	c, err := dtls.Dial(addr, dtlsCfg, dopts...)
 	if err != nil {
 		return nil, err

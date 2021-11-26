@@ -36,7 +36,6 @@ type Config struct {
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
 	MaxMessageSize                    int
 	DisablePeerTCPSignalMessageCSMs   bool
-	HeartBeatSeconds                  uint64
 	DefaultTransferDurationSeconds    uint64 // 0 means 15 seconds
 
 	// specify one of:
@@ -65,11 +64,6 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, createSigner func
 		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)))
 	} else {
 		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*60))
-	}
-	if cfg.HeartBeatSeconds > 0 {
-		dialOpts = append(dialOpts, coap.WithHeartBeat(time.Second*time.Duration(cfg.HeartBeatSeconds)))
-	} else {
-		dialOpts = append(dialOpts, coap.WithHeartBeat(time.Second*4))
 	}
 	if cfg.MaxMessageSize > 0 {
 		dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
