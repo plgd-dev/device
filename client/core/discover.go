@@ -39,7 +39,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout))
+	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout), udp.WithMessagePool(pool.New(0, 0)))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     uint16(msgID),
@@ -150,7 +150,7 @@ func runDiscovery(
 			for _, o := range options {
 				opts = o(opts)
 			}
-			req, err := client.NewGetRequest(ctx, href, opts...)
+			req, err := client.NewGetRequest(ctx, pool.New(0, 0), href, opts...)
 			if err != nil {
 				errors <- MakeInternal(fmt.Errorf("device discovery request creation failed: %w", err))
 				return

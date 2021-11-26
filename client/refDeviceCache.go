@@ -7,16 +7,21 @@ import (
 	"time"
 
 	kitSync "github.com/plgd-dev/kit/v2/sync"
+	"go.uber.org/atomic"
 
-	cache "github.com/patrickmn/go-cache"
+	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 )
 
 type refDeviceCache struct {
+	cacheExpiration    time.Duration
 	temporaryCache     *cache.Cache
 	temporaryCacheLock sync.Mutex
+	errors             func(error)
 
 	permanentCache     map[string]*refCacheDevice // map[deviceID]
 	permanentCacheLock sync.Mutex
+	closed             atomic.Bool
+	done               chan struct{}
 }
 
 type refCacheDevice struct {
@@ -28,18 +33,26 @@ func (r *refCacheDevice) device() *RefDevice {
 }
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
-	cache := cache.New(cacheExpiration, time.Minute)
-	cache.OnEvicted(func(key string, d interface{}) {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-		defer cancel()
-		err := d.(*RefDevice).Release(ctx)
-		if err != nil {
-			errors(err)
+	done := make(chan struct{})
+	cache := cache.NewCache()
+	go func() {
+		t := time.NewTicker(time.Minute)
+		defer t.Stop()
+		for {
+			select {
+			case now := <-t.C:
+				cache.CheckExpirations(now)
+			case <-done:
+				return
+			}
 		}
-	})
+	}()
 	return &refDeviceCache{
-		temporaryCache: cache,
-		permanentCache: make(map[string]*refCacheDevice),
+		temporaryCache:  cache,
+		permanentCache:  make(map[string]*refCacheDevice),
+		cacheExpiration: cacheExpiration,
+		errors:          errors,
+		done:            done,
 	}
 }
 
@@ -67,11 +80,11 @@ func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, device
 func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, bool) {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
-	d, ok := c.temporaryCache.Get(deviceID)
-	if !ok {
+	d := c.temporaryCache.Load(deviceID)
+	if d == nil {
 		return nil, false
 	}
-	dev := d.(*RefDevice)
+	dev := d.Data().(*RefDevice)
 	dev.Acquire()
 	return dev, true
 }
@@ -79,11 +92,11 @@ func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, boo
 func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, deviceID string, device *RefDevice) bool {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
-	d, ok := c.temporaryCache.Get(deviceID)
-	if !ok {
+	d := c.temporaryCache.Load(deviceID)
+	if d == nil {
 		return false
 	}
-	dev := d.(*RefDevice)
+	dev := d.Data().(*RefDevice)
 	if device == dev {
 		//remove device from cache
 		c.temporaryCache.Delete(deviceID)
@@ -114,15 +127,22 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 	defer c.temporaryCacheLock.Unlock()
 	deviceID := device.DeviceID()
 	for {
-		d, ok := c.temporaryCache.Get(deviceID)
-		if ok {
+		d := c.temporaryCache.Load(deviceID)
+		if d != nil {
 			// record is already in cache
-			dev := d.(*RefDevice)
+			dev := d.Data().(*RefDevice)
 			dev.Acquire()
 			return dev, false
 		}
-		err := c.temporaryCache.Add(deviceID, device, cache.DefaultExpiration)
-		if err != nil {
+		_, loaded := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
+			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+			defer cancel()
+			err := d1.(*RefDevice).Release(ctx)
+			if err != nil {
+				c.errors(err)
+			}
+		}))
+		if loaded {
 			continue
 		}
 		device.Acquire()
@@ -176,11 +196,10 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 	return false
 }
 
-func (c *refDeviceCache) popTemporaryCache() map[string]cache.Item {
+func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
-	items := c.temporaryCache.Items()
-	c.temporaryCache.Flush()
+	items := c.temporaryCache.PullOutAll()
 	return items
 }
 
@@ -198,8 +217,11 @@ func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
 
 func (c *refDeviceCache) Close(ctx context.Context) error {
 	var errors []error
+	if c.closed.CAS(false, true) {
+		close(c.done)
+	}
 	for _, val := range c.popTemporaryCache() {
-		d := val.Object.(*RefDevice)
+		d := val.(*RefDevice)
 		err := d.Release(ctx)
 		if err != nil {
 			errors = append(errors, err)
