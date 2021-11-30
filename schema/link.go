@@ -15,8 +15,8 @@ import (
 type ResourceLink struct {
 	ID                    string    `json:"id,omitempty"`
 	Href                  string    `json:"href"`
-	ResourceTypes         []string  `json:"rt"`
-	Interfaces            []string  `json:"if"`
+	ResourceTypes         []string  `json:"rt,omitempty"`
+	Interfaces            []string  `json:"if,omitempty"`
 	Policy                *Policy   `json:"p,omitempty"`
 	Endpoints             Endpoints `json:"eps,omitempty"`
 	Anchor                string    `json:"anchor,omitempty"`
