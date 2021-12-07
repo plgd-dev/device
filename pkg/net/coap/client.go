@@ -456,7 +456,7 @@ type dialOptions struct {
 	DisablePeerTCPSignalMessageCSMs bool
 	KeepaliveTimeout                time.Duration
 	errors                          func(err error)
-	maxMessageSize                  int
+	maxMessageSize                  uint32
 	dialer                          *net.Dialer
 	blockwise                       *bwt
 }
@@ -496,7 +496,7 @@ func WithErrors(errors func(err error)) DialOptionFunc {
 	}
 }
 
-func WithMaxMessageSize(maxMessageSize int) DialOptionFunc {
+func WithMaxMessageSize(maxMessageSize uint32) DialOptionFunc {
 	return func(c dialOptions) dialOptions {
 		c.maxMessageSize = maxMessageSize
 		return c

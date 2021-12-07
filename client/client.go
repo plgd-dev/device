@@ -34,7 +34,7 @@ type Config struct {
 	ObserverPollingIntervalSeconds uint64 // 0 means 3 seconds
 
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
-	MaxMessageSize                    int
+	MaxMessageSize                    uint32
 	DisablePeerTCPSignalMessageCSMs   bool
 	DefaultTransferDurationSeconds    uint64 // 0 means 15 seconds
 
