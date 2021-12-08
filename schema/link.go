@@ -4,6 +4,7 @@ package schema
 
 import (
 	"fmt"
+	"hash/crc32"
 	"net/url"
 	"sort"
 	"strings"
@@ -351,4 +352,11 @@ func (r ResourceLink) GetDeviceID() string {
 		return r.DeviceID
 	}
 	return strings.TrimPrefix(r.Anchor, "ocf://")
+}
+
+// Calculate instanceID from href
+func GetInstanceID(href string) int64 {
+	h := crc32.New(crc32.IEEETable)
+	h.Write([]byte(href))
+	return int64(h.Sum32())
 }
