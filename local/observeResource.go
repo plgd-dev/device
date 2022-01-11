@@ -152,7 +152,8 @@ func (c *Client) ObserveResource(
 	opts ...ObserveOption,
 ) (observationID string, _ error) {
 	cfg := observeOptions{
-		codec: codecOcf.VNDOCFCBORCodec{},
+		codec:                  codecOcf.VNDOCFCBORCodec{},
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnObserve(cfg)
@@ -195,7 +196,7 @@ func (c *Client) ObserveResource(
 		return getObservationID(key, resourceObservationID.String()), nil
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}

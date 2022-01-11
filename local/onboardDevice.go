@@ -69,9 +69,14 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 func (c *Client) OnboardDevice(
 	ctx context.Context,
 	deviceID, authorizationProvider, cloudURL, authCode, cloudID string,
-) error {
-
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+	opts ...CommonCommandOption) error {
+	cfg := commonCommandOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+	}
+	for _, o := range opts {
+		cfg = o.applyOnCommonCommand(cfg)
+	}
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
+	"github.com/plgd-dev/go-coap/v2/udp"
 	"github.com/plgd-dev/kit/net/coap"
 	kitNetCoap "github.com/plgd-dev/kit/net/coap"
 
@@ -68,6 +69,7 @@ type DiscoveryConfiguration struct {
 	MulticastHopLimit    int      // default: 2, min value: 1 - don't pass through router, max value: 255, https://tools.ietf.org/html/rfc2460#section-3
 	MulticastAddressUDP4 []string // default: "[224.0.1.187:5683] (local.DiscoveryAddressUDP4), empty: don't use ipv4 multicast"
 	MulticastAddressUDP6 []string // default: "[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683]"] (local.DiscoveryAddressUDP6), empty: don't use ipv6 multicast"
+	MulticastOptions     []udp.MulticastOption
 }
 
 func WithErr(errFunc ErrFunc) OptionFunc {
