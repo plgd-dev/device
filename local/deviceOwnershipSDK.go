@@ -105,7 +105,7 @@ func getOTMManufacturer(app ApplicationCallback, signer core.CertificateSigner, 
 	return manufacturer.NewClient(mfgCert, mfgCA, signer, manufacturer.WithDialDTLS(dialDTLS), manufacturer.WithDialTLS(dialTLS)), nil
 }
 
-func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	signer, err := o.createIdentitySigner()
 	if err != nil {
 		return "", err
@@ -123,7 +123,7 @@ func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otm
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
-	return own(ctx, deviceID, otmClient, opts...)
+	return own(ctx, deviceID, otmClient, discoveryConfiguration, opts...)
 }
 
 func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
