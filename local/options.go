@@ -120,8 +120,8 @@ func (r DiscoveryConfigurationOption) applyOnObserve(opts observeOptions) observ
 	return opts
 }
 
-// WithDiscoveryConfigration allows to setup multicast request. By default it is send to ipv4 and ipv6.
-func WithDiscoveryConfigration(cfg core.DiscoveryConfiguration) DiscoveryConfigurationOption {
+// WithDiscoveryConfiguration allows to setup multicast request. By default it is send to ipv4 and ipv6.
+func WithDiscoveryConfiguration(cfg core.DiscoveryConfiguration) DiscoveryConfigurationOption {
 	return DiscoveryConfigurationOption{
 		cfg: cfg,
 	}

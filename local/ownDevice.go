@@ -14,7 +14,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
-	d, _, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, _, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
@@ -31,7 +31,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient core.OTMClient, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}

@@ -24,7 +24,7 @@ func (c *Client) UpdateResource(
 		cfg = o.applyOnUpdate(cfg)
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}
