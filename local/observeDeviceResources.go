@@ -202,12 +202,7 @@ func (c *Client) stopObservingDeviceResources(observationID string) (sync func()
 }
 
 func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler, opts ...CommonCommandOption) (string, error) {
-	cfg := commonCommandOptions{
-		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
-	}
-	for _, o := range opts {
-		cfg = o.applyOnCommonCommand(cfg)
-	}
+	cfg := applyCommonOptions(opts...)
 	ID, err := uuid.NewV4()
 	if err != nil {
 		return "", err
