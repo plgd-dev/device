@@ -196,7 +196,7 @@ func (c *Client) ObserveResource(
 		return getObservationID(key, resourceObservationID.String()), nil
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}

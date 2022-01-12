@@ -6,7 +6,7 @@ import (
 
 func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}
@@ -17,7 +17,7 @@ func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...Comm
 
 func (c *Client) Reboot(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

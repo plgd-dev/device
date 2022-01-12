@@ -71,7 +71,7 @@ func (c *Client) OnboardDevice(
 	deviceID, authorizationProvider, cloudURL, authCode, cloudID string,
 	opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfigration(cfg.discoveryConfiguration))
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

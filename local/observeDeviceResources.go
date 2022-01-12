@@ -114,7 +114,7 @@ func (o *deviceResourcesObserver) emit(ctx context.Context, link schema.Resource
 }
 
 func (o *deviceResourcesObserver) observe(ctx context.Context) (map[string]schema.ResourceLink, error) {
-	refDev, links, err := o.c.GetRefDevice(ctx, o.deviceID, WithDiscoveryConfigration(o.discoveryConfiguration))
+	refDev, links, err := o.c.GetRefDevice(ctx, o.deviceID, WithDiscoveryConfiguration(o.discoveryConfiguration))
 	if err != nil {
 		return nil, err
 	}
