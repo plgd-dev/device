@@ -304,7 +304,17 @@ type commonCommandOptions struct {
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
-// DisownOption option definition.
+// CommonCommandOption option definition.
 type CommonCommandOption = interface {
 	applyOnCommonCommand(opts commonCommandOptions) commonCommandOptions
+}
+
+func applyCommonOptions(opts ...CommonCommandOption) commonCommandOptions {
+	cfg := commonCommandOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+	}
+	for _, o := range opts {
+		cfg = o.applyOnCommonCommand(cfg)
+	}
+	return cfg
 }
