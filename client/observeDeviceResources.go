@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
 	"go.uber.org/atomic"
 )
@@ -27,9 +28,10 @@ type DeviceResourcesObservationHandler = interface {
 }
 
 type deviceResourcesObserver struct {
-	c        *Client
-	deviceID string
-	handler  *deviceResourcesObservationHandler
+	c                      *Client
+	deviceID               string
+	handler                *deviceResourcesObservationHandler
+	discoveryConfiguration core.DiscoveryConfiguration
 
 	cancel   context.CancelFunc
 	interval time.Duration
@@ -37,14 +39,15 @@ type deviceResourcesObserver struct {
 	links    map[string]schema.ResourceLink
 }
 
-func newDeviceResourcesObserver(c *Client, deviceID string, interval time.Duration, handler *deviceResourcesObservationHandler) *deviceResourcesObserver {
+func newDeviceResourcesObserver(c *Client, deviceID string, interval time.Duration, handler *deviceResourcesObservationHandler, discoveryConfiguration core.DiscoveryConfiguration) *deviceResourcesObserver {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	obs := &deviceResourcesObserver{
-		c:        c,
-		deviceID: deviceID,
-		handler:  handler,
-		interval: interval,
+		c:                      c,
+		deviceID:               deviceID,
+		handler:                handler,
+		interval:               interval,
+		discoveryConfiguration: discoveryConfiguration,
 
 		wait:   wg.Wait,
 		cancel: cancel,
@@ -110,7 +113,7 @@ func (o *deviceResourcesObserver) emit(ctx context.Context, link schema.Resource
 }
 
 func (o *deviceResourcesObserver) observe(ctx context.Context) (map[string]schema.ResourceLink, error) {
-	refDev, links, err := o.c.GetRefDevice(ctx, o.deviceID)
+	refDev, links, err := o.c.GetRefDevice(ctx, o.deviceID, WithDiscoveryConfiguration(o.discoveryConfiguration))
 	if err != nil {
 		return nil, err
 	}
@@ -197,7 +200,8 @@ func (c *Client) stopObservingDeviceResources(observationID string) (sync func()
 	return sub.Wait, nil
 }
 
-func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler) (string, error) {
+func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler, opts ...CommonCommandOption) (string, error) {
+	cfg := applyCommonOptions(opts...)
 	ID, err := uuid.NewRandom()
 	if err != nil {
 		return "", err
@@ -208,7 +212,7 @@ func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, ha
 		removeSubscription: func() {
 			c.stopObservingDevices(ID.String())
 		},
-	})
+	}, cfg.discoveryConfiguration)
 	c.insertSubscription(ID.String(), obs)
 	return ID.String(), nil
 }

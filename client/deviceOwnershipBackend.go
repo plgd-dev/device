@@ -55,7 +55,7 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 	}, nil
 }
 
-func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	var otmClient otm.Client
 	switch otmType {
 	case OTMType_Manufacturer:
@@ -69,7 +69,7 @@ func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string,
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}
-	return own(ctx, deviceID, otmClient, opts...)
+	return own(ctx, deviceID, otmClient, discoveryConfiguration, opts...)
 }
 
 type claims map[string]interface{}

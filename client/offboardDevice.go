@@ -4,8 +4,9 @@ import (
 	"context"
 )
 
-func (c *Client) OffboardDevice(ctx context.Context, deviceID string) error {
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+func (c *Client) OffboardDevice(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
+	cfg := applyCommonOptions(opts...)
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

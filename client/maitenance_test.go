@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -13,6 +15,7 @@ func TestClientFactoryReset(t *testing.T) {
 
 	type args struct {
 		deviceID string
+		opts     []client.CommonCommandOption
 	}
 	tests := []struct {
 		name    string
@@ -23,6 +26,7 @@ func TestClientFactoryReset(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
+				opts:     []client.CommonCommandOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 		},
 		{
@@ -46,7 +50,7 @@ func TestClientFactoryReset(t *testing.T) {
 	require.NoError(t, err)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := c.FactoryReset(ctx, tt.args.deviceID)
+			err := c.FactoryReset(ctx, tt.args.deviceID, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

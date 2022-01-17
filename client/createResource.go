@@ -21,12 +21,13 @@ func (c *Client) CreateResource(
 		opts: []kitNetCoap.OptionFunc{
 			kitNetCoap.WithInterface("oic.if.create"),
 		},
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnCreate(cfg)
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

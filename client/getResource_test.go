@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/configuration"
 	"github.com/plgd-dev/device/schema/device"
@@ -31,6 +32,7 @@ func TestClientGetResource(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 				href:     configuration.ResourceURI,
+				opts:     []client.GetOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 			want: map[string]interface{}{
 				"n": test.DevsimName,
