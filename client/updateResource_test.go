@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/configuration"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
@@ -34,6 +35,7 @@ func TestClientUpdateResource(t *testing.T) {
 				data: map[string]interface{}{
 					"n": t.Name() + "-valid",
 				},
+				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 			want: map[interface{}]interface{}{
 				"n": t.Name() + "-valid",

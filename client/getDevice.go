@@ -118,7 +118,8 @@ func (c *Client) getDevice(ctx context.Context, refDev *RefDevice, links schema.
 
 func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
 	cfg := getDeviceOptions{
-		getDetails: getDetails,
+		getDetails:             getDetails,
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDevice(cfg)

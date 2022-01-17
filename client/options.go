@@ -79,33 +79,68 @@ func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions
 	return opts
 }
 
-type DiscoveryConfigrationOption struct {
+type DiscoveryConfigurationOption struct {
 	cfg core.DiscoveryConfiguration
 }
 
-func (r DiscoveryConfigrationOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+func (r DiscoveryConfigurationOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
 	opts.discoveryConfiguration = r.cfg
 	return opts
 }
 
-func (r DiscoveryConfigrationOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
+func (r DiscoveryConfigurationOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
 	opts.discoveryConfiguration = r.cfg
 	return opts
 }
 
-func (r DiscoveryConfigrationOption) applyOnGetGetDevicesWithHandler(opts getDevicesWithHandlerOptions) getDevicesWithHandlerOptions {
+func (r DiscoveryConfigurationOption) applyOnGetGetDevicesWithHandler(opts getDevicesWithHandlerOptions) getDevicesWithHandlerOptions {
 	opts.discoveryConfiguration = r.cfg
 	return opts
 }
 
-func (r DiscoveryConfigrationOption) applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions {
+func (r DiscoveryConfigurationOption) applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions {
 	opts.discoveryConfiguration = r.cfg
 	return opts
 }
 
-// WithDiscoveryConfigration allows to setup multicast request. By defualt it is send to ipv4 and ipv6.
-func WithDiscoveryConfigration(cfg core.DiscoveryConfiguration) DiscoveryConfigrationOption {
-	return DiscoveryConfigrationOption{
+func (r DiscoveryConfigurationOption) applyOnGet(opts getOptions) getOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnUpdate(opts updateOptions) updateOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnCommonCommand(opts commonCommandOptions) commonCommandOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnObserve(opts observeOptions) observeOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnCreate(opts createOptions) createOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+func (r DiscoveryConfigurationOption) applyOnDelete(opts deleteOptions) deleteOptions {
+	opts.discoveryConfiguration = r.cfg
+	return opts
+}
+
+// WithDiscoveryConfiguration allows to setup multicast request. By default it is send to ipv4 and ipv6.
+func WithDiscoveryConfiguration(cfg core.DiscoveryConfiguration) DiscoveryConfigurationOption {
+	return DiscoveryConfigurationOption{
 		cfg: cfg,
 	}
 }
@@ -116,23 +151,27 @@ type GetOption = interface {
 }
 
 type getOptions struct {
-	opts  []kitNetCoap.OptionFunc
-	codec kitNetCoap.Codec
+	opts                   []kitNetCoap.OptionFunc
+	codec                  kitNetCoap.Codec
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type updateOptions struct {
-	opts  []kitNetCoap.OptionFunc
-	codec kitNetCoap.Codec
+	opts                   []kitNetCoap.OptionFunc
+	codec                  kitNetCoap.Codec
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type createOptions struct {
-	opts  []kitNetCoap.OptionFunc
-	codec kitNetCoap.Codec
+	opts                   []kitNetCoap.OptionFunc
+	codec                  kitNetCoap.Codec
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type deleteOptions struct {
-	opts  []kitNetCoap.OptionFunc
-	codec kitNetCoap.Codec
+	opts                   []kitNetCoap.OptionFunc
+	codec                  kitNetCoap.Codec
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 // CreateOption option definition.
@@ -273,9 +312,10 @@ func (r CodecOption) applyOnObserve(opts observeOptions) observeOptions {
 }
 
 type observeOptions struct {
-	codec             kitNetCoap.Codec
-	opts              []kitNetCoap.OptionFunc
-	resourceInterface string
+	codec                  kitNetCoap.Codec
+	opts                   []kitNetCoap.OptionFunc
+	resourceInterface      string
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 // ObserveOption option definition.
@@ -291,8 +331,9 @@ const (
 )
 
 type ownOptions struct {
-	opts    []core.OwnOption
-	otmType OTMType
+	opts                   []core.OwnOption
+	otmType                OTMType
+	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 // OwnOption option definition.
@@ -316,4 +357,23 @@ type otmOption struct {
 func (r otmOption) applyOnOwn(opts ownOptions) ownOptions {
 	opts.otmType = r.otmType
 	return opts
+}
+
+type commonCommandOptions struct {
+	discoveryConfiguration core.DiscoveryConfiguration
+}
+
+// CommonCommandOption option definition.
+type CommonCommandOption = interface {
+	applyOnCommonCommand(opts commonCommandOptions) commonCommandOptions
+}
+
+func applyCommonOptions(opts ...CommonCommandOption) commonCommandOptions {
+	cfg := commonCommandOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+	}
+	for _, o := range opts {
+		cfg = o.applyOnCommonCommand(cfg)
+	}
+	return cfg
 }

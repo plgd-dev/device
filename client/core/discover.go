@@ -32,9 +32,10 @@ type DiscoveryClient struct {
 	l         *net.UDPConn
 	server    *udp.Server
 	wg        sync.WaitGroup
+	opts      []net.MulticastOption
 }
 
-func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Duration, errors func(error)) (*DiscoveryClient, error) {
+func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Duration, errors func(error), opts []net.MulticastOption) (*DiscoveryClient, error) {
 	l, err := net.NewListenUDP(network, "", net.WithErrors(errors))
 	if err != nil {
 		return nil, err
@@ -45,6 +46,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 		msgID:     uint16(msgID),
 		server:    s,
 		l:         l,
+		opts:      opts,
 	}
 	c.wg.Add(1)
 	go func() {
@@ -60,7 +62,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
 	req.SetMessageID(d.msgID)
 	req.SetType(udpMessage.NonConfirmable)
-	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler)
+	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler, d.opts...)
 }
 
 func (d *DiscoveryClient) Close() error {
@@ -86,7 +88,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
-		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors, cfg.MulticastOptions)
 		if err != nil {
 			errors(err)
 			continue
@@ -94,7 +96,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors, cfg.MulticastOptions)
 		if err != nil {
 			errors(err)
 			continue

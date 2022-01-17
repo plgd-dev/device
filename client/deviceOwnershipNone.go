@@ -28,8 +28,8 @@ func (o *deviceOwnershipNone) GetIdentitySigner(accessToken string) core.Certifi
 	return noneSigner{}
 }
 
-func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, own ownFunc, opts ...core.OwnOption) (string, error) {
-	return own(ctx, deviceID, nil, opts...)
+func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
+	return own(ctx, deviceID, nil, discoveryConfiguration, opts...)
 }
 
 func (o *deviceOwnershipNone) Initialization(ctx context.Context) error {

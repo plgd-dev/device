@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
@@ -44,6 +45,7 @@ func TestClientDeleteResource(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 				href:     test.TestResourceSwitchesInstanceHref("1"),
+				opts:     []client.DeleteOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 		},
 		{

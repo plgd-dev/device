@@ -15,13 +15,14 @@ func (c *Client) DeleteResource(
 	opts ...DeleteOption,
 ) error {
 	cfg := deleteOptions{
-		codec: codecOcf.VNDOCFCBORCodec{},
+		codec:                  codecOcf.VNDOCFCBORCodec{},
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnDelete(cfg)
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

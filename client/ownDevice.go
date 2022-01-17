@@ -9,12 +9,13 @@ import (
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
 	cfg := ownOptions{
-		otmType: OTMType_Manufacturer,
+		otmType:                OTMType_Manufacturer,
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
-	d, _, err := c.GetRefDevice(ctx, deviceID)
+	d, _, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
@@ -27,11 +28,26 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		// don't own insecure device
 		return deviceID, nil
 	}
-	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, c.ownDeviceWithSigners, cfg.opts...)
+	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient otm.Client, opts ...core.OwnOption) (string, error) {
-	d, links, err := c.GetRefDevice(ctx, deviceID)
+func (c *Client) updateCache(ctx context.Context, d *RefDevice, deviceID string) {
+	if d.DeviceID() != deviceID {
+		if c.deviceCache.RemoveDevice(ctx, deviceID, d) {
+			for {
+				storedDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
+				if stored {
+					break
+				}
+				c.deviceCache.RemoveDevice(ctx, storedDev.DeviceID(), storedDev)
+				storedDev.Release(ctx)
+			}
+		}
+	}
+}
+
+func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
+	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
@@ -55,19 +71,7 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	if err != nil {
 		return "", err
 	}
-
-	if d.DeviceID() != deviceID {
-		if c.deviceCache.RemoveDevice(ctx, deviceID, d) {
-			for {
-				storedDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
-				if stored {
-					break
-				}
-				c.deviceCache.RemoveDevice(ctx, storedDev.DeviceID(), storedDev)
-				storedDev.Release(ctx)
-			}
-		}
-	}
+	c.updateCache(ctx, d, deviceID)
 
 	return d.DeviceID(), nil
 }

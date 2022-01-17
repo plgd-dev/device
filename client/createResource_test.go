@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
@@ -32,6 +33,7 @@ func TestClientCreateResource(t *testing.T) {
 				deviceID: deviceID,
 				href:     test.TestResourceSwitchesHref,
 				body:     test.MakeSwitchResourceDefaultData(),
+				opts:     []client.CreateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 			want: test.MakeSwitchResourceData(map[string]interface{}{
 				"href": test.TestResourceSwitchesInstanceHref("1"),
