@@ -24,7 +24,11 @@ type testDeviceHandler struct {
 }
 
 func (h *testDeviceHandler) Handle(ctx context.Context, d *ocf.Device) {
-	defer d.Close(ctx)
+	defer func() {
+		if errClose := d.Close(ctx); errClose != nil {
+			h.Error(fmt.Errorf("testDeviceHandler.Handle: %w", errClose))
+		}
+	}()
 }
 
 func (h *testDeviceHandler) Error(err error) {

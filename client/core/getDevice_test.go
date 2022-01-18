@@ -16,7 +16,10 @@ func TestClientGetDeviceByIPWithIP4(t *testing.T) {
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
@@ -39,7 +42,10 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 	require.NoError(t, err)
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 
