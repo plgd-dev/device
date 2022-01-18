@@ -532,14 +532,20 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		cfg = o(cfg)
 	}
 	dopts := make([]udp.DialOption, 0, 4)
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, udp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
-			cc.Close()
-			cfg.errors(keepAliveTimeoutError())
-		}))
+	errorsFn := func(err error) {
+		// ignore by default
 	}
 	if cfg.errors != nil {
+		errorsFn = cfg.errors
 		dopts = append(dopts, udp.WithErrors(cfg.errors))
+	}
+	if cfg.KeepaliveTimeout != 0 {
+		dopts = append(dopts, udp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
+			if err := cc.Close(); err != nil {
+				errorsFn(fmt.Errorf("DialUDP: %w", err))
+			}
+			errorsFn(keepAliveTimeoutError())
+		}))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, udp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
@@ -575,10 +581,19 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		cfg = o(cfg)
 	}
 	dopts := make([]tcp.DialOption, 0, 4)
+	errorsFn := func(err error) {
+		// ignore by default
+	}
+	if cfg.errors != nil {
+		errorsFn = cfg.errors
+		dopts = append(dopts, tcp.WithErrors(cfg.errors))
+	}
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
-			cc.Close()
-			cfg.errors(keepAliveTimeoutError())
+			if err := cc.Close(); err != nil {
+				errorsFn(fmt.Errorf("DialTCP: %w", err))
+			}
+			errorsFn(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
@@ -586,9 +601,6 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	}
 	if cfg.DisableTCPSignalMessageCSM {
 		dopts = append(dopts, tcp.WithDisableTCPSignalMessageCSM())
-	}
-	if cfg.errors != nil {
-		dopts = append(dopts, tcp.WithErrors(cfg.errors))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
@@ -661,10 +673,19 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	}
 	dopts := make([]tcp.DialOption, 0, 4)
 	dopts = append(dopts, tcp.WithTLS(tlsCfg))
+	errorsFn := func(err error) {
+		// ignore by default
+	}
+	if cfg.errors != nil {
+		errorsFn = cfg.errors
+		dopts = append(dopts, tcp.WithErrors(cfg.errors))
+	}
 	if cfg.KeepaliveTimeout != 0 {
 		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
-			cc.Close()
-			cfg.errors(keepAliveTimeoutError())
+			if err := cc.Close(); err != nil {
+				errorsFn(fmt.Errorf("DialTCPSecure: %w", err))
+			}
+			errorsFn(keepAliveTimeoutError())
 		}))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
@@ -672,9 +693,6 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	}
 	if cfg.DisableTCPSignalMessageCSM {
 		dopts = append(dopts, tcp.WithDisableTCPSignalMessageCSM())
-	}
-	if cfg.errors != nil {
-		dopts = append(dopts, tcp.WithErrors(cfg.errors))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
@@ -717,14 +735,20 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 		cfg = o(cfg)
 	}
 	dopts := make([]dtls.DialOption, 0, 4)
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, dtls.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
-			cc.Close()
-			cfg.errors(keepAliveTimeoutError())
-		}))
+	errorsFn := func(err error) {
+		// ignore by default
 	}
 	if cfg.errors != nil {
+		errorsFn = cfg.errors
 		dopts = append(dopts, dtls.WithErrors(cfg.errors))
+	}
+	if cfg.KeepaliveTimeout != 0 {
+		dopts = append(dopts, dtls.WithKeepAlive(3, cfg.KeepaliveTimeout/3, func(cc inactivity.ClientConn) {
+			if err := cc.Close(); err != nil {
+				errorsFn(fmt.Errorf("DialUDPSecure: %w", err))
+			}
+			errorsFn(keepAliveTimeoutError())
+		}))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, dtls.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
