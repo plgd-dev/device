@@ -704,7 +704,9 @@ func scanner(client OCFClient, discoveryTimeout time.Duration) {
 			println("\nOff-boarding " + deviceID + " was successful.")
 		case 99:
 			// Close Client
-			client.Close()
+			if errClose := client.Close(); errClose != nil {
+				println("\nCannot close client: %v", errClose)
+			}
 			os.Exit(0)
 		}
 		printMenu()
