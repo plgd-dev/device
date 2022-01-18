@@ -92,7 +92,6 @@ func disown(ctx context.Context, conn connUpdateResourcer) error {
 		ctx1, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		ctx = ctx1
-
 	}
 	return updateOperationalState(ctx, conn, pstat.OperationalState_RESET)
 }

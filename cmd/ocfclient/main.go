@@ -17,13 +17,12 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	"github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
-
 	local "github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/pkg/security/signer"
 	"github.com/plgd-dev/kit/v2/codec/json"
+	"github.com/plgd-dev/kit/v2/security"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
 
 type Options struct {
@@ -100,7 +99,6 @@ func generateMfgTrustCA(mTrustCA, mTrustCAKey string) {
 }
 
 func ReadCommandOptions(opts Options) {
-
 	fmt.Println("Usage of OCF Client Options :")
 	fmt.Println("    --discoveryTimeout=<Duration>                              i.e. 5s")
 	fmt.Println("    --certIdentity=<Device UUID>                               i.e. 00000000-0000-0000-0000-000000000001")
@@ -265,7 +263,6 @@ func ReadCommandOptions(opts Options) {
 				fmt.Println("Unable to generate Identity Intermediate CA: " + err.Error())
 			} else {
 				fmt.Println("Generating Identity Intermediate CA to " + outCert + ", " + outKey + " was successful.")
-
 			}
 		}
 
@@ -424,14 +421,14 @@ func generateIdentityCertificate(certConfig generateCertificate.Configuration, i
 func WriteCertOut(filename string, cert []byte) error {
 	certOut, err := os.Create(filename)
 	if err != nil {
-		return fmt.Errorf("failed to open %v for writing: %s", filename, err)
+		return fmt.Errorf("failed to open %s for writing: %w", filename, err)
 	}
 	_, err = certOut.Write(cert)
 	if err != nil {
-		return fmt.Errorf("failed to write %v: %s", filename, err)
+		return fmt.Errorf("failed to write %s: %w", filename, err)
 	}
 	if err := certOut.Close(); err != nil {
-		return fmt.Errorf("error closing %v: %s", filename, err)
+		return fmt.Errorf("error closing %s: %w", filename, err)
 	}
 	return nil
 }
@@ -439,19 +436,19 @@ func WriteCertOut(filename string, cert []byte) error {
 func WritePrivateKey(filename string, priv *ecdsa.PrivateKey) error {
 	privBlock, err := pemBlockForKey(priv)
 	if err != nil {
-		return fmt.Errorf("failed to encode priv key %v for writing: %v", filename, err)
+		return fmt.Errorf("failed to encode priv key %s for writing: %w", filename, err)
 	}
 
 	keyOut, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("failed to open %v for writing: %v", filename, err)
+		return fmt.Errorf("failed to open %s for writing: %w", filename, err)
 	}
 
 	if err := pem.Encode(keyOut, privBlock); err != nil {
-		return fmt.Errorf("failed to write data to %v: %s", filename, err)
+		return fmt.Errorf("failed to write data to %s: %w", filename, err)
 	}
 	if err := keyOut.Close(); err != nil {
-		return fmt.Errorf("error closing %v: %s", filename, err)
+		return fmt.Errorf("error closing %s: %w", filename, err)
 	}
 	return nil
 }
@@ -538,7 +535,6 @@ func NewSecureClient() (*local.Client, error) {
 
 // Initialize creates and initializes new local client
 func (c *OCFClient) Initialize() error {
-
 	localClient, err := NewSecureClient()
 	if err != nil {
 		return err

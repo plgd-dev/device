@@ -43,7 +43,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout), udp.WithMessagePool(pool.New(0, 0)))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
-		msgID:     uint16(msgID),
+		msgID:     msgID,
 		server:    s,
 		l:         l,
 		opts:      opts,

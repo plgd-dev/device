@@ -51,7 +51,7 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) client.DeviceDeta
 			SupportedOwnerTransferMethods: []doxm.OwnerTransferMethod{doxm.JustWorks, doxm.ManufacturerCertificate},
 			OwnerID:                       "00000000-0000-0000-0000-000000000000",
 			DeviceID:                      deviceID,
-			SupportedCredentialTypes:      credential.CredentialType(credential.CredentialType_SYMMETRIC_PAIR_WISE | credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE),
+			SupportedCredentialTypes:      credential.CredentialType_SYMMETRIC_PAIR_WISE | credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE,
 			SelectedOwnerTransferMethod:   doxm.Self,
 			Interfaces:                    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 			ResourceTypes:                 []string{doxm.ResourceType},

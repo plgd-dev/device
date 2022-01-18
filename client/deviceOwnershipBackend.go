@@ -7,16 +7,14 @@ import (
 	"fmt"
 	"strings"
 
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
+	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
-
-	jwt "github.com/golang-jwt/jwt/v4"
-	"github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type SignFunc = func(ctx context.Context, csr []byte) (signedCsr []byte, err error)

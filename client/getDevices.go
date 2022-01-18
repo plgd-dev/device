@@ -74,7 +74,6 @@ func (c *Client) GetDevices(
 					})
 				}
 			}
-
 		}
 		return details, err
 	}

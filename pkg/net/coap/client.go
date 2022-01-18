@@ -16,16 +16,15 @@ import (
 	"github.com/google/uuid"
 	piondtls "github.com/pion/dtls/v2"
 	"github.com/plgd-dev/go-coap/v2/dtls"
+	"github.com/plgd-dev/go-coap/v2/message"
+	"github.com/plgd-dev/go-coap/v2/message/codes"
+	"github.com/plgd-dev/go-coap/v2/message/status"
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
 	"github.com/plgd-dev/go-coap/v2/net/monitor/inactivity"
 	"github.com/plgd-dev/go-coap/v2/tcp"
 	"github.com/plgd-dev/go-coap/v2/tcp/message/pool"
 	"github.com/plgd-dev/go-coap/v2/udp"
 	udppool "github.com/plgd-dev/go-coap/v2/udp/message/pool"
-
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/message/status"
 	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
@@ -371,7 +370,6 @@ func (h *OnCloseHandler) getHandlers() []CloseHandlerFunc {
 		res = append(res, ho)
 	}
 	return res
-
 }
 
 func (h *OnCloseHandler) OnClose(err error) {
