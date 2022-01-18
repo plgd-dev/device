@@ -47,7 +47,11 @@ type findDeviceIDByNameHandler struct {
 }
 
 func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, dev *core.Device) {
-	defer dev.Close(ctx)
+	defer func() {
+		if errClose := dev.Close(ctx); errClose != nil {
+			h.Error(errClose)
+		}
+	}()
 	eps := dev.GetEndpoints()
 	var d device.Device
 	err := dev.GetResource(ctx, schema.ResourceLink{
@@ -120,7 +124,11 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 	if err != nil {
 		return "", err
 	}
-	defer device.Close(ctx)
+	defer func() {
+		if errClose := device.Close(ctx); errClose != nil {
+			log.Errorf("FindDeviceIP: %w", errClose)
+		}
+	}()
 
 	if len(device.GetEndpoints()) == 0 {
 		return "", fmt.Errorf("endpoints are not set for device %v", device)
