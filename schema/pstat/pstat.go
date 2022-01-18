@@ -73,16 +73,16 @@ func (s OperationalState) String() string {
 type OperationalMode uint8
 
 const (
-	OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPE_SERVICES OperationalMode = 1 << iota
+	OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES OperationalMode = 1 << iota
 	OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE
 	OperationalMode_CLIENT_DIRECTED
 )
 
 func (s OperationalMode) String() string {
 	res := make([]string, 0, 4)
-	if s.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPE_SERVICES) {
-		res = append(res, "SERVER_DIRECTED_UTILIZING_MULTIPE_SERVICES")
-		s &^= OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPE_SERVICES
+	if s.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES) {
+		res = append(res, "SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES")
+		s &^= OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES
 	}
 	if s.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE) {
 		res = append(res, "SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE")

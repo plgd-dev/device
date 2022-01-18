@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
 	"github.com/plgd-dev/device/test"
@@ -46,7 +46,7 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert, false, false)
 	require.NoError(t, err)
-	d, err := c2.GetDeviceByMulticast(ctx, c.DeviceID, ocf.DefaultDiscoveryConfiguration())
+	d, err := c2.GetDeviceByMulticast(ctx, c.DeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
 		errClose := d.Close(ctx)

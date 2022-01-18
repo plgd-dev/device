@@ -8,14 +8,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/karrick/tparse/v2"
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/pkg/error"
-
-	"github.com/google/uuid"
-	"github.com/karrick/tparse/v2"
 	"github.com/plgd-dev/kit/v2/security"
 )
 
@@ -83,7 +82,7 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 		sdkDeviceID: sdkDeviceID,
 		createIdentitySigner: func() (core.CertificateSigner, error) {
 			if createSigner == nil {
-				return nil, fmt.Errorf("creater signer is not set")
+				return nil, fmt.Errorf("create signer is not set")
 			}
 			notBefore, err := tparse.ParseNow(time.RFC3339, validFrom)
 			if err != nil {

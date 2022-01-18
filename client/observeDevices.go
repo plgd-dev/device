@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -158,7 +159,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 	if err != nil {
 		return nil, err
 	}
-	if ctx.Err() == context.Canceled {
+	if errors.Is(ctx.Err(), context.Canceled) {
 		return nil, ctx.Err()
 	}
 

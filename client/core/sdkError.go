@@ -36,7 +36,6 @@ func MakeSdkError(code codes.Code, err error) error {
 
 func MakeCanceled(e error) error {
 	return MakeSdkError(codes.Canceled, e)
-
 }
 
 func MakeUnknown(e error) error {
@@ -61,7 +60,6 @@ func MakeAlreadyExists(e error) error {
 
 func MakePermissionDenied(e error) error {
 	return MakeSdkError(codes.PermissionDenied, e)
-
 }
 
 func MakeResourceExhausted(e error) error {

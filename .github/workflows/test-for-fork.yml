@@ -1,0 +1,34 @@
+# Workflow to run tests for PRs from forked repository
+name: Test for forked repository
+
+# Run on push to whatever branch
+on: [pull_request]
+
+jobs:
+  test-for-fork:
+    # Run only for forked repository
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: cloud-server-debug
+            coverage: false
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+          - name: cloud-server-discovery-resource-observable-debug
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+
+    steps:
+      # Checks-out repository under $GITHUB_WORKSPACE
+      - uses: actions/checkout@v2
+
+      - name: Setup kernel for multicast messages, increase read buffer to 8MB
+        run: sudo sysctl -w net.core.rmem_max=8388608
+
+      - name: Run a test
+        run: make test DEVSIM_IMAGE=${{ matrix.tag }}
+
+      - name: Collect iotivity logs for devsim-net-host failed test
+        if: ${{ failure() }}
+        run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log

@@ -5,9 +5,8 @@ import (
 	"testing"
 	"time"
 
-	ocf "github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/test"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +39,7 @@ func TestDeviceGetEndpoints(t *testing.T) {
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 3*time.Second)
 			defer cancelTimeout()
 
-			device, err := c.GetDeviceByMulticast(timeout, deviceID, ocf.DefaultDiscoveryConfiguration())
+			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer func() {
 				errClose := device.Close(timeout)

@@ -8,7 +8,6 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/test"
-
 	"github.com/stretchr/testify/require"
 )
 

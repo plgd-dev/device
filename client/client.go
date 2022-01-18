@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
@@ -93,12 +92,10 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	dialDTLS := func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 		opts = append(opts, dialOpts...)
 		return coap.DialUDPSecure(ctx, addr, dtlsCfg, opts...)
-
 	}
 	dialTCP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 		opts = append(opts, dialOpts...)
 		return coap.DialTCP(ctx, addr, opts...)
-
 	}
 	dialUDP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 		opts = append(opts, dialOpts...)

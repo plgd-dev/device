@@ -6,10 +6,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
-
-	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 )
 
 type refDeviceCache struct {

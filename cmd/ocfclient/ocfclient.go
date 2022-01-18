@@ -133,7 +133,6 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 
 // Update a resource of the device
 func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{}) (string, error) {
-
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 

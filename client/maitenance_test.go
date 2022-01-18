@@ -101,7 +101,7 @@ func TestClient_Reboot(t *testing.T) {
 				require.Error(t, err)
 			} else {
 				require.NoError(t, err)
-				time.Sleep(time.Second * 8) // restart devsim takes arround 8seconds
+				time.Sleep(time.Second * 8) // restart devsim takes around 8seconds
 			}
 		})
 	}
