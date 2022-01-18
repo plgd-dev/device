@@ -104,7 +104,10 @@ func TestClientGetDevice(t *testing.T) {
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close(context.Background())
+	defer func() {
+		errClose := c.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -167,7 +170,10 @@ func TestClientGetDeviceByIP(t *testing.T) {
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close(context.Background())
+	defer func() {
+		errClose := c.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

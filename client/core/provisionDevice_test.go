@@ -18,7 +18,10 @@ func TestProvisioning(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	c.SetUpTestDevice(t)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
@@ -45,7 +48,10 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	d, err := c2.GetDeviceByMulticast(ctx, c.DeviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
-	defer d.Close(ctx)
+	defer func() {
+		errClose := d.Close(ctx)
+		require.NoError(t, errClose)
+	}()
 	eps := d.GetEndpoints()
 	links, err := d.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
@@ -58,7 +64,10 @@ func TestProvisioning(t *testing.T) {
 func TestSettingCloudResource(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 	c.SetUpTestDevice(t)
 
 	pc, err := c.Provision(context.Background(), c.DeviceLinks)

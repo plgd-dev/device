@@ -19,7 +19,10 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -27,7 +30,10 @@ func TestGetOwnership(t *testing.T) {
 	deviceID := secureDeviceID
 	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
-	defer device.Close(ctx)
+	defer func() {
+		errClose := device.Close(ctx)
+		require.NoError(t, errClose)
+	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)

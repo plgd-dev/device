@@ -140,17 +140,17 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	c.DeviceLinks = links
 }
 
-func (c *Client) Close() {
+func (c *Client) Close() error {
 	if c.DeviceID == "" {
-		return
+		return nil
 	}
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	err := c.Disown(timeout, c.DeviceLinks)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	c.Device.Close(timeout)
+	return c.Device.Close(timeout)
 }
 
 var (

@@ -20,8 +20,11 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	require.NoError(t, err)
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 
-	defer c.Close()
 	deviceID := secureDeviceID
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
@@ -29,7 +32,10 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 
 	dev, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
-	defer dev.Close(timeout)
+	defer func() {
+		errClose := dev.Close(timeout)
+		require.NoError(errClose)
+	}()
 	eps := dev.GetEndpoints()
 	links, err := dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
@@ -47,7 +53,10 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	secureDeviceID = test.MustFindDeviceByName(test.DevsimName)
 	dev, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
-	defer dev.Close(timeout)
+	defer func() {
+		errClose := dev.Close(timeout)
+		require.NoError(errClose)
+	}()
 	eps = dev.GetEndpoints()
 	links, err = dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
@@ -94,14 +103,20 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	require.NoError(t, err)
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelTimeout()
 
 	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
-	defer device.Close(timeout)
+	defer func() {
+		errClose := device.Close(timeout)
+		require.NoError(errClose)
+	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)

@@ -30,7 +30,10 @@ func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) fu
 	require.NoError(t, err)
 	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
-	defer device.Close(ctx)
+	defer func() {
+		errClose := device.Close(ctx)
+		require.NoError(t, errClose)
+	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
@@ -50,7 +53,10 @@ func TestGetOwnerships(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	defer c.Close()
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()

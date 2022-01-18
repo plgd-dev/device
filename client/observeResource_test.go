@@ -139,7 +139,9 @@ func (h *observationHandler) waitForClose(ctx context.Context) error {
 	select {
 	case e := <-h.res:
 		var d interface{}
-		e(d)
+		if err := e(d); err != nil {
+			return fmt.Errorf("unexpected notification: cannot decode: %w", err)
+		}
 		return fmt.Errorf("unexpected notification %v", d)
 	case <-ctx.Done():
 		return ctx.Err()
