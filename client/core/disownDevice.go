@@ -8,6 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/kit/v2/log"
 )
 
 func connectionWasClosed(ctx context.Context, err error) bool {
@@ -24,15 +25,21 @@ func (d *Device) Disown(
 ) error {
 	const errMsg = "cannot disown: %w"
 
+	log.Info("Disown 1")
+
 	ownership, err := d.GetOwnership(ctx, links)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
 
+	log.Info("Disown 2")
+
 	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
+
+	log.Info("Disown 3")
 
 	if ownership.OwnerID != sdkID {
 		if ownership.OwnerID == uuid.Nil.String() {
@@ -47,11 +54,15 @@ func (d *Device) Disown(
 		},
 	}
 
+	log.Info("Disown 4")
+
 	link, err := GetResourceLink(links, pstat.ResourceURI)
 	if err != nil {
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
 	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
+
+	log.Info("Disown 5")
 
 	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
 	if err != nil {
@@ -63,7 +74,11 @@ func (d *Device) Disown(
 
 		return MakeInternal(fmt.Errorf(errMsg, err))
 	}
+
+	log.Info("Disown 6")
 	d.Close(ctx)
+
+	log.Info("Disown 7")
 
 	return nil
 }

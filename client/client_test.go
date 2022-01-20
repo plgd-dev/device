@@ -11,6 +11,7 @@ import (
 
 	"github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/kit/v2/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,6 +83,7 @@ func NewTestSecureClient() (*client.Client, error) {
 
 func disown(t *testing.T, c *client.Client, deviceID string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
+	log.Info("disown")
 	defer cancel()
 	err := c.DisownDevice(ctx, deviceID)
 	require.NoError(t, err)
