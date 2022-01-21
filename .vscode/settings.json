@@ -1,0 +1,18 @@
+{
+	"go.testFlags": [
+		"-race",
+		"-v",
+		"-cover",
+	],
+	"go.testEnvVars": {
+		"ROOT_CA_CRT": "${workspaceFolder}/.tmp/pki_certs/cloudca.pem",
+		"ROOT_CA_KEY": "${workspaceFolder}/.tmp/pki_certs/cloudcakey.pem",
+		"INTERMEDIATE_CA_CRT": "${workspaceFolder}/.tmp/pki_certs/intermediatecacrt.pem",
+		"INTERMEDIATE_CA_KEY": "${workspaceFolder}/.tmp/pki_certs/intermediatecakey.pem",
+		"MFG_CRT": "${workspaceFolder}/.tmp/pki_certs/mfgcrt.pem",
+		"MFG_KEY": "${workspaceFolder}/.tmp/pki_certs/mfgkey.pem",
+		"IDENTITY_CRT": "${workspaceFolder}/.tmp/pki_certs/identitycrt.pem",
+		"IDENTITY_KEY": "${workspaceFolder}/.tmp/pki_certs/identitykey.pem",
+	},
+	"go.testTimeout": "600s",
+}
