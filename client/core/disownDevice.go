@@ -22,23 +22,25 @@ func (d *Device) Disown(
 	ctx context.Context,
 	links schema.ResourceLinks,
 ) error {
-	const errMsg = "cannot disown: %w"
+	cannotDisownErr := func(err error) error {
+		return fmt.Errorf("cannot disown: %w", err)
+	}
 
 	ownership, err := d.GetOwnership(ctx, links)
 	if err != nil {
-		return fmt.Errorf(errMsg, err)
+		return cannotDisownErr(err)
 	}
 
 	sdkID, err := d.GetSdkOwnerID()
 	if err != nil {
-		return fmt.Errorf(errMsg, err)
+		return cannotDisownErr(err)
 	}
 
 	if ownership.OwnerID != sdkID {
 		if ownership.OwnerID == uuid.Nil.String() {
 			return nil
 		}
-		return MakePermissionDenied(fmt.Errorf(errMsg, fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
+		return MakePermissionDenied(cannotDisownErr(fmt.Errorf("device is owned by %v, not by %v", ownership.OwnerID, sdkID)))
 	}
 
 	setResetProvisionState := pstat.ProvisionStatusUpdateRequest{
@@ -49,7 +51,7 @@ func (d *Device) Disown(
 
 	link, err := GetResourceLink(links, pstat.ResourceURI)
 	if err != nil {
-		return MakeInternal(fmt.Errorf(errMsg, err))
+		return MakeInternal(cannotDisownErr(err))
 	}
 	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
 
@@ -57,11 +59,11 @@ func (d *Device) Disown(
 	if err != nil {
 		if connectionWasClosed(ctx, err) {
 			// connection was closed by disown so we don't report error just log it.
-			d.cfg.errFunc(fmt.Errorf(errMsg, err))
+			d.cfg.errFunc(cannotDisownErr(err))
 			return nil
 		}
 
-		return MakeInternal(fmt.Errorf(errMsg, err))
+		return MakeInternal(cannotDisownErr(err))
 	}
 	d.Close(ctx)
 
