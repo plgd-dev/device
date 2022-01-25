@@ -116,20 +116,7 @@ func getDiscoveryConfiguration(ipType IPType) core.DiscoveryConfiguration {
 	return discoveryCfg
 }
 
-func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
-	deviceID := MustFindDeviceByName(deviceName)
-	client := core.NewClient()
-	discoveryCfg := getDiscoveryConfiguration(ipType)
-	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
-	if err != nil {
-		return "", err
-	}
-	defer func() {
-		if errClose := device.Close(ctx); errClose != nil {
-			log.Errorf("FindDeviceIP: %w", errClose)
-		}
-	}()
-
+func getDeviceIP(device *core.Device, ipType IPType) (string, error) {
 	if len(device.GetEndpoints()) == 0 {
 		return "", fmt.Errorf("endpoints are not set for device %v", device)
 	}
@@ -157,6 +144,22 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 		}
 	}
 	return "", fmt.Errorf("ipType(%v) not found in %v", ipType, eps)
+}
+
+func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
+	deviceID := MustFindDeviceByName(deviceName)
+	client := core.NewClient()
+	discoveryCfg := getDiscoveryConfiguration(ipType)
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
+	if err != nil {
+		return "", err
+	}
+	defer func() {
+		if errClose := device.Close(ctx); errClose != nil {
+			log.Errorf("FindDeviceIP: %w", errClose)
+		}
+	}()
+	return getDeviceIP(device, ipType)
 }
 
 func MustFindDeviceIP(name string, ipType IPType) (ip string) {
