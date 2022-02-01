@@ -69,7 +69,7 @@ func GetRawCodec(contentFormat message.MediaType) Codec {
 
 var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
 
-func GetDeviceIDFromIndetityCertificate(cert *x509.Certificate) (string, error) {
+func GetDeviceIDFromIdentityCertificate(cert *x509.Certificate) (string, error) {
 	// verify EKU manually
 	ekuHasClient := false
 	for _, eku := range cert.ExtKeyUsage {
@@ -105,7 +105,7 @@ func GetDeviceIDFromIndetityCertificate(cert *x509.Certificate) (string, error) 
 	return deviceId.String(), nil
 }
 
-func VerifyIndetityCertificate(cert *x509.Certificate) error {
+func VerifyIdentityCertificate(cert *x509.Certificate) error {
 	// verify EKU manually
 	ekuHasClient := false
 	ekuHasServer := false
@@ -123,7 +123,7 @@ func VerifyIndetityCertificate(cert *x509.Certificate) error {
 	if !ekuHasServer {
 		return fmt.Errorf("not contains ExtKeyUsageServerAuth")
 	}
-	_, err := GetDeviceIDFromIndetityCertificate(cert)
+	_, err := GetDeviceIDFromIdentityCertificate(cert)
 	if err != nil {
 		return err
 	}

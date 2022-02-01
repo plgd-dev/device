@@ -24,7 +24,7 @@ func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 			errors = append(errors, err)
 			continue
 		}
-		id, err := kitNetCoap.GetDeviceIDFromIndetityCertificate(x509cert)
+		id, err := kitNetCoap.GetDeviceIDFromIdentityCertificate(x509cert)
 		if err != nil {
 			errors = append(errors, err)
 			continue
