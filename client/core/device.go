@@ -160,11 +160,11 @@ func (d *Device) dial(ctx context.Context, addr net.Addr, dialOptions ...coap.Di
 	case schema.UDPScheme:
 		return d.cfg.dialUDP(ctx, addr.String(), dialOptions...)
 	case schema.UDPSecureScheme:
-		return d.dialDTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+		return d.dialDTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIdentityCertificate, dialOptions...)
 	case schema.TCPScheme:
 		return d.cfg.dialTCP(ctx, addr.String(), dialOptions...)
 	case schema.TCPSecureScheme:
-		return d.dialTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIndetityCertificate, dialOptions...)
+		return d.dialTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIdentityCertificate, dialOptions...)
 	}
 	return nil, fmt.Errorf("unknown scheme :%v", addr.GetScheme())
 }
