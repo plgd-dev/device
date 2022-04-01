@@ -12,7 +12,7 @@ require (
 	github.com/pion/dtls/v2 v2.1.1-0.20220126030326-7d92e05b5065
 	github.com/plgd-dev/go-coap/v2 v2.5.0
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.7.1
 	go.uber.org/atomic v1.9.0
 	google.golang.org/grpc v1.44.0
 )
