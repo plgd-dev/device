@@ -82,6 +82,9 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 	return &deviceOwnershipSDK{
 		sdkDeviceID: sdkDeviceID,
 		createIdentitySigner: func() (core.CertificateSigner, error) {
+			if createSigner == nil {
+				return nil, fmt.Errorf("creater signer is not set")
+			}
 			notBefore, err := tparse.ParseNow(time.RFC3339, validFrom)
 			if err != nil {
 				return nil, fmt.Errorf("invalid validFrom(%v): %w", validFrom, err)
