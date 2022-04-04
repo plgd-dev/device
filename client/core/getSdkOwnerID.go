@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 )
 
 func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
@@ -24,7 +24,7 @@ func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 			errors = append(errors, err)
 			continue
 		}
-		id, err := kitNetCoap.GetDeviceIDFromIdentityCertificate(x509cert)
+		id, err := coap.GetDeviceIDFromIdentityCertificate(x509cert)
 		if err != nil {
 			errors = append(errors, err)
 			continue

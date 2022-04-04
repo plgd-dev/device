@@ -11,7 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/client/core"
 	pkgError "github.com/plgd-dev/device/pkg/error"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v2/message"
 	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
@@ -59,11 +59,11 @@ type observationsHandler struct {
 	observations *kitSync.Map
 }
 
-type decodeFunc = func(v interface{}, codec kitNetCoap.Codec) error
+type decodeFunc = func(v interface{}, codec coap.Codec) error
 
 type observationHandler struct {
 	handler      core.ObservationHandler
-	codec        kitNetCoap.Codec
+	codec        coap.Codec
 	lock         sync.Mutex
 	isClosed     bool
 	firstMessage decodeFunc
@@ -71,7 +71,7 @@ type observationHandler struct {
 
 func createDecodeFunc(message *message.Message) decodeFunc {
 	var l sync.Mutex
-	return func(v interface{}, codec kitNetCoap.Codec) error {
+	return func(v interface{}, codec coap.Codec) error {
 		l.Lock()
 		defer l.Unlock()
 		_, err := message.Body.Seek(0, io.SeekStart)
@@ -273,7 +273,7 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	}
 }
 
-func (o *observationsHandler) Handle(ctx context.Context, body kitNetCoap.DecodeFunc) {
+func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
 	var message *message.Message
 	err := body(&message)
 	if err != nil {

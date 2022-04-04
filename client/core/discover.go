@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/net"
 	"github.com/plgd-dev/go-coap/v2/net/blockwise"
@@ -116,7 +116,7 @@ func Discover(
 	conn []*DiscoveryClient,
 	href string,
 	handler DiscoveryHandler,
-	options ...kitNetCoap.OptionFunc,
+	options ...coap.OptionFunc,
 ) error {
 	var wg sync.WaitGroup
 	defer wg.Wait()
@@ -142,7 +142,7 @@ func runDiscovery(
 	href string,
 	handler DiscoveryHandler,
 	errors chan<- error,
-	options ...kitNetCoap.OptionFunc,
+	options ...coap.OptionFunc,
 ) func(ctx context.Context, conn *DiscoveryClient) {
 	return func(ctx context.Context, conn *DiscoveryClient) {
 		wg.Add(1)

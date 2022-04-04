@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
@@ -18,8 +18,8 @@ func (c *Client) CreateResource(
 ) error {
 	cfg := createOptions{
 		codec: codecOcf.VNDOCFCBORCodec{},
-		opts: []kitNetCoap.OptionFunc{
-			kitNetCoap.WithInterface("oic.if.create"),
+		opts: []coap.OptionFunc{
+			coap.WithInterface("oic.if.create"),
 		},
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core/otm"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
@@ -25,8 +25,8 @@ import (
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
-type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
-type ActionAfterOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
+type ActionDuringOwnFunc = func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)
+type ActionAfterOwnFunc = func(ctx context.Context, client *coap.ClientCloseHandler) error
 
 type ownCfg struct {
 	psk             []byte
@@ -72,8 +72,8 @@ func WithSetupCertificates(sign otm.SignFunc) OwnOption {
 }
 
 type connUpdateResourcer interface {
-	UpdateResource(context.Context, string, interface{}, interface{}, ...kitNetCoap.OptionFunc) error
-	DeleteResource(context.Context, string, interface{}, ...kitNetCoap.OptionFunc) error
+	UpdateResource(context.Context, string, interface{}, interface{}, ...coap.OptionFunc) error
+	DeleteResource(context.Context, string, interface{}, ...coap.OptionFunc) error
 }
 
 func updateOperationalState(ctx context.Context, conn connUpdateResourcer, newState pstat.OperationalState) error {
@@ -110,7 +110,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.O
 	if err != nil {
 		return err
 	}
-	coapConn, err := kitNetCoap.DialUDP(ctx, coapAddr.String())
+	coapConn, err := coap.DialUDP(ctx, coapAddr.String())
 	if err != nil {
 		return MakeInternalStr("cannot connect to "+coapAddr.URL()+" for select OTM: %w", err)
 	}
@@ -249,7 +249,7 @@ func (d *Device) Own(
 	options ...OwnOption,
 ) error {
 	cfg := ownCfg{
-		actionDuringOwn: func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error) {
+		actionDuringOwn: func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 			deviceID := d.DeviceID()
 			setDeviceOwned := doxm.DoxmUpdate{
 				DeviceID: &deviceID,
@@ -300,7 +300,7 @@ func (d *Device) Own(
 	if err != nil {
 		return MakeInternal(fmt.Errorf("cannot select otm: %w", err))
 	}
-	var tlsClient *kitNetCoap.ClientCloseHandler
+	var tlsClient *coap.ClientCloseHandler
 	var tlsAddr kitNet.Addr
 	var errors []error
 	for _, link := range links {
@@ -508,7 +508,7 @@ func (d *Device) Own(
 		},
 		CipherSuites: []dtls.CipherSuiteID{dtls.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256},
 	}
-	pskConn, err := kitNetCoap.DialUDPSecure(ctx, tlsAddr.String(), &dtlsConfig)
+	pskConn, err := coap.DialUDPSecure(ctx, tlsAddr.String(), &dtlsConfig)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))

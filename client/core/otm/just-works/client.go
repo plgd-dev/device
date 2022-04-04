@@ -6,7 +6,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core/otm/just-works/cipher"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
@@ -16,7 +16,7 @@ type Client struct {
 	dialDTLS DialDTLS
 }
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
 
 type OptionFunc func(Client) Client
 
@@ -31,7 +31,7 @@ func WithDialDTLS(dial DialDTLS) OptionFunc {
 
 func NewClient(opts ...OptionFunc) *Client {
 	c := Client{
-		dialDTLS: kitNetCoap.DialUDPSecure,
+		dialDTLS: coap.DialUDPSecure,
 	}
 	for _, o := range opts {
 		c = o(c)
@@ -43,7 +43,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 	return doxm.JustWorks
 }
 
-func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
+func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		tlsConfig := dtls.Config{

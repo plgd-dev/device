@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -55,16 +54,6 @@ type Codec interface {
 	ContentFormat() message.MediaType
 	Encode(v interface{}) ([]byte, error)
 	Decode(m *message.Message, v interface{}) error
-}
-
-// GetRawCodec returns raw codec depends on contentFormat.
-func GetRawCodec(contentFormat message.MediaType) Codec {
-	if contentFormat == message.AppCBOR || contentFormat == message.AppOcfCbor {
-		return codecOcf.RawVNDOCFCBORCodec{}
-	}
-	return codecOcf.NoCodec{
-		MediaType: uint16(contentFormat),
-	}
 }
 
 var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
@@ -149,42 +138,6 @@ func WithInterface(in string) OptionFunc {
 func WithResourceType(in string) OptionFunc {
 	return func(opts message.Options) message.Options {
 		v := "rt=" + in
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
-}
-
-func WithInstanceID(in int) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "ins=" + strconv.Itoa(in)
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
-}
-
-func WithDeviceID(in string) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "di=" + in
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
-}
-
-func WithCredentialId(in int) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "credid=" + strconv.Itoa(in)
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
-}
-
-func WithCredentialSubject(in string) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "subjectuuid=" + in
 		buf := make([]byte, len(v))
 		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
 		return opts

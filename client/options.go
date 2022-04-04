@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 )
 
@@ -27,7 +27,7 @@ func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links s
 	}
 }
 
-func WithCodec(codec kitNetCoap.Codec) CodecOption {
+func WithCodec(codec coap.Codec) CodecOption {
 	return CodecOption{
 		codec: codec,
 	}
@@ -40,7 +40,7 @@ func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
 }
 
 // WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
-func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)) OwnOption {
+func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)) OwnOption {
 	return actionDuringOwnOption{
 		actionDuringOwn: actionDuringOwn,
 	}
@@ -59,14 +59,14 @@ type ResourceInterfaceOption struct {
 
 func (r ResourceInterfaceOption) applyOnGet(opts getOptions) getOptions {
 	if r.resourceInterface != "" {
-		opts.opts = append(opts.opts, kitNetCoap.WithInterface(r.resourceInterface))
+		opts.opts = append(opts.opts, coap.WithInterface(r.resourceInterface))
 	}
 	return opts
 }
 
 func (r ResourceInterfaceOption) applyOnObserve(opts observeOptions) observeOptions {
 	if r.resourceInterface != "" {
-		opts.opts = append(opts.opts, kitNetCoap.WithInterface(r.resourceInterface))
+		opts.opts = append(opts.opts, coap.WithInterface(r.resourceInterface))
 		opts.resourceInterface = r.resourceInterface
 	}
 	return opts
@@ -74,7 +74,7 @@ func (r ResourceInterfaceOption) applyOnObserve(opts observeOptions) observeOpti
 
 func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions {
 	if r.resourceInterface != "" {
-		opts.opts = append(opts.opts, kitNetCoap.WithInterface(r.resourceInterface))
+		opts.opts = append(opts.opts, coap.WithInterface(r.resourceInterface))
 	}
 	return opts
 }
@@ -151,26 +151,26 @@ type GetOption = interface {
 }
 
 type getOptions struct {
-	opts                   []kitNetCoap.OptionFunc
-	codec                  kitNetCoap.Codec
+	opts                   []coap.OptionFunc
+	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type updateOptions struct {
-	opts                   []kitNetCoap.OptionFunc
-	codec                  kitNetCoap.Codec
+	opts                   []coap.OptionFunc
+	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type createOptions struct {
-	opts                   []kitNetCoap.OptionFunc
-	codec                  kitNetCoap.Codec
+	opts                   []coap.OptionFunc
+	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
 type deleteOptions struct {
-	opts                   []kitNetCoap.OptionFunc
-	codec                  kitNetCoap.Codec
+	opts                   []coap.OptionFunc
+	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
@@ -277,13 +277,13 @@ func (r ResourceTypesOption) applyOnGetDevices(opts getDevicesOptions) getDevice
 
 func (r ResourceTypesOption) applyOnGet(opts getOptions) getOptions {
 	for _, r := range r.resourceTypes {
-		opts.opts = append(opts.opts, kitNetCoap.WithResourceType(r))
+		opts.opts = append(opts.opts, coap.WithResourceType(r))
 	}
 	return opts
 }
 
 type CodecOption struct {
-	codec kitNetCoap.Codec
+	codec coap.Codec
 }
 
 func (r CodecOption) applyOnCreate(opts createOptions) createOptions {
@@ -312,8 +312,8 @@ func (r CodecOption) applyOnObserve(opts observeOptions) observeOptions {
 }
 
 type observeOptions struct {
-	codec                  kitNetCoap.Codec
-	opts                   []kitNetCoap.OptionFunc
+	codec                  coap.Codec
+	opts                   []coap.OptionFunc
 	resourceInterface      string
 	discoveryConfiguration core.DiscoveryConfiguration
 }
@@ -342,7 +342,7 @@ type OwnOption = interface {
 }
 
 type actionDuringOwnOption struct {
-	actionDuringOwn func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
+	actionDuringOwn func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)
 }
 
 func (r actionDuringOwnOption) applyOnOwn(opts ownOptions) ownOptions {

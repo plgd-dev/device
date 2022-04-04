@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/client/core"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
@@ -22,7 +22,7 @@ func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks)
 		return nil, fmt.Errorf("cannot find device resource at links %+v", links)
 	}
 	var dev device.Device
-	err := d.GetResource(ctx, link[0], &dev, kitNetCoap.WithInterface(interfaces.OC_IF_BASELINE))
+	err := d.GetResource(ctx, link[0], &dev, coap.WithInterface(interfaces.OC_IF_BASELINE))
 	if err != nil {
 		return nil, err
 	}

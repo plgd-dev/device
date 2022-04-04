@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/cloud"
 	"github.com/plgd-dev/device/schema/configuration"
@@ -108,15 +108,15 @@ func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Clien
 }
 
 func makeObservationHandler() *observationHandler {
-	return &observationHandler{res: make(chan kitNetCoap.DecodeFunc, 1), close: make(chan struct{})}
+	return &observationHandler{res: make(chan coap.DecodeFunc, 1), close: make(chan struct{})}
 }
 
 type observationHandler struct {
-	res   chan kitNetCoap.DecodeFunc
+	res   chan coap.DecodeFunc
 	close chan struct{}
 }
 
-func (h *observationHandler) Handle(ctx context.Context, body kitNetCoap.DecodeFunc) {
+func (h *observationHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
 	h.res <- body
 }
 
@@ -124,7 +124,7 @@ func (h *observationHandler) Error(err error) { fmt.Println(err) }
 
 func (h *observationHandler) OnClose() { close(h.close) }
 
-func (h *observationHandler) waitForNotification(ctx context.Context) (body kitNetCoap.DecodeFunc, error error) {
+func (h *observationHandler) waitForNotification(ctx context.Context) (body coap.DecodeFunc, error error) {
 	select {
 	case e := <-h.res:
 		return e, nil

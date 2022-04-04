@@ -5,7 +5,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema/credential"
 	"github.com/plgd-dev/device/schema/csr"
 	"github.com/plgd-dev/device/schema/doxm"
@@ -18,7 +18,7 @@ type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client interface {
 	Type() doxm.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
+	Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
 }
 
 func encodeToPem(encoding csr.CertificateEncoding, data []byte) []byte {
@@ -74,7 +74,7 @@ func validateProvisionOwnerCredentials(ownerID string, psk []byte, opts provisio
 	return nil
 }
 
-func ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID string, psk []byte, opts ...ProvisionOwnerCredentialstOption) error {
+func ProvisionOwnerCredentials(ctx context.Context, tlsClient *coap.ClientCloseHandler, ownerID string, psk []byte, opts ...ProvisionOwnerCredentialstOption) error {
 	var cfg provisionOwnerCredentialstOptions
 	for _, o := range opts {
 		cfg = o.applyProvisionOwnerCredentials(cfg)

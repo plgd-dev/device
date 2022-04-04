@@ -103,7 +103,6 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	dialUDP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 		opts = append(opts, dialOpts...)
 		return coap.DialUDP(ctx, addr, opts...)
-
 	}
 
 	opts := []core.OptionFunc{
