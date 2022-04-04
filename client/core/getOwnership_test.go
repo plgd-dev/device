@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/client/core"
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/test"
 
@@ -15,6 +16,8 @@ import (
 func TestGetOwnership(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	signer, err := NewTestSigner()
 	require.NoError(t, err)
 	defer c.Close()
 
@@ -34,7 +37,7 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, got.Owned)
 
-	err = device.Own(ctx, links, c.mfgOtm)
+	err = device.Own(ctx, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 
 	// after own

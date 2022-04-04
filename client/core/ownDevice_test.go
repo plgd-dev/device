@@ -75,7 +75,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
 		}
 		return d.ProtocolIndependentID, nil
-	}))
+	}), core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 	require.NotEqual(t, secureDeviceID, dev.DeviceID())
 
