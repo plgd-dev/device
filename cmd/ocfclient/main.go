@@ -522,7 +522,9 @@ func NewSecureClient() (*local.Client, error) {
 		}
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(err error) {})
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(err error) {
+		// Noncompliant - ignore errors for coap protocol layer
+	})
 	if err != nil {
 		return nil, err
 	}

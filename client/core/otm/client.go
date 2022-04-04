@@ -53,20 +53,15 @@ func WithSetupCertificates(deviceID string, sign SignFunc) SetupCertificatesOpti
 	}
 }
 
-func ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID string, psk []byte, opts ...ProvisionOwnerCredentialstOption) error {
-	var cfg provisionOwnerCredentialstOptions
-	for _, o := range opts {
-		cfg = o.applyProvisionOwnerCredentials(cfg)
-	}
-
+func validateProvisionOwnerCredentials(ownerID string, psk []byte, opts provisionOwnerCredentialstOptions) error {
 	if ownerID == "" {
 		return fmt.Errorf("invalid ownerID")
 	}
-	if cfg.setupCertificates != nil {
-		if cfg.setupCertificates.deviceID == "" {
+	if opts.setupCertificates != nil {
+		if opts.setupCertificates.deviceID == "" {
 			return fmt.Errorf("invalid deviceID")
 		}
-		if cfg.setupCertificates.sign == nil {
+		if opts.setupCertificates.sign == nil {
 			return fmt.Errorf("invalid sign")
 		}
 	}
@@ -75,6 +70,17 @@ func ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.Client
 	}
 	if len(psk) != 16 {
 		return fmt.Errorf("size of preshared key('%v') must be 16bytes", len(psk))
+	}
+	return nil
+}
+
+func ProvisionOwnerCredentials(ctx context.Context, tlsClient *kitNetCoap.ClientCloseHandler, ownerID string, psk []byte, opts ...ProvisionOwnerCredentialstOption) error {
+	var cfg provisionOwnerCredentialstOptions
+	for _, o := range opts {
+		cfg = o.applyProvisionOwnerCredentials(cfg)
+	}
+	if err := validateProvisionOwnerCredentials(ownerID, psk, cfg); err != nil {
+		return err
 	}
 
 	/*setup credentials - PostOwnerCredential*/
