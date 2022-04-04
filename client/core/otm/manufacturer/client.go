@@ -7,14 +7,14 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
-type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
 
 type Client struct {
 	manufacturerCertificate tls.Certificate
@@ -51,8 +51,8 @@ func NewClient(
 	c := Client{
 		manufacturerCertificate: manufacturerCertificate,
 		manufacturerCA:          manufacturerCA,
-		dialDTLS:                kitNetCoap.DialUDPSecure,
-		dialTLS:                 kitNetCoap.DialTCPSecure,
+		dialDTLS:                coap.DialUDPSecure,
+		dialTLS:                 coap.DialTCPSecure,
 	}
 	for _, o := range opts {
 		c = o(c)
@@ -64,7 +64,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 	return doxm.ManufacturerCertificate
 }
 
-func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error) {
+func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		rootCAs := x509.NewCertPool()
@@ -76,7 +76,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 			InsecureSkipVerify:    true,
 			CipherSuites:          []dtls.CipherSuiteID{dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM_8, dtls.TLS_ECDHE_ECDSA_WITH_AES_128_CCM},
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
-			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
+			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
 		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
 	case schema.TCPSecureScheme:
@@ -87,7 +87,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...kitNetCoap.
 		tlsConfig := tls.Config{
 			InsecureSkipVerify:    true,
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
-			VerifyPeerCertificate: kitNetCoap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
+			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
 		return c.dialTLS(ctx, addr.String(), &tlsConfig, opts...)
 	}

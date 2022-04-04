@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/codec/ocf"
 	"go.uber.org/atomic"
@@ -15,15 +15,15 @@ import (
 func (d *Device) ObserveResourceWithCodec(
 	ctx context.Context,
 	link schema.ResourceLink,
-	codec kitNetCoap.Codec,
+	codec coap.Codec,
 	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
+	options ...coap.OptionFunc,
 ) (observationID string, _ error) {
 	return d.observeResource(ctx, link, codec, handler, options...)
 }
 
 type ObservationHandler interface {
-	Handle(ctx context.Context, body kitNetCoap.DecodeFunc)
+	Handle(ctx context.Context, body coap.DecodeFunc)
 	OnClose()
 	Error(err error)
 }
@@ -32,7 +32,7 @@ func (d *Device) ObserveResource(
 	ctx context.Context,
 	link schema.ResourceLink,
 	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
+	options ...coap.OptionFunc,
 ) (observationID string, _ error) {
 	codec := ocf.VNDOCFCBORCodec{}
 	return d.ObserveResourceWithCodec(ctx, link, codec, handler, options...)
@@ -79,14 +79,14 @@ func (d *Device) stopObservations(ctx context.Context) error {
 type observation struct {
 	id      string
 	handler *observationHandler
-	client  *kitNetCoap.ClientCloseHandler
+	client  *coap.ClientCloseHandler
 
 	lock      sync.Mutex
 	onCloseID int
-	obs       kitNetCoap.Observation
+	obs       coap.Observation
 }
 
-func (o *observation) Set(onCloseID int, obs kitNetCoap.Observation) {
+func (o *observation) Set(onCloseID int, obs coap.Observation) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -94,7 +94,7 @@ func (o *observation) Set(onCloseID int, obs kitNetCoap.Observation) {
 	o.obs = obs
 }
 
-func (o *observation) Get() (onCloseID int, obs kitNetCoap.Observation) {
+func (o *observation) Get() (onCloseID int, obs coap.Observation) {
 	o.lock.Lock()
 	defer o.lock.Unlock()
 
@@ -117,9 +117,9 @@ func (o *observation) Stop(ctx context.Context) error {
 
 func (d *Device) observeResource(
 	ctx context.Context, link schema.ResourceLink,
-	codec kitNetCoap.Codec,
+	codec coap.Codec,
 	handler ObservationHandler,
-	options ...kitNetCoap.OptionFunc,
+	options ...coap.OptionFunc,
 ) (observationID string, _ error) {
 	eps := link.GetSecureEndpoints()
 	if len(eps) == 0 {
@@ -132,7 +132,7 @@ func (d *Device) observeResource(
 		return "", MakeInternal(fmt.Errorf("cannot observe resource %v: %w", link.Href, err))
 	}
 
-	options = append(options, kitNetCoap.WithAccept(codec.ContentFormat()))
+	options = append(options, coap.WithAccept(codec.ContentFormat()))
 
 	id, err := uuid.NewRandom()
 	if err != nil {
@@ -173,7 +173,7 @@ func (h *observationHandler) close() {
 	h.isClosed.Store(true)
 }
 
-func (h *observationHandler) Handle(client *kitNetCoap.Client, body kitNetCoap.DecodeFunc) {
+func (h *observationHandler) Handle(client *coap.Client, body coap.DecodeFunc) {
 	h.mutex.Lock()
 	defer h.mutex.Unlock()
 	if h.isClosed.Load() {

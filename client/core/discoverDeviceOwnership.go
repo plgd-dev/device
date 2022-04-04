@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/go-coap/v2/message"
 	"github.com/plgd-dev/go-coap/v2/message/codes"
@@ -39,7 +39,7 @@ func DiscoverDeviceOwnership(
 	status DiscoverOwnershipStatus,
 	handler DiscoverDeviceOwnershipHandler,
 ) error {
-	var opt kitNetCoap.OptionFunc
+	var opt coap.OptionFunc
 	switch status {
 	case DiscoverAllDevices:
 		return Discover(ctx, conn, doxm.ResourceURI, handleDiscoverOwnershipResponse(ctx, handler))
