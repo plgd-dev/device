@@ -30,6 +30,7 @@ type AccessControl struct {
 	Permission Permission    `json:"permission"`
 	Resources  []Resource    `json:"resources"`
 	Subject    Subject       `json:"subject"`
+	Tag        string        `json:"tag,omitempty"`
 	Validity   []TimePattern `json:"validity,omitempty"`
 }
 
