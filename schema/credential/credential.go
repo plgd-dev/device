@@ -25,6 +25,7 @@ type Credential struct {
 	PrivateData             *CredentialPrivateData    `json:"privatedata,omitempty"`
 	PublicData              *CredentialPublicData     `json:"publicdata,omitempty"`
 	RoleID                  *CredentialRoleID         `json:"roleid,omitempty"`
+	Tag                     string                    `json:"tag,omitempty"`
 }
 
 type CredentialType uint8
