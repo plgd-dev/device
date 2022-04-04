@@ -18,6 +18,9 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
+
 	defer c.Close()
 	deviceID := secureDeviceID
 	require := require.New(t)
@@ -31,7 +34,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	links, err := dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 
-	err = dev.Own(timeout, links, c.mfgOtm)
+	err = dev.Own(timeout, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 	links, err = dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
@@ -89,6 +92,8 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
 	defer c.Close()
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
@@ -101,7 +106,7 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 
-	err = device.Own(timeout, links, c.justWorksOtm)
+	err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)

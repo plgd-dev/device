@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/client/core/otm/just-works/cipher"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
@@ -15,7 +14,6 @@ import (
 
 type Client struct {
 	dialDTLS DialDTLS
-	otm.Signer
 }
 
 type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...kitNetCoap.DialOptionFunc) (*kitNetCoap.ClientCloseHandler, error)
@@ -31,12 +29,9 @@ func WithDialDTLS(dial DialDTLS) OptionFunc {
 	}
 }
 
-func NewClient(sign otm.SignFunc, opts ...OptionFunc) *Client {
+func NewClient(opts ...OptionFunc) *Client {
 	c := Client{
 		dialDTLS: kitNetCoap.DialUDPSecure,
-		Signer: otm.Signer{
-			Sign: sign,
-		},
 	}
 	for _, o := range opts {
 		c = o(c)

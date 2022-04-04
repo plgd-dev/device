@@ -36,6 +36,14 @@ func (c *TLSAecdhAes128Sha256) ID() dtls.CipherSuiteID {
 	return c.id
 }
 
+func (c *TLSAecdhAes128Sha256) KeyExchangeAlgorithm() dtls.CipherSuiteKeyExchangeAlgorithm {
+	return dtls.CipherSuiteKeyExchangeAlgorithmEcdhe
+}
+
+func (c *TLSAecdhAes128Sha256) ECC() bool {
+	return true
+}
+
 func (c *TLSAecdhAes128Sha256) String() string {
 	return "AECDH-AES128-SHA256"
 }

@@ -57,15 +57,16 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 
 func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	var otmClient otm.Client
+	opts = append([]core.OwnOption{core.WithSetupCertificates(o.sign)}, opts...)
 	switch otmType {
 	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, o.sign, o.dialTLS, o.dialDTLS)
+		otm, err := getOTMManufacturer(o.app, o.dialTLS, o.dialDTLS)
 		if err != nil {
 			return "", err
 		}
 		otmClient = otm
 	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(o.sign, justworks.WithDialDTLS(o.dialDTLS))
+		otmClient = justworks.NewClient(justworks.WithDialDTLS(o.dialDTLS))
 	default:
 		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
 	}

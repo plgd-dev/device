@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"crypto"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -44,7 +43,7 @@ type Config struct {
 }
 
 // NewClientFromConfig constructs a new local client from the proto configuration.
-func NewClientFromConfig(cfg *Config, app ApplicationCallback, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner, errors func(error)) (*Client, error) {
+func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
 	var cacheExpiration time.Duration
 	switch {
 	case cfg.DeviceCacheExpirationSeconds < 0:
@@ -114,7 +113,7 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, createSigner func
 		core.WithDialUDP(dialUDP),
 	}
 
-	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app, createSigner, errors)
+	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app, errors)
 	if err != nil {
 		return nil, err
 	}
@@ -229,9 +228,9 @@ func (c *Client) Close(ctx context.Context) error {
 	return c.deviceCache.Close(ctx)
 }
 
-func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner, errors func(error)) (DeviceOwner, error) {
+func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
 	if cfg.DeviceOwnershipSDK != nil {
-		c, err := NewDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK, createSigner)
+		c, err := NewDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
 		}

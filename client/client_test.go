@@ -58,16 +58,17 @@ func NewTestSecureClient() (*client.Client, error) {
 	}
 	cfg := client.Config{
 		DeviceOwnershipSDK: &client.DeviceOwnershipSDKConfig{
-			ID:      CertIdentity,
-			Cert:    string(test.IdentityIntermediateCA),
-			CertKey: string(test.IdentityIntermediateCAKey),
+			ID:               CertIdentity,
+			Cert:             string(test.IdentityIntermediateCA),
+			CertKey:          string(test.IdentityIntermediateCAKey),
+			CreateSignerFunc: test.NewIdentityCertificateSigner,
 		},
 	}
 
 	client, err := client.NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-	}, test.NewIdentityCertificateSigner, func(err error) { fmt.Print(err) },
+	}, func(err error) { fmt.Print(err) },
 	)
 	if err != nil {
 		return nil, err
