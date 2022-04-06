@@ -228,7 +228,7 @@ func (c *Client) UpdateResourceWithCodec(
 
 	resp, err := c.conn.Post(ctx, href, codec.ContentFormat(), bytes.NewReader(body), opts...)
 	if err != nil {
-		return fmt.Errorf("could create request %s: %w", href, err)
+		return fmt.Errorf("could update request %s: %w", href, err)
 	}
 	if err != nil {
 		return fmt.Errorf("could not query %s: %w", href, err)
@@ -264,7 +264,7 @@ func (c *Client) GetResourceWithCodec(
 	}
 	resp, err := c.conn.Get(ctx, href, opts...)
 	if err != nil {
-		return fmt.Errorf("could not query %s: %w", href, err)
+		return fmt.Errorf("could not get %s: %w", href, err)
 	}
 	if resp.Code != codes.Content {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
@@ -288,7 +288,7 @@ func (c *Client) DeleteResourceWithCodec(
 	}
 	resp, err := c.conn.Delete(ctx, href, opts...)
 	if err != nil {
-		return fmt.Errorf("could not query %s: %w", href, err)
+		return fmt.Errorf("could not delete %s: %w", href, err)
 	}
 	if resp.Code != codes.Deleted {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))

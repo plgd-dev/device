@@ -465,26 +465,6 @@ func pemBlockForKey(k *ecdsa.PrivateKey) (*pem.Block, error) {
 }
 
 func NewSecureClient() (*local.Client, error) {
-
-	var cfg local.Config
-	if len(IdentityIntermediateCA) > 0 && len(IdentityIntermediateCAKey) > 0 {
-		cfg = local.Config{
-			//DisablePeerTCPSignalMessageCSMs: true,
-			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-				ID:      CertIdentity,
-				Cert:    string(IdentityIntermediateCA),
-				CertKey: string(IdentityIntermediateCAKey),
-			},
-		}
-	} else {
-		cfg = local.Config{
-			//DisablePeerTCPSignalMessageCSMs: true,
-			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
-				ID: CertIdentity,
-			},
-		}
-	}
-
 	var setupSecureClient = SetupSecureClient{}
 	if len(MfgTrustedCA) > 0 {
 		mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
@@ -520,10 +500,31 @@ func NewSecureClient() (*local.Client, error) {
 			setupSecureClient.ca = identityTrustedCACert
 		}
 	}
+	var cfg local.Config
+	if len(IdentityIntermediateCA) > 0 && len(IdentityIntermediateCAKey) > 0 {
+		cfg = local.Config{
+			//DisablePeerTCPSignalMessageCSMs: true,
+			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
+				ID:      CertIdentity,
+				Cert:    string(IdentityIntermediateCA),
+				CertKey: string(IdentityIntermediateCAKey),
+				CreateSignerFunc: func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner {
+					return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter)
+				},
+			},
+		}
+	} else {
+		cfg = local.Config{
+			//DisablePeerTCPSignalMessageCSMs: true,
+			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
+				ID: CertIdentity,
+			},
+		}
+	}
 
-	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner {
-		return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter)
-	}, func(err error) {})
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(err error) {
+		// Noncompliant - ignore errors for coap protocol layer
+	})
 	if err != nil {
 		return nil, err
 	}

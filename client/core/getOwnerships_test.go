@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/client/core"
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
@@ -25,6 +26,8 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus o
 }
 
 func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) func() {
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
 	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer device.Close(ctx)
@@ -32,7 +35,7 @@ func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) fu
 	links, err := device.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
 
-	err = device.Own(ctx, links, c.mfgOtm)
+	err = device.Own(ctx, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 
 	links, err = device.GetResourceLinks(ctx, eps)

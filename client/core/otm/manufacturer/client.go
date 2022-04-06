@@ -7,7 +7,6 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core/otm"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
@@ -22,8 +21,6 @@ type Client struct {
 	manufacturerCA          []*x509.Certificate
 	dialDTLS                DialDTLS
 	dialTLS                 DialTLS
-
-	otm.Signer
 }
 
 type OptionFunc func(Client) Client
@@ -49,7 +46,6 @@ func WithDialTLS(dial DialTLS) OptionFunc {
 func NewClient(
 	manufacturerCertificate tls.Certificate,
 	manufacturerCA []*x509.Certificate,
-	sign otm.SignFunc,
 	opts ...OptionFunc,
 ) *Client {
 	c := Client{
@@ -57,9 +53,6 @@ func NewClient(
 		manufacturerCA:          manufacturerCA,
 		dialDTLS:                kitNetCoap.DialUDPSecure,
 		dialTLS:                 kitNetCoap.DialTCPSecure,
-		Signer: otm.Signer{
-			Sign: sign,
-		},
 	}
 	for _, o := range opts {
 		c = o(c)

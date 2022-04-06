@@ -12,6 +12,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/stretchr/testify/require"
 
+	"github.com/plgd-dev/device/client/core"
 	ocf "github.com/plgd-dev/device/client/core"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
@@ -42,17 +43,7 @@ func NewTestSecureClientWithTLS(disableDTLS, disableTCPTLS bool) (*Client, error
 	return NewTestSecureClientWithCert(identityCert, disableDTLS, disableTCPTLS)
 }
 
-func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTLS bool) (*Client, error) {
-	mfgCert, err := tls.X509KeyPair(test.MfgCert, test.MfgKey)
-	if err != nil {
-		return nil, err
-	}
-
-	mfgCa, err := security.ParseX509FromPEM(test.RootCACrt)
-	if err != nil {
-		return nil, err
-	}
-
+func NewTestSigner() (core.CertificateSigner, error) {
 	identityIntermediateCA, err := security.ParseX509FromPEM(test.IdentityIntermediateCA)
 	if err != nil {
 		return nil, err
@@ -68,7 +59,24 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 	notBefore := time.Now()
 	notAfter := notBefore.Add(time.Hour * 86400)
-	signer := test.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter)
+	return test.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter), nil
+}
+
+func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTLS bool) (*Client, error) {
+	mfgCert, err := tls.X509KeyPair(test.MfgCert, test.MfgKey)
+	if err != nil {
+		return nil, err
+	}
+
+	mfgCa, err := security.ParseX509FromPEM(test.RootCACrt)
+	if err != nil {
+		return nil, err
+	}
+
+	identityIntermediateCA, err := security.ParseX509FromPEM(test.IdentityIntermediateCA)
+	if err != nil {
+		return nil, err
+	}
 
 	var manOpts []manufacturer.OptionFunc
 	if disableDTLS {
@@ -82,8 +90,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		}))
 	}
 
-	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, signer.Sign, manOpts...)
-	justWorksOtm := justworks.NewClient(signer.Sign)
+	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, manOpts...)
+	justWorksOtm := justworks.NewClient()
 
 	var opts []ocf.OptionFunc
 	if disableDTLS {
@@ -111,6 +119,9 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
+
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
@@ -120,7 +131,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
-	err = device.Own(timeout, links, c.mfgOtm)
+	err = device.Own(timeout, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)

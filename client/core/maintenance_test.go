@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/client/core"
 	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
@@ -40,6 +41,8 @@ func TestDeviceReboot(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
+			signer, err := NewTestSigner()
+			require.NoError(t, err)
 			defer c.Close()
 			deviceID := test.MustFindDeviceByName(test.DevsimName)
 			require := require.New(t)
@@ -51,7 +54,7 @@ func TestDeviceReboot(t *testing.T) {
 			eps := device.GetEndpoints()
 			links, err := device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
-			err = device.Own(timeout, links, c.justWorksOtm)
+			err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
 			require.NoError(err)
 			links, err = device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
@@ -85,7 +88,9 @@ func TestDeviceFactoryReset(t *testing.T) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
-	err = device.Own(timeout, links, c.justWorksOtm)
+	signer, err := NewTestSigner()
+	require.NoError(err)
+	err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 
 	links = sepEpToLinks(t, links)

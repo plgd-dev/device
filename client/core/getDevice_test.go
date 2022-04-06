@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/platform"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
@@ -36,6 +37,8 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
 	defer c.Close()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -46,7 +49,7 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 	links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)
 
-	err = got.Own(ctx, links, c.justWorksOtm)
+	err = got.Own(ctx, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 	links, err = got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)

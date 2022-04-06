@@ -2,9 +2,12 @@ package core
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core/otm"
 	kitNetCoap "github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
@@ -23,15 +26,19 @@ import (
 )
 
 type ActionDuringOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) (string, error)
+type ActionAfterOwnFunc = func(ctx context.Context, client *kitNetCoap.ClientCloseHandler) error
 
 type ownCfg struct {
+	psk             []byte
+	sign            otm.SignFunc
 	actionDuringOwn ActionDuringOwnFunc
+	actionAfterOwn  ActionAfterOwnFunc
 }
 
 type OwnOption = func(ownCfg) ownCfg
 
 // WithActionDuringOwn allows to set deviceID of owned device and other staff over owner TLS.
-// returns new deviceID
+// returns new deviceID, if it returns error device will be disowned.
 func WithActionDuringOwn(actionDuringOwn ActionDuringOwnFunc) OwnOption {
 	return func(o ownCfg) ownCfg {
 		o.actionDuringOwn = actionDuringOwn
@@ -39,8 +46,43 @@ func WithActionDuringOwn(actionDuringOwn ActionDuringOwnFunc) OwnOption {
 	}
 }
 
+// WithActionAfterOwn allows initialize configuration at the device via DTLS connection with preshared key. For example setup time / NTP.
+// if it returns error device will be disowned.
+func WithActionAfterOwn(actionAfterOwn ActionAfterOwnFunc) OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.actionAfterOwn = actionAfterOwn
+		return o
+	}
+}
+
+// WithPresharedKey allows to set preshared key for owner. It is not set, it will be randomized.
+func WithPresharedKey(psk []byte) OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.psk = psk
+		return o
+	}
+}
+
+// WithSetupCertificates signs identity ceriticates and install root ca.
+func WithSetupCertificates(sign otm.SignFunc) OwnOption {
+	return func(o ownCfg) ownCfg {
+		o.sign = sign
+		return o
+	}
+}
+
 type connUpdateResourcer interface {
 	UpdateResource(context.Context, string, interface{}, interface{}, ...kitNetCoap.OptionFunc) error
+	DeleteResource(context.Context, string, interface{}, ...kitNetCoap.OptionFunc) error
+}
+
+func updateOperationalState(ctx context.Context, conn connUpdateResourcer, newState pstat.OperationalState) error {
+	updateProvisionState := pstat.ProvisionStatusUpdateRequest{
+		DeviceOnboardingState: &pstat.DeviceOnboardingState{
+			CurrentOrPendingOperationalState: newState,
+		},
+	}
+	return conn.UpdateResource(ctx, pstat.ResourceURI, updateProvisionState, nil)
 }
 
 func disown(ctx context.Context, conn connUpdateResourcer) error {
@@ -51,12 +93,7 @@ func disown(ctx context.Context, conn connUpdateResourcer) error {
 		ctx = ctx1
 
 	}
-	setResetProvisionState := pstat.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &pstat.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: pstat.OperationalState_RESET,
-		},
-	}
-	return conn.UpdateResource(ctx, pstat.ResourceURI, setResetProvisionState, nil)
+	return updateOperationalState(ctx, conn, pstat.OperationalState_RESET)
 }
 
 func setOTM(ctx context.Context, conn connUpdateResourcer, selectOwnerTransferMethod doxm.OwnerTransferMethod) error {
@@ -81,14 +118,14 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.O
 	return setOTM(ctx, coapConn, selectOwnerTransferMethod)
 }
 
-func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID string) error {
+func setACL(ctx context.Context, conn connUpdateResourcer, links schema.ResourceLinks, ownerID string) error {
 	link, err := GetResourceLink(links, acl.ResourceURI)
 	if err != nil {
 		return err
 	}
 
 	// CleanUp acls rules
-	err = d.DeleteResource(ctx, link, nil)
+	err = conn.DeleteResource(ctx, link.Href, nil)
 	if err != nil {
 		return err
 	}
@@ -197,7 +234,7 @@ func (d *Device) setACL(ctx context.Context, links schema.ResourceLinks, ownerID
 		},
 	}
 
-	return d.UpdateResource(ctx, link, setACL, nil)
+	return conn.UpdateResource(ctx, link.Href, setACL, nil)
 }
 
 func disownError(err error) error {
@@ -295,42 +332,83 @@ func (d *Device) Own(
 	var provisionState pstat.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, pstat.ResourceURI, &provisionState)
 	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
 		return MakeInternal(fmt.Errorf("cannot get provision state %w", err))
 	}
 
 	if provisionState.DeviceOnboardingState.Pending {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
 		return MakeInternal(fmt.Errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
 	}
 
 	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != pstat.OperationalState_RFOTM {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
 		return MakeInternal(fmt.Errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, pstat.OperationalState_RFOTM))
 	}
 
 	if !provisionState.SupportedOperationalModes.Has(pstat.OperationalMode_CLIENT_DIRECTED) {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
 		return MakeUnavailable(fmt.Errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, pstat.OperationalMode_CLIENT_DIRECTED))
 	}
 
-	updateProvisionState := pstat.ProvisionStatusUpdateRequest{
+	setCurrentOperationalMode := pstat.ProvisionStatusUpdateRequest{
 		CurrentOperationalMode: pstat.OperationalMode_CLIENT_DIRECTED,
 	}
 	/*pstat doesn't send any content for select OperationalMode*/
-	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, updateProvisionState, nil)
+	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setCurrentOperationalMode, nil)
 	if err != nil {
-		return MakeInternal(fmt.Errorf("cannot update provision state %w", err))
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
+		return MakeInternal(fmt.Errorf("cannot update provision state: %w", err))
 	}
 
 	if cfg.actionDuringOwn != nil {
 		deviceID, err := cfg.actionDuringOwn(ctx, tlsClient)
 		if err != nil {
+			if errDisown := disown(ctx, tlsClient); errDisown != nil {
+				d.cfg.errFunc(disownError(errDisown))
+			}
 			return err
 		}
 		d.setDeviceID(deviceID)
 	}
 
 	/*setup credentials */
-	err = otmClient.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, d.DeviceID())
+	if len(cfg.psk) == 0 && cfg.sign == nil {
+		return MakeInvalidArgument(fmt.Errorf("cannot provision owner: both preshared and signer are empty"))
+	}
+	psk := make([]byte, 16)
+	if len(cfg.psk) > 0 {
+		psk = cfg.psk
+	} else {
+		_, err := rand.Read(psk)
+		if err != nil {
+			if errDisown := disown(ctx, tlsClient); errDisown != nil {
+				d.cfg.errFunc(disownError(errDisown))
+			}
+			return MakeAborted(fmt.Errorf("cannot provision owner: %w", err))
+		}
+	}
+	var provisionOpts []otm.ProvisionOwnerCredentialstOption
+	if cfg.sign != nil {
+		provisionOpts = append(provisionOpts, otm.WithSetupCertificates(d.DeviceID(), cfg.sign))
+	}
+
+	err = otm.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, psk, provisionOpts...)
 	if err != nil {
-		return MakeAborted(fmt.Errorf("cannot provision owner %w", err))
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
+		return MakeAborted(fmt.Errorf("cannot provision owner: %w", err))
 	}
 
 	setDeviceOwner := doxm.DoxmUpdate{
@@ -340,7 +418,10 @@ func (d *Device) Own(
 	/*doxm doesn't send any content for select OTM*/
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwner, nil)
 	if err != nil {
-		return MakeUnavailable(fmt.Errorf("cannot set device owner %w", err))
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
+		return MakeUnavailable(fmt.Errorf("cannot set device owner: %w", err))
 	}
 
 	/*verify ownership*/
@@ -350,9 +431,12 @@ func (d *Device) Own(
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
 		}
-		return MakeUnavailable(fmt.Errorf("cannot verify owner %w", err))
+		return MakeUnavailable(fmt.Errorf("cannot verify owner: %w", err))
 	}
 	if verifyOwner.OwnerID != sdkID {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
 		return MakeInternal(err)
 	}
 
@@ -371,7 +455,7 @@ func (d *Device) Own(
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
 		}
-		return MakeInternal(fmt.Errorf("cannot set owner of resource pstat %w", err))
+		return MakeInternal(fmt.Errorf("cannot set owner of resource pstat: %w", err))
 	}
 
 	/*acl2 set owner of resource*/
@@ -392,17 +476,11 @@ func (d *Device) Own(
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
 		}
-		return MakeInternal(fmt.Errorf("cannot set device owned %w", err))
+		return MakeInternal(fmt.Errorf("cannot set device owned: %w", err))
 	}
 
 	/*set device to provision opertaion mode*/
-	provisionOperationState := pstat.ProvisionStatusUpdateRequest{
-		DeviceOnboardingState: &pstat.DeviceOnboardingState{
-			CurrentOrPendingOperationalState: pstat.OperationalState_RFPRO,
-		},
-	}
-
-	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, provisionOperationState, nil)
+	err = updateOperationalState(ctx, tlsClient, pstat.OperationalState_RFPRO)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
@@ -418,8 +496,29 @@ func (d *Device) Own(
 		return MakeUnavailable(fmt.Errorf("cannot get resource links: %w", err))
 	}
 
+	id, err := uuid.Parse(sdkID)
+	if err != nil {
+		return fmt.Errorf(errMsg, err)
+	}
+	idBin, _ := id.MarshalBinary()
+	dtlsConfig := dtls.Config{
+		PSKIdentityHint: idBin,
+		PSK: func(b []byte) ([]byte, error) {
+			return psk, nil
+		},
+		CipherSuites: []dtls.CipherSuiteID{dtls.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256},
+	}
+	pskConn, err := kitNetCoap.DialUDPSecure(ctx, tlsAddr.String(), &dtlsConfig)
+	if err != nil {
+		if errDisown := disown(ctx, tlsClient); errDisown != nil {
+			d.cfg.errFunc(disownError(errDisown))
+		}
+		return MakeUnavailable(fmt.Errorf("cannot create connection for finish ownership transfer: %w", err))
+	}
+	defer pskConn.Close()
+
 	/*set owner acl*/
-	err = d.setACL(ctx, links, sdkID)
+	err = setACL(ctx, pskConn, links, sdkID)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
@@ -428,19 +527,23 @@ func (d *Device) Own(
 	}
 
 	// Provision the device to switch back to normal operation.
-	p, err := d.Provision(ctx, links)
+	err = updateOperationalState(ctx, pskConn, pstat.OperationalState_RFNOP)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
 			d.cfg.errFunc(disownError(errDisown))
 		}
-		return fmt.Errorf(errMsg, err)
+		return MakeInternal(fmt.Errorf("cannot update operation state to normal mode: %w", err))
 	}
-	err = p.Close(ctx)
-	if err != nil {
-		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.errFunc(disownError(errDisown))
+
+	if cfg.actionAfterOwn != nil {
+		err = cfg.actionAfterOwn(ctx, pskConn)
+		if err != nil {
+			if errDisown := disown(ctx, tlsClient); errDisown != nil {
+				d.cfg.errFunc(disownError(errDisown))
+			}
+			return MakeInternal(fmt.Errorf("cannot create connection for finish ownership transfer: %w", err))
 		}
-		return fmt.Errorf(errMsg, err)
 	}
+
 	return nil
 }

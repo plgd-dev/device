@@ -14,7 +14,7 @@ import (
 func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (doxm.Doxm, error) {
 	ownLink, ok := links.GetResourceLink(doxm.ResourceURI)
 	if !ok {
-		return doxm.Doxm{}, fmt.Errorf("not found")
+		return doxm.Doxm{}, fmt.Errorf("cannot find %v in links: %+v", doxm.ResourceURI, links)
 	}
 	getOwnlink := ownLink
 	getOwnlink.Endpoints = ownLink.GetUnsecureEndpoints()
