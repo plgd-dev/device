@@ -255,7 +255,10 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 	obs := newDevicesObserver(c, c.observerPollingInterval, cfg.discoveryConfiguration, &devicesObservationHandler{
 		handler: handler,
 		removeSubscription: func() {
-			c.stopObservingDevices(ID.String())
+			_, errRemove := c.stopObservingDevices(ID.String())
+			if errRemove != nil {
+				handler.Error(err)
+			}
 		},
 	})
 

@@ -268,7 +268,10 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	defer o.Unlock()
 	if o.device != nil {
 		defer o.device.Release(ctx)
-		o.device.StopObservingResource(ctx, o.observationID)
+		errStop := o.device.StopObservingResource(ctx, o.observationID)
+		if errStop != nil {
+			c.errors(errStop)
+		}
 		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, o.device.DeviceID(), o.device)
 	}
 }

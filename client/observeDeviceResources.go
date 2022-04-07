@@ -210,7 +210,10 @@ func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, ha
 	obs := newDeviceResourcesObserver(c, deviceID, c.observerPollingInterval, &deviceResourcesObservationHandler{
 		handler: handler,
 		removeSubscription: func() {
-			c.stopObservingDevices(ID.String())
+			_, errRemove := c.stopObservingDevices(ID.String())
+			if errRemove != nil {
+				handler.Error(errRemove)
+			}
 		},
 	}, cfg.discoveryConfiguration)
 	c.insertSubscription(ID.String(), obs)

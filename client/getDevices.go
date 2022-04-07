@@ -243,25 +243,6 @@ func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device,
 	return devDetails, err
 }
 
-func newDiscoveryOwnershipsHandler(
-	ctx context.Context,
-	errors func(error),
-	ownerships func(doxm.Doxm),
-) *discoveryOwnershipsHandler {
-	return &discoveryOwnershipsHandler{errors: errors, ownerships: ownerships}
-}
-
-type discoveryOwnershipsHandler struct {
-	errors     func(error)
-	ownerships func(doxm.Doxm)
-}
-
-func (h *discoveryOwnershipsHandler) Handle(ctx context.Context, doxm doxm.Doxm) {
-	h.ownerships(doxm)
-}
-
-func (h *discoveryOwnershipsHandler) Error(err error) { h.errors(err) }
-
 func mergeDevices(list []DeviceDetails) map[string]DeviceDetails {
 	m := make(map[string]DeviceDetails, len(list))
 	for _, i := range list {

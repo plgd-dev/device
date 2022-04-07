@@ -148,7 +148,10 @@ func (d *Device) observeResource(
 		o.handler.OnClose()
 		obsCtx, cancel := context.WithCancel(context.Background())
 		cancel()
-		d.StopObservingResource(obsCtx, o.id)
+		errClose := d.StopObservingResource(obsCtx, o.id)
+		if errClose != nil {
+			o.handler.Error(errClose)
+		}
 	})
 
 	obs, err := client.Observe(ctx, link.Href, codec, &h, options...)
