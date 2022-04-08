@@ -39,10 +39,19 @@ func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
 	}
 }
 
-// WithActionDuringOwn allows to set deviceID of owned device and other staffo over owner TLS.
+// WithActionDuringOwn allows to set deviceID of owned device and other staff over owner TLS.
+// returns new deviceID, if it returns error device will be disowned.
 func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)) OwnOption {
 	return actionDuringOwnOption{
 		actionDuringOwn: actionDuringOwn,
+	}
+}
+
+// WithActionAfterOwn allows initialize configuration at the device via DTLS connection with preshared key. For example setup time / NTP.
+// if it returns error device will be disowned.
+func WithActionAftersOwn(actionAfterOwn func(ctx context.Context, client *coap.ClientCloseHandler) error) OwnOption {
+	return actionAfterOwnOption{
+		actionAfterOwn: actionAfterOwn,
 	}
 }
 
@@ -347,6 +356,15 @@ type actionDuringOwnOption struct {
 
 func (r actionDuringOwnOption) applyOnOwn(opts ownOptions) ownOptions {
 	opts.opts = append(opts.opts, core.WithActionDuringOwn(r.actionDuringOwn))
+	return opts
+}
+
+type actionAfterOwnOption struct {
+	actionAfterOwn func(ctx context.Context, client *coap.ClientCloseHandler) error
+}
+
+func (r actionAfterOwnOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.opts = append(opts.opts, core.WithActionAfterOwn(r.actionAfterOwn))
 	return opts
 }
 
