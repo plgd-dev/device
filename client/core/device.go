@@ -4,7 +4,9 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
+	goNet "net"
 	"sync"
 
 	"github.com/pion/dtls/v2"
@@ -74,23 +76,23 @@ func (d *Device) popConnections() []*coap.ClientCloseHandler {
 
 // Close closes open connections to the device.
 func (d *Device) Close(ctx context.Context) error {
-	var errors []error
+	var errs []error
 	err := d.stopObservations(ctx)
 	if err != nil {
-		errors = append(errors, err)
+		errs = append(errs, err)
 	}
 
 	for _, conn := range d.popConnections() {
 		err = conn.Close()
-		if err != nil {
-			errors = append(errors, err)
+		if err != nil && !errors.Is(err, goNet.ErrClosed) {
+			errs = append(errs, err)
 		}
 		// wait for closing socket
 		<-conn.Done()
 	}
 
-	if len(errors) > 0 {
-		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errors))
+	if len(errs) > 0 {
+		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errs))
 	}
 	return nil
 }
