@@ -43,18 +43,7 @@ func (c *Client) GetDevices(
 	for _, o := range opts {
 		cfg = o.applyOnGetDevices(cfg)
 	}
-	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
-		return cfg.getDetails(ctx, d, patchResourceLinksEndpoints(links, c.disableUDPEndpoints))
-	}
-
 	var m sync.Mutex
-	var res []DeviceDetails
-	devices := func(d DeviceDetails) {
-		m.Lock()
-		defer m.Unlock()
-		res = append(res, d)
-	}
-
 	resOwnerships := make(map[string]doxm.Doxm)
 	ownerships := func(d doxm.Doxm) {
 		m.Lock()
@@ -62,11 +51,27 @@ func (c *Client) GetDevices(
 		resOwnerships[d.DeviceID] = d
 	}
 
+	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+		links = patchResourceLinksEndpoints(links, c.disableUDPEndpoints)
+		details, err := cfg.getDetails(ctx, d, links)
+		if err == nil && d.IsSecured() {
+			doxm, err := d.GetOwnership(ctx, links)
+			if err == nil {
+				ownerships(doxm)
+			}
+		}
+		return details, err
+	}
+
+	var res []DeviceDetails
+	devices := func(d DeviceDetails) {
+		m.Lock()
+		defer m.Unlock()
+		res = append(res, d)
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-
-	ownershipsHandler := newDiscoveryOwnershipsHandler(ctx, cfg.err, ownerships)
-	go c.client.GetOwnerships(ctx, cfg.discoveryConfiguration, core.DiscoverAllDevices, ownershipsHandler)
 
 	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
 	if err := c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler); err != nil {
@@ -75,9 +80,7 @@ func (c *Client) GetDevices(
 
 	m.Lock()
 	defer m.Unlock()
-
 	ownerID, _ := c.client.GetSdkOwnerID()
-
 	return setOwnership(ownerID, mergeDevices(res), resOwnerships), nil
 }
 
