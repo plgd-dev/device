@@ -18,15 +18,15 @@ func TestDeviceDiscovery(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
 	devices, err := c.GetDevices(ctx)
 	require.NoError(t, err)
-	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
-	}()
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
@@ -38,6 +38,26 @@ func TestDeviceDiscovery(t *testing.T) {
 	assert.Equal(t, test.DevsimName, d.Details.(*device.Device).Name)
 	require.NotNil(t, d.Ownership)
 	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
+
+	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	secureDeviceID, err = c.OwnDevice(ctx, secureDeviceID, client.WithOTM(client.OTMType_JustWorks))
+	require.NoError(t, err)
+	devices, err = c.GetDevices(ctx)
+	require.NoError(t, err)
+
+	d = devices[secureDeviceID]
+	fmt.Println(d)
+	require.NotNil(t, d)
+	require.NotNil(t, d.Ownership)
+	sdkID, err := c.CoreClient().GetSdkOwnerID()
+	require.NoError(t, err)
+	assert.Equal(t, d.Ownership.OwnerID, sdkID)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	err = c.DisownDevice(ctx, secureDeviceID)
+	require.NoError(t, err)
 }
 
 func TestDeviceDiscoveryWithFilter(t *testing.T) {
