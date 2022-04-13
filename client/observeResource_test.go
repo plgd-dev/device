@@ -344,11 +344,12 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		err = res(&d2)
 		require.NoError(t, err)
 		d2.Sort()
-		require.Len(t, d2, 1)
+		require.GreaterOrEqual(t, len(d2), 1)
 		for i := range d2 {
 			require.Equal(t, deviceID, d2[i].DeviceID())
 			switch d2[i].Href() {
 			case test.TestResourceSwitchesHref:
+			case test.TestResourceSwitchesInstanceHref("1"):
 			default:
 				require.NoError(t, fmt.Errorf("unknown resource href: %v", d2[i].Href()))
 			}
