@@ -55,6 +55,13 @@ func WithActionAftersOwn(actionAfterOwn func(ctx context.Context, client *coap.C
 	}
 }
 
+// WithPresharedKey allows to set preshared key for owner. It is not set, it will be randomized.
+func WithPresharedKey(presharedKey []byte) OwnOption {
+	return presharedKeyOption{
+		presharedKey: presharedKey,
+	}
+}
+
 // WithOTM allows to set ownership transfer method, by default it is manufacturer.
 func WithOTM(otmType OTMType) OwnOption {
 	return otmOption{
@@ -348,6 +355,15 @@ type ownOptions struct {
 // OwnOption option definition.
 type OwnOption = interface {
 	applyOnOwn(opts ownOptions) ownOptions
+}
+
+type presharedKeyOption struct {
+	presharedKey []byte
+}
+
+func (r presharedKeyOption) applyOnOwn(opts ownOptions) ownOptions {
+	opts.opts = append(opts.opts, core.WithPresharedKey(r.presharedKey))
+	return opts
 }
 
 type actionDuringOwnOption struct {
