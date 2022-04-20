@@ -270,12 +270,18 @@ func TestObservingNonObservableResource(t *testing.T) {
 		_, err := c.ObserveResource(ctx, deviceID, maintenance.ResourceURI, h)
 		require.NoError(t, err)
 		var d maintenance.Maintenance
-		res, err := h.waitForNotification(ctx)
-		require.NoError(t, err)
-		err = res(&d)
-		require.NoError(t, err)
-		err = h.waitForClose(ctx)
-		require.NoError(t, err)
+		// resource is not observable so action (close/event) depends on goroutine scheduler which is not deterministic
+		select {
+		case e := <-h.res:
+			err = e(&d)
+			require.NoError(t, err)
+			err = h.waitForClose(ctx)
+			require.NoError(t, err)
+		case <-h.close:
+			// if close comes first, then event is not received
+		case <-ctx.Done():
+			require.NoError(t, ctx.Err())
+		}
 	})
 }
 
