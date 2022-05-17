@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
-	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
@@ -14,7 +13,7 @@ import (
 )
 
 func sepEpToLinks(t *testing.T, links schema.ResourceLinks) schema.ResourceLinks {
-	dlink, err := ocf.GetResourceLink(links, device.ResourceURI)
+	dlink, err := core.GetResourceLink(links, device.ResourceURI)
 	require.NoError(t, err)
 	updateLinks := make(schema.ResourceLinks, 0, len(links))
 	for _, l := range links {
@@ -51,7 +50,7 @@ func TestDeviceReboot(t *testing.T) {
 			require := require.New(t)
 			timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancelTimeout()
-			device, err := c.GetDeviceByMulticast(timeout, deviceID, ocf.DefaultDiscoveryConfiguration())
+			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer func() {
 				errClose := device.Close(timeout)
@@ -91,7 +90,7 @@ func TestDeviceFactoryReset(t *testing.T) {
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancelTimeout()
-	device, err := c.GetDeviceByMulticast(timeout, deviceID, ocf.DefaultDiscoveryConfiguration())
+	device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
 		errClose := device.Close(timeout)

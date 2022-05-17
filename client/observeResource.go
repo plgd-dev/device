@@ -226,10 +226,10 @@ func (c *Client) ObserveResource(
 	return getObservationID(key, resourceObservationID.String()), err
 }
 
-func (c *Client) StopObservingResource(ctx context.Context, observationID string) error {
+func (c *Client) StopObservingResource(ctx context.Context, observationID string) (bool, error) {
 	resourceCacheID, internalResourceObservationID, err := parseIDs(observationID)
 	if err != nil {
-		return err
+		return false, err
 	}
 	var resourceObservationID string
 	var deleteDevice *RefDevice
@@ -251,12 +251,16 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 		return h, false
 	})
 	if deleteDevice == nil {
-		return nil
+		return false, nil
 	}
 	defer deleteDevice.Release(ctx)
-	err = deleteDevice.StopObservingResource(ctx, resourceObservationID)
-	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deleteDevice.DeviceID(), deleteDevice)
-	return err
+	ok, err := deleteDevice.StopObservingResource(ctx, resourceObservationID)
+	deviceID := deleteDevice.DeviceID()
+	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, deleteDevice)
+	if err != nil {
+		return false, fmt.Errorf("failed to stop resource observation(%s) in device(%s): %w", observationID, deviceID, err)
+	}
+	return ok, nil
 }
 
 func (c *Client) closeObservingResource(ctx context.Context, o *observationsHandler) {
@@ -268,11 +272,11 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	defer o.Unlock()
 	if o.device != nil {
 		defer o.device.Release(ctx)
-		errStop := o.device.StopObservingResource(ctx, o.observationID)
-		if errStop != nil {
-			c.errors(errStop)
+		deviceID := o.device.DeviceID()
+		if _, err := o.device.StopObservingResource(ctx, o.observationID); err != nil {
+			c.errors(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err))
 		}
-		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, o.device.DeviceID(), o.device)
+		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, o.device)
 	}
 }
 

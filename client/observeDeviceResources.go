@@ -191,13 +191,13 @@ func (h *deviceResourcesObservationHandler) Error(err error) {
 	h.handler.Error(err)
 }
 
-func (c *Client) stopObservingDeviceResources(observationID string) (sync func(), err error) {
+func (c *Client) stopObservingDeviceResources(observationID string) (sync func(), ok bool) {
 	sub, err := c.popSubscription(observationID)
 	if err != nil {
-		return nil, err
+		return nil, false
 	}
 	sub.Cancel()
-	return sub.Wait, nil
+	return sub.Wait, true
 }
 
 func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler, opts ...CommonCommandOption) (string, error) {
@@ -210,21 +210,18 @@ func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, ha
 	obs := newDeviceResourcesObserver(c, deviceID, c.observerPollingInterval, &deviceResourcesObservationHandler{
 		handler: handler,
 		removeSubscription: func() {
-			_, errRemove := c.stopObservingDevices(ID.String())
-			if errRemove != nil {
-				handler.Error(errRemove)
-			}
+			c.stopObservingDevices(ID.String())
 		},
 	}, cfg.discoveryConfiguration)
 	c.insertSubscription(ID.String(), obs)
 	return ID.String(), nil
 }
 
-func (c *Client) StopObservingDeviceResources(ctx context.Context, observationID string) error {
-	wait, err := c.stopObservingDeviceResources(observationID)
-	if err != nil {
-		return err
+func (c *Client) StopObservingDeviceResources(ctx context.Context, observationID string) bool {
+	wait, ok := c.stopObservingDeviceResources(observationID)
+	if !ok {
+		return false
 	}
 	wait()
-	return nil
+	return true
 }

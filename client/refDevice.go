@@ -75,7 +75,7 @@ func (d *RefDevice) ObserveResource(
 func (d *RefDevice) StopObservingResource(
 	ctx context.Context,
 	observationID string,
-) error {
+) (bool, error) {
 	return d.Device().StopObservingResource(ctx, observationID)
 }
 

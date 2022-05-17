@@ -46,8 +46,8 @@ func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Clien
 	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
 	defer func(observationID string) {
-		err := c.StopObservingResource(ctx, observationID)
-		require.NoError(t, err)
+		_, errClose := c.StopObservingResource(ctx, observationID)
+		require.NoError(t, errClose)
 	}(id)
 
 	var d map[string]interface{}
@@ -61,8 +61,8 @@ func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Clien
 	id, err = c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h2)
 	require.NoError(t, err)
 	defer func(observationID string) {
-		err := c.StopObservingResource(ctx, observationID)
-		require.NoError(t, err)
+		_, errClose := c.StopObservingResource(ctx, observationID)
+		require.NoError(t, errClose)
 	}(id)
 
 	var d2 map[string]interface{}
@@ -175,8 +175,8 @@ func TestObservingDiscoveryResource(t *testing.T) {
 			return
 		}
 		defer func(observationID string) {
-			err = c.StopObservingResource(ctx, observationID)
-			require.NoError(t, err)
+			_, errClose := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errClose)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
@@ -229,8 +229,8 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 			return
 		}
 		defer func(observationID string) {
-			err = c.StopObservingResource(ctx, observationID)
-			require.NoError(t, err)
+			_, errClose := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errClose)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
@@ -321,8 +321,8 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 			return
 		}
 		defer func(observationID string) {
-			err := c.StopObservingResource(ctx, observationID)
-			require.NoError(t, err)
+			_, errClose := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errClose)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)

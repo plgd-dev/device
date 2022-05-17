@@ -41,19 +41,19 @@ func (d *Device) ObserveResource(
 func (d *Device) StopObservingResource(
 	ctx context.Context,
 	observationID string,
-) error {
+) (bool, error) {
 	v, ok := d.observations.Load(observationID)
 	if !ok {
-		return MakeNotFound(fmt.Errorf("unknown observation %s", observationID))
+		return false, nil
 	}
 	d.observations.Delete(observationID)
 	o := v.(*observation)
 	err := o.Stop(ctx)
 	if err != nil {
-		return MakeCanceled(fmt.Errorf("could not cancel observation %s: %w", observationID, err))
+		return false, MakeCanceled(fmt.Errorf("could not cancel observation %s: %w", observationID, err))
 	}
 
-	return nil
+	return true, nil
 }
 
 func (d *Device) stopObservations(ctx context.Context) error {
@@ -65,7 +65,7 @@ func (d *Device) stopObservations(ctx context.Context) error {
 	})
 	var errors []error
 	for _, observationID := range obs {
-		err := d.StopObservingResource(ctx, observationID)
+		_, err := d.StopObservingResource(ctx, observationID)
 		if err != nil {
 			errors = append(errors, err)
 		}
@@ -144,13 +144,12 @@ func (d *Device) observeResource(
 		handler: &h,
 		client:  client,
 	}
-	onCloseID := client.RegisterCloseHandler(func(err error) {
+	onCloseID := client.RegisterCloseHandler(func(error) {
 		o.handler.OnClose()
 		obsCtx, cancel := context.WithCancel(context.Background())
 		cancel()
-		errClose := d.StopObservingResource(obsCtx, o.id)
-		if errClose != nil {
-			o.handler.Error(errClose)
+		if _, errClose := d.StopObservingResource(obsCtx, o.id); errClose != nil {
+			o.handler.Error(fmt.Errorf("failed to stop observing resource(%s): %w", link.Href, errClose))
 		}
 	})
 
