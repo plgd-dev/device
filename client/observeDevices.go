@@ -230,13 +230,13 @@ func (h *devicesObservationHandler) Error(err error) {
 	h.handler.Error(err)
 }
 
-func (c *Client) stopObservingDevices(observationID string) (sync func(), err error) {
+func (c *Client) stopObservingDevices(observationID string) (sync func(), ok bool) {
 	sub, err := c.popSubscription(observationID)
 	if err != nil {
-		return nil, err
+		return nil, false
 	}
 	sub.Cancel()
-	return sub.Wait, nil
+	return sub.Wait, true
 }
 
 func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
@@ -263,11 +263,11 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 	return ID.String(), nil
 }
 
-func (c *Client) StopObservingDevices(ctx context.Context, observationID string) error {
-	wait, err := c.stopObservingDevices(observationID)
-	if err != nil {
-		return err
+func (c *Client) StopObservingDevices(ctx context.Context, observationID string) bool {
+	wait, ok := c.stopObservingDevices(observationID)
+	if !ok {
+		return false
 	}
 	wait()
-	return nil
+	return true
 }

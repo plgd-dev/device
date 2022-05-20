@@ -58,8 +58,8 @@ LOOP1:
 		}
 	}
 
-	err = c.StopObservingDeviceResources(ctx, ID)
-	require.NoError(t, err)
+	ok := c.StopObservingDeviceResources(ctx, ID)
+	require.True(t, ok)
 	select {
 	case <-h.res:
 		require.NoError(t, fmt.Errorf("unexpected event"))

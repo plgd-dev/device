@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
-	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/test"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +26,7 @@ func TestGetOwnership(t *testing.T) {
 	defer cancel()
 
 	deviceID := secureDeviceID
-	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
+	device, err := c.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
 		errClose := device.Close(ctx)

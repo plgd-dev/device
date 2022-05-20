@@ -10,10 +10,7 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/stretchr/testify/require"
-
 	"github.com/plgd-dev/device/client/core"
-	ocf "github.com/plgd-dev/device/client/core"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/pkg/error"
@@ -21,15 +18,16 @@ import (
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/test"
 	"github.com/plgd-dev/kit/v2/security"
+	"github.com/stretchr/testify/require"
 )
 
 type Client struct {
-	*ocf.Client
+	*core.Client
 	mfgOtm       *manufacturer.Client
 	justWorksOtm *justworks.Client
 
 	DeviceID string
-	*ocf.Device
+	*core.Device
 	DeviceLinks schema.ResourceLinks
 }
 
@@ -93,18 +91,18 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 	mfgOtm := manufacturer.NewClient(mfgCert, mfgCa, manOpts...)
 	justWorksOtm := justworks.NewClient()
 
-	var opts []ocf.OptionFunc
+	var opts []core.OptionFunc
 	if disableDTLS {
-		opts = append(opts, ocf.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, core.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}
 	if disableTCPTLS {
-		opts = append(opts, ocf.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, core.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}
-	opts = append(opts, ocf.WithTLS(&ocf.TLSConfig{
+	opts = append(opts, core.WithTLS(&core.TLSConfig{
 		GetCertificate: func() (tls.Certificate, error) {
 			return cert, nil
 		},
@@ -113,7 +111,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		}}),
 	)
 
-	c := ocf.NewClient(opts...)
+	c := core.NewClient(opts...)
 
 	return &Client{Client: c, mfgOtm: mfgOtm, justWorksOtm: justWorksOtm}, nil
 }
@@ -126,7 +124,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 
 	timeout, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, ocf.DefaultDiscoveryConfiguration())
+	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)

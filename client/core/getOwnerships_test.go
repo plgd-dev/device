@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
-	ocf "github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/assert"
@@ -15,12 +14,12 @@ import (
 	"go.uber.org/atomic"
 )
 
-func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus ocf.DiscoverOwnershipStatus, found bool) {
+func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus core.DiscoverOwnershipStatus, found bool) {
 	timeout, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	var h testOwnerShipHandler
-	err := c.GetOwnerships(timeout, ocf.DefaultDiscoveryConfiguration(), ownStatus, &h)
+	err := c.GetOwnerships(timeout, core.DefaultDiscoveryConfiguration(), ownStatus, &h)
 	require.NoError(t, err)
 	assert.Equal(t, found, h.anyFound.Load())
 }
@@ -28,7 +27,7 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus o
 func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) func() {
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
-	device, err := c.GetDeviceByMulticast(ctx, deviceID, ocf.DefaultDiscoveryConfiguration())
+	device, err := c.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
 		errClose := device.Close(ctx)
@@ -61,14 +60,14 @@ func TestGetOwnerships(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverAllDevices, true)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, true)
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverOwnedDevices, false)
+	testGetOwnerShips(ctx, t, c, core.DiscoverAllDevices, true)
+	testGetOwnerShips(ctx, t, c, core.DiscoverDisownedDevices, true)
+	testGetOwnerShips(ctx, t, c, core.DiscoverOwnedDevices, false)
 
 	disown := ownDevice(ctx, t, c, secureDeviceID)
 	defer disown()
 
-	testGetOwnerShips(ctx, t, c, ocf.DiscoverDisownedDevices, false)
+	testGetOwnerShips(ctx, t, c, core.DiscoverDisownedDevices, false)
 }
 
 type testOwnerShipHandler struct {
