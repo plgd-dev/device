@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"net"
 
 	"github.com/pion/dtls/v2"
 	pkgError "github.com/plgd-dev/device/pkg/error"
 	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/net"
+	coapNet "github.com/plgd-dev/go-coap/v2/net"
 	"github.com/plgd-dev/kit/v2/log"
 )
 
@@ -67,7 +68,7 @@ type DiscoveryConfiguration struct {
 	MulticastHopLimit    int      // default: 2, min value: 1 - don't pass through router, max value: 255, https://tools.ietf.org/html/rfc2460#section-3
 	MulticastAddressUDP4 []string // default: "[224.0.1.187:5683] (client.DiscoveryAddressUDP4), empty: don't use ipv4 multicast"
 	MulticastAddressUDP6 []string // default: "[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683]"] (client.DiscoveryAddressUDP6), empty: don't use ipv6 multicast"
-	MulticastOptions     []net.MulticastOption
+	MulticastOptions     []coapNet.MulticastOption
 }
 
 func WithErr(errFunc ErrFunc) OptionFunc {
@@ -136,6 +137,13 @@ func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 		MulticastHopLimit:    2,
 		MulticastAddressUDP4: DiscoveryAddressUDP4,
 		MulticastAddressUDP6: DiscoveryAddressUDP6,
+		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(iface *net.Interface, err error) {
+			name := ""
+			if iface != nil {
+				name = iface.Name
+			}
+			log.Debugf("network interface '%v': %w", name, err)
+		})},
 	}
 }
 
