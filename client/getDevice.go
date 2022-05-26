@@ -6,7 +6,8 @@ import (
 
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/go-coap/v2/message/codes"
+	"github.com/plgd-dev/go-coap/v2/message/status"
 )
 
 func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
@@ -101,19 +102,24 @@ func (c *Client) getDevice(ctx context.Context, refDev *RefDevice, links schema.
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	var d doxm.Doxm
+	var o ownership
 	if devDetails.IsSecured {
-		d, err = refDev.GetOwnership(ctx, links)
-	}
-	if err != nil {
-		return DeviceDetails{}, err
+		d, ownErr := refDev.GetOwnership(ctx, links)
+		if ownErr != nil {
+			v, ok := status.FromError(ownErr)
+			if ok && v.Code() == codes.Unauthorized {
+				o.status = OwnershipStatus_OwnedByOther
+			}
+		} else {
+			o.doxm = &d
+		}
 	}
 	ownerID, _ := c.client.GetSdkOwnerID()
 
 	return setOwnership(ownerID, map[string]DeviceDetails{
 		devDetails.ID: devDetails,
-	}, map[string]doxm.Doxm{
-		d.DeviceID: d,
+	}, map[string]ownership{
+		devDetails.ID: o,
 	})[devDetails.ID], nil
 }
 

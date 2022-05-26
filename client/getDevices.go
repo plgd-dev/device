@@ -13,6 +13,8 @@ import (
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/go-coap/v2/message/codes"
+	"github.com/plgd-dev/go-coap/v2/message/status"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
@@ -27,6 +29,11 @@ func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks)
 		return nil, err
 	}
 	return &dev, nil
+}
+
+type ownership struct {
+	doxm   *doxm.Doxm
+	status OwnershipStatus
 }
 
 // GetDevices discovers devices in the local mode.
@@ -44,21 +51,32 @@ func (c *Client) GetDevices(
 		cfg = o.applyOnGetDevices(cfg)
 	}
 	var m sync.Mutex
-	resOwnerships := make(map[string]doxm.Doxm)
-	ownerships := func(d doxm.Doxm) {
+	resOwnerships := make(map[string]ownership)
+	ownerships := func(deviceID string, d ownership) {
 		m.Lock()
 		defer m.Unlock()
-		resOwnerships[d.DeviceID] = d
+		resOwnerships[deviceID] = d
 	}
 
 	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
 		links = patchResourceLinksEndpoints(links, c.disableUDPEndpoints)
 		details, err := cfg.getDetails(ctx, d, links)
 		if err == nil && d.IsSecured() {
-			doxm, err := d.GetOwnership(ctx, links)
-			if err == nil {
-				ownerships(doxm)
+			doxm, ownErr := d.GetOwnership(ctx, links)
+			if ownErr == nil {
+				ownerships(d.DeviceID(), ownership{
+					doxm:   &doxm,
+					status: OwnershipStatus_Unknown, // will be resolved later
+				})
+			} else {
+				v, ok := status.FromError(ownErr)
+				if ok && v.Code() == codes.Unauthorized {
+					ownerships(d.DeviceID(), ownership{
+						status: OwnershipStatus_OwnedByOther,
+					})
+				}
 			}
+
 		}
 		return details, err
 	}
@@ -278,21 +296,24 @@ func mergeEndpoints(a, b []schema.Endpoint) []schema.Endpoint {
 	return out
 }
 
-func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string]doxm.Doxm) map[string]DeviceDetails {
-	for _, o := range owns {
-		v := o
-		d, ok := devs[o.DeviceID]
+func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string]ownership) map[string]DeviceDetails {
+	for deviceID, o := range owns {
+		d, ok := devs[deviceID]
 		if ok && d.Ownership == nil {
-			d.Ownership = &v
-			switch v.OwnerID {
-			case uuid.Nil.String():
-				d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
-			case ownerID:
-				d.OwnershipStatus = OwnershipStatus_Owned
-			default:
-				d.OwnershipStatus = OwnershipStatus_OwnedByOther
+			if o.doxm == nil {
+				d.OwnershipStatus = o.status
+			} else {
+				d.Ownership = o.doxm
+				switch o.doxm.OwnerID {
+				case uuid.Nil.String():
+					d.OwnershipStatus = OwnershipStatus_ReadyToBeOwned
+				case ownerID:
+					d.OwnershipStatus = OwnershipStatus_Owned
+				default:
+					d.OwnershipStatus = OwnershipStatus_OwnedByOther
+				}
+				devs[deviceID] = d
 			}
-			devs[o.DeviceID] = d
 		}
 	}
 	return devs
