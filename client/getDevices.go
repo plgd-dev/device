@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -13,8 +14,6 @@ import (
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/message/status"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
@@ -69,8 +68,7 @@ func (c *Client) GetDevices(
 					status: OwnershipStatus_Unknown, // will be resolved later
 				})
 			} else {
-				v, ok := status.FromError(ownErr)
-				if ok && v.Code() == codes.Unauthorized {
+				if strings.Contains(ownErr.Error(), "x509: certificate signed by unknown authority") {
 					ownerships(d.DeviceID(), ownership{
 						status: OwnershipStatus_OwnedByOther,
 					})
@@ -312,8 +310,8 @@ func setOwnership(ownerID string, devs map[string]DeviceDetails, owns map[string
 				default:
 					d.OwnershipStatus = OwnershipStatus_OwnedByOther
 				}
-				devs[deviceID] = d
 			}
+			devs[deviceID] = d
 		}
 	}
 	return devs
