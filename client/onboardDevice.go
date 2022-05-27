@@ -8,6 +8,7 @@ import (
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/acl"
 	"github.com/plgd-dev/device/schema/cloud"
+	"github.com/plgd-dev/device/schema/softwareupdate"
 )
 
 func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
@@ -44,6 +45,13 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 			}
 		}
 	}
+	var confResources = acl.AllResources
+	for _, href := range links.GetResourceHrefs(softwareupdate.ResourceType) {
+		confResources = append(confResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
 
 	cloudACL := acl.UpdateRequest{
 		AccessControlList: []acl.AccessControl{
@@ -54,7 +62,7 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 						DeviceID: cloudID,
 					},
 				},
-				Resources: acl.AllResources,
+				Resources: confResources,
 			},
 		},
 	}
