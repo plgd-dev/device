@@ -21,6 +21,7 @@ import (
 	"github.com/plgd-dev/device/schema/pstat"
 	"github.com/plgd-dev/device/schema/resources"
 	"github.com/plgd-dev/device/schema/sdi"
+	"github.com/plgd-dev/device/schema/softwareupdate"
 	"github.com/plgd-dev/device/schema/sp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
@@ -130,7 +131,7 @@ func setACL(ctx context.Context, conn connUpdateResourcer, links schema.Resource
 		return err
 	}
 
-	confResources := make([]acl.Resource, 0, 1)
+	confResources := acl.AllResources
 	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
@@ -143,19 +144,16 @@ func setACL(ctx context.Context, conn connUpdateResourcer, links schema.Resource
 			Interfaces: []string{"*"},
 		})
 	}
+	for _, href := range links.GetResourceHrefs(softwareupdate.ResourceType) {
+		confResources = append(confResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
 
 	/*acl2 set owner of resource*/
 	setACL := acl.UpdateRequest{
 		AccessControlList: []acl.AccessControl{
-			{
-				Permission: acl.AllPermissions,
-				Subject: acl.Subject{
-					Subject_Device: &acl.Subject_Device{
-						DeviceID: ownerID,
-					},
-				},
-				Resources: acl.AllResources,
-			},
 			{
 				Permission: acl.AllPermissions,
 				Subject: acl.Subject{
