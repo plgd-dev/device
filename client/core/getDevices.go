@@ -72,7 +72,7 @@ func (c *Client) GetDevicesV2(ctx context.Context, discoveryConfiguration Discov
 }
 
 func newDiscoveryHandler(
-	deviceCfg deviceConfiguration,
+	deviceCfg DeviceConfiguration,
 	h DeviceHandlerV2,
 ) *discoveryHandler {
 	return &discoveryHandler{
@@ -82,7 +82,7 @@ func newDiscoveryHandler(
 }
 
 type discoveryHandler struct {
-	deviceCfg               deviceConfiguration
+	deviceCfg               DeviceConfiguration
 	handler                 DeviceHandlerV2
 	filterDiscoveredDevices sync.Map
 }

@@ -121,14 +121,14 @@ func WithDialUDP(dial DialUDP) OptionFunc {
 	}
 }
 
-func (c *Client) getDeviceConfiguration() deviceConfiguration {
-	return deviceConfiguration{
-		errFunc:   c.errFunc,
-		dialDTLS:  c.dialDTLS,
-		dialTLS:   c.dialTLS,
-		dialTCP:   c.dialTCP,
-		dialUDP:   c.dialUDP,
-		tlsConfig: c.tlsConfig,
+func (c *Client) getDeviceConfiguration() DeviceConfiguration {
+	return DeviceConfiguration{
+		ErrFunc:   c.errFunc,
+		DialDTLS:  c.dialDTLS,
+		DialTLS:   c.dialTLS,
+		DialTCP:   c.dialTCP,
+		DialUDP:   c.dialUDP,
+		TLSConfig: c.tlsConfig,
 	}
 }
 

@@ -27,7 +27,7 @@ func (d *Device) FactoryReset(
 	})
 	if connectionWasClosed(ctx, err) {
 		// connection was closed by disown so we don't report error just log it.
-		d.cfg.errFunc(err)
+		d.cfg.ErrFunc(err)
 		return nil
 	}
 	return err

@@ -15,20 +15,20 @@ import (
 	"github.com/plgd-dev/kit/v2/net"
 )
 
-type deviceConfiguration struct {
-	dialDTLS  DialDTLS
-	dialTLS   DialTLS
-	dialUDP   DialUDP
-	dialTCP   DialTCP
-	errFunc   ErrFunc
-	tlsConfig *TLSConfig
+type DeviceConfiguration struct {
+	DialDTLS  DialDTLS
+	DialTLS   DialTLS
+	DialUDP   DialUDP
+	DialTCP   DialTCP
+	ErrFunc   ErrFunc
+	TLSConfig *TLSConfig
 }
 
 type Device struct {
 	deviceID    string
 	deviceTypes []string
 	endpoints   schema.Endpoints
-	cfg         deviceConfiguration
+	cfg         DeviceConfiguration
 
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
@@ -48,7 +48,7 @@ type TLSConfig struct {
 }
 
 func NewDevice(
-	cfg deviceConfiguration,
+	cfg DeviceConfiguration,
 	deviceID string,
 	deviceTypes []string,
 	endpoints schema.Endpoints,
@@ -117,7 +117,7 @@ func (d *Device) dialTLS(ctx context.Context, addr string, tlsConfig *TLSConfig,
 		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
 
-	return d.cfg.dialTLS(ctx, addr, &tlsCfg)
+	return d.cfg.DialTLS(ctx, addr, &tlsCfg)
 }
 
 func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) (*coap.ClientCloseHandler, error) {
@@ -141,7 +141,7 @@ func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),
 	}
-	return d.cfg.dialDTLS(ctx, addr, &tlsCfg)
+	return d.cfg.DialDTLS(ctx, addr, &tlsCfg)
 }
 
 func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
@@ -160,13 +160,13 @@ func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
 func (d *Device) dial(ctx context.Context, addr net.Addr) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPScheme:
-		return d.cfg.dialUDP(ctx, addr.String())
+		return d.cfg.DialUDP(ctx, addr.String())
 	case schema.UDPSecureScheme:
-		return d.dialDTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIdentityCertificate)
+		return d.dialDTLS(ctx, addr.String(), d.cfg.TLSConfig, coap.VerifyIdentityCertificate)
 	case schema.TCPScheme:
-		return d.cfg.dialTCP(ctx, addr.String())
+		return d.cfg.DialTCP(ctx, addr.String())
 	case schema.TCPSecureScheme:
-		return d.dialTLS(ctx, addr.String(), d.cfg.tlsConfig, coap.VerifyIdentityCertificate)
+		return d.dialTLS(ctx, addr.String(), d.cfg.TLSConfig, coap.VerifyIdentityCertificate)
 	}
 	return nil, fmt.Errorf("unknown scheme :%v", addr.GetScheme())
 }
