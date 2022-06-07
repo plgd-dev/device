@@ -81,7 +81,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 const ANY_DEVICE = "anydevice"
 
 func newDeviceHandler(
-	deviceCfg deviceConfiguration,
+	deviceCfg DeviceConfiguration,
 	deviceID string,
 	cancel context.CancelFunc,
 ) *deviceHandler {
@@ -93,7 +93,7 @@ func newDeviceHandler(
 }
 
 type deviceHandler struct {
-	deviceCfg deviceConfiguration
+	deviceCfg DeviceConfiguration
 	deviceID  string
 	cancel    context.CancelFunc
 
