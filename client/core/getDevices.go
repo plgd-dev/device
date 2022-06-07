@@ -107,7 +107,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, 
 	if loaded {
 		return
 	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints())
+	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
 	h.handler.Handle(ctx, d)
 }
 
