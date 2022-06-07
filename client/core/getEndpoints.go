@@ -5,5 +5,5 @@ import (
 )
 
 func (d *Device) GetEndpoints() schema.Endpoints {
-	return d.endpoints
+	return d.getEndpoints()
 }

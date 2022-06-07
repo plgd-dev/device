@@ -25,10 +25,10 @@ type DeviceConfiguration struct {
 }
 
 type Device struct {
-	deviceID    string
-	deviceTypes []string
-	endpoints   schema.Endpoints
-	cfg         DeviceConfiguration
+	deviceID     string
+	deviceTypes  []string
+	getEndpoints func() schema.Endpoints
+	cfg          DeviceConfiguration
 
 	conn         map[string]*coap.ClientCloseHandler
 	observations *sync.Map
@@ -51,14 +51,14 @@ func NewDevice(
 	cfg DeviceConfiguration,
 	deviceID string,
 	deviceTypes []string,
-	endpoints schema.Endpoints,
+	getEndpoints func() schema.Endpoints,
 ) *Device {
 	return &Device{
 		cfg:          cfg,
 		deviceID:     deviceID,
 		deviceTypes:  deviceTypes,
-		endpoints:    endpoints,
 		observations: &sync.Map{},
+		getEndpoints: getEndpoints,
 		conn:         make(map[string]*coap.ClientCloseHandler),
 	}
 }

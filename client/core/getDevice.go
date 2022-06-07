@@ -131,7 +131,7 @@ func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, lin
 		h.err = MakeDataLoss(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
 		return
 	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints())
+	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
 
 	h.device = d
 	h.cancel()
