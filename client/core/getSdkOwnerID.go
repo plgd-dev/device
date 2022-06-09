@@ -43,8 +43,12 @@ func (c *Client) GetSdkOwnerID() (string, error) {
 	return id, nil
 }
 
-// GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
+// GetSdkOwnerID returns sdk ownerID
 func (d *Device) GetSdkOwnerID() (string, error) {
+	if d.cfg.GetOwnerID != nil {
+		return d.cfg.GetOwnerID()
+	}
+
 	id, err := getSdkOwnerID(d.cfg.TLSConfig.GetCertificate)
 	if err != nil {
 		return "", fmt.Errorf("cannot get sdk id: %w", err)
