@@ -16,12 +16,13 @@ import (
 )
 
 type DeviceConfiguration struct {
-	DialDTLS  DialDTLS
-	DialTLS   DialTLS
-	DialUDP   DialUDP
-	DialTCP   DialTCP
-	ErrFunc   ErrFunc
-	TLSConfig *TLSConfig
+	DialDTLS   DialDTLS
+	DialTLS    DialTLS
+	DialUDP    DialUDP
+	DialTCP    DialTCP
+	ErrFunc    ErrFunc
+	TLSConfig  *TLSConfig
+	GetOwnerID func() (string, error)
 }
 
 type Device struct {
