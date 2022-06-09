@@ -166,7 +166,7 @@ func init() {
 func loadFileFromEnv(env string) []byte {
 	v, err := os.ReadFile(os.Getenv(env))
 	if err != nil {
-		log.Fatalf("cannot log file from env %v(%v): %v", env, os.Getenv(env), err)
+		log.Printf("cannot load file from env %v(%v): %v", env, os.Getenv(env), err)
 	}
 	return v
 }
