@@ -10,10 +10,11 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.1.5
-	github.com/plgd-dev/go-coap/v2 v2.5.1-0.20220524070052-e4127919524d
+	github.com/plgd-dev/go-coap/v2 v2.6.1-0.20220621090947-b61f9d901623
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.7.1
 	go.uber.org/atomic v1.9.0
+	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f
 	google.golang.org/grpc v1.47.0
 )
 
@@ -31,7 +32,6 @@ require (
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20220525230936-793ad666bf5e // indirect
 	golang.org/x/net v0.0.0-20220607020251-c690dde0001d // indirect
-	golang.org/x/sync v0.0.0-20220601150217-0de741cfad7f // indirect
 	golang.org/x/sys v0.0.0-20220520151302-bc2c85ada10a // indirect
 	golang.org/x/xerrors v0.0.0-20220517211312-f3a8303e98df // indirect
 	google.golang.org/genproto v0.0.0-20220602131408-e326c6e8e9c8 // indirect
