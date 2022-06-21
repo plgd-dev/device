@@ -8,11 +8,13 @@ import (
 	"fmt"
 	goNet "net"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/net"
+	"golang.org/x/sync/semaphore"
 )
 
 type DeviceConfiguration struct {
@@ -31,7 +33,7 @@ type Device struct {
 	getEndpoints func() schema.Endpoints
 	cfg          DeviceConfiguration
 
-	conn         map[string]*coap.ClientCloseHandler
+	conn         map[string]*conn
 	observations *sync.Map
 	lock         sync.Mutex
 }
@@ -48,6 +50,63 @@ type TLSConfig struct {
 	GetCertificateAuthorities GetCertificateAuthoritiesFunc
 }
 
+type conn struct {
+	mutex *semaphore.Weighted
+	c     atomic.Value // *coap.ClientCloseHandler
+	err   error
+}
+
+func (c *conn) get() *coap.ClientCloseHandler {
+	v := c.c.Load()
+	if v == nil {
+		return nil
+	}
+	if cc, ok := v.(*coap.ClientCloseHandler); ok {
+		return cc
+	}
+	return nil
+}
+
+func (c *conn) Dial(ctx context.Context, dial func(ctx context.Context, addr net.Addr) (*coap.ClientCloseHandler, error), addr net.Addr) (*coap.ClientCloseHandler, bool, error) {
+	err := c.mutex.Acquire(ctx, 1)
+	if err != nil {
+		return nil, false, err
+	}
+	defer c.mutex.Release(1)
+	clientConn := c.get()
+	if clientConn != nil && clientConn.Context().Err() == nil {
+		return clientConn, true, nil
+	}
+	if c.err != nil {
+		return nil, false, c.err
+	}
+	conn, err := dial(ctx, addr)
+	if err != nil {
+		c.err = err
+		return nil, false, err
+	}
+	c.c.Store(conn)
+	return conn, false, nil
+}
+
+func (c *conn) Close() error {
+	clientConn := c.get()
+	if clientConn != nil {
+		return clientConn.Close()
+	}
+	return nil
+}
+
+func (c *conn) Done() <-chan struct{} {
+	clientConn := c.get()
+	if clientConn != nil {
+		return clientConn.Done()
+	}
+	done := make(chan struct{})
+	close(done)
+	return done
+}
+
 func NewDevice(
 	cfg DeviceConfiguration,
 	deviceID string,
@@ -60,12 +119,12 @@ func NewDevice(
 		deviceTypes:  deviceTypes,
 		observations: &sync.Map{},
 		getEndpoints: getEndpoints,
-		conn:         make(map[string]*coap.ClientCloseHandler),
+		conn:         make(map[string]*conn),
 	}
 }
 
-func (d *Device) popConnections() []*coap.ClientCloseHandler {
-	conns := make([]*coap.ClientCloseHandler, 0, 4)
+func (d *Device) popConnections() []*conn {
+	conns := make([]*conn, 0, 4)
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	for key, conn := range d.conn {
@@ -145,17 +204,17 @@ func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig
 	return d.cfg.DialDTLS(ctx, addr, &tlsCfg)
 }
 
-func (d *Device) getConn(addr string) (c *coap.ClientCloseHandler, ok bool) {
+func (d *Device) loadORCreate(addr string) (c *conn) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	c, ok = d.conn[addr]
-	if ok {
-		if c.Context().Err() == nil {
-			return c, ok
+	c, ok := d.conn[addr]
+	if !ok {
+		c = &conn{
+			mutex: semaphore.NewWeighted(1),
 		}
-		delete(d.conn, addr)
+		d.conn[addr] = c
 	}
-	return nil, false
+	return c
 }
 
 func (d *Device) dial(ctx context.Context, addr net.Addr) (*coap.ClientCloseHandler, error) {
@@ -172,35 +231,49 @@ func (d *Device) dial(ctx context.Context, addr net.Addr) (*coap.ClientCloseHand
 	return nil, fmt.Errorf("unknown scheme :%v", addr.GetScheme())
 }
 
+func (d *Device) removeConn(addr string, cc *conn) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	// check if the connection is still in the map
+	c, ok := d.conn[addr]
+	if !ok {
+		return
+	}
+	// check if the connection is not used anyone
+	locked := c.mutex.TryAcquire(1)
+	if !locked {
+		return
+	}
+	defer c.mutex.Release(1)
+	clientConn := cc.get()
+	// check if the dial was called
+	if clientConn == nil {
+		return
+	}
+	// check if the underlayer connection is same as the one we want to remove
+	if c.get() == clientConn {
+		delete(d.conn, addr)
+	}
+}
+
 func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint) (net.Addr, *coap.ClientCloseHandler, error) {
 	const errMsg = "cannot connect to %v: %w"
 	addr, err := endpoint.GetAddr()
 	if err != nil {
 		return net.Addr{}, nil, err
 	}
-
-	conn, ok := d.getConn(addr.URL())
-	if ok {
-		return addr, conn, nil
-	}
-	c, err := d.dial(ctx, addr)
+	conn := d.loadORCreate(addr.URL())
+	cc, loaded, err := conn.Dial(ctx, d.dial, addr)
 	if err != nil {
+		d.removeConn(addr.URL(), conn)
 		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
 	}
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	conn, ok = d.conn[addr.URL()]
-	if ok {
-		c.Close()
-		return addr, conn, nil
+	if !loaded {
+		cc.RegisterCloseHandler(func(err error) {
+			d.removeConn(addr.URL(), conn)
+		})
 	}
-	c.RegisterCloseHandler(func(error) {
-		d.lock.Lock()
-		defer d.lock.Unlock()
-		delete(d.conn, addr.URL())
-	})
-	d.conn[addr.URL()] = c
-	return addr, c, nil
+	return addr, cc, nil
 }
 
 func (d *Device) connectToEndpoints(ctx context.Context, endpoints schema.Endpoints) (net.Addr, *coap.ClientCloseHandler, error) {
