@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/plgd-dev/device/pkg/codec/ocf"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
 func (d *Device) DeleteResource(

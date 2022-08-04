@@ -4,8 +4,8 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
+	codecOcf "github.com/plgd-dev/device/pkg/codec/ocf"
 	"github.com/plgd-dev/device/pkg/net/coap"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
 )
 
 func (c *Client) CreateResource(

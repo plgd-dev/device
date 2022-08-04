@@ -10,10 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/client/core"
+	codecOcf "github.com/plgd-dev/device/pkg/codec/ocf"
 	pkgError "github.com/plgd-dev/device/pkg/error"
 	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/message"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 )
 
@@ -31,16 +32,16 @@ func (c observerCodec) Encode(v interface{}) ([]byte, error) {
 
 // Decode validates the content format and
 // propagates the payload to v as *[]byte without any conversions.
-func (c observerCodec) Decode(m *message.Message, v interface{}) error {
+func (c observerCodec) Decode(m *pool.Message, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if m.Body == nil {
+	if m.Body() == nil {
 		return fmt.Errorf("unexpected empty body")
 	}
-	p, ok := v.(**message.Message)
+	p, ok := v.(**pool.Message)
 	if !ok {
-		return fmt.Errorf("expected **message.Message instead of %T", v)
+		return fmt.Errorf("expected **pool.Message instead of %T", v)
 	}
 	*p = m
 	return nil
@@ -69,12 +70,12 @@ type observationHandler struct {
 	firstMessage decodeFunc
 }
 
-func createDecodeFunc(message *message.Message) decodeFunc {
+func createDecodeFunc(message *pool.Message) decodeFunc {
 	var l sync.Mutex
 	return func(v interface{}, codec coap.Codec) error {
 		l.Lock()
 		defer l.Unlock()
-		_, err := message.Body.Seek(0, io.SeekStart)
+		_, err := message.Body().Seek(0, io.SeekStart)
 		if err != nil {
 			return err
 		}
@@ -281,7 +282,7 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 }
 
 func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
-	var message *message.Message
+	var message *pool.Message
 	err := body(&message)
 	if err != nil {
 		o.Error(err)

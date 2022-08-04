@@ -7,13 +7,15 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/net"
-	"github.com/plgd-dev/go-coap/v2/net/blockwise"
-	"github.com/plgd-dev/go-coap/v2/udp"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
-	udpMessage "github.com/plgd-dev/go-coap/v2/udp/message"
-	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
+	"github.com/plgd-dev/go-coap/v3/message"
+	udpMessage "github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/net"
+	"github.com/plgd-dev/go-coap/v3/net/blockwise"
+	"github.com/plgd-dev/go-coap/v3/options"
+	"github.com/plgd-dev/go-coap/v3/udp"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
+	coapUdpServer "github.com/plgd-dev/go-coap/v3/udp/server"
 )
 
 // See the section 10.4 on the line 2482 of the Core specification:
@@ -30,7 +32,7 @@ type DiscoveryClient struct {
 	mcastaddr string
 	msgID     uint16
 	l         *net.UDPConn
-	server    *udp.Server
+	server    *coapUdpServer.Server
 	wg        sync.WaitGroup
 	opts      []net.MulticastOption
 }
@@ -40,7 +42,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout), udp.WithMessagePool(pool.New(0, 0)))
+	s := udp.NewServer(options.WithErrors(errors), options.WithBlockwise(true, blockwise.SZX1024, timeout), options.WithMessagePool(pool.New(0, 0)))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     msgID,
@@ -60,7 +62,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 }
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
-	req.SetMessageID(d.msgID)
+	req.SetMessageID(int32(d.msgID))
 	req.SetType(udpMessage.NonConfirmable)
 	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler, d.opts...)
 }
@@ -84,7 +86,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
 	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is
 	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
-	msgIDudp4 := udpMessage.GetMID()
+	msgIDudp4 := uint16(udpMessage.GetMID())
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
@@ -152,11 +154,13 @@ func runDiscovery(
 			for _, o := range options {
 				opts = o(opts)
 			}
-			req, err := client.NewGetRequest(ctx, pool.New(0, 0), href, opts...)
+			req := pool.NewMessage(ctx)
+			token, err := message.GetToken()
 			if err != nil {
 				errors <- MakeInternal(fmt.Errorf("device discovery request creation failed: %w", err))
 				return
 			}
+			req.SetupGet(href, token, opts...)
 
 			err = conn.PublishMsgWithContext(req, handler)
 			if err != nil {

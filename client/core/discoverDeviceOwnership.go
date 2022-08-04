@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/plgd-dev/device/pkg/codec/ocf"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
-	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
-	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // DiscoverDeviceOwnershipHandler receives devices ownership info.
@@ -64,19 +64,15 @@ func DiscoverDeviceOwnership(
 
 func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {
 	return func(client *client.ClientConn, r *pool.Message) {
-		req, err := pool.ConvertTo(r)
-		if err != nil {
-			handler.Error(fmt.Errorf("request failed: %w", err))
-		}
-
-		if req.Code != codes.Content {
+		req := r
+		if req.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
 			return
 		}
 
 		var doxm doxm.Doxm
 		var codec ocf.VNDOCFCBORCodec
-		err = codec.Decode(req, &doxm)
+		err := codec.Decode(req, &doxm)
 		if err != nil {
 			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req), err))
 			return

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/client/core"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
+	codecOcf "github.com/plgd-dev/device/pkg/codec/ocf"
 )
 
 func (c *Client) DeleteResource(

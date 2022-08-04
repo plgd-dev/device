@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/plgd-dev/device/pkg/codec/ocf"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/resources"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
-	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
-	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 	"github.com/plgd-dev/kit/v2/net"
 )
 
@@ -38,11 +38,8 @@ func DiscoverDevices(
 
 func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*client.ClientConn, *pool.Message) {
 	return func(cc *client.ClientConn, r *pool.Message) {
-		req, err := pool.ConvertTo(r)
-		if err != nil {
-			handler.Error(fmt.Errorf("cannot convert message: %w", err))
-		}
-		if req.Code != codes.Content {
+		req := r
+		if req.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))
 			return
 		}
@@ -50,7 +47,7 @@ func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*c
 		var links schema.ResourceLinks
 		var codec DiscoverDeviceCodec
 
-		err = codec.Decode(req, &links)
+		err := codec.Decode(req, &links)
 		if err != nil {
 			handler.Error(fmt.Errorf("decoding %v failed: %w", ocf.DumpHeader(req), err))
 			return

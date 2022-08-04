@@ -12,7 +12,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/net/blockwise"
+	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 )
 

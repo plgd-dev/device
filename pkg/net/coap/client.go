@@ -15,17 +15,20 @@ import (
 
 	"github.com/google/uuid"
 	piondtls "github.com/pion/dtls/v2"
-	"github.com/plgd-dev/go-coap/v2/dtls"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/message/status"
-	"github.com/plgd-dev/go-coap/v2/net/blockwise"
-	"github.com/plgd-dev/go-coap/v2/net/monitor/inactivity"
-	"github.com/plgd-dev/go-coap/v2/tcp"
-	"github.com/plgd-dev/go-coap/v2/tcp/message/pool"
-	"github.com/plgd-dev/go-coap/v2/udp"
-	udppool "github.com/plgd-dev/go-coap/v2/udp/message/pool"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
+	codecOcf "github.com/plgd-dev/device/pkg/codec/ocf"
+	"github.com/plgd-dev/go-coap/v3/dtls"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	udppool "github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/message/status"
+	"github.com/plgd-dev/go-coap/v3/net/blockwise"
+	"github.com/plgd-dev/go-coap/v3/net/monitor/inactivity"
+	"github.com/plgd-dev/go-coap/v3/options"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
+	coapTcpClient "github.com/plgd-dev/go-coap/v3/udp/client"
+	coapUdpClient "github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 var errInactivityTimeout = fmt.Errorf("connection inactivity has reached a fail limit: closing connection")
@@ -36,10 +39,10 @@ type Observation = interface {
 }
 
 type ClientConn = interface {
-	Post(ctx context.Context, path string, contentFormat message.MediaType, payload io.ReadSeeker, opts ...message.Option) (*message.Message, error)
-	Get(ctx context.Context, path string, opts ...message.Option) (*message.Message, error)
-	Delete(ctx context.Context, path string, opts ...message.Option) (*message.Message, error)
-	Observe(ctx context.Context, path string, observeFunc func(notification *message.Message), opts ...message.Option) (Observation, error)
+	Post(ctx context.Context, path string, contentFormat message.MediaType, payload io.ReadSeeker, opts ...message.Option) (*pool.Message, error)
+	Get(ctx context.Context, path string, opts ...message.Option) (*pool.Message, error)
+	Delete(ctx context.Context, path string, opts ...message.Option) (*pool.Message, error)
+	Observe(ctx context.Context, path string, observeFunc func(notification *pool.Message), opts ...message.Option) (Observation, error)
 	RemoteAddr() net.Addr
 	Close() error
 	Context() context.Context
@@ -54,7 +57,7 @@ type Client struct {
 type Codec interface {
 	ContentFormat() message.MediaType
 	Encode(v interface{}) ([]byte, error)
-	Decode(m *message.Message, v interface{}) error
+	Decode(m *pool.Message, v interface{}) error
 }
 
 var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
@@ -187,7 +190,7 @@ func (c *Client) UpdateResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could not query %s: %w", href, err)
 	}
-	if resp.Code != codes.Changed && resp.Code != codes.Valid && resp.Code != codes.Created {
+	if resp.Code() != codes.Changed && resp.Code() != codes.Valid && resp.Code() != codes.Created {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
 	}
 	if err := codec.Decode(resp, response); err != nil {
@@ -220,7 +223,7 @@ func (c *Client) GetResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could not get %s: %w", href, err)
 	}
-	if resp.Code != codes.Content {
+	if resp.Code() != codes.Content {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
 	}
 	if err := codec.Decode(resp, response); err != nil {
@@ -244,7 +247,7 @@ func (c *Client) DeleteResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could not delete %s: %w", href, err)
 	}
-	if resp.Code != codes.Deleted {
+	if resp.Code() != codes.Deleted {
 		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
 	}
 	if err := codec.Decode(resp, response); err != nil {
@@ -295,10 +298,10 @@ func (c *Client) Observe(
 	return obs, nil
 }
 
-func observationHandler(c *Client, codec Codec, handler ObservationHandler) func(*message.Message) {
-	return func(msg *message.Message) {
+func observationHandler(c *Client, codec Codec, handler ObservationHandler) func(*pool.Message) {
+	return func(msg *pool.Message) {
 		close := false
-		_, err := msg.Options.Observe()
+		_, err := msg.Options().Observe()
 		// If msg doesn't contains observe option it means the resource doesn't support observation.
 		if err != nil {
 			close = true
@@ -310,9 +313,9 @@ func observationHandler(c *Client, codec Codec, handler ObservationHandler) func
 	}
 }
 
-func decodeObservation(codec Codec, m *message.Message) DecodeFunc {
+func decodeObservation(codec Codec, m *pool.Message) DecodeFunc {
 	return func(body interface{}) error {
-		if m.Code != codes.Content {
+		if m.Code() != codes.Content {
 			return status.Error(m, fmt.Errorf("observation failed: %s", codecOcf.Dump(m)))
 		}
 		if err := codec.Decode(m, body); err != nil {
@@ -483,8 +486,10 @@ func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration
 	}
 }
 
-func makeOnInactiveFunc(dialName string, errorsFn func(err error)) func(cc inactivity.ClientConn) {
-	return func(cc inactivity.ClientConn) {
+type InactiveCC inactivity.ClientConn
+
+func makeOnInactiveFunc[C InactiveCC](dialName string, errorsFn func(err error)) func(cc C) {
+	return func(cc C) {
 		if err := cc.Close(); err != nil {
 			errorsFn(fmt.Errorf("%v: %w", dialName, err))
 		}
@@ -504,31 +509,31 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	}
 	if cfg.errors != nil {
 		errorsFn = cfg.errors
-		dopts = append(dopts, udp.WithErrors(cfg.errors))
+		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, udp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc("DialUDP", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDP", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, udp.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc("DialUDP", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDP", errorsFn)))
 	}
 	if cfg.blockwise != nil {
-		dopts = append(dopts, udp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, udp.WithMaxMessageSize(cfg.maxMessageSize))
+		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
 	}
 	if cfg.dialer != nil {
-		dopts = append(dopts, udp.WithDialer(cfg.dialer))
+		dopts = append(dopts, options.WithDialer(cfg.dialer))
 	} else {
 		deadline, ok := ctx.Deadline()
 		if ok {
-			dopts = append(dopts, udp.WithDialer(&net.Dialer{
+			dopts = append(dopts, options.WithDialer(&net.Dialer{
 				Timeout: time.Until(deadline),
 			}))
 		}
 	}
-	dopts = append(dopts, udp.WithMessagePool(udppool.New(0, 0)))
+	dopts = append(dopts, options.WithMessagePool(udppool.New(0, 0)))
 	c, err := udp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -536,7 +541,7 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	c.AddOnClose(func() {
 		h.OnClose(nil)
 	})
-	return NewClientCloseHandler(c.Client(), h), nil
+	return NewClientCloseHandler(c, h), nil
 }
 
 func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
@@ -551,37 +556,37 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	}
 	if cfg.errors != nil {
 		errorsFn = cfg.errors
-		dopts = append(dopts, tcp.WithErrors(cfg.errors))
+		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc("DialTCP", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCP", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, tcp.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc("DialTCP", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCP", errorsFn)))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
-		dopts = append(dopts, tcp.WithDisablePeerTCPSignalMessageCSMs())
+		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
 	}
 	if cfg.DisableTCPSignalMessageCSM {
-		dopts = append(dopts, tcp.WithDisableTCPSignalMessageCSM())
+		dopts = append(dopts, options.WithDisableTCPSignalMessageCSM())
 	}
 	if cfg.blockwise != nil {
-		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
+		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
 	}
 	if cfg.dialer != nil {
-		dopts = append(dopts, tcp.WithDialer(cfg.dialer))
+		dopts = append(dopts, options.WithDialer(cfg.dialer))
 	} else {
 		deadline, ok := ctx.Deadline()
 		if ok {
-			dopts = append(dopts, tcp.WithDialer(&net.Dialer{
+			dopts = append(dopts, options.WithDialer(&net.Dialer{
 				Timeout: time.Until(deadline),
 			}))
 		}
 	}
-	dopts = append(dopts, tcp.WithMessagePool(pool.New(0, 0)))
+	dopts = append(dopts, options.WithMessagePool(pool.New(0, 0)))
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -589,7 +594,7 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	c.AddOnClose(func() {
 		h.OnClose(nil)
 	})
-	return NewClientCloseHandler(c.Client(), h), nil
+	return NewClientCloseHandler(c, h), nil
 }
 
 func NewVerifyPeerCertificate(rootCAs *x509.CertPool, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
@@ -635,43 +640,43 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 		cfg = o(cfg)
 	}
 	dopts := make([]tcp.DialOption, 0, 4)
-	dopts = append(dopts, tcp.WithTLS(tlsCfg))
+	dopts = append(dopts, options.WithTLS(tlsCfg))
 	errorsFn := func(err error) {
 		// ignore by default
 	}
 	if cfg.errors != nil {
 		errorsFn = cfg.errors
-		dopts = append(dopts, tcp.WithErrors(cfg.errors))
+		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, tcp.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc("DialTCPSecure", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCPSecure", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, tcp.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc("DialTCPSecure", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCPSecure", errorsFn)))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
-		dopts = append(dopts, tcp.WithDisablePeerTCPSignalMessageCSMs())
+		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
 	}
 	if cfg.DisableTCPSignalMessageCSM {
-		dopts = append(dopts, tcp.WithDisableTCPSignalMessageCSM())
+		dopts = append(dopts, options.WithDisableTCPSignalMessageCSM())
 	}
 	if cfg.blockwise != nil {
-		dopts = append(dopts, tcp.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, tcp.WithMaxMessageSize(cfg.maxMessageSize))
+		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
 	}
 	if cfg.dialer != nil {
-		dopts = append(dopts, tcp.WithDialer(cfg.dialer))
+		dopts = append(dopts, options.WithDialer(cfg.dialer))
 	} else {
 		deadline, ok := ctx.Deadline()
 		if ok {
-			dopts = append(dopts, tcp.WithDialer(&net.Dialer{
+			dopts = append(dopts, options.WithDialer(&net.Dialer{
 				Timeout: time.Until(deadline),
 			}))
 		}
 	}
-	dopts = append(dopts, tcp.WithMessagePool(pool.New(0, 0)))
+	dopts = append(dopts, options.WithMessagePool(pool.New(0, 0)))
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -679,7 +684,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	c.AddOnClose(func() {
 		h.OnClose(nil)
 	})
-	return NewClientCloseHandler(c.Client(), h), nil
+	return NewClientCloseHandler(c, h), nil
 }
 
 func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
@@ -695,37 +700,37 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	dopts := make([]dtls.DialOption, 0, 4)
+	dopts := make([]udp.DialOption, 0, 4)
 	errorsFn := func(err error) {
 		// ignore by default
 	}
 	if cfg.errors != nil {
 		errorsFn = cfg.errors
-		dopts = append(dopts, dtls.WithErrors(cfg.errors))
+		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, dtls.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc("DialUDPSecure", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDPSecure", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, dtls.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc("DialUDPSecure", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDPSecure", errorsFn)))
 	}
 	if cfg.blockwise != nil {
-		dopts = append(dopts, dtls.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
+		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
 	}
 	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, dtls.WithMaxMessageSize(cfg.maxMessageSize))
+		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
 	}
 	if cfg.dialer != nil {
-		dopts = append(dopts, dtls.WithDialer(cfg.dialer))
+		dopts = append(dopts, options.WithDialer(cfg.dialer))
 	} else {
 		deadline, ok := ctx.Deadline()
 		if ok {
-			dopts = append(dopts, dtls.WithDialer(&net.Dialer{
+			dopts = append(dopts, options.WithDialer(&net.Dialer{
 				Timeout: time.Until(deadline),
 			}))
 		}
 	}
-	dopts = append(dopts, dtls.WithMessagePool(udppool.New(0, 0)))
+	dopts = append(dopts, options.WithMessagePool(udppool.New(0, 0)))
 	c, err := dtls.Dial(addr, dtlsCfg, dopts...)
 	if err != nil {
 		return nil, err
@@ -733,5 +738,5 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	c.AddOnClose(func() {
 		h.OnClose(nil)
 	})
-	return NewClientCloseHandler(c.Client(), h), nil
+	return NewClientCloseHandler(c, h), nil
 }
