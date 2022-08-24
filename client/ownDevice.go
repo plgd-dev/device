@@ -9,7 +9,7 @@ import (
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
 	cfg := ownOptions{
-		otmType:                OTMType_Manufacturer,
+		otmTypes:               []OTMType{OTMType_JustWorks},
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
@@ -28,7 +28,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		// don't own insecure device
 		return deviceID, nil
 	}
-	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmType, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
+	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmTypes, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
 }
 
 func (c *Client) updateCache(ctx context.Context, d *RefDevice, deviceID string) {
@@ -46,7 +46,7 @@ func (c *Client) updateCache(ctx context.Context, d *RefDevice, deviceID string)
 	}
 }
 
-func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
+func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
 	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
 	if err != nil {
 		return "", err

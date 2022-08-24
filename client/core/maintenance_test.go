@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
@@ -59,7 +60,7 @@ func TestDeviceReboot(t *testing.T) {
 			eps := device.GetEndpoints()
 			links, err := device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
-			err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
+			err = device.Own(timeout, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
 			require.NoError(err)
 			links, err = device.GetResourceLinks(timeout, eps)
 			require.NoError(err)
@@ -101,7 +102,7 @@ func TestDeviceFactoryReset(t *testing.T) {
 	require.NoError(err)
 	signer, err := NewTestSigner()
 	require.NoError(err)
-	err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(timeout, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 
 	links = sepEpToLinks(t, links)

@@ -111,26 +111,36 @@ func getOTMManufacturer(app ApplicationCallback, dialTLS core.DialTLS,
 	return manufacturer.NewClient(mfgCert, mfgCA, manufacturer.WithDialDTLS(dialDTLS), manufacturer.WithDialTLS(dialTLS)), nil
 }
 
-func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
+func getOtmClients(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS, otmTypes []OTMType) ([]otm.Client, error) {
+	otmClients := make([]otm.Client, 0, 2)
+	for _, otmType := range otmTypes {
+		switch otmType {
+		case OTMType_Manufacturer:
+			otm, err := getOTMManufacturer(app, dialTLS, dialDTLS)
+			if err != nil {
+				return nil, err
+			}
+			otmClients = append(otmClients, otm)
+		case OTMType_JustWorks:
+			otmClients = append(otmClients, justworks.NewClient(justworks.WithDialDTLS(dialDTLS)))
+		default:
+			return nil, fmt.Errorf("unsupported ownership transfer method: %v", otmType)
+		}
+	}
+	return otmClients, nil
+}
+
+func (o *deviceOwnershipSDK) OwnDevice(ctx context.Context, deviceID string, otmTypes []OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	signer, err := o.createIdentitySigner()
 	if err != nil {
 		return "", err
 	}
-	opts = append([]core.OwnOption{core.WithSetupCertificates(signer.Sign)}, opts...)
-	var otmClient otm.Client
-	switch otmType {
-	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, o.dialTLS, o.dialDTLS)
-		if err != nil {
-			return "", err
-		}
-		otmClient = otm
-	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(justworks.WithDialDTLS(o.dialDTLS))
-	default:
-		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
+	otmClients, err := getOtmClients(o.app, o.dialTLS, o.dialDTLS, otmTypes)
+	if err != nil {
+		return "", err
 	}
-	return own(ctx, deviceID, otmClient, discoveryConfiguration, opts...)
+	opts = append([]core.OwnOption{core.WithSetupCertificates(signer.Sign)}, opts...)
+	return own(ctx, deviceID, otmClients, discoveryConfiguration, opts...)
 }
 
 func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {

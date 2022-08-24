@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/assert"
@@ -37,7 +38,7 @@ func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) fu
 	links, err := device.GetResourceLinks(ctx, eps)
 	require.NoError(t, err)
 
-	err = device.Own(ctx, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(ctx, links, []otm.Client{c.mfgOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 
 	links, err = device.GetResourceLinks(ctx, eps)

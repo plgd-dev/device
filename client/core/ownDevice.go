@@ -238,11 +238,30 @@ func disownError(err error) error {
 	return fmt.Errorf("cannot disown device: %w", err)
 }
 
+func findOTMClient(otmClients []otm.Client, deviceSupportedOwnerTransferMethods []doxm.OwnerTransferMethod) otm.Client {
+	for _, s := range deviceSupportedOwnerTransferMethods {
+		for _, c := range otmClients {
+			if s == c.Type() {
+				return c
+			}
+		}
+	}
+	return nil
+}
+
+func supportedOTMTypes(otmClients []otm.Client) []string {
+	v := make([]string, 0, len(otmClients))
+	for _, c := range otmClients {
+		v = append(v, c.Type().String())
+	}
+	return v
+}
+
 // Own set ownership of device
 func (d *Device) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
-	otmClient otm.Client,
+	otmClients []otm.Client,
 	options ...OwnOption,
 ) error {
 	cfg := ownCfg{
@@ -282,15 +301,9 @@ func (d *Device) Own(
 	}
 
 	//ownership := d.ownership
-	var supportOtm bool
-	for _, s := range ownership.SupportedOwnerTransferMethods {
-		if s == otmClient.Type() {
-			supportOtm = true
-			break
-		}
-	}
-	if !supportOtm {
-		return MakeUnavailable(fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", otmClient.Type(), ownership.SupportedOwnerTransferMethods))
+	otmClient := findOTMClient(otmClients, ownership.SupportedOwnerTransferMethods)
+	if otmClient == nil {
+		return MakeUnavailable(fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", supportedOTMTypes(otmClients), ownership.SupportedOwnerTransferMethods))
 	}
 
 	err = d.selectOTM(ctx, otmClient.Type())

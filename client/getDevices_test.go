@@ -41,7 +41,7 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	secureDeviceID, err = c.OwnDevice(ctx, secureDeviceID, client.WithOTM(client.OTMType_JustWorks))
+	secureDeviceID, err = c.OwnDevice(ctx, secureDeviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 	require.NoError(t, err)
 	devices, err = c.GetDevices(ctx)
 	require.NoError(t, err)

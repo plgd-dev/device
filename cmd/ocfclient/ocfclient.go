@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/plgd-dev/device/client"
 	local "github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/kit/v2/codec/json"
@@ -83,7 +84,7 @@ func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return c.client.OwnDevice(ctx, deviceID, local.WithOTM(local.OTMType_JustWorks))
+	return c.client.OwnDevice(ctx, deviceID, local.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 }
 
 // Get all resource Info of the device
