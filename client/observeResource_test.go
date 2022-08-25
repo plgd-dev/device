@@ -288,6 +288,10 @@ func TestObservingNonObservableResource(t *testing.T) {
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
+		var v interface{}
+		err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_LL))
+		require.NoError(t, err)
+
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		var d resources.BatchResourceDiscovery

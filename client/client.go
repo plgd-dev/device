@@ -158,11 +158,11 @@ func NewClient(
 	return &client, nil
 }
 
-type ownFunc = func(ctx context.Context, deviceID string, otmClient otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error)
+type ownFunc = func(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error)
 
 type DeviceOwner interface {
 	Initialization(ctx context.Context) error
-	OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error)
+	OwnDevice(ctx context.Context, deviceID string, otmTypes []OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error)
 
 	GetIdentityCertificate() (tls.Certificate, error)
 	GetIdentityCACerts() ([]*x509.Certificate, error)

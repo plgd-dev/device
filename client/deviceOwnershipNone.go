@@ -28,7 +28,7 @@ func (o *deviceOwnershipNone) GetIdentitySigner(accessToken string) core.Certifi
 	return noneSigner{}
 }
 
-func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmTypes []OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	return own(ctx, deviceID, nil, discoveryConfiguration, opts...)
 }
 

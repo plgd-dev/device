@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/schema/platform"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
@@ -93,7 +94,7 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 	links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)
 
-	err = got.Own(ctx, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
+	err = got.Own(ctx, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 	links, err = got.GetResourceLinks(ctx, got.GetEndpoints())
 	require.NoError(t, err)

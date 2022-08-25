@@ -11,8 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -53,22 +51,13 @@ func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 	}, nil
 }
 
-func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
-	var otmClient otm.Client
-	opts = append([]core.OwnOption{core.WithSetupCertificates(o.sign)}, opts...)
-	switch otmType {
-	case OTMType_Manufacturer:
-		otm, err := getOTMManufacturer(o.app, o.dialTLS, o.dialDTLS)
-		if err != nil {
-			return "", err
-		}
-		otmClient = otm
-	case OTMType_JustWorks:
-		otmClient = justworks.NewClient(justworks.WithDialDTLS(o.dialDTLS))
-	default:
-		return "", fmt.Errorf("unsupported ownership transfer method: %v", otmType)
+func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string, otmTypes []OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
+	otmClients, err := getOtmClients(o.app, o.dialTLS, o.dialDTLS, otmTypes)
+	if err != nil {
+		return "", err
 	}
-	return own(ctx, deviceID, otmClient, discoveryConfiguration, opts...)
+	opts = append([]core.OwnOption{core.WithSetupCertificates(o.sign)}, opts...)
+	return own(ctx, deviceID, otmClients, discoveryConfiguration, opts...)
 }
 
 type claims map[string]interface{}

@@ -42,7 +42,7 @@ func TestClientOwnDevice(t *testing.T) {
 			defer cancel()
 			deviceID, err := test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
-			deviceID, err = c.OwnDevice(ctx, deviceID)
+			deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -56,7 +56,7 @@ func TestClientOwnDevice(t *testing.T) {
 			_ = test.MustFindDeviceByName(tt.args.deviceName)
 			deviceID, err = test.FindDeviceByName(ctx, tt.args.deviceName)
 			require.NoError(t, err)
-			deviceID, err = c.OwnDevice(ctx, deviceID)
+			deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks, client.OTMType_Manufacturer}))
 			require.NoError(t, err)
 			device2, err := c.GetDeviceByMulticast(ctx, deviceID)
 			require.NoError(t, err)

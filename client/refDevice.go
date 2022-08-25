@@ -117,7 +117,7 @@ func (d *RefDevice) DeleteResourceWithCodec(
 func (d *RefDevice) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
-	otmClient otm.Client,
+	otmClient []otm.Client,
 	ownOptions ...core.OwnOption,
 ) error {
 	return d.Device().Own(ctx, links, otmClient, ownOptions...)

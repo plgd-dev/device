@@ -11,6 +11,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/pkg/error"
@@ -129,7 +130,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
-	err = device.Own(timeout, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)

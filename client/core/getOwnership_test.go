@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -41,7 +42,7 @@ func TestGetOwnership(t *testing.T) {
 	require.NoError(t, err)
 	assert.False(t, got.Owned)
 
-	err = device.Own(ctx, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(ctx, links, []otm.Client{c.mfgOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 
 	// after own

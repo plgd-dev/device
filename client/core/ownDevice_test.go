@@ -7,12 +7,24 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
+	kitNet "github.com/plgd-dev/kit/v2/net"
 	"github.com/stretchr/testify/require"
 )
+
+type InvalidOtmClient struct{}
+
+func (InvalidOtmClient) Type() doxm.OwnerTransferMethod {
+	return doxm.OwnerTransferMethod(-1)
+}
+
+func (InvalidOtmClient) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+	return nil, fmt.Errorf("invalid client")
+}
 
 func TestClientOwnDeviceMfg(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
@@ -40,7 +52,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	links, err := dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 
-	err = dev.Own(timeout, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
+	err = dev.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 	links, err = dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
@@ -69,7 +81,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	eps = dev.GetEndpoints()
 	links, err = dev.GetResourceLinks(timeout, eps)
 	require.NoError(err)
-	err = dev.Own(timeout, links, c.mfgOtm, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
+	err = dev.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 		var d device.Device
 		err := client.GetResource(ctx, device.ResourceURI, &d)
 		if err != nil {
@@ -121,10 +133,38 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 
-	err = device.Own(timeout, links, c.justWorksOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(timeout, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
 	err = device.Disown(timeout, links)
 	require.NoError(err)
+}
+
+func TestClientOwnDeviceInvalidClient(t *testing.T) {
+	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
+	require := require.New(t)
+	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelTimeout()
+
+	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
+	require.NoError(err)
+	defer func() {
+		errClose := device.Close(timeout)
+		require.NoError(errClose)
+	}()
+	eps := device.GetEndpoints()
+	links, err := device.GetResourceLinks(timeout, eps)
+	require.NoError(err)
+
+	err = device.Own(timeout, links, []otm.Client{InvalidOtmClient{}}, core.WithSetupCertificates(signer.Sign))
+	require.Error(err)
 }

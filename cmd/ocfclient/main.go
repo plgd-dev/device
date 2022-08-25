@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strconv"
 	"time"
@@ -53,7 +52,7 @@ func loadMfgTrustCA(mTrustCA string) {
 	if mTrustCA == "" {
 		return
 	}
-	mfgTrustCA, err := ioutil.ReadFile(mTrustCA)
+	mfgTrustCA, err := os.ReadFile(mTrustCA)
 	if err != nil {
 		fmt.Println("Unable to read Manufacturer Trust CA's Certificate: " + err.Error())
 		return
@@ -66,7 +65,7 @@ func loadMfgTrustCAKey(mTrustCAKey string) {
 	if mTrustCAKey == "" {
 		return
 	}
-	mfgTrustCAKey, err := ioutil.ReadFile(mTrustCAKey)
+	mfgTrustCAKey, err := os.ReadFile(mTrustCAKey)
 	if err != nil {
 		fmt.Println("Unable to read Manufacturer Trust CA's Private Key: " + err.Error())
 		return
@@ -126,14 +125,14 @@ func ReadCommandOptions(opts Options) {
 
 	// Load mfg certificate and private key
 	if opts.MfgCert != "" && opts.MfgKey != "" {
-		mfgCert, err := ioutil.ReadFile(opts.MfgCert)
+		mfgCert, err := os.ReadFile(opts.MfgCert)
 		if err != nil {
 			fmt.Println("Unable to read Manufacturer Certificate: " + err.Error())
 		} else {
 			fmt.Println("Reading Manufacturer Certificate from " + opts.MfgCert + " was successful.")
 			MfgCert = mfgCert
 		}
-		mfgKey, err := ioutil.ReadFile(opts.MfgKey)
+		mfgKey, err := os.ReadFile(opts.MfgKey)
 		if err != nil {
 			fmt.Println("Unable to read Manufacturer Certificate's Private Key: " + err.Error())
 		} else {
@@ -166,7 +165,7 @@ func ReadCommandOptions(opts Options) {
 
 	// Load identity trust CA certificate and private key
 	if opts.IdentityTrustCA != "" {
-		identityTrustCA, err := ioutil.ReadFile(opts.IdentityTrustCA)
+		identityTrustCA, err := os.ReadFile(opts.IdentityTrustCA)
 		if err != nil {
 			fmt.Println("Unable to read Identity Trust CA's Certificate: " + err.Error())
 		} else {
@@ -176,7 +175,7 @@ func ReadCommandOptions(opts Options) {
 	}
 
 	if opts.IdentityTrustCAKey != "" {
-		identityTrustCAKey, err := ioutil.ReadFile(opts.IdentityTrustCAKey)
+		identityTrustCAKey, err := os.ReadFile(opts.IdentityTrustCAKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Trust CA's Private Key: " + err.Error())
 		} else {
@@ -206,14 +205,14 @@ func ReadCommandOptions(opts Options) {
 			}
 		}
 
-		identityTrustCA, err := ioutil.ReadFile(opts.IdentityTrustCA)
+		identityTrustCA, err := os.ReadFile(opts.IdentityTrustCA)
 		if err != nil {
 			fmt.Println("Unable to read Identity Trust CA's Certificate: " + err.Error())
 		} else {
 			fmt.Println("Reading Identity Trust CA's Certificate from " + opts.IdentityTrustCA + " was successful.")
 			IdentityTrustedCA = identityTrustCA
 		}
-		identityTrustCAKey, err := ioutil.ReadFile(opts.IdentityTrustCAKey)
+		identityTrustCAKey, err := os.ReadFile(opts.IdentityTrustCAKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Trust CA's Private Key: " + err.Error())
 		} else {
@@ -224,7 +223,7 @@ func ReadCommandOptions(opts Options) {
 
 	// Load identity intermediate CA certificate and private key
 	if opts.IdentityIntermediateCA != "" {
-		identityIntermediateCA, err := ioutil.ReadFile(opts.IdentityIntermediateCA)
+		identityIntermediateCA, err := os.ReadFile(opts.IdentityIntermediateCA)
 		if err != nil {
 			fmt.Println("Unable to read Identity Intermediate CA's Certificate: " + err.Error())
 		} else {
@@ -234,7 +233,7 @@ func ReadCommandOptions(opts Options) {
 	}
 
 	if opts.IdentityIntermediateCAKey != "" {
-		identityIntermediateCAKey, err := ioutil.ReadFile(opts.IdentityIntermediateCAKey)
+		identityIntermediateCAKey, err := os.ReadFile(opts.IdentityIntermediateCAKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Intermediate CA's Private Key: " + err.Error())
 		} else {
@@ -266,14 +265,14 @@ func ReadCommandOptions(opts Options) {
 			}
 		}
 
-		identityIntermediateCA, err := ioutil.ReadFile(outCert)
+		identityIntermediateCA, err := os.ReadFile(outCert)
 		if err != nil {
 			fmt.Println("Unable to read Identity Intermediate CA's Certificate: " + err.Error())
 		} else {
 			fmt.Println("Reading Identity Intermediate CA's Certificate from " + outCert + " was successful.")
 			IdentityIntermediateCA = identityIntermediateCA
 		}
-		identityIntermediateCAKey, err := ioutil.ReadFile(outKey)
+		identityIntermediateCAKey, err := os.ReadFile(outKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Intermediate CA's Private Key: " + err.Error())
 		} else {
@@ -284,14 +283,14 @@ func ReadCommandOptions(opts Options) {
 
 	// Load identity certificate and private key
 	if opts.IdentityCert != "" && opts.IdentityKey != "" {
-		identityCert, err := ioutil.ReadFile(opts.IdentityCert)
+		identityCert, err := os.ReadFile(opts.IdentityCert)
 		if err != nil {
 			fmt.Println("Unable to read Identity Certificate: " + err.Error())
 		} else {
 			fmt.Println("Reading Identity Certificate from " + opts.IdentityCert + " was successful.")
 			IdentityCert = identityCert
 		}
-		identityKey, err := ioutil.ReadFile(opts.IdentityKey)
+		identityKey, err := os.ReadFile(opts.IdentityKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Private Key: " + err.Error())
 		} else {
@@ -317,14 +316,14 @@ func ReadCommandOptions(opts Options) {
 			}
 		}
 
-		identityCert, err := ioutil.ReadFile(outCert)
+		identityCert, err := os.ReadFile(outCert)
 		if err != nil {
 			fmt.Println("Unable to read Identity Certificate: " + err.Error())
 		} else {
 			fmt.Println("Reading Identity Certificate from " + outCert + " was successful.")
 			IdentityCert = identityCert
 		}
-		identityKey, err := ioutil.ReadFile(outKey)
+		identityKey, err := os.ReadFile(outKey)
 		if err != nil {
 			fmt.Println("Unable to read Identity Private Key: " + err.Error())
 		} else {
