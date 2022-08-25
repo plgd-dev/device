@@ -238,9 +238,10 @@ func disownError(err error) error {
 	return fmt.Errorf("cannot disown device: %w", err)
 }
 
+// findOTMClient finds supported client in order as user wants. The first match will be used.
 func findOTMClient(otmClients []otm.Client, deviceSupportedOwnerTransferMethods []doxm.OwnerTransferMethod) otm.Client {
-	for _, s := range deviceSupportedOwnerTransferMethods {
-		for _, c := range otmClients {
+	for _, c := range otmClients {
+		for _, s := range deviceSupportedOwnerTransferMethods {
 			if s == c.Type() {
 				return c
 			}
@@ -300,10 +301,9 @@ func (d *Device) Own(
 		return MakePermissionDenied(fmt.Errorf("device is already owned by %v", ownership.OwnerID))
 	}
 
-	//ownership := d.ownership
 	otmClient := findOTMClient(otmClients, ownership.SupportedOwnerTransferMethods)
 	if otmClient == nil {
-		return MakeUnavailable(fmt.Errorf("ownership transfer method '%v' is unsupported, supported are: %v", supportedOTMTypes(otmClients), ownership.SupportedOwnerTransferMethods))
+		return MakeUnavailable(fmt.Errorf("ownership transfer methods used by clients '%v' are not compatible with the device methods '%v'", supportedOTMTypes(otmClients), ownership.SupportedOwnerTransferMethods))
 	}
 
 	err = d.selectOTM(ctx, otmClient.Type())
