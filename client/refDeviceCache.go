@@ -216,7 +216,7 @@ func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
 
 func (c *refDeviceCache) Close(ctx context.Context) error {
 	var errors []error
-	if c.closed.CAS(false, true) {
+	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
 	for _, val := range c.popTemporaryCache() {
