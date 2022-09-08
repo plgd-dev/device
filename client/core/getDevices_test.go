@@ -19,8 +19,7 @@ func TestDeviceDiscovery(t *testing.T) {
 	require.NoError(t, err)
 }
 
-type testDeviceHandler struct {
-}
+type testDeviceHandler struct{}
 
 func (h *testDeviceHandler) Handle(ctx context.Context, d *core.Device) {
 	defer func() {

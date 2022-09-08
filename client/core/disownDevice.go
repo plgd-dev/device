@@ -17,7 +17,7 @@ func connectionWasClosed(ctx context.Context, err error) bool {
 	return false
 }
 
-// DisownDevice remove ownership of device
+// DisownDevice removes ownership of device
 func (d *Device) Disown(
 	ctx context.Context,
 	links schema.ResourceLinks,
@@ -65,7 +65,8 @@ func (d *Device) Disown(
 
 		return MakeInternal(cannotDisownErr(err))
 	}
-	d.Close(ctx)
-
+	if errC := d.Close(ctx); errC != nil {
+		d.cfg.ErrFunc(fmt.Errorf("device disown error: %w", errC))
+	}
 	return nil
 }

@@ -137,8 +137,8 @@ func getObservationID(resourceCacheID, resourceObservationID string) string {
 	return strings.Join([]string{resourceCacheID, resourceObservationID}, "/")
 }
 
-func parseIDs(ID string) (string, string, error) {
-	v := strings.Split(ID, "/")
+func parseIDs(id string) (string, string, error) {
+	v := strings.Split(id, "/")
 	if len(v) != 2 {
 		return "", "", fmt.Errorf("invalid ID")
 	}
@@ -233,7 +233,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	}
 	var resourceObservationID string
 	var deleteDevice *RefDevice
-	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, delete bool) {
+	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, doDelete bool) {
 		if !oldLoaded {
 			return nil, true
 		}

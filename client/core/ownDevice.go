@@ -26,8 +26,10 @@ import (
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
-type ActionDuringOwnFunc = func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)
-type ActionAfterOwnFunc = func(ctx context.Context, client *coap.ClientCloseHandler) error
+type (
+	ActionDuringOwnFunc = func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)
+	ActionAfterOwnFunc  = func(ctx context.Context, client *coap.ClientCloseHandler) error
+)
 
 type ownCfg struct {
 	psk             []byte
@@ -114,7 +116,11 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.O
 	if err != nil {
 		return MakeInternalStr("cannot connect to "+coapAddr.URL()+" for select OTM: %w", err)
 	}
-	defer coapConn.Close()
+	defer func() {
+		if errC := coapConn.Close(); errC != nil {
+			d.cfg.ErrFunc(fmt.Errorf("select otm: cannot close connection: %w", errC))
+		}
+	}()
 	return setOTM(ctx, coapConn, selectOwnerTransferMethod)
 }
 
@@ -340,8 +346,11 @@ func (d *Device) Own(
 		}
 		return MakeInternal(errorf("cannot get udp/tcp secure address: %+v", errors))
 	}
-	defer tlsClient.Close()
-
+	defer func() {
+		if errC := tlsClient.Close(); errC != nil {
+			d.cfg.ErrFunc(fmt.Errorf("cannot close TLS connection: %w", errC))
+		}
+	}()
 	var provisionState pstat.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, pstat.ResourceURI, &provisionState)
 	if err != nil {
@@ -528,7 +537,11 @@ func (d *Device) Own(
 		}
 		return MakeUnavailable(errorf("cannot create connection for finish ownership transfer: %w", err))
 	}
-	defer pskConn.Close()
+	defer func() {
+		if errC := pskConn.Close(); errC != nil {
+			d.cfg.ErrFunc(fmt.Errorf("cannot close DTLS connection: %w", errC))
+		}
+	}()
 
 	/*set owner acl*/
 	err = setACL(ctx, pskConn, links, sdkID)

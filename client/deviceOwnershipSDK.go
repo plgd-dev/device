@@ -26,7 +26,7 @@ type DeviceOwnershipSDKConfig struct {
 	ID         string
 	Cert       string
 	CertKey    string
-	ValidFrom  string //RFC3339, or now-1m, empty means now-1m
+	ValidFrom  string // RFC3339, or now-1m, empty means now-1m
 	CertExpiry *string
 
 	CreateSignerFunc func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner
@@ -43,7 +43,8 @@ type deviceOwnershipSDK struct {
 }
 
 func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialTLS,
-	dialDLTS core.DialDTLS, cfg *DeviceOwnershipSDKConfig) (*deviceOwnershipSDK, error) {
+	dialDLTS core.DialDTLS, cfg *DeviceOwnershipSDKConfig,
+) (*deviceOwnershipSDK, error) {
 	certExpiry := time.Hour * 24 * 365 * 10
 	var err error
 	if cfg.CertExpiry != nil {
@@ -65,7 +66,8 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialT
 }
 
 func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS core.DialTLS,
-	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner) (*deviceOwnershipSDK, error) {
+	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner,
+) (*deviceOwnershipSDK, error) {
 	if validFrom == "" {
 		validFrom = "now-1m"
 	}
@@ -98,7 +100,8 @@ func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 }
 
 func getOTMManufacturer(app ApplicationCallback, dialTLS core.DialTLS,
-	dialDTLS core.DialDTLS) (otm.Client, error) {
+	dialDTLS core.DialDTLS,
+) (otm.Client, error) {
 	mfgCA, err := app.GetManufacturerCertificateAuthorities()
 	if err != nil {
 		return nil, err

@@ -195,21 +195,21 @@ func (c *Client) popSubscriptions() map[string]subscription {
 	return s
 }
 
-func (c *Client) popSubscription(ID string) (subscription, error) {
+func (c *Client) popSubscription(id string) (subscription, error) {
 	c.subscriptionsLock.Lock()
 	defer c.subscriptionsLock.Unlock()
-	v, ok := c.subscriptions[ID]
+	v, ok := c.subscriptions[id]
 	if !ok {
-		return nil, fmt.Errorf("cannot find observation %v", ID)
+		return nil, fmt.Errorf("cannot find observation %v", id)
 	}
-	delete(c.subscriptions, ID)
+	delete(c.subscriptions, id)
 	return v, nil
 }
 
-func (c *Client) insertSubscription(ID string, s subscription) {
+func (c *Client) insertSubscription(id string, s subscription) {
 	c.subscriptionsLock.Lock()
 	defer c.subscriptionsLock.Unlock()
-	c.subscriptions[ID] = s
+	c.subscriptions[id] = s
 }
 
 func (c *Client) CoreClient() *core.Client {
@@ -231,13 +231,13 @@ func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.D
 			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
 		}
 		return c, nil
-	} else if cfg.DeviceOwnershipBackend != nil {
+	}
+	if cfg.DeviceOwnershipBackend != nil {
 		c, err := NewDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend, errors)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create server signers: %w", err)
 		}
 		return c, nil
-	} else {
-		return NewDeviceOwnershipNone(), nil
 	}
+	return NewDeviceOwnershipNone(), nil
 }

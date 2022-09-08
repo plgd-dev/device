@@ -21,6 +21,7 @@ func filterTCPEndpoints(eps []schema.Endpoint) []schema.Endpoint {
 	}
 	return tcpDevEndpoints
 }
+
 func patchResourceLinksEndpoints(links schema.ResourceLinks, disableUDPEndpoints bool) schema.ResourceLinks {
 	devLink, ok := links.GetResourceLink(device.ResourceURI)
 	if !ok {

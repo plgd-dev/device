@@ -33,7 +33,8 @@ type DeviceOwnershipBackendConfig struct {
 }
 
 func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
-	cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error)) (*deviceOwnershipBackend, error) {
+	cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error),
+) (*deviceOwnershipBackend, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("missing device ownership backend config")
 	}
@@ -94,9 +95,7 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	return nil
 }
 
-var (
-	headerAuthorize = "authorization"
-)
+var headerAuthorize = "authorization"
 
 // TokenFromOutgoingMD extracts token stored by CtxWithToken.
 func TokenFromOutgoingMD(ctx context.Context) (string, error) {

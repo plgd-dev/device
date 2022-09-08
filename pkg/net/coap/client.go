@@ -297,14 +297,11 @@ func (c *Client) Observe(
 
 func observationHandler(c *Client, codec Codec, handler ObservationHandler) func(*message.Message) {
 	return func(msg *message.Message) {
-		close := false
 		_, err := msg.Options.Observe()
 		// If msg doesn't contains observe option it means the resource doesn't support observation.
-		if err != nil {
-			close = true
-		}
+		doClose := err != nil
 		handler.Handle(c, decodeObservation(codec, msg))
-		if close {
+		if doClose {
 			handler.Close()
 		}
 	}

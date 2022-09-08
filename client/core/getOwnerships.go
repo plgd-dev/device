@@ -30,7 +30,9 @@ func (c *Client) GetOwnerships(
 	}
 	defer func() {
 		for _, conn := range multicastConn {
-			conn.Close()
+			if errC := conn.Close(); errC != nil {
+				c.errFunc(fmt.Errorf("get ownership error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+			}
 		}
 	}()
 	h := newOwnershipHandler(handler)
@@ -50,7 +52,9 @@ type ownershipHandler struct {
 }
 
 func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm doxm.Doxm) {
-	conn.Close()
+	if errC := conn.Close(); errC != nil {
+		h.Error(fmt.Errorf("ownership handler cannot close connection: %w", errC))
+	}
 	h.handler.Handle(ctx, doxm)
 }
 

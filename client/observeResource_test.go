@@ -124,7 +124,7 @@ func (h *observationHandler) Error(err error) { fmt.Println(err) }
 
 func (h *observationHandler) OnClose() { close(h.close) }
 
-func (h *observationHandler) waitForNotification(ctx context.Context) (body coap.DecodeFunc, error error) {
+func (h *observationHandler) waitForNotification(ctx context.Context) (coap.DecodeFunc, error) {
 	select {
 	case e := <-h.res:
 		return e, nil

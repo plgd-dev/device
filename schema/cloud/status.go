@@ -7,8 +7,10 @@ const (
 	StatusResourceURI  = "/oic/cloud/s"
 )
 
-var StatusInterfaces = []string{interfaces.OC_IF_BASELINE}
-var StatusResourceTypes = []string{StatusResourceType}
+var (
+	StatusInterfaces    = []string{interfaces.OC_IF_BASELINE}
+	StatusResourceTypes = []string{StatusResourceType}
+)
 
 // Status is resource published by OCF Cloud.
 // - signup: resource published

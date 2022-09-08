@@ -89,6 +89,4 @@ func TestSettingCloudResource(t *testing.T) {
 	require.NoError(t, err)
 }
 
-var (
-	Cert2Identity = "08987e91-1a08-495a-8b4c-ad3d413012d6"
-)
+var Cert2Identity = "08987e91-1a08-495a-8b4c-ad3d413012d6"
