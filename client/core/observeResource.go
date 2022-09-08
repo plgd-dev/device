@@ -127,7 +127,6 @@ func (d *Device) observeResource(
 	}
 
 	_, client, err := d.connectToEndpoints(ctx, eps)
-
 	if err != nil {
 		return "", MakeInternal(fmt.Errorf("cannot observe resource %v: %w", link.Href, err))
 	}

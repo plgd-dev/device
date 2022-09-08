@@ -50,13 +50,13 @@ func GenerateSDKIdentityCertificate(ctx context.Context, sign SignFunc, sdkDevic
 	return generateSDKCertificate(ctx, csr, sign, priv)
 }
 
-func GenerateSDKManufacturerCertificate(ctx context.Context, sign SignFunc, ID string) (tls.Certificate, []*x509.Certificate, error) {
+func GenerateSDKManufacturerCertificate(ctx context.Context, sign SignFunc, id string) (tls.Certificate, []*x509.Certificate, error) {
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot generate private key: %w", err)
 	}
 	cfg := generateCertificate.Configuration{}
-	cfg.Subject.CommonName = "Manufacturer certificate for" + ID
+	cfg.Subject.CommonName = "Manufacturer certificate for" + id
 	cfg.ExtensionKeyUsages = []string{"client"}
 	csr, err := generateCertificate.GenerateCSR(cfg, priv)
 	if err != nil {

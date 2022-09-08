@@ -109,7 +109,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
 			return identityIntermediateCA, nil
-		}}),
+		},
+	}),
 	)
 
 	c := core.NewClient(opts...)
@@ -152,6 +153,4 @@ func (c *Client) Close() error {
 	return c.Device.Close(timeout)
 }
 
-var (
-	CertIdentity = "00000000-0000-0000-0000-000000000001"
-)
+var CertIdentity = "00000000-0000-0000-0000-000000000001"

@@ -97,7 +97,7 @@ func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, dev
 	}
 	dev := d.Data().(*RefDevice)
 	if device == dev {
-		//remove device from cache
+		// remove device from cache
 		c.temporaryCache.Delete(deviceID)
 		return true
 	}
@@ -187,7 +187,7 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 	dev := refCacheDev.device()
 
 	if dev == device {
-		//remove device from cache
+		// remove device from cache
 		refCacheDev.Release(ctx)
 		return true
 	}

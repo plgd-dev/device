@@ -67,12 +67,10 @@ func (c *Client) GetDevices(
 					doxm:   &doxm,
 					status: OwnershipStatus_Unknown, // will be resolved later
 				})
-			} else {
-				if strings.Contains(ownErr.Error(), "x509: certificate signed by unknown authority") {
-					ownerships(d.DeviceID(), ownership{
-						status: OwnershipStatus_OwnedByOther,
-					})
-				}
+			} else if strings.Contains(ownErr.Error(), "x509: certificate signed by unknown authority") {
+				ownerships(d.DeviceID(), ownership{
+					status: OwnershipStatus_OwnedByOther,
+				})
 			}
 		}
 		return details, err
@@ -88,7 +86,7 @@ func (c *Client) GetDevices(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	handler := newDiscoveryHandler(ctx, cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	handler := newDiscoveryHandler(cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
 	if err := c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
@@ -144,7 +142,6 @@ type DeviceDetails struct {
 }
 
 func newDiscoveryHandler(
-	ctx context.Context,
 	typeFilter []string,
 	errors func(error),
 	devices func(DeviceDetails),
@@ -173,21 +170,25 @@ type discoveryHandler struct {
 
 func (h *discoveryHandler) Error(err error) { h.errors(err) }
 
-func getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
+func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink(device.ResourceURI)
 	var eps []schema.Endpoint
 	if ok {
 		eps = link.GetEndpoints()
 	}
 
-	isSecured := d.IsSecured()
-	details, err := getDetails(ctx, d, links)
-	if err != nil {
-		return DeviceDetails{}, err
+	isSecured := dev.IsSecured()
+	var details interface{}
+	if getDetails != nil {
+		d, err := getDetails(ctx, dev, links)
+		if err != nil {
+			return DeviceDetails{}, err
+		}
+		details = d
 	}
 
 	return DeviceDetails{
-		ID:              d.DeviceID(),
+		ID:              dev.DeviceID(),
 		Details:         details,
 		IsSecured:       isSecured,
 		Resources:       links,
@@ -247,9 +248,7 @@ func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device,
 	m.Lock()
 	defer m.Unlock()
 	if m.wasSet {
-		getDetails = func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error) {
-			return nil, nil
-		}
+		getDetails = nil
 	}
 	devDetails, err := getDeviceDetails(ctx, d, links, getDetails)
 	if err == nil {

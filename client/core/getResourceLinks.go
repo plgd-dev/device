@@ -17,7 +17,6 @@ func getResourceLinks(ctx context.Context, addr net.Addr, client *coap.ClientClo
 
 	var codec DiscoverDeviceCodec
 	err := client.GetResourceWithCodec(ctx, resources.ResourceURI, codec, &links, options...)
-
 	if err != nil {
 		return nil, err
 	}

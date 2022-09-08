@@ -74,6 +74,11 @@ func loadMfgTrustCAKey(mTrustCAKey string) {
 	MfgTrustedCAKey = mfgTrustCAKey
 }
 
+const (
+	validFromNow = "now"
+	validForYear = 8760 * time.Hour
+)
+
 func generateMfgTrustCA(mTrustCA, mTrustCAKey string) {
 	if mTrustCA == "" || mTrustCAKey == "" {
 		outCert := "mfg_rootca.crt"
@@ -84,8 +89,8 @@ func generateMfgTrustCA(mTrustCA, mTrustCAKey string) {
 			cfg.Subject.Organization = []string{"TEST"}
 			cfg.Subject.CommonName = "TEST Mfg ROOT CA"
 			cfg.BasicConstraints.MaxPathLen = -1
-			cfg.ValidFrom = "now"
-			cfg.ValidFor = 8760 * time.Hour
+			cfg.ValidFrom = validFromNow
+			cfg.ValidFor = validForYear
 
 			err := generateRootCA(cfg, outCert, outKey)
 			if err != nil {
@@ -151,8 +156,8 @@ func ReadCommandOptions(opts Options) {
 		if !fileExists(outCert) || !fileExists(outKey) {
 			cfg := generateCertificate.Configuration{}
 			cfg.Subject.Organization = []string{"TEST"}
-			cfg.ValidFrom = "now"
-			cfg.ValidFor = 8760 * time.Hour
+			cfg.ValidFrom = validFromNow
+			cfg.ValidFor = validForYear
 
 			err := generateIdentityCertificate(cfg, CertIdentity, signerCert, signerKey, outCert, outKey)
 			if err != nil {
@@ -194,8 +199,8 @@ func ReadCommandOptions(opts Options) {
 			cfg.Subject.Organization = []string{"TEST"}
 			cfg.Subject.CommonName = "TEST ROOT CA"
 			cfg.BasicConstraints.MaxPathLen = -1
-			cfg.ValidFrom = "now"
-			cfg.ValidFor = 8760 * time.Hour
+			cfg.ValidFrom = validFromNow
+			cfg.ValidFor = validForYear
 
 			err := generateRootCA(cfg, outCert, outKey)
 			if err != nil {
@@ -254,8 +259,8 @@ func ReadCommandOptions(opts Options) {
 			cfg.Subject.Organization = []string{"TEST"}
 			cfg.Subject.CommonName = "TEST Intermediate CA"
 			cfg.BasicConstraints.MaxPathLen = -1
-			cfg.ValidFrom = "now"
-			cfg.ValidFor = 8760 * time.Hour
+			cfg.ValidFrom = validFromNow
+			cfg.ValidFor = validForYear
 
 			err := generateIntermediateCertificate(cfg, signerCert, signerKey, outCert, outKey)
 			if err != nil {
@@ -438,7 +443,7 @@ func WritePrivateKey(filename string, priv *ecdsa.PrivateKey) error {
 		return fmt.Errorf("failed to encode priv key %s for writing: %w", filename, err)
 	}
 
-	keyOut, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return fmt.Errorf("failed to open %s for writing: %w", filename, err)
 	}
@@ -461,7 +466,7 @@ func pemBlockForKey(k *ecdsa.PrivateKey) (*pem.Block, error) {
 }
 
 func NewSecureClient() (*local.Client, error) {
-	var setupSecureClient = SetupSecureClient{}
+	setupSecureClient := SetupSecureClient{}
 	if len(MfgTrustedCA) > 0 {
 		mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
 		if mfgTrustedCABlock != nil {
@@ -499,7 +504,7 @@ func NewSecureClient() (*local.Client, error) {
 	var cfg local.Config
 	if len(IdentityIntermediateCA) > 0 && len(IdentityIntermediateCAKey) > 0 {
 		cfg = local.Config{
-			//DisablePeerTCPSignalMessageCSMs: true,
+			// DisablePeerTCPSignalMessageCSMs: true,
 			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 				ID:      CertIdentity,
 				Cert:    string(IdentityIntermediateCA),
@@ -511,7 +516,7 @@ func NewSecureClient() (*local.Client, error) {
 		}
 	} else {
 		cfg = local.Config{
-			//DisablePeerTCPSignalMessageCSMs: true,
+			// DisablePeerTCPSignalMessageCSMs: true,
 			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 				ID: CertIdentity,
 			},
@@ -680,7 +685,7 @@ func scanner(client OCFClient, discoveryTimeout time.Duration) {
 				break
 			}
 			println("\nProperty data to update : " + string(dataBytes))
-			_, err = client.UpdateResource(deviceID, href, data)
+			err = client.UpdateResource(deviceID, href, data)
 			if err != nil {
 				println("\nUpdating resource property has failed : " + err.Error())
 				break

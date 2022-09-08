@@ -34,9 +34,7 @@ func (v BatchResourceDiscovery) Less(i, j int) bool {
 }
 
 func (v BatchResourceDiscovery) Swap(i, j int) {
-	tmp := v[i]
-	v[i] = v[j]
-	v[j] = tmp
+	v[i], v[j] = v[j], v[i]
 }
 
 func (v BatchResourceDiscovery) Sort() {

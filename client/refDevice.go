@@ -49,7 +49,8 @@ func (d *RefDevice) GetResourceWithCodec(
 	link schema.ResourceLink,
 	codec coap.Codec,
 	response interface{},
-	options ...coap.OptionFunc) error {
+	options ...coap.OptionFunc,
+) error {
 	return d.Device().GetResourceWithCodec(ctx, link, codec, response, options...)
 }
 

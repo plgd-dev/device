@@ -13,8 +13,10 @@ import (
 
 type DeviceResourcesObservationEvent_type uint8
 
-const DeviceResourcesObservationEvent_ADDED DeviceResourcesObservationEvent_type = 0
-const DeviceResourcesObservationEvent_REMOVED DeviceResourcesObservationEvent_type = 1
+const (
+	DeviceResourcesObservationEvent_ADDED   DeviceResourcesObservationEvent_type = 0
+	DeviceResourcesObservationEvent_REMOVED DeviceResourcesObservationEvent_type = 1
+)
 
 type DeviceResourcesObservationEvent struct {
 	Link  schema.ResourceLink

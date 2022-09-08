@@ -45,7 +45,7 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 			}
 		}
 	}
-	var confResources = acl.AllResources
+	confResources := acl.AllResources
 	for _, href := range links.GetResourceHrefs(softwareupdate.ResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
@@ -73,7 +73,8 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 func (c *Client) OnboardDevice(
 	ctx context.Context,
 	deviceID, authorizationProvider, cloudURL, authCode, cloudID string,
-	opts ...CommonCommandOption) error {
+	opts ...CommonCommandOption,
+) error {
 	cfg := applyCommonOptions(opts...)
 	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
