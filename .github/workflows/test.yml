@@ -29,7 +29,15 @@ jobs:
 
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: "Full checkout"
+        if: ${{ matrix.coverage }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: "Shall checkout"
+        if: ${{ !matrix.coverage }}
+        uses: actions/checkout@v3
 
       - name: Setup kernel for multicast messages, increase read buffer to 8MB
         run: sudo sysctl -w net.core.rmem_max=8388608

@@ -20,7 +20,7 @@ func TestPermissionString(t *testing.T) {
 		},
 		{
 			name: "Unknown",
-			s:    acl.Permission_NOTIFY * 2, // double of the last acl.Permission value
+			s:    acl.Permission_NOTIFY << 1, // double of the last acl.Permission value
 			want: "unknown(32)",
 		},
 		{

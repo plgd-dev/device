@@ -41,11 +41,10 @@ const (
 )
 
 func (s CredentialType) String() string {
-	res := make([]string, 0, 7)
-	if s.Has(CredentialType_EMPTY) {
-		res = append(res, "EMPTY")
-		s &^= CredentialType_EMPTY
+	if s == CredentialType_EMPTY {
+		return "EMPTY"
 	}
+	res := make([]string, 0, 7)
 	if s.Has(CredentialType_SYMMETRIC_PAIR_WISE) {
 		res = append(res, "SYMMETRIC_PAIR_WISE")
 		s &^= CredentialType_SYMMETRIC_PAIR_WISE
