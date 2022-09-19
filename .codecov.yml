@@ -1,0 +1,8 @@
+ignore:
+  - "app/app.go"
+  - "**/main.go"
+  - "**/*.pb.go"
+  - "**/*.pb.gw.go"
+  - "**/*_test.go"
+  - "**/*.js"
+  - "**/*.py"
