@@ -31,7 +31,6 @@ certificates:
 	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem  --outCert=/out/intermediatecacrt.pem --outKey=/out/intermediatecakey.pem --cert.basicConstraints.maxPathLen=0 --cert.subject.cn="intermediateCA" --cmd.generateIntermediateCA
 	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/intermediatecacrt.pem --signerKey=/out/intermediatecakey.pem --outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost --cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" --cmd.generateCertificate
 	sudo chmod -R 0777 $(CERT_PATH)
-.PHONY: certificates
 
 env: clean certificates
 	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
@@ -47,7 +46,11 @@ env: clean certificates
 		-v $(CERT_PATH):/pki_certs \
 		$(DEVSIM_IMAGE) devsim-$(SIMULATOR_NAME_SUFFIX)
 
-test: env build-testcontainer 
+unit-test:
+	mkdir -p $(TMP_PATH)
+	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.coverage.txt
+
+test: env build-testcontainer
 	docker run \
 		--network=host \
 		--rm \
@@ -59,4 +62,4 @@ clean:
 	docker rm -f devsim-net-host || true
 	sudo rm -rf .tmp/*
 
-.PHONY: build-testcontainer build test clean env make-ca make-mongo make-nats
+.PHONY: build-testcontainer build certificates clean env test unit-test

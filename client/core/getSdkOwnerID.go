@@ -7,13 +7,17 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 )
 
+func getSdkError(err error) error {
+	return fmt.Errorf("cannot get sdk id: %w", err)
+}
+
 func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 	if getCertificate == nil {
 		return "", MakeUnimplemented(fmt.Errorf("getCertificate is not set"))
 	}
 	cert, err := getCertificate()
 	if err != nil {
-		return "", MakeInternal(fmt.Errorf("cannot get sdk id: %w", err))
+		return "", MakeInternal(getSdkError(err))
 	}
 
 	var errors []error
@@ -38,7 +42,7 @@ func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 func (c *Client) GetSdkOwnerID() (string, error) {
 	id, err := getSdkOwnerID(c.tlsConfig.GetCertificate)
 	if err != nil {
-		return "", fmt.Errorf("cannot get sdk id: %w", err)
+		return "", getSdkError(err)
 	}
 	return id, nil
 }
@@ -51,7 +55,7 @@ func (d *Device) GetSdkOwnerID() (string, error) {
 
 	id, err := getSdkOwnerID(d.cfg.TLSConfig.GetCertificate)
 	if err != nil {
-		return "", fmt.Errorf("cannot get sdk id: %w", err)
+		return "", getSdkError(err)
 	}
 	return id, nil
 }
