@@ -64,7 +64,7 @@ func (s OperationalState) String() string {
 	case OperationalState_RFNOP:
 		return "RFNOP"
 	case OperationalState_SRESET:
-		return "OperationalState_SRESET"
+		return "SRESET"
 	default:
 		return fmt.Sprintf("unknown %v", int(s))
 	}

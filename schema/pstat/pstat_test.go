@@ -13,7 +13,7 @@ func TestOperationalStateString(t *testing.T) {
 		pstat.OperationalState_RFOTM:  "RFOTM",
 		pstat.OperationalState_RFPRO:  "RFPRO",
 		pstat.OperationalState_RFNOP:  "RFNOP",
-		pstat.OperationalState_SRESET: "OperationalState_SRESET",
+		pstat.OperationalState_SRESET: "SRESET",
 	}
 
 	for k, v := range states {
