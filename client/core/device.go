@@ -29,6 +29,7 @@ type DeviceConfiguration struct {
 
 type Device struct {
 	deviceID     string
+    foundByIP    string
 	deviceTypes  []string
 	getEndpoints func() schema.Endpoints
 	cfg          DeviceConfiguration
@@ -303,6 +304,18 @@ func (d *Device) setDeviceID(deviceID string) {
 	d.deviceID = deviceID
 }
 
+func (d *Device) FoundByIP() string {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return d.foundByIP
+}
+
+func (d *Device) setFoundByIP(foundByIP string) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.foundByIP = foundByIP
+
+}
 func (d *Device) DeviceTypes() []string {
 	return d.deviceTypes
 }

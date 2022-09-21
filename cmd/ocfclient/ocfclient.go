@@ -82,6 +82,53 @@ func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 	return string(devicesJSON), nil
 }
 
+// Observe device online/offline status
+func (c *OCFClient) ObserveDevices() {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Minute)
+	defer cancel()
+    c.client.GetDeviceByIP(ctx, "192.168.197.27") 
+    fmt.Println("starting observation")
+    
+	h := makeDevicesObservationHandler()
+	_, err := c.client.ObserveDevices(ctx, h)
+    if err != nil {
+        fmt.Println(err)
+    }
+    finished := false
+
+	for !finished {
+		select {
+		case devs := <-h.devs:
+            fmt.Println(devs)
+            continue
+		case <-ctx.Done():
+            fmt.Println("Timeout reached")
+            finished = true
+		}
+	}
+}
+
+func makeDevicesObservationHandler() *devicesObservationHandler {
+	return &devicesObservationHandler{devs: make(chan client.DevicesObservationEvent, 100)}
+}
+
+type devicesObservationHandler struct {
+	devs chan client.DevicesObservationEvent
+}
+
+func (h *devicesObservationHandler) Handle(ctx context.Context, body client.DevicesObservationEvent) error {
+	h.devs <- body
+	return nil
+}
+
+func (h *devicesObservationHandler) Error(err error) {
+	fmt.Println(err)
+}
+
+func (h *devicesObservationHandler) OnClose() {
+	fmt.Println("devices observation was closed")
+}
 // OwnDevice transfers the ownership of the device to user represented by the token
 func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

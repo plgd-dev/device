@@ -6,14 +6,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
 )
 
 type refDeviceCache struct {
 	cacheExpiration    time.Duration
-	temporaryCache     *cache.Cache
+	temporaryCache     *Cache
 	temporaryCacheLock sync.Mutex
 	errors             func(error)
 
@@ -33,7 +32,7 @@ func (r *refCacheDevice) device() *RefDevice {
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
 	done := make(chan struct{})
-	cache := cache.NewCache()
+	cache := NewCache()
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -133,7 +132,7 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 			dev.Acquire()
 			return dev, false
 		}
-		_, loaded := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
+		_, loaded := c.temporaryCache.LoadOrStore(deviceID, NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
 			err := d1.(*RefDevice).Release(ctx)
@@ -200,6 +199,23 @@ func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
 	defer c.temporaryCacheLock.Unlock()
 	items := c.temporaryCache.PullOutAll()
 	return items
+}
+
+func (c *refDeviceCache) GetContent() map[string]string {
+	c.temporaryCacheLock.Lock()
+	defer c.temporaryCacheLock.Unlock()
+    devices := make(map[string]string)
+
+    c.temporaryCache.Range(func (key interface{}, value interface{}) bool {
+		d := value.(*RefDevice)
+
+        if ip := d.FoundByIP(); ip != "" {
+            devices[d.DeviceID()] = ip
+        }
+        return false
+    })
+
+    return devices
 }
 
 func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {

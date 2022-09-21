@@ -26,7 +26,7 @@ import (
 
 type Options struct {
 	CertIdentity     string        `long:"certIdentity"`
-	DiscoveryTimeout time.Duration `long:"discoveryTimeout"`
+    DiscoveryTimeout time.Duration `long:"discoveryTimeout"`
 
 	MfgCert       string `long:"mfgCert"`
 	MfgKey        string `long:"mfgKey"`
@@ -596,6 +596,7 @@ func scanner(client OCFClient, discoveryTimeout time.Duration) {
 			}
 			println("\nDiscovered devices : \n" + res)
 		case 2:
+            client.ObserveDevices()
 			// Select Device
 			print("\nInput device ID : ")
 			scanner.Scan()

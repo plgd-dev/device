@@ -54,9 +54,9 @@ func (c *Client) GetRefDeviceByIP(
 	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
 		deviceID := refDev.DeviceID()
-		refDev.Device().Close(ctx)
-		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
-		refDev.Release(ctx)
+//		refDev.Device().Close(ctx)
+//		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
+//		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
@@ -141,6 +141,10 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	return c.getDevice(ctx, refDev, links, cfg.getDetails)
 }
 
+func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
+    return c.deviceCache.GetContent()
+}
+
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
 	cfg := getDeviceByIPOptions{
@@ -151,6 +155,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	}
 
 	refDev, links, err := c.GetRefDeviceByIP(ctx, ip)
+
 	if err != nil {
 		return DeviceDetails{}, err
 	}

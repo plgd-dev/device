@@ -127,6 +127,8 @@ const (
 type DeviceDetails struct {
 	// ID of the device
 	ID string
+	// IP used to find this device
+	FoundByIP string
 	// Details result of function which can be set via option WithGetDetails(), by default it is nil.
 	Details interface{}
 	// IsSecured is secured.
@@ -189,6 +191,7 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 
 	return DeviceDetails{
 		ID:              dev.DeviceID(),
+		FoundByIP:       dev.FoundByIP(),
 		Details:         details,
 		IsSecured:       isSecured,
 		Resources:       links,
