@@ -54,9 +54,9 @@ func (c *Client) GetRefDeviceByIP(
 	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
 		deviceID := refDev.DeviceID()
-//		refDev.Device().Close(ctx)
-//		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
-//		refDev.Release(ctx)
+		refDev.Device().Close(ctx)
+		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
+		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil

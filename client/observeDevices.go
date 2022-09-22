@@ -42,7 +42,7 @@ type devicesObserver struct {
 	cancel    context.CancelFunc
 	interval  time.Duration
 	wait      func()
-	onlineDeviceIDs *sync.Map
+	onlineDeviceIDs map[string]bool
 }
 
 func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
@@ -56,7 +56,6 @@ func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguratio
 
 		cancel: cancel,
 		wait:   wg.Wait,
-        onlineDeviceIDs: &sync.Map{},
 	}
 	wg.Add(1)
 	go func() {
@@ -83,6 +82,29 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 		o.onlineDeviceIDs = newDeviceIDs
 		return true
 	}
+}
+
+func (o *devicesObserver) processDevices(devices *sync.Map) (added map[string]bool, removed []string, current map[string]bool) {
+	current = make(map[string]bool)
+	devices.Range(func(key, value interface{}) bool {
+		current[key.(string)] = true
+		return true
+	})
+	added = make(map[string]bool)
+	removed = make([]string, 0, len(current))
+	for deviceID := range o.onlineDeviceIDs {
+		_, ok := current[deviceID]
+		if !ok {
+			removed = append(removed, deviceID)
+		}
+	}
+	for deviceID := range current {
+		_, ok := o.onlineDeviceIDs[deviceID]
+		if !ok {
+			added[deviceID] = true
+		}
+	}
+	return
 }
 
 func (o *devicesObserver) emit(ctx context.Context, deviceID string, added bool) error {
@@ -132,97 +154,58 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType(device.ResourceType))
 }
 
-func (o *devicesObserver) sendOnlineEvent(ctx context.Context, deviceID string) error {
-    err := o.emit(ctx, deviceID, true)
-    fmt.Println("sending device online")
-    if err != nil {
-        return err
-    }
-    return nil
-}
-
-func (o *devicesObserver) sendOfflineEvent(ctx context.Context, deviceID string) error {
-    err := o.emit(ctx, deviceID, false)
-    fmt.Println("sending device offline")
-    if err != nil {
-        return err
-    }
-    return nil
-}
-
-func (o *devicesObserver) observe(ctx context.Context) (*sync.Map, error) {
+func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
 	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
-    resultDeviceIDs := &sync.Map{}
-
-	err := o.discover(ctx, &newDevices)
-	if err != nil {
-		return nil, err
-	}
-
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil, ctx.Err()
-	}
-
-
-    // for devices that were found but are not yet in onlineDeviceIDs 
-    // list send an online event and store the deviceID to the result array
-    // we will remove the device from the onlineDeviceIDs list because
-    // we will send offline event for every device id that will be left
-    // in the map at the end of this function
-	newDevices.devices.Range(func(key, value interface{}) bool {
-        _, loaded := o.onlineDeviceIDs.LoadAndDelete(key)
-
-        if !loaded {
-            o.sendOnlineEvent(ctx, key.(string))
-        }
-        resultDeviceIDs.LoadOrStore(key, true)
-		return true
-	})
 
     // check online status for all devices added by IP
     var wg sync.WaitGroup
     devicesByIP := o.c.GetAllDeviceIDsFoundByIP()
-    wg.Add(len(devicesByIP))
-    
+    // we will ping devices at once including discovery
+    // therefore +1 for discovery
+    wg.Add(len(devicesByIP) + 1) 
+
+    // run discovery inside go routine
+    go func() {
+        defer wg.Done()
+
+        err := o.discover(ctx, &newDevices)
+        if err != nil {
+            return
+        }
+        if errors.Is(ctx.Err(), context.Canceled) {
+            return
+        }
+    }()
+
+    // check every device online presence inside go routine
     for deviceID, ip := range devicesByIP  {
-
         go func(deviceID string, ip string) {
-            ipCtx, ipCancel := context.WithTimeout(context.Background(), 2 * time.Second)
-            defer ipCancel()
             defer wg.Done()
+            _, e := o.c.client.GetDeviceByIP(ctx, ip)
 
-            _, e := o.c.client.GetDeviceByIP(ipCtx, ip)
-            if e != nil {
-                fmt.Println(e)
-            }
-            online := (e == nil)
-
-            _, loaded := o.onlineDeviceIDs.LoadAndDelete(deviceID)
-
-            if online {
-                resultDeviceIDs.LoadOrStore(deviceID, true)
+            if e == nil {
+                newDevices.devices.LoadOrStore(deviceID, true)
             }
 
-            if !loaded && online {
-                resultDeviceIDs.LoadOrStore(deviceID, true)
-                o.sendOnlineEvent(ipCtx, deviceID)
-            }
-
-            if loaded && !online {
-                o.sendOfflineEvent(ipCtx, deviceID)
-            }
-        }(deviceID, ip)
+        } (deviceID, ip)
     }
-    
+
     wg.Wait()
 
-    // for all devices left in the onlineDevicesIDs send an offline event
-	o.onlineDeviceIDs.Range(func(key, value interface{}) bool {
-        o.sendOfflineEvent(ctx, key.(string))
-		return true
-	})
-
-	return resultDeviceIDs, nil
+	added, removed, current := o.processDevices(newDevices.devices)
+	for deviceID := range added {
+		err := o.emit(ctx, deviceID, true)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, deviceID := range removed {
+		err := o.emit(ctx, deviceID, false)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return current, nil
 }
 
 func (o *devicesObserver) Cancel() {
