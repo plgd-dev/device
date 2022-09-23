@@ -41,8 +41,10 @@ func (c *Client) GetRefDeviceByIP(
 	ctx context.Context,
 	ip string,
 ) (*RefDevice, schema.ResourceLinks, error) {
+    fmt.Println("######################### GetRefDeviceByIP")
 	dev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
+        fmt.Println(err)
 		return nil, nil, err
 	}
 
@@ -53,6 +55,7 @@ func (c *Client) GetRefDeviceByIP(
 	}
 	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
+        fmt.Println(err)
 		deviceID := refDev.DeviceID()
 		refDev.Device().Close(ctx)
 		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
@@ -150,6 +153,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	cfg := getDeviceByIPOptions{
 		getDetails: getDetails,
 	}
+    fmt.Println("######################### client.GetDeviceByIP")
 	for _, o := range opts {
 		cfg = o.applyOnGetDeviceByIP(cfg)
 	}
@@ -157,6 +161,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	refDev, links, err := c.GetRefDeviceByIP(ctx, ip)
 
 	if err != nil {
+        fmt.Println(err)
 		return DeviceDetails{}, err
 	}
 	defer refDev.Release(ctx)
