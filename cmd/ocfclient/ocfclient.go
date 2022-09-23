@@ -87,8 +87,8 @@ func (c *OCFClient) ObserveDevices() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Minute)
 	defer cancel()
-    c.client.GetDeviceByIP(ctx, "192.168.197.27") 
     fmt.Println("starting observation")
+    //c.client.GetDeviceByIP(ctx, "192.168.197.27")
     
 	h := makeDevicesObservationHandler()
 	_, err := c.client.ObserveDevices(ctx, h)
