@@ -31,6 +31,7 @@ func (r *refCacheDevice) device() *RefDevice {
 }
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
+    fmt.Println("######################### refDeviceCache.NewRefDeviceCache")
 	done := make(chan struct{})
 	cache := NewCache()
 	go func() {
@@ -55,6 +56,7 @@ func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDe
 }
 
 func (c *refDeviceCache) getFromPermanentCache(deviceID string) (_ *refCacheDevice, ok bool) {
+    fmt.Println("######################### refDeviceCache.getFromPermanentCache")
 	c.permanentCacheLock.Lock()
 	defer c.permanentCacheLock.Unlock()
 	refCacheDev, ok := c.permanentCache[deviceID]
@@ -65,6 +67,7 @@ func (c *refDeviceCache) getFromPermanentCache(deviceID string) (_ *refCacheDevi
 }
 
 func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, deviceID string) (*RefDevice, bool) {
+    fmt.Println("######################### refDeviceCache.GetDeviceFromPermanentCache")
 	refCacheDev, ok := c.getFromPermanentCache(deviceID)
 	if !ok {
 		return nil, false
@@ -76,6 +79,7 @@ func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, device
 }
 
 func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, bool) {
+    fmt.Println("######################### refDeviceCache.getFromTemporaryCache")
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	d := c.temporaryCache.Load(deviceID)
@@ -88,6 +92,7 @@ func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, boo
 }
 
 func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, deviceID string, device *RefDevice) bool {
+    fmt.Println("######################### refDeviceCache.RemoveDeviceFromTemporaryCache")
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	d := c.temporaryCache.Load(deviceID)
@@ -104,11 +109,13 @@ func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, dev
 }
 
 func (c *refDeviceCache) RemoveDevice(ctx context.Context, deviceID string, device *RefDevice) bool {
+    fmt.Println("######################### refDeviceCache.RemoveDevice")
 	ok := c.RemoveDeviceFromTemporaryCache(ctx, deviceID, device)
 	return c.RemoveDeviceFromPermanentCache(ctx, deviceID, device) || ok
 }
 
 func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDevice, bool) {
+    fmt.Println("######################### refDeviceCache.GetDevice")
 	dev, ok := c.getDeviceFromPermanentCache(ctx, deviceID)
 	if ok {
 		return dev, true
@@ -121,6 +128,7 @@ func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDe
 }
 
 func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*RefDevice, bool) {
+    fmt.Println("######################### refDeviceCache.TryStoreDeviceToTemporaryCache")
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	deviceID := device.DeviceID()
@@ -149,6 +157,7 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 }
 
 func (c *refDeviceCache) StoreDeviceToPermanentCache(device *RefDevice) error {
+    fmt.Println("######################### refDeviceCache.StoreDeviceToPermanentCache")
 	c.permanentCacheLock.Lock()
 	defer c.permanentCacheLock.Unlock()
 	deviceID := device.DeviceID()
@@ -177,6 +186,7 @@ func (c *refDeviceCache) StoreDeviceToPermanentCache(device *RefDevice) error {
 }
 
 func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, deviceID string, device *RefDevice) bool {
+    fmt.Println("######################### refDeviceCache.RemoveDeviceFromPermanentCache")
 	refCacheDev, ok := c.getFromPermanentCache(deviceID)
 	if !ok {
 		return false
@@ -195,6 +205,7 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 }
 
 func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
+    fmt.Println("######################### refDeviceCache.popTemporaryCache")
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	items := c.temporaryCache.PullOutAll()
@@ -202,6 +213,7 @@ func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
 }
 
 func (c *refDeviceCache) GetContent() map[string]string {
+    fmt.Println("######################### refDeviceCache.GetContent")
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
     devices := make(map[string]string)
@@ -219,6 +231,7 @@ func (c *refDeviceCache) GetContent() map[string]string {
 }
 
 func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
+    fmt.Println("######################### refDeviceCache.getPermanentCacheDevices")
 	c.permanentCacheLock.Lock()
 	defer c.permanentCacheLock.Unlock()
 
@@ -231,6 +244,7 @@ func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
 }
 
 func (c *refDeviceCache) Close(ctx context.Context) error {
+    fmt.Println("######################### refDeviceCache.Close")
 	var errors []error
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
