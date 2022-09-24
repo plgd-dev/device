@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
+    "runtime/debug"
 
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
@@ -110,6 +111,8 @@ func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, dev
 
 func (c *refDeviceCache) RemoveDevice(ctx context.Context, deviceID string, device *RefDevice) bool {
     fmt.Println("######################### refDeviceCache.RemoveDevice")
+    debug.PrintStack()
+    fmt.Println("#####################################################")
 	ok := c.RemoveDeviceFromTemporaryCache(ctx, deviceID, device)
 	return c.RemoveDeviceFromPermanentCache(ctx, deviceID, device) || ok
 }
