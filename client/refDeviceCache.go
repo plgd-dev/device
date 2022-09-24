@@ -224,7 +224,7 @@ func (c *refDeviceCache) GetContent() map[string]string {
         if ip := d.FoundByIP(); ip != "" {
             devices[d.DeviceID()] = ip
         }
-        return false
+        return true
     })
 
     return devices
