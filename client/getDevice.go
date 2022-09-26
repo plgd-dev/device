@@ -30,8 +30,8 @@ func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 			// Don't remove devices found by IP, the device is probably offline
 			// and we will be not able to reestablish the connection when it will
 			// come back online
+			refDev.Device().Close(ctx)
 			if refDev.Device().FoundByIP() == "" {
-				refDev.Device().Close(ctx)
 				deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
 				refDev.Release(ctx)
 			}
@@ -56,6 +56,7 @@ func (c *Client) GetRefDeviceByIP(
 
 	newRefDev := NewRefDevice(dev)
 	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+
 	if !stored {
 		newRefDev.Release(ctx)
 	}
@@ -66,8 +67,8 @@ func (c *Client) GetRefDeviceByIP(
 		// Don't remove devices found by IP, the device is probably offline
 		// and we will be not able to reestablish the connection when it will
 		// come back online
+		refDev.Device().Close(ctx)
 		if refDev.Device().FoundByIP() == "" {
-			refDev.Device().Close(ctx)
 			c.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
 			refDev.Release(ctx)
 		}
@@ -107,8 +108,8 @@ func (c *Client) GetRefDevice(
 		// Don't remove devices found by IP, the device is probably offline
 		// and we will be not able to reestablish the connection when it will
 		// come back online
+		refDev.Device().Close(ctx)
 		if refDev.Device().FoundByIP() == "" {
-			refDev.Device().Close(ctx)
 			c.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
 			refDev.Release(ctx)
 		}
