@@ -50,6 +50,16 @@ func (c *Client) GetRefDeviceByIP(
 	fmt.Println("######################### GetRefDeviceByIP")
 	dev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
+		for k, v := range c.deviceCache.GetContent() {
+			if v == ip {
+				e, ok := c.deviceCache.GetDevice(ctx, k)
+				if ok {
+					e.Device().Close(ctx)
+					e.Release(ctx)
+				}
+				break
+			}
+		}
 		fmt.Println(err)
 		return nil, nil, err
 	}
