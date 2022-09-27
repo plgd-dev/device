@@ -47,7 +47,6 @@ func (c *Client) GetRefDeviceByIP(
 	ctx context.Context,
 	ip string,
 ) (*RefDevice, schema.ResourceLinks, error) {
-	fmt.Println("######################### GetRefDeviceByIP")
 	dev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
 		for k, v := range c.deviceCache.GetContent() {
@@ -60,7 +59,6 @@ func (c *Client) GetRefDeviceByIP(
 				break
 			}
 		}
-		fmt.Println(err)
 		return nil, nil, err
 	}
 
@@ -180,7 +178,6 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	cfg := getDeviceByIPOptions{
 		getDetails: getDetails,
 	}
-	fmt.Println("######################### client.GetDeviceByIP")
 	for _, o := range opts {
 		cfg = o.applyOnGetDeviceByIP(cfg)
 	}

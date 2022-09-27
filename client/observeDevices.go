@@ -155,7 +155,6 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 }
 
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
-	fmt.Println("################# INVOKING OBSERVE")
 	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
 
 	// check online status for all devices added by IP
@@ -165,37 +164,37 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 	// therefore +1 for discovery
 	wg.Add(len(devicesByIP) + 1)
 
-	fmt.Println("################# wg size:", (len(devicesByIP) + 1))
+	discoveryError := make(chan error, 1)
 	// run discovery inside go routine
 	go func() {
 		defer wg.Done()
+		defer close(discoveryError)
 
 		err := o.discover(ctx, &newDevices)
 		if err != nil {
+			discoveryError <- err
 			return
 		}
 		if errors.Is(ctx.Err(), context.Canceled) {
+			discoveryError <- ctx.Err()
 			return
 		}
 	}()
 
 	// check every device online presence inside go routine
 	for deviceID, ip := range devicesByIP {
-		fmt.Println("################ searching device by ip:", ip, deviceID)
 		go func(deviceID string, ip string) {
 			defer wg.Done()
-			_, e := o.c.GetDeviceByIP(ctx, ip)
-
-			if e == nil {
+			if _, e := o.c.GetDeviceByIP(ctx, ip); e == nil {
 				newDevices.devices.LoadOrStore(deviceID, true)
-			} else {
-				fmt.Println(e)
 			}
-
 		}(deviceID, ip)
 	}
 
 	wg.Wait()
+	if err, received := <-discoveryError; received {
+		return nil, err
+	}
 
 	added, removed, current := o.processDevices(newDevices.devices)
 	for deviceID := range added {

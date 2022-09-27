@@ -14,7 +14,6 @@ import (
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) {
-    fmt.Println("######################### client.core.GetDeviceByIP")
 	var discoveryConfiguration DiscoveryConfiguration
 	if strings.Contains(ip, ":") && !strings.Contains(ip, "[") {
 		ip = "[" + ip + "]"
@@ -48,7 +47,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	if d == nil {
 		return nil, MakeNotFound(fmt.Errorf("no response from the device with ip %s", ip))
 	}
-    d.foundByIP = ip
+	d.foundByIP = ip
 	return d, nil
 }
 
