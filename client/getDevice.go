@@ -25,7 +25,6 @@ func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 	refDev, ok := deviceCache.GetDevice(ctx, deviceID)
 	if ok {
 		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
-
 		if err != nil {
 			// Don't remove devices found by IP, the device is probably offline
 			// and we will be not able to reestablish the connection when it will
@@ -183,9 +182,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 	}
 
 	refDev, links, err := c.GetRefDeviceByIP(ctx, ip)
-
 	if err != nil {
-		fmt.Println(err)
 		return DeviceDetails{}, err
 	}
 	defer refDev.Release(ctx)

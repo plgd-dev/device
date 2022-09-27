@@ -6,13 +6,14 @@ import (
 	"sync"
 	"time"
 
+	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
 )
 
 type refDeviceCache struct {
 	cacheExpiration    time.Duration
-	temporaryCache     *Cache
+	temporaryCache     *cache.Cache
 	temporaryCacheLock sync.Mutex
 	errors             func(error)
 
@@ -32,7 +33,7 @@ func (r *refCacheDevice) device() *RefDevice {
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
 	done := make(chan struct{})
-	cache := NewCache()
+	cache := cache.NewCache()
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -141,7 +142,7 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 				// dev.Device().Close(ctx)
 			}
 		}
-		_, loaded := c.temporaryCache.LoadOrStore(deviceID, NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
+		_, loaded := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
 			err := d1.(*RefDevice).Release(ctx)

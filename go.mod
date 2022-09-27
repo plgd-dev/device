@@ -10,7 +10,7 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.1.5
-	github.com/plgd-dev/go-coap/v2 v2.6.1-0.20220908094614-a31dd2f1812c
+	github.com/plgd-dev/go-coap/v2 v2.6.1-0.20220927132004-17bbcc346d01
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/atomic v1.10.0

@@ -320,8 +320,8 @@ func (d *Device) setFoundByIP(foundByIP string) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	d.foundByIP = foundByIP
-
 }
+
 func (d *Device) DeviceTypes() []string {
 	return d.deviceTypes
 }
