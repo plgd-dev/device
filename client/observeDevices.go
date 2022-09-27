@@ -122,7 +122,7 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, dev schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev schema.ResourceLinks) {
 	defer client.Close()
 	d, ok := dev.GetResourceLink(device.ResourceURI)
 	if !ok {

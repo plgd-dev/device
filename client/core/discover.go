@@ -26,7 +26,7 @@ var (
 	DiscoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
 )
 
-type DiscoveryHandler = func(conn *client.ClientConn, req *pool.Message)
+type DiscoveryHandler = func(conn *client.Conn, req *pool.Message)
 
 type DiscoveryClient struct {
 	mcastaddr string

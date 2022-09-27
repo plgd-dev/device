@@ -108,7 +108,7 @@ func (h *deviceHandler) Device() *Device {
 	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	conn.Close()
 	h.lock.Lock()
 	defer h.lock.Unlock()

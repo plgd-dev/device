@@ -49,7 +49,7 @@ type ownershipHandler struct {
 	handler OwnershipHandler
 }
 
-func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm doxm.Doxm) {
+func (h *ownershipHandler) Handle(ctx context.Context, conn *client.Conn, doxm doxm.Doxm) {
 	conn.Close()
 	h.handler.Handle(ctx, doxm)
 }

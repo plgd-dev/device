@@ -17,7 +17,7 @@ import (
 
 // DiscoverDevicesHandler receives device links and errors from the discovery multicast request.
 type DiscoverDevicesHandler interface {
-	Handle(ctx context.Context, client *client.ClientConn, device schema.ResourceLinks)
+	Handle(ctx context.Context, client *client.Conn, device schema.ResourceLinks)
 	Error(err error)
 }
 
@@ -36,8 +36,8 @@ func DiscoverDevices(
 	return Discover(ctx, conn, resources.ResourceURI, handleResponse(ctx, handler), options...)
 }
 
-func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*client.ClientConn, *pool.Message) {
-	return func(cc *client.ClientConn, r *pool.Message) {
+func handleResponse(ctx context.Context, handler DiscoverDevicesHandler) func(*client.Conn, *pool.Message) {
+	return func(cc *client.Conn, r *pool.Message) {
 		req := r
 		if req.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))

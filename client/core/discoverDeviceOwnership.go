@@ -15,7 +15,7 @@ import (
 
 // DiscoverDeviceOwnershipHandler receives devices ownership info.
 type DiscoverDeviceOwnershipHandler interface {
-	Handle(ctx context.Context, client *client.ClientConn, device doxm.Doxm)
+	Handle(ctx context.Context, client *client.Conn, device doxm.Doxm)
 	Error(err error)
 }
 
@@ -62,8 +62,8 @@ func DiscoverDeviceOwnership(
 	return Discover(ctx, conn, doxm.ResourceURI, handleDiscoverOwnershipResponse(ctx, handler), opt)
 }
 
-func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.ClientConn, req *pool.Message) {
-	return func(client *client.ClientConn, r *pool.Message) {
+func handleDiscoverOwnershipResponse(ctx context.Context, handler DiscoverDeviceOwnershipHandler) func(client *client.Conn, req *pool.Message) {
+	return func(client *client.Conn, r *pool.Message) {
 		req := r
 		if req.Code() != codes.Content {
 			handler.Error(fmt.Errorf("request failed: %s", ocf.Dump(req)))

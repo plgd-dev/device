@@ -486,7 +486,7 @@ func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration
 	}
 }
 
-type InactiveCC inactivity.ClientConn
+type InactiveCC inactivity.Conn
 
 func makeOnInactiveFunc[C InactiveCC](dialName string, errorsFn func(err error)) func(cc C) {
 	return func(cc C) {
@@ -503,7 +503,7 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	dopts := make([]udp.DialOption, 0, 4)
+	dopts := make([]udp.Option, 0, 4)
 	errorsFn := func(err error) {
 		// ignore by default
 	}
@@ -512,10 +512,10 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDP", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDP", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDP", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDP", errorsFn)))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
@@ -550,7 +550,7 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	dopts := make([]tcp.DialOption, 0, 4)
+	dopts := make([]tcp.Option, 0, 4)
 	errorsFn := func(err error) {
 		// ignore by default
 	}
@@ -559,10 +559,10 @@ func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCP", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCP", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCP", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCP", errorsFn)))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
 		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
@@ -639,7 +639,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	dopts := make([]tcp.DialOption, 0, 4)
+	dopts := make([]tcp.Option, 0, 4)
 	dopts = append(dopts, options.WithTLS(tlsCfg))
 	errorsFn := func(err error) {
 		// ignore by default
@@ -649,10 +649,10 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCPSecure", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCPSecure", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.ClientConn]("DialTCPSecure", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCPSecure", errorsFn)))
 	}
 	if cfg.DisablePeerTCPSignalMessageCSMs {
 		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
@@ -700,7 +700,7 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
-	dopts := make([]udp.DialOption, 0, 4)
+	dopts := make([]udp.Option, 0, 4)
 	errorsFn := func(err error) {
 		// ignore by default
 	}
@@ -709,10 +709,10 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 		dopts = append(dopts, options.WithErrors(cfg.errors))
 	}
 	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDPSecure", errorsFn)))
+		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDPSecure", errorsFn)))
 	}
 	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.ClientConn]("DialUDPSecure", errorsFn)))
+		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDPSecure", errorsFn)))
 	}
 	if cfg.blockwise != nil {
 		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))

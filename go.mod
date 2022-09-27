@@ -9,12 +9,12 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.2
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v2 v2.1.5
-	github.com/plgd-dev/go-coap/v3 v3.0.0-20220804123215-eabe01e70742
+	github.com/pion/dtls/v2 v2.1.6-0.20220815090156-a04cfccb23e5
+	github.com/plgd-dev/go-coap/v3 v3.0.0-20220926123902-b0cdfea4c56b
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.0
 	github.com/ugorji/go/codec v1.2.7
-	go.uber.org/atomic v1.9.0
+	go.uber.org/atomic v1.10.0
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4
 	google.golang.org/grpc v1.48.0
 )

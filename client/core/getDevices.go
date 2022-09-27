@@ -87,7 +87,7 @@ type discoveryHandler struct {
 	filterDiscoveredDevices sync.Map
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	conn.Close()
 	link, err := GetResourceLink(links, device.ResourceURI)
 	if err != nil {
