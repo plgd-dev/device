@@ -18,8 +18,10 @@ import (
 
 type DevicesObservationEvent_type uint8
 
-const DevicesObservationEvent_ONLINE DevicesObservationEvent_type = 0
-const DevicesObservationEvent_OFFLINE DevicesObservationEvent_type = 1
+const (
+	DevicesObservationEvent_ONLINE  DevicesObservationEvent_type = 0
+	DevicesObservationEvent_OFFLINE DevicesObservationEvent_type = 1
+)
 
 type DevicesObservationEvent struct {
 	DeviceID string

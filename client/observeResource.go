@@ -138,8 +138,8 @@ func getObservationID(resourceCacheID, resourceObservationID string) string {
 	return strings.Join([]string{resourceCacheID, resourceObservationID}, "/")
 }
 
-func parseIDs(ID string) (string, string, error) {
-	v := strings.Split(ID, "/")
+func parseIDs(id string) (string, string, error) {
+	v := strings.Split(id, "/")
 	if len(v) != 2 {
 		return "", "", fmt.Errorf("invalid ID")
 	}

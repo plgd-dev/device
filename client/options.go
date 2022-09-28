@@ -62,10 +62,17 @@ func WithPresharedKey(presharedKey []byte) OwnOption {
 	}
 }
 
+// WithOTMs allows to set ownership transfer methods, by default it is []OTMType{manufacturer}. For owning, the first match in order of OTMType with the device will be used.
+func WithOTMs(otmTypes []OTMType) OwnOption {
+	return otmOption{
+		otmTypes: otmTypes,
+	}
+}
+
 // WithOTM allows to set ownership transfer method, by default it is manufacturer.
 func WithOTM(otmType OTMType) OwnOption {
 	return otmOption{
-		otmType: otmType,
+		otmTypes: []OTMType{otmType},
 	}
 }
 
@@ -348,7 +355,7 @@ const (
 
 type ownOptions struct {
 	opts                   []core.OwnOption
-	otmType                OTMType
+	otmTypes               []OTMType
 	discoveryConfiguration core.DiscoveryConfiguration
 }
 
@@ -385,11 +392,11 @@ func (r actionAfterOwnOption) applyOnOwn(opts ownOptions) ownOptions {
 }
 
 type otmOption struct {
-	otmType OTMType
+	otmTypes []OTMType
 }
 
 func (r otmOption) applyOnOwn(opts ownOptions) ownOptions {
-	opts.otmType = r.otmType
+	opts.otmTypes = r.otmTypes
 	return opts
 }
 

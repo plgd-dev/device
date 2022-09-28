@@ -171,12 +171,14 @@ func loadFileFromEnv(env string) []byte {
 	return v
 }
 
-var MfgCert = loadFileFromEnv("MFG_CRT")
-var MfgKey = loadFileFromEnv("MFG_KEY")
-var RootCACrt = loadFileFromEnv("ROOT_CA_CRT")
-var RootCAKey = loadFileFromEnv("ROOT_CA_KEY")
-var IdentityIntermediateCA = loadFileFromEnv("INTERMEDIATE_CA_CRT")
-var IdentityIntermediateCAKey = loadFileFromEnv("INTERMEDIATE_CA_KEY")
+var (
+	MfgCert                   = loadFileFromEnv("MFG_CRT")
+	MfgKey                    = loadFileFromEnv("MFG_KEY")
+	RootCACrt                 = loadFileFromEnv("ROOT_CA_CRT")
+	RootCAKey                 = loadFileFromEnv("ROOT_CA_KEY")
+	IdentityIntermediateCA    = loadFileFromEnv("INTERMEDIATE_CA_CRT")
+	IdentityIntermediateCAKey = loadFileFromEnv("INTERMEDIATE_CA_KEY")
+)
 
 func pemBlockForKey(k *ecdsa.PrivateKey) (*pem.Block, error) {
 	b, err := x509.MarshalECPrivateKey(k)

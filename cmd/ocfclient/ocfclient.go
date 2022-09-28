@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/plgd-dev/device/client"
 	local "github.com/plgd-dev/device/client"
 	"github.com/plgd-dev/device/pkg/codec/json"
 	"github.com/plgd-dev/device/schema/interfaces"
@@ -55,7 +56,9 @@ func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate
 func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), discoveryTimeout)
 	defer cancel()
-	res, err := c.client.GetDevices(ctx, local.WithError(func(error) {}))
+	res, err := c.client.GetDevices(ctx, local.WithError(func(error) {
+		// no-op
+	}))
 	if err != nil {
 		return "", err
 	}
@@ -65,8 +68,10 @@ func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 	for _, device := range res {
 		if device.IsSecured && device.Ownership != nil {
 			devices = append(devices, device)
-			devInfo := map[string]interface{}{"id": device.ID, "name": device.Ownership.Name, "owned": device.Ownership.Owned,
-				"ownerID": device.Ownership.OwnerID, "details": device.Details}
+			devInfo := map[string]interface{}{
+				"id": device.ID, "name": device.Ownership.Name, "owned": device.Ownership.Owned,
+				"ownerID": device.Ownership.OwnerID, "details": device.Details,
+			}
 			deviceInfo = append(deviceInfo, devInfo)
 		}
 	}
@@ -83,7 +88,7 @@ func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	return c.client.OwnDevice(ctx, deviceID, local.WithOTM(local.OTMType_JustWorks))
+	return c.client.OwnDevice(ctx, deviceID, local.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 }
 
 // Get all resource Info of the device
@@ -96,7 +101,7 @@ func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	}
 	resourcesInfo := []map[string]interface{}{}
 	for _, link := range links {
-		info := map[string]interface{}{"href": link.Href} //, "rt":link.ResourceTypes, "if":link.Interfaces}
+		info := map[string]interface{}{"href": link.Href} // , "rt":link.ResourceTypes, "if":link.Interfaces}
 		resourcesInfo = append(resourcesInfo, info)
 	}
 
@@ -132,17 +137,12 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 }
 
 // Update a resource of the device
-func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{}) (string, error) {
+func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
 
 	opts := []local.UpdateOption{local.WithInterface(interfaces.OC_IF_RW)}
-	err := c.client.UpdateResource(ctx, deviceID, href, data, nil, opts...)
-	if err != nil {
-		return "", err
-	}
-
-	return "", nil
+	return c.client.UpdateResource(ctx, deviceID, href, data, nil, opts...)
 }
 
 // DisownDevice removes the current ownership

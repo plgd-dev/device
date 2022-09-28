@@ -27,7 +27,9 @@ func (h deprecatedDeviceHandler) Handle(ctx context.Context, device *Device) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(ctx, eps)
 	if err != nil {
-		device.Close(ctx)
+		if errC := device.Close(ctx); errC != nil {
+			h.Error(errC)
+		}
 		h.Error(err)
 		return
 	}
@@ -64,7 +66,9 @@ func (c *Client) GetDevicesV2(ctx context.Context, discoveryConfiguration Discov
 	}
 	defer func() {
 		for _, conn := range multicastConn {
-			conn.Close()
+			if errC := conn.Close(); errC != nil {
+				c.errFunc(fmt.Errorf("get devices error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+			}
 		}
 	}()
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
@@ -88,7 +92,9 @@ type discoveryHandler struct {
 }
 
 func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
-	conn.Close()
+	if errC := conn.Close(); errC != nil {
+		h.handler.Error(fmt.Errorf("discovery handler cannot close connection: %w", errC))
+	}
 	link, err := GetResourceLink(links, device.ResourceURI)
 	if err != nil {
 		h.handler.Error(err)

@@ -137,15 +137,13 @@ func (d *Device) popConnections() []*conn {
 // Close closes open connections to the device.
 func (d *Device) Close(ctx context.Context) error {
 	var errs []error
-	err := d.stopObservations(ctx)
-	if err != nil {
+	if err := d.stopObservations(ctx); err != nil {
 		errs = append(errs, err)
 	}
 
 	for _, conn := range d.popConnections() {
-		err = conn.Close()
-		if err != nil && !errors.Is(err, goNet.ErrClosed) {
-			errs = append(errs, err)
+		if errC := conn.Close(); errC != nil && !errors.Is(errC, goNet.ErrClosed) {
+			errs = append(errs, errC)
 		}
 		// wait for closing socket
 		<-conn.Done()

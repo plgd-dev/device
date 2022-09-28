@@ -1,17 +1,21 @@
-# This is a basic workflow to help you get started with Actions
-
+# Workflow to run tests, publish coverage to codecov and run SonarCloud scan
 name: Test
 
-# Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+# Run for events in main repository (for forked repository look in test-for-fork.yml)
 on:
   push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
-  # This workflow contains a single job called "build"
   test:
-    # The type of runner that the job will run on
+    # don't run for forks
+    if: github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -23,21 +27,32 @@ jobs:
             coverage: true
             tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v3
+      - name: "Full checkout"
+        if: ${{ matrix.coverage }}
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: "Shall checkout"
+        if: ${{ !matrix.coverage }}
+        uses: actions/checkout@v3
 
       - name: Setup kernel for multicast messages, increase read buffer to 8MB
         run: sudo sysctl -w net.core.rmem_max=8388608
 
-      # Runs a single command using the runners shell
-      - name: Run a test
+      - name: Run integration tests
         run: make test DEVSIM_IMAGE=${{ matrix.tag }}
 
       - name: Collect iotivity logs for devsim-net-host failed test
         if: ${{ failure() }}
         run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
+
+      # Run after integration tests, because they first clean-up the output directory
+      - name: Run unit tests
+        if: ${{ matrix.coverage }}
+        run: make unit-test
 
       - name: SonarCloud Scan
         if: ${{ matrix.coverage }}
@@ -49,4 +64,3 @@ jobs:
       - name: Publish the coverage
         if: ${{ matrix.coverage }}
         run: bash <(curl -s https://codecov.io/bash)
-

@@ -56,6 +56,7 @@ type ResourceIterator struct {
 // Returns false when failed or having no more items.
 // Check it.Err for errors.
 // Usage:
+//
 //	for {
 //		var v MyStruct
 //		if !it.Next(ctx, &v) {

@@ -10,15 +10,13 @@ import (
 	pkgError "github.com/plgd-dev/device/pkg/error"
 )
 
-type deviceOwnershipNone struct {
-}
+type deviceOwnershipNone struct{}
 
 func NewDeviceOwnershipNone() *deviceOwnershipNone {
 	return &deviceOwnershipNone{}
 }
 
-type noneSigner struct {
-}
+type noneSigner struct{}
 
 func (s noneSigner) Sign(context.Context, []byte) ([]byte, error) {
 	return nil, fmt.Errorf("sign is not supported by %T", s)
@@ -28,7 +26,7 @@ func (o *deviceOwnershipNone) GetIdentitySigner(accessToken string) core.Certifi
 	return noneSigner{}
 }
 
-func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmType OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
+func (o *deviceOwnershipNone) OwnDevice(ctx context.Context, deviceID string, otmTypes []OTMType, discoveryConfiguration core.DiscoveryConfiguration, own ownFunc, opts ...core.OwnOption) (string, error) {
 	return own(ctx, deviceID, nil, discoveryConfiguration, opts...)
 }
 

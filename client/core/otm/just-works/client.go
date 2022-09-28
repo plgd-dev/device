@@ -45,8 +45,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 }
 
 func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error) {
-	switch schema.Scheme(addr.GetScheme()) {
-	case schema.UDPSecureScheme:
+	if schema.Scheme(addr.GetScheme()) == schema.UDPSecureScheme {
 		tlsConfig := dtls.Config{
 			CustomCipherSuites: func() []dtls.CipherSuite {
 				return []dtls.CipherSuite{cipher.NewTLSAecdhAes128Sha256(dtls.CipherSuiteID(0xff00))}

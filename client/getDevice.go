@@ -20,7 +20,8 @@ func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoin
 }
 
 func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
-	deviceID string, disableUDPEndpoints bool) (*RefDevice, schema.ResourceLinks, bool) {
+	deviceID string, disableUDPEndpoints bool,
+) (*RefDevice, schema.ResourceLinks, bool) {
 	refDev, ok := deviceCache.GetDevice(ctx, deviceID)
 	if ok {
 		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)

@@ -31,7 +31,9 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	}
 	defer func() {
 		for _, conn := range multicastConn {
-			conn.Close()
+			if errC := conn.Close(); errC != nil {
+				c.errFunc(fmt.Errorf("get device by ip error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+			}
 		}
 	}()
 
@@ -60,7 +62,9 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 	}
 	defer func() {
 		for _, conn := range multicastConn {
-			conn.Close()
+			if errC := conn.Close(); errC != nil {
+				c.errFunc(fmt.Errorf("get device by multicast error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+			}
 		}
 	}()
 
@@ -109,7 +113,9 @@ func (h *deviceHandler) Device() *Device {
 }
 
 func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
-	conn.Close()
+	if errC := conn.Close(); errC != nil {
+		h.deviceCfg.ErrFunc(fmt.Errorf("device handler cannot close connection: %w", errC))
+	}
 	h.lock.Lock()
 	defer h.lock.Unlock()
 

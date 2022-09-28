@@ -82,10 +82,12 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 	}
 }
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
-type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
-type DialUDP = func(ctx context.Context, addr string, opts ...udp.Option) (*coap.ClientCloseHandler, error)
-type DialTCP = func(ctx context.Context, addr string, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
+type (
+	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
+	DialUDP  = func(ctx context.Context, addr string, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTCP  = func(ctx context.Context, addr string, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
+)
 
 func WithDialDTLS(dial DialDTLS) OptionFunc {
 	return func(cfg config) config {

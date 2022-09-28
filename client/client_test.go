@@ -88,6 +88,4 @@ func disown(t *testing.T, c *client.Client, deviceID string) {
 	require.NoError(t, err)
 }
 
-var (
-	CertIdentity = "00000000-0000-0000-0000-000000000001"
-)
+var CertIdentity = "00000000-0000-0000-0000-000000000001"

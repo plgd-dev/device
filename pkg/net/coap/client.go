@@ -161,6 +161,14 @@ func (c *Client) UpdateResource(
 	return c.UpdateResourceWithCodec(ctx, href, codecOcf.VNDOCFCBORCodec{}, request, response, options...)
 }
 
+func requestError(m *pool.Message) error {
+	return fmt.Errorf("request failed: %s", codecOcf.Dump(m))
+}
+
+func decodeError(href string, err error) error {
+	return fmt.Errorf("could not decode the query %s: %w", href, err)
+}
+
 func (c *Client) UpdateResourceWithCodec(
 	ctx context.Context,
 	href string,
@@ -186,10 +194,10 @@ func (c *Client) UpdateResourceWithCodec(
 		return fmt.Errorf("could not query %s: %w", href, err)
 	}
 	if resp.Code() != codes.Changed && resp.Code() != codes.Valid && resp.Code() != codes.Created {
-		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
+		return status.Error(resp, requestError(resp))
 	}
 	if err := codec.Decode(resp, response); err != nil {
-		return status.Error(resp, fmt.Errorf("could not decode the query %s: %w", href, err))
+		return status.Error(resp, decodeError(href, err))
 	}
 	return nil
 }
@@ -219,10 +227,10 @@ func (c *Client) GetResourceWithCodec(
 		return fmt.Errorf("could not get %s: %w", href, err)
 	}
 	if resp.Code() != codes.Content {
-		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
+		return status.Error(resp, requestError(resp))
 	}
 	if err := codec.Decode(resp, response); err != nil {
-		return status.Error(resp, fmt.Errorf("could not decode the query %s: %w", href, err))
+		return status.Error(resp, decodeError(href, err))
 	}
 	return nil
 }
@@ -243,10 +251,10 @@ func (c *Client) DeleteResourceWithCodec(
 		return fmt.Errorf("could not delete %s: %w", href, err)
 	}
 	if resp.Code() != codes.Deleted {
-		return status.Error(resp, fmt.Errorf("request failed: %s", codecOcf.Dump(resp)))
+		return status.Error(resp, requestError(resp))
 	}
 	if err := codec.Decode(resp, response); err != nil {
-		return status.Error(resp, fmt.Errorf("could not decode the query %s: %w", href, err))
+		return status.Error(resp, decodeError(href, err))
 	}
 	return nil
 }
@@ -295,14 +303,11 @@ func (c *Client) Observe(
 
 func observationHandler(c *Client, codec Codec, handler ObservationHandler) func(*pool.Message) {
 	return func(msg *pool.Message) {
-		close := false
 		_, err := msg.Options().Observe()
 		// If msg doesn't contains observe option it means the resource doesn't support observation.
-		if err != nil {
-			close = true
-		}
+		doClose := err != nil
 		handler.Handle(c, decodeObservation(codec, msg))
-		if close {
+		if doClose {
 			handler.Close()
 		}
 	}
@@ -513,7 +518,9 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 
 	if dtlsCfg.ConnectContextMaker == nil {
 		dtlsCfg.ConnectContextMaker = func() (context.Context, func()) {
-			return ctx, func() {}
+			return ctx, func() {
+				// no-op
+			}
 		}
 	}
 	dopts := make([]udp.Option, 0, len(opts)+4)

@@ -64,7 +64,7 @@ func (s OperationalState) String() string {
 	case OperationalState_RFNOP:
 		return "RFNOP"
 	case OperationalState_SRESET:
-		return "OperationalState_SRESET"
+		return "SRESET"
 	default:
 		return fmt.Sprintf("unknown %v", int(s))
 	}
@@ -113,7 +113,7 @@ const (
 )
 
 func (s ProvisioningMode) String() string {
-	res := make([]string, 0, 4)
+	res := make([]string, 0, 3)
 	if s.Has(ProvisioningMode_INIT_SOFT_VER_VALIDATION) {
 		res = append(res, "INIT_SOFT_VER_VALIDATION")
 		s &^= ProvisioningMode_INIT_SOFT_VER_VALIDATION

@@ -11,6 +11,7 @@ import (
 
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/client/core/otm"
 	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
 	"github.com/plgd-dev/device/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/pkg/error"
@@ -110,7 +111,8 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		},
 		GetCertificateAuthorities: func() ([]*x509.Certificate, error) {
 			return identityIntermediateCA, nil
-		}}),
+		},
+	}),
 	)
 
 	c := core.NewClient(opts...)
@@ -131,7 +133,7 @@ func (c *Client) SetUpTestDevice(t *testing.T) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
-	err = device.Own(timeout, links, c.mfgOtm, core.WithSetupCertificates(signer.Sign))
+	err = device.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(t, err)
 	links, err = device.GetResourceLinks(timeout, eps)
 	require.NoError(t, err)
@@ -153,6 +155,4 @@ func (c *Client) Close() error {
 	return c.Device.Close(timeout)
 }
 
-var (
-	CertIdentity = "00000000-0000-0000-0000-000000000001"
-)
+var CertIdentity = "00000000-0000-0000-0000-000000000001"
