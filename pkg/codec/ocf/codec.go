@@ -9,6 +9,12 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 )
 
+const (
+	errUnknownContentFormat = "cannot get content format: %w"
+	errEmptyBody            = "unexpected empty body"
+	errReadBody             = "cannot read body: %w"
+)
+
 // VNDOCFCBORCodec encodes/decodes according to the CoAP content format/media type.
 type VNDOCFCBORCodec struct{}
 
@@ -27,13 +33,13 @@ func (VNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 	}
 	mt, err := m.Options().ContentFormat()
 	if err != nil {
-		return fmt.Errorf("cannot get content format: %w", err)
+		return fmt.Errorf(errUnknownContentFormat, err)
 	}
 	if mt != message.AppCBOR && mt != message.AppOcfCbor {
 		return fmt.Errorf("not a CBOR content format: %v", mt)
 	}
 	if m.Body() == nil {
-		return fmt.Errorf("unexpected empty body")
+		return fmt.Errorf(errEmptyBody)
 	}
 
 	if err := cbor.ReadFrom(m.Body(), v); err != nil {
@@ -70,13 +76,13 @@ func (c RawVNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 		if m.Body() == nil {
 			return nil
 		}
-		return fmt.Errorf("cannot get content format: %w", err)
+		return fmt.Errorf(errUnknownContentFormat, err)
 	}
 	if mt != message.AppCBOR && mt != message.AppOcfCbor {
 		return fmt.Errorf("not a CBOR content format: %v", mt)
 	}
 	if m.Body() == nil {
-		return fmt.Errorf("unexpected empty body")
+		return fmt.Errorf(errEmptyBody)
 	}
 
 	p, ok := v.(*[]byte)
@@ -85,7 +91,7 @@ func (c RawVNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 	}
 	b, err := io.ReadAll(m.Body())
 	if err != nil {
-		return fmt.Errorf("cannot read body: %w", err)
+		return fmt.Errorf(errReadBody, err)
 	}
 	*p = b
 	return nil
@@ -118,13 +124,13 @@ func (c NoCodec) Decode(m *pool.Message, v interface{}) error {
 		if m.Body() == nil {
 			return nil
 		}
-		return fmt.Errorf("cannot get content format: %w", err)
+		return fmt.Errorf(errUnknownContentFormat, err)
 	}
 	if mt != c.ContentFormat() {
 		return fmt.Errorf("unexpected content format: %v", mt)
 	}
 	if m.Body() == nil {
-		return fmt.Errorf("unexpected empty body")
+		return fmt.Errorf(errEmptyBody)
 	}
 
 	p, ok := v.(*[]byte)
@@ -133,7 +139,7 @@ func (c NoCodec) Decode(m *pool.Message, v interface{}) error {
 	}
 	b, err := io.ReadAll(m.Body())
 	if err != nil {
-		return fmt.Errorf("cannot read body: %w", err)
+		return fmt.Errorf(errReadBody, err)
 	}
 	*p = b
 	return nil
@@ -146,19 +152,19 @@ func DumpPayload(m *pool.Message) (string, error) {
 	}
 	mt, err := m.Options().ContentFormat()
 	if err != nil {
-		return "", fmt.Errorf("cannot get content format: %w", err)
+		return "", fmt.Errorf(errUnknownContentFormat, err)
 	}
 	switch mt {
 	case message.TextPlain, message.AppJSON:
 		b, err := io.ReadAll(m.Body())
 		if err != nil {
-			return "", fmt.Errorf("cannot read body: %w", err)
+			return "", fmt.Errorf(errReadBody, err)
 		}
 		return string(b), nil
 	case message.AppCBOR, message.AppOcfCbor:
 		b, err := io.ReadAll(m.Body())
 		if err != nil {
-			return "", fmt.Errorf("cannot read body: %w", err)
+			return "", fmt.Errorf(errReadBody, err)
 		}
 		return cbor.ToJSON(b)
 	default:
