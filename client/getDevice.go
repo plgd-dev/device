@@ -48,10 +48,9 @@ func (c *Client) GetRefDeviceByIP(
 ) (*RefDevice, schema.ResourceLinks, error) {
 	dev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
-		for k, v := range c.deviceCache.GetContent() {
-			if v == ip {
-				e, ok := c.deviceCache.GetDevice(ctx, k)
-				if ok {
+		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
+			if devIP == ip {
+				if e, ok := c.deviceCache.GetDevice(ctx, devID); ok {
 					e.Device().Close(ctx)
 					e.Release(ctx)
 				}
@@ -169,7 +168,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 }
 
 func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
-	return c.deviceCache.GetContent()
+	return c.deviceCache.GetDevicesFoundByIP()
 }
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.

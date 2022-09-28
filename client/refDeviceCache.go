@@ -211,7 +211,7 @@ func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
 	return items
 }
 
-func (c *refDeviceCache) GetContent() map[string]string {
+func (c *refDeviceCache) GetDevicesFoundByIP() map[string]string {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
 	devices := make(map[string]string)
