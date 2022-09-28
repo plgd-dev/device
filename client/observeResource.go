@@ -15,7 +15,7 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
-	kitSync "github.com/plgd-dev/kit/v2/sync"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 )
 
 type observerCodec struct {
@@ -57,7 +57,7 @@ type observationsHandler struct {
 	observationID string
 	lastMessage   atomic.Value
 
-	observations *kitSync.Map
+	observations *coapSync.Map[string, *observationHandler]
 }
 
 type decodeFunc = func(v interface{}, codec coap.Codec) error
@@ -166,20 +166,18 @@ func (c *Client) ObserveResource(
 	}
 
 	key := uuid.NewSHA1(uuid.NameSpaceURL, []byte(deviceID+href+"?if="+cfg.resourceInterface)).String()
-	val, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(value interface{}) interface{} {
-		h := value.(*observationsHandler)
+	h, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(h *observationsHandler) *observationsHandler {
 		h.Lock()
 		return h
-	}, func() interface{} {
+	}, func() *observationsHandler {
 		h := observationsHandler{
-			observations: kitSync.NewMap(),
+			observations: coapSync.NewMap[string, *observationHandler](),
 			client:       c,
 			id:           key,
 		}
 		h.Lock()
 		return &h
 	})
-	h := val.(*observationsHandler)
 	defer h.Unlock()
 	lastMessage := h.lastMessage.Load()
 	var firstMessage decodeFunc
@@ -234,13 +232,13 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	}
 	var resourceObservationID string
 	var deleteDevice *RefDevice
-	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, delete bool) {
+	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue *observationsHandler, oldLoaded bool) (newValue *observationsHandler, delete bool) {
 		if !oldLoaded {
 			return nil, true
 		}
-		h := oldValue.(*observationsHandler)
+		h := oldValue
 		resourceObservationID = h.observationID
-		_, ok := h.observations.PullOut(internalResourceObservationID)
+		_, ok := h.observations.LoadAndDelete(internalResourceObservationID)
 		if !ok {
 			return h, false
 		}
@@ -265,7 +263,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 }
 
 func (c *Client) closeObservingResource(ctx context.Context, o *observationsHandler) {
-	_, ok := c.observeResourceCache.PullOut(o.id)
+	_, ok := c.observeResourceCache.LoadAndDelete(o.id)
 	if !ok {
 		return
 	}
@@ -290,22 +288,18 @@ func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) 
 	}
 	decode := createDecodeFunc(message)
 	o.lastMessage.Store(decode)
-	observations := make([]*observationHandler, 0, 4)
-	o.observations.Range(func(key, value interface{}) bool {
-		observations = append(observations, value.(*observationHandler))
+	o.observations.Range(func(key string, h *observationHandler) bool {
+		h.HandleMessage(ctx, decode)
 		return true
 	})
-	for _, h := range observations {
-		h.HandleMessage(ctx, decode)
-	}
 }
 
 func (o *observationsHandler) OnClose() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	o.client.closeObservingResource(ctx, o)
-	for _, h := range o.observations.PullOutAll() {
-		h.(*observationHandler).handler.OnClose()
+	for _, h := range o.observations.LoadAndDeleteAll() {
+		h.handler.OnClose()
 	}
 }
 
@@ -313,7 +307,7 @@ func (o *observationsHandler) Error(err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	o.client.closeObservingResource(ctx, o)
-	for _, h := range o.observations.PullOutAll() {
-		h.(*observationHandler).handler.Error(err)
+	for _, h := range o.observations.LoadAndDeleteAll() {
+		h.handler.Error(err)
 	}
 }

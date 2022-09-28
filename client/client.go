@@ -14,11 +14,11 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	"github.com/plgd-dev/go-coap/v3/options"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	tcpClient "github.com/plgd-dev/go-coap/v3/tcp/client"
 	"github.com/plgd-dev/go-coap/v3/udp"
 	udpClient "github.com/plgd-dev/go-coap/v3/udp/client"
-	kitSync "github.com/plgd-dev/kit/v2/sync"
 )
 
 type ApplicationCallback = interface {
@@ -169,7 +169,7 @@ func NewClient(
 		client:                  oc,
 		app:                     app,
 		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
-		observeResourceCache:    kitSync.NewMap(),
+		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
@@ -195,7 +195,7 @@ type Client struct {
 
 	deviceCache *refDeviceCache
 
-	observeResourceCache    *kitSync.Map
+	observeResourceCache    *coapSync.Map[string, *observationsHandler]
 	observerPollingInterval time.Duration
 
 	deviceOwner DeviceOwner

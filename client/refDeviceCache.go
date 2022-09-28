@@ -198,7 +198,7 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 func (c *refDeviceCache) popTemporaryCache() map[string]*cache.Element[*RefDevice] {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
-	items := c.temporaryCache.PullOutAll()
+	items := c.temporaryCache.LoadAndDeleteAll()
 	return items
 }
 
