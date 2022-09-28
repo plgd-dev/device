@@ -485,14 +485,6 @@ func (d *Device) Own(
 		return MakeInternal(fmt.Errorf("cannot set device to provision operation mode: %w", err))
 	}
 
-	links, err = getResourceLinks(ctx, tlsAddr, tlsClient, d.GetEndpoints())
-	if err != nil {
-		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
-		}
-		return MakeUnavailable(fmt.Errorf("cannot get resource links: %w", err))
-	}
-
 	id, err := uuid.Parse(sdkID)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
