@@ -51,61 +51,33 @@ func (VNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 
 // RawVNDOCFCBORCodec performes no encoding/decoding but
 // it propagates/validates the CoAP content format/media type.
-type RawVNDOCFCBORCodec struct{}
-
-// ContentFormat used for encoding.
-func (RawVNDOCFCBORCodec) ContentFormat() message.MediaType { return message.AppOcfCbor }
-
-// Encode propagates the payload without any conversions.
-func (c RawVNDOCFCBORCodec) Encode(v interface{}) ([]byte, error) {
-	p, ok := v.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("expected []byte")
+func MakeRawVNDOCFCBORCodec() RawCodec {
+	return RawCodec{
+		EncodeMediaType: message.AppOcfCbor,
+		DecodeMediaTypes: []message.MediaType{
+			message.AppOcfCbor,
+			message.AppCBOR,
+		},
 	}
-	return p, nil
 }
 
-// Decode validates the content format and
-// propagates the payload to v as *[]byte without any conversions.
-func (c RawVNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
-	if v == nil {
-		return nil
-	}
-	mt, err := m.Options().ContentFormat()
-	if err != nil {
-		if m.Body() == nil {
-			return nil
-		}
-		return fmt.Errorf(errUnknownContentFormat, err)
-	}
-	if mt != message.AppCBOR && mt != message.AppOcfCbor {
-		return fmt.Errorf("not a CBOR content format: %v", mt)
-	}
-	if m.Body() == nil {
-		return fmt.Errorf(errEmptyBody)
-	}
-
-	p, ok := v.(*[]byte)
-	if !ok {
-		return fmt.Errorf("expected *[]byte")
-	}
-	b, err := io.ReadAll(m.Body())
-	if err != nil {
-		return fmt.Errorf(errReadBody, err)
-	}
-	*p = b
-	return nil
-}
-
-// NoCodec performes no encoding/decoding but
+// RawCodec performs no encoding/decoding but
 // it propagates/validates the CoAP content format/media type.
-type NoCodec struct{ MediaType uint16 }
+type RawCodec struct {
+	EncodeMediaType  message.MediaType
+	DecodeMediaTypes []message.MediaType
+}
 
-// ContentFormat propagates the CoAP media type.
-func (c NoCodec) ContentFormat() message.MediaType { return message.MediaType(c.MediaType) }
+// ContentFormat propagates the CoAP media type
+func (c RawCodec) ContentFormat() message.MediaType { return c.EncodeMediaType }
+
+// ContentFormat propagates the CoAP media type
+func (c RawCodec) DecodeContentFormat() []message.MediaType {
+	return c.DecodeMediaTypes
+}
 
 // Encode propagates the payload without any conversions.
-func (c NoCodec) Encode(v interface{}) ([]byte, error) {
+func (c RawCodec) Encode(v interface{}) ([]byte, error) {
 	p, ok := v.([]byte)
 	if !ok {
 		return nil, fmt.Errorf("expected []byte")
@@ -113,9 +85,18 @@ func (c NoCodec) Encode(v interface{}) ([]byte, error) {
 	return p, nil
 }
 
+func contains(a []message.MediaType, x message.MediaType) bool {
+	for _, n := range a {
+		if x == n {
+			return true
+		}
+	}
+	return false
+}
+
 // Decode validates the content format and
 // propagates the payload to v as *[]byte without any conversions.
-func (c NoCodec) Decode(m *pool.Message, v interface{}) error {
+func (c RawCodec) Decode(m *pool.Message, v interface{}) error {
 	if v == nil {
 		return nil
 	}
@@ -126,8 +107,8 @@ func (c NoCodec) Decode(m *pool.Message, v interface{}) error {
 		}
 		return fmt.Errorf(errUnknownContentFormat, err)
 	}
-	if mt != c.ContentFormat() {
-		return fmt.Errorf("unexpected content format: %v", mt)
+	if !contains(c.DecodeMediaTypes, mt) {
+		return fmt.Errorf("unexpected content format: %v, supported content formats: %v", mt, c.DecodeMediaTypes)
 	}
 	if m.Body() == nil {
 		return fmt.Errorf(errEmptyBody)
