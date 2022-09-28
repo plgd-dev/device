@@ -2,7 +2,7 @@ package ocf
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	"github.com/plgd-dev/device/pkg/codec/cbor"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -83,7 +83,7 @@ func (c RawVNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 	if !ok {
 		return fmt.Errorf("expected *[]byte")
 	}
-	b, err := ioutil.ReadAll(m.Body())
+	b, err := io.ReadAll(m.Body())
 	if err != nil {
 		return fmt.Errorf("cannot read body: %w", err)
 	}
@@ -131,7 +131,7 @@ func (c NoCodec) Decode(m *pool.Message, v interface{}) error {
 	if !ok {
 		return fmt.Errorf("expected *[]byte")
 	}
-	b, err := ioutil.ReadAll(m.Body())
+	b, err := io.ReadAll(m.Body())
 	if err != nil {
 		return fmt.Errorf("cannot read body: %w", err)
 	}
@@ -150,13 +150,13 @@ func DumpPayload(m *pool.Message) (string, error) {
 	}
 	switch mt {
 	case message.TextPlain, message.AppJSON:
-		b, err := ioutil.ReadAll(m.Body())
+		b, err := io.ReadAll(m.Body())
 		if err != nil {
 			return "", fmt.Errorf("cannot read body: %w", err)
 		}
 		return string(b), nil
 	case message.AppCBOR, message.AppOcfCbor:
-		b, err := ioutil.ReadAll(m.Body())
+		b, err := io.ReadAll(m.Body())
 		if err != nil {
 			return "", fmt.Errorf("cannot read body: %w", err)
 		}

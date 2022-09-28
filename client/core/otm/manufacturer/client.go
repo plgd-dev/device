@@ -10,11 +10,13 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+type DialTLS = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
 
 type Client struct {
 	manufacturerCertificate tls.Certificate
@@ -64,7 +66,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 	return doxm.ManufacturerCertificate
 }
 
-func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		rootCAs := x509.NewCertPool()
@@ -78,7 +80,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOp
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialDTLS(ctx, addr.String(), &tlsConfig)
 	case schema.TCPSecureScheme:
 		rootCAs := x509.NewCertPool()
 		for _, ca := range c.manufacturerCA {
@@ -89,7 +91,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOp
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return c.dialTLS(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialTLS(ctx, addr.String(), &tlsConfig)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }

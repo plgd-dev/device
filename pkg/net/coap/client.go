@@ -20,15 +20,10 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
-	udppool "github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/plgd-dev/go-coap/v3/message/status"
-	"github.com/plgd-dev/go-coap/v3/net/blockwise"
-	"github.com/plgd-dev/go-coap/v3/net/monitor/inactivity"
 	"github.com/plgd-dev/go-coap/v3/options"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/udp"
-	coapTcpClient "github.com/plgd-dev/go-coap/v3/udp/client"
-	coapUdpClient "github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 var errInactivityTimeout = fmt.Errorf("connection inactivity has reached a fail limit: closing connection")
@@ -401,139 +396,11 @@ func NewClientCloseHandler(conn ClientConn, onClose *OnCloseHandler) *ClientClos
 	return &ClientCloseHandler{Client: NewClient(conn), onClose: onClose}
 }
 
-type bwt struct {
-	enable          bool
-	szx             blockwise.SZX
-	transferTimeout time.Duration
-}
-
-type dialOptions struct {
-	DisableTCPSignalMessageCSM      bool
-	DisablePeerTCPSignalMessageCSMs bool
-	KeepaliveTimeout                time.Duration
-	InactivityMonitorTimeout        time.Duration
-	errors                          func(err error)
-	maxMessageSize                  uint32
-	dialer                          *net.Dialer
-	blockwise                       *bwt
-}
-
-type DialOptionFunc func(dialOptions) dialOptions
-
-func WithDialDisableTCPSignalMessageCSM() DialOptionFunc {
-	// Iotivity 1.3 close connection when it gets signal messages,
-	// but Iotivity 2.0 requires them.
-	return func(c dialOptions) dialOptions {
-		c.DisableTCPSignalMessageCSM = true
-		return c
-	}
-}
-
-func WithDialDisablePeerTCPSignalMessageCSMs() DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		// Disable processes Capabilities and Settings Messages from client - iotivity sends max message size without blockwise.
-		c.DisablePeerTCPSignalMessageCSMs = true
-		return c
-	}
-}
-
-// WithKeepAlive sets a policy that detects dropped connections within the connTimeout limit
-// while attempting to make 3 pings during that period.
-func WithKeepAlive(connectionTimeout time.Duration) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.KeepaliveTimeout = connectionTimeout
-		return c
-	}
-}
-
-// InactiveMonitor if connection is inactive for the given duration, it will be closed.
-func WithInactivityMonitor(inactivityTimeout time.Duration) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.InactivityMonitorTimeout = inactivityTimeout
-		return c
-	}
-}
-
-func WithErrors(errors func(err error)) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.errors = errors
-		return c
-	}
-}
-
-func WithMaxMessageSize(maxMessageSize uint32) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.maxMessageSize = maxMessageSize
-		return c
-	}
-}
-
-func WithDialer(dialer *net.Dialer) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.dialer = dialer
-		return c
-	}
-}
-
-func WithBlockwise(enable bool, szx blockwise.SZX, transferTimeout time.Duration) DialOptionFunc {
-	return func(c dialOptions) dialOptions {
-		c.blockwise = &bwt{
-			enable:          enable,
-			szx:             szx,
-			transferTimeout: transferTimeout,
-		}
-		return c
-	}
-}
-
-type InactiveCC inactivity.Conn
-
-func makeOnInactiveFunc[C InactiveCC](dialName string, errorsFn func(err error)) func(cc C) {
-	return func(cc C) {
-		if err := cc.Close(); err != nil {
-			errorsFn(fmt.Errorf("%v: %w", dialName, err))
-		}
-		errorsFn(errInactivityTimeout)
-	}
-}
-
-func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
+func DialUDP(ctx context.Context, addr string, opts ...udp.Option) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
-	var cfg dialOptions
-	for _, o := range opts {
-		cfg = o(cfg)
-	}
-	dopts := make([]udp.Option, 0, 4)
-	errorsFn := func(err error) {
-		// ignore by default
-	}
-	if cfg.errors != nil {
-		errorsFn = cfg.errors
-		dopts = append(dopts, options.WithErrors(cfg.errors))
-	}
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDP", errorsFn)))
-	}
-	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDP", errorsFn)))
-	}
-	if cfg.blockwise != nil {
-		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
-	}
-	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
-	}
-	if cfg.dialer != nil {
-		dopts = append(dopts, options.WithDialer(cfg.dialer))
-	} else {
-		deadline, ok := ctx.Deadline()
-		if ok {
-			dopts = append(dopts, options.WithDialer(&net.Dialer{
-				Timeout: time.Until(deadline),
-			}))
-		}
-	}
-	dopts = append(dopts, options.WithMessagePool(udppool.New(0, 0)))
+	dopts := make([]udp.Option, 0, len(opts)+4)
+	dopts = append(dopts, getDefaultUDPOptions(ctx)...)
+	dopts = append(dopts, opts...)
 	c, err := udp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -544,49 +411,11 @@ func DialUDP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientC
 	return NewClientCloseHandler(c, h), nil
 }
 
-func DialTCP(ctx context.Context, addr string, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
+func DialTCP(ctx context.Context, addr string, opts ...tcp.Option) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
-	var cfg dialOptions
-	for _, o := range opts {
-		cfg = o(cfg)
-	}
-	dopts := make([]tcp.Option, 0, 4)
-	errorsFn := func(err error) {
-		// ignore by default
-	}
-	if cfg.errors != nil {
-		errorsFn = cfg.errors
-		dopts = append(dopts, options.WithErrors(cfg.errors))
-	}
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCP", errorsFn)))
-	}
-	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCP", errorsFn)))
-	}
-	if cfg.DisablePeerTCPSignalMessageCSMs {
-		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
-	}
-	if cfg.DisableTCPSignalMessageCSM {
-		dopts = append(dopts, options.WithDisableTCPSignalMessageCSM())
-	}
-	if cfg.blockwise != nil {
-		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
-	}
-	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
-	}
-	if cfg.dialer != nil {
-		dopts = append(dopts, options.WithDialer(cfg.dialer))
-	} else {
-		deadline, ok := ctx.Deadline()
-		if ok {
-			dopts = append(dopts, options.WithDialer(&net.Dialer{
-				Timeout: time.Until(deadline),
-			}))
-		}
-	}
-	dopts = append(dopts, options.WithMessagePool(pool.New(0, 0)))
+	dopts := make([]tcp.Option, 0, len(opts)+4)
+	dopts = append(dopts, getDefaultTCPOptions(ctx, nil)...)
+	dopts = append(dopts, opts...)
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -633,50 +462,28 @@ func NewVerifyPeerCertificate(rootCAs *x509.CertPool, verifyPeerCertificate func
 	}
 }
 
-func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
-	h := NewOnCloseHandler()
-	var cfg dialOptions
-	for _, o := range opts {
-		cfg = o(cfg)
-	}
+func getDefaultTCPOptions(ctx context.Context, tlsCfg *tls.Config) []tcp.Option {
 	dopts := make([]tcp.Option, 0, 4)
-	dopts = append(dopts, options.WithTLS(tlsCfg))
-	errorsFn := func(err error) {
+	dopts = append(dopts, options.WithErrors(func(err error) {
 		// ignore by default
+	}), options.WithMessagePool(pool.New(0, 0)))
+	if tlsCfg != nil {
+		dopts = append(dopts, options.WithTLS(tlsCfg))
 	}
-	if cfg.errors != nil {
-		errorsFn = cfg.errors
-		dopts = append(dopts, options.WithErrors(cfg.errors))
+	deadline, ok := ctx.Deadline()
+	if ok {
+		dopts = append(dopts, options.WithDialer(&net.Dialer{
+			Timeout: time.Until(deadline),
+		}))
 	}
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCPSecure", errorsFn)))
-	}
-	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapTcpClient.Conn]("DialTCPSecure", errorsFn)))
-	}
-	if cfg.DisablePeerTCPSignalMessageCSMs {
-		dopts = append(dopts, options.WithDisablePeerTCPSignalMessageCSMs())
-	}
-	if cfg.DisableTCPSignalMessageCSM {
-		dopts = append(dopts, options.WithDisableTCPSignalMessageCSM())
-	}
-	if cfg.blockwise != nil {
-		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
-	}
-	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
-	}
-	if cfg.dialer != nil {
-		dopts = append(dopts, options.WithDialer(cfg.dialer))
-	} else {
-		deadline, ok := ctx.Deadline()
-		if ok {
-			dopts = append(dopts, options.WithDialer(&net.Dialer{
-				Timeout: time.Until(deadline),
-			}))
-		}
-	}
-	dopts = append(dopts, options.WithMessagePool(pool.New(0, 0)))
+	return dopts
+}
+
+func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*ClientCloseHandler, error) {
+	h := NewOnCloseHandler()
+	dopts := make([]tcp.Option, 0, len(opts)+4)
+	dopts = append(dopts, getDefaultTCPOptions(ctx, tlsCfg)...)
+	dopts = append(dopts, opts...)
 	c, err := tcp.Dial(addr, dopts...)
 	if err != nil {
 		return nil, err
@@ -687,7 +494,21 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 	return NewClientCloseHandler(c, h), nil
 }
 
-func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, opts ...DialOptionFunc) (*ClientCloseHandler, error) {
+func getDefaultUDPOptions(ctx context.Context) []udp.Option {
+	dopts := make([]udp.Option, 0, 4)
+	dopts = append(dopts, options.WithErrors(func(err error) {
+		// ignore by default
+	}), options.WithMessagePool(pool.New(0, 0)))
+	deadline, ok := ctx.Deadline()
+	if ok {
+		dopts = append(dopts, options.WithDialer(&net.Dialer{
+			Timeout: time.Until(deadline),
+		}))
+	}
+	return dopts
+}
+
+func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, opts ...udp.Option) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
 
 	if dtlsCfg.ConnectContextMaker == nil {
@@ -695,42 +516,9 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 			return ctx, func() {}
 		}
 	}
-
-	var cfg dialOptions
-	for _, o := range opts {
-		cfg = o(cfg)
-	}
-	dopts := make([]udp.Option, 0, 4)
-	errorsFn := func(err error) {
-		// ignore by default
-	}
-	if cfg.errors != nil {
-		errorsFn = cfg.errors
-		dopts = append(dopts, options.WithErrors(cfg.errors))
-	}
-	if cfg.KeepaliveTimeout != 0 {
-		dopts = append(dopts, options.WithKeepAlive(3, cfg.KeepaliveTimeout/3, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDPSecure", errorsFn)))
-	}
-	if cfg.InactivityMonitorTimeout != 0 {
-		dopts = append(dopts, options.WithInactivityMonitor(cfg.InactivityMonitorTimeout, makeOnInactiveFunc[*coapUdpClient.Conn]("DialUDPSecure", errorsFn)))
-	}
-	if cfg.blockwise != nil {
-		dopts = append(dopts, options.WithBlockwise(cfg.blockwise.enable, cfg.blockwise.szx, cfg.blockwise.transferTimeout))
-	}
-	if cfg.maxMessageSize > 0 {
-		dopts = append(dopts, options.WithMaxMessageSize(cfg.maxMessageSize))
-	}
-	if cfg.dialer != nil {
-		dopts = append(dopts, options.WithDialer(cfg.dialer))
-	} else {
-		deadline, ok := ctx.Deadline()
-		if ok {
-			dopts = append(dopts, options.WithDialer(&net.Dialer{
-				Timeout: time.Until(deadline),
-			}))
-		}
-	}
-	dopts = append(dopts, options.WithMessagePool(udppool.New(0, 0)))
+	dopts := make([]udp.Option, 0, len(opts)+4)
+	dopts = append(dopts, getDefaultUDPOptions(ctx)...)
+	dopts = append(dopts, opts...)
 	c, err := dtls.Dial(addr, dtlsCfg, dopts...)
 	if err != nil {
 		return nil, err

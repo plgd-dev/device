@@ -18,7 +18,7 @@ type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client interface {
 	Type() doxm.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+	Dial(ctx context.Context, addr kitNet.Addr /*, opts ...coap.DialOptionFunc*/) (*coap.ClientCloseHandler, error)
 }
 
 func encodeToPem(encoding csr.CertificateEncoding, data []byte) []byte {

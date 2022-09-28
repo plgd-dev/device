@@ -9,6 +9,7 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/go-coap/v3/udp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
@@ -16,7 +17,7 @@ type Client struct {
 	dialDTLS DialDTLS
 }
 
-type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+type DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
 
 type OptionFunc func(Client) Client
 
@@ -43,7 +44,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 	return doxm.JustWorks
 }
 
-func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		tlsConfig := dtls.Config{
@@ -55,7 +56,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOp
 				return context.WithCancel(ctx)
 			},
 		}
-		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialDTLS(ctx, addr.String(), &tlsConfig)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }
