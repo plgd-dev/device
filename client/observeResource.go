@@ -232,7 +232,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	}
 	var resourceObservationID string
 	var deleteDevice *RefDevice
-	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue *observationsHandler, oldLoaded bool) (newValue *observationsHandler, delete bool) {
+	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue *observationsHandler, oldLoaded bool) (newValue *observationsHandler, deleteHandler bool) {
 		if !oldLoaded {
 			return nil, true
 		}

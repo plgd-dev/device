@@ -26,8 +26,6 @@ import (
 	"github.com/plgd-dev/go-coap/v3/udp"
 )
 
-var errInactivityTimeout = fmt.Errorf("connection inactivity has reached a fail limit: closing connection")
-
 type Observation = interface {
 	Cancel(context.Context) error
 	Canceled() bool
