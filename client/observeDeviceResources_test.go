@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/device/test"
-	testTypes "github.com/plgd-dev/device/test/resource/types"
+	"github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/test"
+	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
 

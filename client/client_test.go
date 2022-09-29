@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 

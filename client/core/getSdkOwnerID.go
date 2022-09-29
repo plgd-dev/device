@@ -4,7 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 func getSdkError(err error) error {

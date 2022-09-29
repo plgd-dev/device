@@ -6,8 +6,8 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
-	pkgError "github.com/plgd-dev/device/pkg/error"
+	"github.com/plgd-dev/device/v2/client/core"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 )
 
 type deviceOwnershipNone struct{}

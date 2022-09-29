@@ -3,9 +3,9 @@ package core
 import (
 	"fmt"
 
-	"github.com/plgd-dev/device/pkg/codec/ocf"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 )

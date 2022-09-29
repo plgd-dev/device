@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	"github.com/plgd-dev/go-coap/v3/options"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"

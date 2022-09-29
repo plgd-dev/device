@@ -3,7 +3,7 @@ package credential_test
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/credential"
 	"github.com/stretchr/testify/require"
 )
 

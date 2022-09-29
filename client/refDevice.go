@@ -3,11 +3,11 @@ package client
 import (
 	"context"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/kit/v2/sync"
 )
 

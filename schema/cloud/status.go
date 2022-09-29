@@ -1,6 +1,6 @@
 package cloud
 
-import "github.com/plgd-dev/device/schema/interfaces"
+import "github.com/plgd-dev/device/v2/schema/interfaces"
 
 const (
 	StatusResourceType = "x.cloud.device.status"

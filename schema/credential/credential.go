@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/plgd-dev/device/schema/csr"
+	"github.com/plgd-dev/device/v2/schema/csr"
 )
 
 const (

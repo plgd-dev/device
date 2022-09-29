@@ -8,12 +8,12 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 

@@ -5,11 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 

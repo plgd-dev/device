@@ -11,7 +11,7 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/kit/v2/security"
 )
 

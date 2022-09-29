@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 

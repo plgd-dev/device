@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 	"go.uber.org/atomic"
 )

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/stretchr/testify/require"
 )
 

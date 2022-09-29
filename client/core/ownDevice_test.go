@@ -6,12 +6,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/test"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 	"github.com/stretchr/testify/require"
 )

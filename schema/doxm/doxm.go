@@ -5,7 +5,7 @@ package doxm
 import (
 	"fmt"
 
-	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/credential"
 )
 
 const (

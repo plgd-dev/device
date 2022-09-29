@@ -4,12 +4,12 @@ import (
 	"context"
 	"testing"
 
-	"github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema/configuration"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema/configuration"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 

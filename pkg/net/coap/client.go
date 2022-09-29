@@ -15,7 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	piondtls "github.com/pion/dtls/v2"
-	codecOcf "github.com/plgd-dev/device/pkg/codec/ocf"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/go-coap/v3/dtls"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"

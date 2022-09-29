@@ -5,10 +5,10 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema/credential"
-	"github.com/plgd-dev/device/schema/csr"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/csr"
+	"github.com/plgd-dev/device/v2/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
@@ -18,7 +18,7 @@ type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client interface {
 	Type() doxm.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr /*, opts ...coap.DialOptionFunc*/) (*coap.ClientCloseHandler, error)
+	Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error)
 }
 
 func encodeToPem(encoding csr.CertificateEncoding, data []byte) []byte {

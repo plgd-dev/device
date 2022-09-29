@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
 )
 
 // WithInterface updates/gets resource with interface directly from a device.

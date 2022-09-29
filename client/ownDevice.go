@@ -3,8 +3,8 @@ package client
 import (
 	"context"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
 )
 
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {

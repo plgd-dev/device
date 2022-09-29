@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/plgd-dev/device/client"
-	local "github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/pkg/codec/json"
-	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/v2/client"
+	local "github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/pkg/codec/json"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 )
 
 const Timeout = time.Second * 10

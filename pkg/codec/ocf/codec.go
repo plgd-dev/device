@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/plgd-dev/device/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 )

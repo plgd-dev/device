@@ -7,8 +7,8 @@ import (
 	"net"
 
 	"github.com/pion/dtls/v2"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/pkg/net/coap"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	coapNet "github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/udp"

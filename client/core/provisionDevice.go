@@ -6,11 +6,11 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/credential"
-	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/pstat"
 	"github.com/plgd-dev/kit/v2/strings"
 )
 

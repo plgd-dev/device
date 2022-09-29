@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/message"
 	udpMessage "github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/pool"

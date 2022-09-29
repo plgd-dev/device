@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 )
 
 // GetOwnership gets device's ownership resource.

@@ -1,4 +1,4 @@
-module github.com/plgd-dev/device
+module github.com/plgd-dev/device/v2
 
 go 1.18
 

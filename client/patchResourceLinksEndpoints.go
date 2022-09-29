@@ -1,8 +1,8 @@
 package client
 
 import (
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
 )
 
 // To support a keepalive feature, we need to filter tcp endpoints because:

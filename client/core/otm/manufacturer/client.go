@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/udp"
 	kitNet "github.com/plgd-dev/kit/v2/net"

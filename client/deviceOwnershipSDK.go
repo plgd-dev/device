@@ -10,11 +10,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/karrick/tparse/v2"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
-	"github.com/plgd-dev/device/client/core/otm/manufacturer"
-	pkgError "github.com/plgd-dev/device/pkg/error"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"
+	"github.com/plgd-dev/device/v2/client/core/otm/manufacturer"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/kit/v2/security"
 )
 
