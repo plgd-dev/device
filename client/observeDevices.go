@@ -209,7 +209,6 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 			return nil, err
 		}
 	}
-
 	return current, nil
 }
 

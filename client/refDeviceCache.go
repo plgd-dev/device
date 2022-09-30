@@ -127,7 +127,6 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 	deviceID := device.DeviceID()
 	for {
 		d := c.temporaryCache.Load(deviceID)
-
 		if d != nil {
 			// record is already in cache
 			dev := d.Data().(*RefDevice)
