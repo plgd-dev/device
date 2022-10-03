@@ -201,9 +201,9 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			require.True(t, ok)
 
 			// we should not be able to remove the device second time
-			//ok, err = c.RemoveDevice(ctx, got.ID)
-			//require.Error(t, err)
-			//require.False(t, ok)
+			ok, err = c.RemoveDevice(ctx, got.ID)
+			require.Error(t, err)
+			require.False(t, ok)
 		})
 	}
 }
