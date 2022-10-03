@@ -57,6 +57,7 @@ func (c *Client) GetRefDeviceByIP(
 		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
 			if devIP == ip {
 				if e, ok := c.deviceCache.GetDevice(ctx, devID); ok {
+					// the device is offline so close it's connections
 					e.Device().Close(ctx)
 					e.Release(ctx)
 				}
@@ -67,10 +68,11 @@ func (c *Client) GetRefDeviceByIP(
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}
+
 	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
 		deviceID := refDev.DeviceID()

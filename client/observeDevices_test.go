@@ -42,9 +42,7 @@ func TestObserveDevicesAddedByIP(t *testing.T) {
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()
-
 	discoveryConfig := core.DiscoveryConfiguration{}
-
 	ID, err := c.ObserveDevices(ctx, h, client.WithDiscoveryConfiguration(discoveryConfig))
 	require.NoError(t, err)
 	_, err = c.GetDeviceByIP(ctx, ip)
