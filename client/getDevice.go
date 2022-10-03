@@ -26,7 +26,6 @@ func removeDeviceNotFoundByIP(ctx context.Context, deviceCache *refDeviceCache, 
 	refDev.Device().Close(ctx)
 	if refDev.Device().FoundByIP() == "" {
 		deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
-		refDev.Release(ctx)
 	}
 }
 
@@ -38,6 +37,7 @@ func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
 		if err != nil {
 			removeDeviceNotFoundByIP(ctx, deviceCache, refDev)
+			refDev.Release(ctx)
 			return nil, nil, false
 		}
 		return refDev, links, true
@@ -77,7 +77,7 @@ func (c *Client) GetRefDeviceByIP(
 	if err != nil {
 		deviceID := refDev.DeviceID()
 		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
-
+		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
@@ -112,7 +112,7 @@ func (c *Client) GetRefDevice(
 	links, err = getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
 		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
-
+		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil

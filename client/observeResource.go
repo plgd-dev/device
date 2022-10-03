@@ -216,7 +216,7 @@ func (c *Client) ObserveResource(
 
 	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(d)
 	if !stored {
-		refDev.Release(ctx)
+		d.Release(ctx)
 	}
 
 	refDev.Acquire()
