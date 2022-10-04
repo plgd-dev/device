@@ -19,6 +19,16 @@ func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoin
 	return patchResourceLinksEndpoints(links, disableUDPEndpoints), nil
 }
 
+// Don't remove devices found by IP, the device is probably offline
+// and we will be not able to reestablish the connection when it will
+// come back online
+func removeDeviceNotFoundByIP(ctx context.Context, deviceCache *refDeviceCache, refDev *RefDevice) {
+	refDev.Device().Close(ctx)
+	if refDev.Device().FoundByIP() == "" {
+		deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+	}
+}
+
 func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 	deviceID string, disableUDPEndpoints bool,
 ) (*RefDevice, schema.ResourceLinks, bool) {
@@ -26,8 +36,7 @@ func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 	if ok {
 		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
 		if err != nil {
-			refDev.Device().Close(ctx)
-			deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+			removeDeviceNotFoundByIP(ctx, deviceCache, refDev)
 			refDev.Release(ctx)
 			return nil, nil, false
 		}
@@ -41,21 +50,33 @@ func (c *Client) GetRefDeviceByIP(
 	ctx context.Context,
 	ip string,
 ) (*RefDevice, schema.ResourceLinks, error) {
+	// we are intentionaly not searching for the device inside the cache
+	// as we wan't to contact the device
 	dev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
+		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
+			if devIP == ip {
+				if e, ok := c.deviceCache.GetDevice(ctx, devID); ok {
+					// the device is offline so close it's connections
+					e.Device().Close(ctx)
+					e.Release(ctx)
+				}
+				break
+			}
+		}
 		return nil, nil, err
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}
+
 	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
 		deviceID := refDev.DeviceID()
-		refDev.Device().Close(ctx)
-		c.deviceCache.RemoveDevice(ctx, deviceID, refDev)
+		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
 		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
@@ -90,8 +111,7 @@ func (c *Client) GetRefDevice(
 	}
 	links, err = getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
 	if err != nil {
-		refDev.Device().Close(ctx)
-		c.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
 		refDev.Release(ctx)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
@@ -139,6 +159,10 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	}
 	defer refDev.Release(ctx)
 	return c.getDevice(ctx, refDev, links, cfg.getDetails)
+}
+
+func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
+	return c.deviceCache.GetDevicesFoundByIP()
 }
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.

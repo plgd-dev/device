@@ -14,6 +14,7 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/net"
+	uberAtom "go.uber.org/atomic"
 	"golang.org/x/sync/semaphore"
 )
 
@@ -29,6 +30,7 @@ type DeviceConfiguration struct {
 
 type Device struct {
 	deviceID     string
+	foundByIP    uberAtom.String
 	deviceTypes  []string
 	getEndpoints func() schema.Endpoints
 	cfg          DeviceConfiguration
@@ -301,6 +303,20 @@ func (d *Device) setDeviceID(deviceID string) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 	d.deviceID = deviceID
+}
+
+func (d *Device) FoundByIP() string {
+	return d.foundByIP.Load()
+}
+
+func (d *Device) IsConnected() bool {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	return len(d.conn) > 0
+}
+
+func (d *Device) setFoundByIP(foundByIP string) {
+	d.foundByIP.Store(foundByIP)
 }
 
 func (d *Device) DeviceTypes() []string {

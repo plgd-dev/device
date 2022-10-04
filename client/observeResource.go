@@ -214,12 +214,12 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
-	err = c.deviceCache.StoreDeviceToPermanentCache(d)
-	if err != nil {
-		return "", err
+	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(d)
+	if !stored {
+		d.Release(ctx)
 	}
 
-	d.Acquire()
+	refDev.Acquire()
 	h.observationID = observationID
 	h.device = d
 
