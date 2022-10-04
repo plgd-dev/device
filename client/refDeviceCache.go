@@ -7,31 +7,20 @@ import (
 	"time"
 
 	"github.com/plgd-dev/go-coap/v2/pkg/cache"
-	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
 )
 
 type refDeviceCache struct {
-	cacheExpiration    time.Duration
-	temporaryCache     *cache.Cache
-	temporaryCacheLock sync.Mutex
-	errors             func(error)
+	defaultCacheExpiration time.Duration
+	devicesCache           *cache.Cache
+	devicesCacheLock       sync.Mutex
+	errors                 func(error)
 
-	permanentCache     map[string]*refCacheDevice // map[deviceID]
-	permanentCacheLock sync.Mutex
-	closed             atomic.Bool
-	done               chan struct{}
+	closed atomic.Bool
+	done   chan struct{}
 }
 
-type refCacheDevice struct {
-	*kitSync.RefCounter
-}
-
-func (r *refCacheDevice) device() *RefDevice {
-	return r.Data().(*RefDevice)
-}
-
-func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
+func NewRefDeviceCache(defaultCacheExpiration time.Duration, errors func(error)) *refDeviceCache {
 	done := make(chan struct{})
 	cache := cache.NewCache()
 	go func() {
@@ -47,95 +36,85 @@ func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDe
 		}
 	}()
 	return &refDeviceCache{
-		temporaryCache:  cache,
-		permanentCache:  make(map[string]*refCacheDevice),
-		cacheExpiration: cacheExpiration,
-		errors:          errors,
-		done:            done,
+		devicesCache:           cache,
+		defaultCacheExpiration: defaultCacheExpiration,
+		errors:                 errors,
+		done:                   done,
 	}
 }
 
-func (c *refDeviceCache) getFromPermanentCache(deviceID string) (_ *refCacheDevice, ok bool) {
-	c.permanentCacheLock.Lock()
-	defer c.permanentCacheLock.Unlock()
-	refCacheDev, ok := c.permanentCache[deviceID]
-	if ok {
-		refCacheDev.Acquire()
-	}
-	return refCacheDev, ok
-}
-
-func (c *refDeviceCache) getDeviceFromPermanentCache(ctx context.Context, deviceID string) (*RefDevice, bool) {
-	refCacheDev, ok := c.getFromPermanentCache(deviceID)
-	if !ok {
-		return nil, false
-	}
-	defer refCacheDev.Release(ctx)
-	dev := refCacheDev.device()
-	dev.Acquire()
-	return dev, true
-}
-
-func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, bool) {
-	c.temporaryCacheLock.Lock()
-	defer c.temporaryCacheLock.Unlock()
-	d := c.temporaryCache.Load(deviceID)
-	if d == nil {
-		return nil, false
-	}
-	dev := d.Data().(*RefDevice)
-	dev.Acquire()
-	return dev, true
-}
-
-func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, deviceID string, device *RefDevice) bool {
-	c.temporaryCacheLock.Lock()
-	defer c.temporaryCacheLock.Unlock()
-	d := c.temporaryCache.Load(deviceID)
+func (c *refDeviceCache) RemoveDevice(deviceID string, device *RefDevice) bool {
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
+	d := c.devicesCache.Load(deviceID)
 	if d == nil {
 		return false
 	}
 	dev := d.Data().(*RefDevice)
 	if device == dev {
 		// remove device from cache
-		c.temporaryCache.Delete(deviceID)
+		c.devicesCache.Delete(deviceID)
 		return true
 	}
 	return false
 }
 
-func (c *refDeviceCache) RemoveDevice(ctx context.Context, deviceID string, device *RefDevice) bool {
-	ok := c.RemoveDeviceFromTemporaryCache(ctx, deviceID, device)
-	return c.RemoveDeviceFromPermanentCache(ctx, deviceID, device) || ok
+func (c *refDeviceCache) GetDevice(deviceID string) (*RefDevice, bool) {
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
+	d := c.devicesCache.Load(deviceID)
+	if d == nil {
+		return nil, false
+	}
+	dev := d.Data().(*RefDevice)
+	dev.Acquire()
+	return dev, true
 }
 
-func (c *refDeviceCache) GetDevice(ctx context.Context, deviceID string) (*RefDevice, bool) {
-	dev, ok := c.getDeviceFromPermanentCache(ctx, deviceID)
-	if ok {
-		return dev, true
+func (c *refDeviceCache) GetDeviceExpiration(deviceID string) (time.Time, bool) {
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
+	d := c.devicesCache.Load(deviceID)
+	if d == nil {
+		return time.Time{}, false
 	}
-	dev, ok = c.getFromTemporaryCache(deviceID)
-	if ok {
-		return dev, true
-	}
-	return nil, false
+	return d.ValidUntil.Load(), true
 }
 
-func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*RefDevice, bool) {
-	c.temporaryCacheLock.Lock()
-	defer c.temporaryCacheLock.Unlock()
+// This function stores the device without timeout into the cache. The device can be removed from
+// the cache only by invoking removeDevice function. If a device with the same deviceID is already
+// in the cache, the previous reference will stay in the cache but it's expiration time will be removed.
+func (c *refDeviceCache) TryStoreDeviceWithoutTimeout(device *RefDevice) (*RefDevice, bool) {
+	return c.tryStoreDevice(device, time.Time{})
+}
+
+// This function stores the device with the defualt timeout into the cache. If a device with the same
+// deviceID is already in the cache no changes will be invoked.
+func (c *refDeviceCache) TryStoreDevice(device *RefDevice) (*RefDevice, bool) {
+	return c.tryStoreDevice(device, time.Now().Add(c.defaultCacheExpiration))
+}
+
+func (c *refDeviceCache) tryStoreDevice(device *RefDevice, expiration time.Time) (*RefDevice, bool) {
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
 	deviceID := device.DeviceID()
 
-	d := c.temporaryCache.Load(deviceID)
+	d := c.devicesCache.Load(deviceID)
 	if d != nil {
 		// record is already in cache
+		// if someone requieres from the device to be stored permanently (without timeout)
+		// override the expiration
+		if !d.ValidUntil.Load().IsZero() && expiration.IsZero() {
+			d.ValidUntil.Store(expiration)
+		}
+
 		dev := d.Data().(*RefDevice)
 		dev.Acquire()
 		return dev, false
 	}
 
 	// if the device was not in the cache store it
-	loadedDev, _ := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
+	loadedDev, _ := c.devicesCache.LoadOrStore(deviceID, cache.NewElement(device, expiration, func(d1 interface{}) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
 		err := d1.(*RefDevice).Release(ctx)
@@ -148,86 +127,27 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 	return refDev, true
 }
 
-func (c *refDeviceCache) TryStoreDeviceToPermanentCache(device *RefDevice) (*RefDevice, bool) {
-	c.permanentCacheLock.Lock()
-	defer c.permanentCacheLock.Unlock()
-	deviceID := device.DeviceID()
-
-	d, ok := c.permanentCache[deviceID]
-	if ok {
-		// record is already in cache
-		dev := d.Data().(*RefDevice)
-		dev.Acquire()
-		return dev, false
-	}
-
-	// if the device was not in the cache store it
-	c.permanentCache[deviceID] = &refCacheDevice{
-		RefCounter: kitSync.NewRefCounter(device, func(ctx context.Context, data interface{}) error {
-			dev := data.(*RefDevice)
-			deviceID := dev.DeviceID()
-			err := dev.Release(ctx)
-			c.permanentCacheLock.Lock()
-			defer c.permanentCacheLock.Unlock()
-			delete(c.permanentCache, deviceID)
-			return err
-		}),
-	}
-	refDev := c.permanentCache[deviceID].Data().(*RefDevice)
-	refDev.Acquire()
-	return refDev, true
-}
-
-func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, deviceID string, device *RefDevice) bool {
-	refCacheDev, ok := c.getFromPermanentCache(deviceID)
-	if !ok {
-		return false
-	}
-	defer refCacheDev.Release(ctx)
-
-	dev := refCacheDev.device()
-
-	if dev == device {
-		// remove device from cache
-		refCacheDev.Release(ctx)
-		return true
-	}
-
-	return false
-}
-
-func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
-	c.temporaryCacheLock.Lock()
-	defer c.temporaryCacheLock.Unlock()
-	items := c.temporaryCache.PullOutAll()
+func (c *refDeviceCache) popDevices() map[interface{}]interface{} {
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
+	items := c.devicesCache.PullOutAll()
 	return items
 }
 
 func (c *refDeviceCache) GetDevicesFoundByIP() map[string]string {
-	c.permanentCacheLock.Lock()
-	defer c.permanentCacheLock.Unlock()
+	c.devicesCacheLock.Lock()
+	defer c.devicesCacheLock.Unlock()
 	devices := make(map[string]string)
 
-	for _, refCacheDev := range c.permanentCache {
-		d := refCacheDev.Data().(*RefDevice)
+	c.devicesCache.Range(func(key, value interface{}) bool {
+		d := value.(*RefDevice)
 
 		if ip := d.FoundByIP(); ip != "" {
 			devices[d.DeviceID()] = ip
 		}
-	}
+		return true
+	})
 
-	return devices
-}
-
-func (c *refDeviceCache) getPermanentCacheDevices() []*refCacheDevice {
-	c.permanentCacheLock.Lock()
-	defer c.permanentCacheLock.Unlock()
-
-	devices := make([]*refCacheDevice, 0, len(c.permanentCache))
-	for _, refCacheDev := range c.permanentCache {
-		refCacheDev.Acquire()
-		devices = append(devices, refCacheDev)
-	}
 	return devices
 }
 
@@ -236,25 +156,14 @@ func (c *refDeviceCache) Close(ctx context.Context) error {
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
-	for _, val := range c.popTemporaryCache() {
+	for _, val := range c.popDevices() {
 		d := val.(*RefDevice)
 		err := d.Release(ctx)
 		if err != nil {
 			errors = append(errors, err)
 		}
 	}
-	for _, d := range c.getPermanentCacheDevices() {
-		// release acquire from getPermanentCacheDevices
-		err := d.Release(ctx)
-		if err != nil {
-			errors = append(errors, err)
-		}
-		// remove device from cache
-		err = d.Release(ctx)
-		if err != nil {
-			errors = append(errors, err)
-		}
-	}
+
 	if len(errors) > 0 {
 		return fmt.Errorf("%v", errors)
 	}

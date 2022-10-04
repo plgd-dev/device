@@ -6,23 +6,13 @@ import (
 )
 
 func (c *Client) RemoveDevice(ctx context.Context, deviceID string) (bool, error) {
-	var removed bool
-	// TODO: temporary workaroud to remove devices from both caches
-	// will be fixed by combining temporary/permanent cache into a single one
-	for {
-		refDev, found := c.deviceCache.GetDevice(ctx, deviceID)
-		if !found {
-			if removed {
-				break
-			}
-			return false, fmt.Errorf("Device not found")
-		}
-		removed = true
-		defer refDev.Release(ctx)
-		if !c.deviceCache.RemoveDevice(ctx, deviceID, refDev) {
-			break
-		}
+	refDev, found := c.deviceCache.GetDevice(deviceID)
+	if !found {
+		return false, fmt.Errorf("Device not found")
 	}
+
+	defer refDev.Release(ctx)
+	removed := c.deviceCache.RemoveDevice(deviceID, refDev)
 
 	return removed, nil
 }

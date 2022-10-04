@@ -25,14 +25,14 @@ func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoin
 func removeDeviceNotFoundByIP(ctx context.Context, deviceCache *refDeviceCache, refDev *RefDevice) {
 	refDev.Device().Close(ctx)
 	if refDev.Device().FoundByIP() == "" {
-		deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+		deviceCache.RemoveDevice(refDev.DeviceID(), refDev)
 	}
 }
 
 func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
 	deviceID string, disableUDPEndpoints bool,
 ) (*RefDevice, schema.ResourceLinks, bool) {
-	refDev, ok := deviceCache.GetDevice(ctx, deviceID)
+	refDev, ok := deviceCache.GetDevice(deviceID)
 	if ok {
 		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
 		if err != nil {
@@ -56,7 +56,7 @@ func (c *Client) GetRefDeviceByIP(
 	if err != nil {
 		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
 			if devIP == ip {
-				if e, ok := c.deviceCache.GetDevice(ctx, devID); ok {
+				if e, ok := c.deviceCache.GetDevice(devID); ok {
 					// the device is offline so close it's connections
 					e.Device().Close(ctx)
 					e.Release(ctx)
@@ -68,7 +68,7 @@ func (c *Client) GetRefDeviceByIP(
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(newRefDev)
+	refDev, stored := c.deviceCache.TryStoreDeviceWithoutTimeout(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}
@@ -105,7 +105,7 @@ func (c *Client) GetRefDevice(
 	}
 
 	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	refDev, stored := c.deviceCache.TryStoreDevice(newRefDev)
 	if !stored {
 		newRefDev.Release(ctx)
 	}

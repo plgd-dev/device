@@ -13,7 +13,7 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...Comm
 	if err != nil {
 		return err
 	}
-	c.deviceCache.RemoveDevice(ctx, d.DeviceID(), d)
+	c.deviceCache.RemoveDevice(d.DeviceID(), d)
 	defer d.Release(ctx)
 
 	ok := d.IsSecured()

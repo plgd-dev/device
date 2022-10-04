@@ -202,17 +202,17 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 
 func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 	newRefDev := NewRefDevice(d)
-	refDev, stored := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+	refDev, stored := h.deviceCache.TryStoreDevice(newRefDev)
 	defer refDev.Release(ctx)
 	links, err := getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
 	d = refDev.Device()
 	if err != nil {
 		refDev.Device().Close(ctx)
-		h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+		h.deviceCache.RemoveDevice(refDev.DeviceID(), refDev)
 		if stored {
 			return
 		}
-		refDev, stored = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
+		refDev, stored = h.deviceCache.TryStoreDevice(newRefDev)
 		if !stored {
 			newRefDev.Release(ctx)
 			return
@@ -220,7 +220,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
 		links, err = getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
 		if err != nil {
 			refDev.Device().Close(ctx)
-			h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
+			h.deviceCache.RemoveDevice(refDev.DeviceID(), refDev)
 			refDev.Release(ctx)
 			return
 		}

@@ -33,13 +33,13 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 
 func (c *Client) updateCache(ctx context.Context, d *RefDevice, deviceID string) {
 	if d.DeviceID() != deviceID {
-		if c.deviceCache.RemoveDevice(ctx, deviceID, d) {
+		if c.deviceCache.RemoveDevice(deviceID, d) {
 			for {
-				storedDev, stored := c.deviceCache.TryStoreDeviceToTemporaryCache(d)
+				storedDev, stored := c.deviceCache.TryStoreDevice(d)
 				if stored {
 					break
 				}
-				c.deviceCache.RemoveDevice(ctx, storedDev.DeviceID(), storedDev)
+				c.deviceCache.RemoveDevice(storedDev.DeviceID(), storedDev)
 				storedDev.Release(ctx)
 			}
 		}

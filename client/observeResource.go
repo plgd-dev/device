@@ -214,7 +214,7 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
-	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(d)
+	refDev, stored := c.deviceCache.TryStoreDeviceWithoutTimeout(d)
 	if !stored {
 		d.Release(ctx)
 	}
@@ -256,7 +256,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	defer deleteDevice.Release(ctx)
 	ok, err := deleteDevice.StopObservingResource(ctx, resourceObservationID)
 	deviceID := deleteDevice.DeviceID()
-	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, deleteDevice)
+	c.deviceCache.RemoveDevice(deviceID, deleteDevice)
 	if err != nil {
 		return false, fmt.Errorf("failed to stop resource observation(%s) in device(%s): %w", observationID, deviceID, err)
 	}
@@ -276,7 +276,7 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 		if _, err := o.device.StopObservingResource(ctx, o.observationID); err != nil {
 			c.errors(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err))
 		}
-		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, o.device)
+		c.deviceCache.RemoveDevice(deviceID, o.device)
 	}
 }
 
