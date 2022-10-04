@@ -196,14 +196,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
 			got.Details.(*device.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
-			ok, err := c.RemoveDevice(ctx, got.ID)
+			ok, err := c.DeleteDevice(ctx, got.ID)
 			require.NoError(t, err)
 			require.True(t, ok)
 
 			// we should not be able to remove the device second time
-			ok, err = c.RemoveDevice(ctx, got.ID)
-			require.Error(t, err)
+			ok, err = c.DeleteDevice(ctx, got.ID)
 			require.False(t, ok)
+			require.NoError(t, err)
 		})
 	}
 }

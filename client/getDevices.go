@@ -148,7 +148,7 @@ func newDiscoveryHandler(
 	errors func(error),
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
-	deviceCache *refDeviceCache,
+	deviceCache *DeviceCache,
 	disableUDPEndpoints bool,
 ) *discoveryHandler {
 	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
@@ -164,7 +164,7 @@ type discoveryHandler struct {
 	errors              func(error)
 	devices             func(DeviceDetails)
 	getDetails          GetDetailsFunc
-	deviceCache         *refDeviceCache
+	deviceCache         *DeviceCache
 	disableUDPEndpoints bool
 
 	getDetailsWasCalled sync.Map
@@ -200,42 +200,23 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 	}, nil
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
-	newRefDev := NewRefDevice(d)
-	refDev, stored := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-	defer refDev.Release(ctx)
-	links, err := getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
-	d = refDev.Device()
+func (h *discoveryHandler) Handle(ctx context.Context, newdev *core.Device) {
+	dev, _ := h.deviceCache.UpdateOrStoreDeviceWithExpiration(newdev)
+	links, err := getLinksDevice(ctx, dev, h.disableUDPEndpoints)
 	if err != nil {
-		refDev.Device().Close(ctx)
-		h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
-		if stored {
-			return
+		dev, ok := h.deviceCache.LoadAndDeleteDevice(ctx, dev.DeviceID())
+		if ok {
+			dev.Close(ctx)
 		}
-		refDev, stored = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-		if !stored {
-			newRefDev.Release(ctx)
-			return
-		}
-		links, err = getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
-		if err != nil {
-			refDev.Device().Close(ctx)
-			h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
-			refDev.Release(ctx)
-			return
-		}
-		d = refDev.Device()
-	} else if !stored {
-		newRefDev.Release(ctx)
+		return
 	}
-
-	deviceTypes := make(kitStrings.Set, len(d.DeviceTypes()))
-	deviceTypes.Add(d.DeviceTypes()...)
+	deviceTypes := make(kitStrings.Set, len(dev.DeviceTypes()))
+	deviceTypes.Add(dev.DeviceTypes()...)
 	if !deviceTypes.HasOneOf(h.typeFilter...) {
 		return
 	}
 
-	devDetails, err := h.getDeviceDetails(ctx, d, links)
+	devDetails, err := h.getDeviceDetails(ctx, dev, links)
 	if err != nil {
 		h.Error(err)
 		return

@@ -56,7 +56,7 @@ func TestObserveDevicesAddedByIP(t *testing.T) {
 	/* TODO: after device is removed we can't check if it's offline as it's IP is lost
 	First we need to figure out if the device offline event should be emitted if the device
 	is removed by the user.
-	ok, err := c.RemoveDevice(ctx, deviceID)
+	ok, err := c.LoadAndDeleteDevice(ctx, deviceID)
 	require.NoError(t, err)
 	require.True(t, ok)
 

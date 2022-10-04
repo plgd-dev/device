@@ -29,7 +29,7 @@ type DeviceConfiguration struct {
 }
 
 type Device struct {
-	deviceID     string
+	deviceID     uberAtom.String
 	foundByIP    uberAtom.String
 	deviceTypes  []string
 	getEndpoints func() schema.Endpoints
@@ -38,6 +38,18 @@ type Device struct {
 	conn         map[string]*conn
 	observations *sync.Map
 	lock         sync.Mutex
+}
+
+func (d *Device) UpdateBy(v *Device) {
+	d.setDeviceID(v.DeviceID())
+	// foundByIP can be overwritten only when it is set.
+	if v.foundByIP.Load() != "" {
+		d.foundByIP.Store(v.foundByIP.Load())
+	}
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.deviceTypes = v.deviceTypes
+	d.getEndpoints = v.getEndpoints
 }
 
 // GetCertificateFunc returns certificate for connection
@@ -115,14 +127,15 @@ func NewDevice(
 	deviceTypes []string,
 	getEndpoints func() schema.Endpoints,
 ) *Device {
-	return &Device{
+	d := &Device{
 		cfg:          cfg,
-		deviceID:     deviceID,
 		deviceTypes:  deviceTypes,
 		observations: &sync.Map{},
 		getEndpoints: getEndpoints,
 		conn:         make(map[string]*conn),
 	}
+	d.setDeviceID(deviceID)
+	return d
 }
 
 func (d *Device) popConnections() []*conn {
@@ -294,15 +307,11 @@ func (d *Device) connectToEndpoints(ctx context.Context, endpoints schema.Endpoi
 }
 
 func (d *Device) DeviceID() string {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	return d.deviceID
+	return d.deviceID.Load()
 }
 
 func (d *Device) setDeviceID(deviceID string) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	d.deviceID = deviceID
+	d.deviceID.Store(deviceID)
 }
 
 func (d *Device) FoundByIP() string {
@@ -320,5 +329,11 @@ func (d *Device) setFoundByIP(foundByIP string) {
 }
 
 func (d *Device) DeviceTypes() []string {
-	return d.deviceTypes
+	d.lock.Lock()
+	deviceTypes := d.deviceTypes
+	d.lock.Unlock()
+	if deviceTypes == nil {
+		return nil
+	}
+	return deviceTypes
 }

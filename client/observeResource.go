@@ -48,7 +48,7 @@ func (c observerCodec) Decode(m *message.Message, v interface{}) error {
 
 type observationsHandler struct {
 	client *Client
-	device *RefDevice
+	device *core.Device
 	id     string
 
 	sync.Mutex
@@ -197,12 +197,10 @@ func (c *Client) ObserveResource(
 		return getObservationID(key, resourceObservationID.String()), nil
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
-
-	defer d.Release(ctx)
 
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
@@ -214,14 +212,9 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
-	refDev, stored := c.deviceCache.TryStoreDeviceToPermanentCache(d)
-	if !stored {
-		d.Release(ctx)
-	}
-
-	refDev.Acquire()
+	dev, _ := c.deviceCache.UpdateOrStoreDevice(d)
 	h.observationID = observationID
-	h.device = d
+	h.device = dev
 
 	return getObservationID(key, resourceObservationID.String()), err
 }
@@ -232,7 +225,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 		return false, err
 	}
 	var resourceObservationID string
-	var deleteDevice *RefDevice
+	var dev *core.Device
 	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, doDelete bool) {
 		if !oldLoaded {
 			return nil, true
@@ -245,21 +238,20 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 		}
 
 		if h.observations.Length() == 0 {
-			deleteDevice = h.device
+			dev = h.device
 			return nil, true
 		}
 		return h, false
 	})
-	if deleteDevice == nil {
+	if dev == nil {
 		return false, nil
 	}
-	defer deleteDevice.Release(ctx)
-	ok, err := deleteDevice.StopObservingResource(ctx, resourceObservationID)
-	deviceID := deleteDevice.DeviceID()
-	c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, deleteDevice)
+	_ = c.deviceCache.TryToChangeDeviceExpirationToDefault(dev.DeviceID())
+	ok, err := dev.StopObservingResource(ctx, resourceObservationID)
 	if err != nil {
-		return false, fmt.Errorf("failed to stop resource observation(%s) in device(%s): %w", observationID, deviceID, err)
+		return false, fmt.Errorf("failed to stop resource observation(%s) in device(%s): %w", observationID, dev.DeviceID(), err)
 	}
+
 	return ok, nil
 }
 
@@ -271,12 +263,11 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	o.Lock()
 	defer o.Unlock()
 	if o.device != nil {
-		defer o.device.Release(ctx)
 		deviceID := o.device.DeviceID()
 		if _, err := o.device.StopObservingResource(ctx, o.observationID); err != nil {
 			c.errors(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err))
 		}
-		c.deviceCache.RemoveDeviceFromPermanentCache(ctx, deviceID, o.device)
+		_ = c.deviceCache.TryToChangeDeviceExpirationToDefault(deviceID)
 	}
 }
 
