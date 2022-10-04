@@ -88,7 +88,7 @@ func (c *refDeviceCache) TryStoreDeviceWithoutTimeout(device *RefDevice) (*RefDe
 	return c.tryStoreDevice(device, time.Time{})
 }
 
-// This function stores the device with the defualt timeout into the cache. If a device with the same
+// This function stores the device with the default timeout into the cache. If a device with the same
 // deviceID is already in the cache no changes will be invoked.
 func (c *refDeviceCache) TryStoreDevice(device *RefDevice) (*RefDevice, bool) {
 	return c.tryStoreDevice(device, time.Now().Add(c.defaultCacheExpiration))
