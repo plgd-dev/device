@@ -39,10 +39,10 @@ type devicesObserver struct {
 	handler                *devicesObservationHandler
 	discoveryConfiguration core.DiscoveryConfiguration
 
-	cancel    context.CancelFunc
-	interval  time.Duration
-	wait      func()
-	deviceIDs map[string]bool
+	cancel          context.CancelFunc
+	interval        time.Duration
+	wait            func()
+	onlineDeviceIDs map[string]bool
 }
 
 func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
@@ -79,7 +79,7 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 			o.handler.Error(err)
 			return false
 		}
-		o.deviceIDs = newDeviceIDs
+		o.onlineDeviceIDs = newDeviceIDs
 		return true
 	}
 }
@@ -92,14 +92,14 @@ func (o *devicesObserver) processDevices(devices *sync.Map) (added map[string]bo
 	})
 	added = make(map[string]bool)
 	removed = make([]string, 0, len(current))
-	for deviceID := range o.deviceIDs {
+	for deviceID := range o.onlineDeviceIDs {
 		_, ok := current[deviceID]
 		if !ok {
 			removed = append(removed, deviceID)
 		}
 	}
 	for deviceID := range current {
-		_, ok := o.deviceIDs[deviceID]
+		_, ok := o.onlineDeviceIDs[deviceID]
 		if !ok {
 			added[deviceID] = true
 		}
@@ -157,12 +157,43 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
 	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
 
-	err := o.discover(ctx, &newDevices)
-	if err != nil {
-		return nil, err
+	// check online status for all devices added by IP
+	var wg sync.WaitGroup
+	devicesByIP := o.c.GetAllDeviceIDsFoundByIP()
+	// we will ping devices at once including discovery
+	// therefore +1 for discovery
+	wg.Add(len(devicesByIP) + 1)
+
+	discoveryError := make(chan error, 1)
+	// run discovery inside go routine
+	go func() {
+		defer wg.Done()
+		defer close(discoveryError)
+
+		err := o.discover(ctx, &newDevices)
+		if err != nil {
+			discoveryError <- err
+			return
+		}
+		if errors.Is(ctx.Err(), context.Canceled) {
+			discoveryError <- ctx.Err()
+			return
+		}
+	}()
+
+	// check every device online presence inside go routine
+	for deviceID, ip := range devicesByIP {
+		go func(deviceID string, ip string) {
+			defer wg.Done()
+			if _, e := o.c.GetDeviceByIP(ctx, ip); e == nil {
+				newDevices.devices.LoadOrStore(deviceID, true)
+			}
+		}(deviceID, ip)
 	}
-	if errors.Is(ctx.Err(), context.Canceled) {
-		return nil, ctx.Err()
+
+	wg.Wait()
+	if err, received := <-discoveryError; received {
+		return nil, err
 	}
 
 	added, removed, current := o.processDevices(newDevices.devices)

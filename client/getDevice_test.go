@@ -36,7 +36,7 @@ func NewTestDeviceSimulator(deviceID, deviceName string) client.DeviceDetails {
 	}
 }
 
-func NewTestSecureDeviceSimulator(deviceID, deviceName string) client.DeviceDetails {
+func NewTestSecureDeviceSimulator(deviceID, deviceName string, ip string) client.DeviceDetails {
 	return client.DeviceDetails{
 		ID: deviceID,
 		Details: &device.Device{
@@ -58,6 +58,7 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string) client.DeviceDeta
 		},
 		Resources:       sortResources(append(append(test.TestDevsimResources, test.TestDevsimPrivateResources...), test.TestDevsimSecResources...)),
 		OwnershipStatus: client.OwnershipStatus_ReadyToBeOwned,
+		FoundByIP:       ip,
 	}
 }
 
@@ -88,7 +89,7 @@ func TestClientGetDevice(t *testing.T) {
 			args: args{
 				deviceID: deviceID,
 			},
-			want: NewTestSecureDeviceSimulator(deviceID, test.DevsimName),
+			want: NewTestSecureDeviceSimulator(deviceID, test.DevsimName, ""),
 		},
 		{
 			name: "not-found",
@@ -147,14 +148,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			args: args{
 				ip: ip4,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName),
+			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName, ip4),
 		},
 		{
 			name: "ip6",
 			args: args{
 				ip: ip6,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName),
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName, "["+ip6+"]"),
 		},
 		{
 			name: "not-found",
@@ -195,6 +196,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
 			got.Details.(*device.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
+			ok, err := c.RemoveDevice(ctx, got.ID)
+			require.NoError(t, err)
+			require.True(t, ok)
+
+			// we should not be able to remove the device second time
+			ok, err = c.RemoveDevice(ctx, got.ID)
+			require.Error(t, err)
+			require.False(t, ok)
 		})
 	}
 }

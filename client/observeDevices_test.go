@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/require"
 )
@@ -24,6 +25,62 @@ LOOP:
 			require.NoError(t, fmt.Errorf("timeout"))
 			break LOOP
 		}
+	}
+}
+
+func TestObserveDevicesAddedByIP(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
+	defer cancel()
+
+	h := makeTestDevicesObservationHandler()
+	discoveryConfig := core.DiscoveryConfiguration{}
+	ID, err := c.ObserveDevices(ctx, h, client.WithDiscoveryConfiguration(discoveryConfig))
+	require.NoError(t, err)
+	_, err = c.GetDeviceByIP(ctx, ip)
+	require.NoError(t, err)
+
+	waitForDevicesObservationEvent(ctx, t, h.devs, client.DevicesObservationEvent{
+		DeviceID: deviceID,
+		Event:    client.DevicesObservationEvent_ONLINE,
+	})
+
+	/* TODO: after device is removed we can't check if it's offline as it's IP is lost
+	First we need to figure out if the device offline event should be emitted if the device
+	is removed by the user.
+	ok, err := c.RemoveDevice(ctx, deviceID)
+	require.NoError(t, err)
+	require.True(t, ok)
+
+	waitForDevicesObservationEvent(ctx, t, h.devs, client.DevicesObservationEvent{
+		DeviceID: deviceID,
+		Event:    client.DevicesObservationEvent_OFFLINE,
+	})
+	*/
+
+LOOP:
+	for {
+		select {
+		case <-h.devs:
+		default:
+			break LOOP
+		}
+	}
+
+	ok := c.StopObservingDevices(ctx, ID)
+	require.True(t, ok)
+	select {
+	case <-h.devs:
+		require.NoError(t, fmt.Errorf("unexpected event"))
+	default:
 	}
 }
 
