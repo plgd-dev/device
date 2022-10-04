@@ -94,7 +94,7 @@ func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
-	_, links, err := c.client.GetRefDevice(ctx, deviceID)
+	_, links, err := c.client.GetDevice(ctx, deviceID)
 	if err != nil {
 		return "", err
 	}

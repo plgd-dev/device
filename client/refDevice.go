@@ -8,44 +8,34 @@ import (
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/kit/v2/sync"
 )
 
+// TODO: remove whole file in v2
+
+// Deprecated: use Device
 type RefDevice struct {
-	obj *sync.RefCounter
+	dev *core.Device
 }
 
 func NewRefDevice(dev *core.Device) *RefDevice {
-	return &RefDevice{obj: sync.NewRefCounter(dev, releaseOcfDevice)}
-}
-
-func releaseOcfDevice(ctx context.Context, data interface{}) error {
-	dev := data.(*core.Device)
-	return dev.Close(ctx)
+	return &RefDevice{dev: dev}
 }
 
 func (d *RefDevice) Acquire() {
-	d.obj.Acquire()
+	// backward compatibility
 }
 
 func (d *RefDevice) Release(ctx context.Context) error {
-	return d.obj.Release(ctx)
+	// backward compatibility
+	return nil
 }
 
 func (d *RefDevice) DeviceID() string {
 	return d.Device().DeviceID()
 }
 
-func (d *RefDevice) FoundByIP() string {
-	return d.Device().FoundByIP()
-}
-
-func (d *RefDevice) IsConnected() bool {
-	return d.Device().IsConnected()
-}
-
 func (d *RefDevice) Device() *core.Device {
-	return d.obj.Data().(*core.Device)
+	return d.dev
 }
 
 func (d *RefDevice) GetDeviceDetails(ctx context.Context, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
@@ -161,4 +151,31 @@ func (d *RefDevice) Reboot(ctx context.Context, links schema.ResourceLinks) erro
 
 func (d *RefDevice) GetOwnership(ctx context.Context, links schema.ResourceLinks) (doxm.Doxm, error) {
 	return d.Device().GetOwnership(ctx, links)
+}
+
+// GetRefDevice returns device, after using call device.Release to free resources.
+// Deprecated: use GetDevice instead
+func (c *Client) GetRefDevice(
+	ctx context.Context,
+	deviceID string,
+	opts ...GetDeviceOption,
+) (*RefDevice, schema.ResourceLinks, error) {
+	d, links, err := c.GetDevice(ctx, deviceID, opts...)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewRefDevice(d), links, nil
+}
+
+// GetRefDeviceByIP gets the device directly via IP address and multicast listen port 5683. After using it, call device.Release to free resources.
+// Deprecated: use GetDeviceByIPWithLinks instead
+func (c *Client) GetRefDeviceByIP(
+	ctx context.Context,
+	ip string,
+) (*RefDevice, schema.ResourceLinks, error) {
+	d, links, err := c.GetDeviceByIPWithLinks(ctx, ip)
+	if err != nil {
+		return nil, nil, err
+	}
+	return NewRefDevice(d), links, nil
 }

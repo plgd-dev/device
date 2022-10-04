@@ -517,6 +517,7 @@ func NewSecureClient() (*local.Client, error) {
 	} else {
 		cfg = local.Config{
 			// DisablePeerTCPSignalMessageCSMs: true,
+			DeviceCacheExpirationSeconds: 3600,
 			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 				ID: CertIdentity,
 			},
