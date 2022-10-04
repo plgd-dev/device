@@ -10,12 +10,11 @@ import (
 	"sync"
 	"sync/atomic"
 
-	uberAtom "go.uber.org/atomic"
-
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
 	"github.com/plgd-dev/kit/v2/net"
+	uberAtom "go.uber.org/atomic"
 	"golang.org/x/sync/semaphore"
 )
 
