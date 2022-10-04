@@ -36,6 +36,14 @@ func (d *RefDevice) DeviceID() string {
 	return d.Device().DeviceID()
 }
 
+func (d *RefDevice) FoundByIP() string {
+	return d.Device().FoundByIP()
+}
+
+func (d *RefDevice) IsConnected() bool {
+	return d.Device().IsConnected()
+}
+
 func (d *RefDevice) Device() *core.Device {
 	return d.obj.Data().(*core.Device)
 }
