@@ -56,10 +56,13 @@ func (c *Client) GetRefDeviceByIP(
 	if err != nil {
 		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
 			if devIP == ip {
-				if e, ok := c.deviceCache.GetDevice(devID); ok {
-					// the device is offline so close it's connections
-					e.Device().Close(ctx)
-					e.Release(ctx)
+				e, ok := c.deviceCache.GetDevice(devID)
+				if ok {
+					defer e.Release(ctx)
+					if !e.Device().IsConnected() {
+						// the device is offline so close it's connections
+						e.Device().Close(ctx)
+					}
 				}
 				break
 			}
