@@ -10,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 
+	uberAtom "go.uber.org/atomic"
+
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
@@ -29,7 +31,7 @@ type DeviceConfiguration struct {
 
 type Device struct {
 	deviceID     string
-	foundByIP    string
+	foundByIP    uberAtom.String
 	deviceTypes  []string
 	getEndpoints func() schema.Endpoints
 	cfg          DeviceConfiguration
@@ -305,9 +307,7 @@ func (d *Device) setDeviceID(deviceID string) {
 }
 
 func (d *Device) FoundByIP() string {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	return d.foundByIP
+	return d.foundByIP.Load()
 }
 
 func (d *Device) IsConnected() bool {
@@ -317,9 +317,7 @@ func (d *Device) IsConnected() bool {
 }
 
 func (d *Device) setFoundByIP(foundByIP string) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	d.foundByIP = foundByIP
+	d.foundByIP.Store(foundByIP)
 }
 
 func (d *Device) DeviceTypes() []string {
