@@ -148,7 +148,7 @@ func NewClient(
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
+		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, errors),
 		observeResourceCache:    kitSync.NewMap(),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
@@ -173,7 +173,7 @@ type Client struct {
 	app    ApplicationCallback
 	client *core.Client
 
-	deviceCache *refDeviceCache
+	deviceCache *DeviceCache
 
 	observeResourceCache    *kitSync.Map
 	observerPollingInterval time.Duration

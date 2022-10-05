@@ -15,11 +15,10 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
-	d, _, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, _, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
-	defer d.Release(ctx)
 	ok := d.IsSecured()
 	if err != nil {
 		return "", err
@@ -31,27 +30,23 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmTypes, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) updateCache(ctx context.Context, d *RefDevice, deviceID string) {
-	if d.DeviceID() != deviceID {
-		if c.deviceCache.RemoveDevice(deviceID, d) {
-			for {
-				storedDev, stored := c.deviceCache.TryStoreDevice(d)
-				if stored {
-					break
-				}
-				c.deviceCache.RemoveDevice(storedDev.DeviceID(), storedDev)
-				storedDev.Release(ctx)
-			}
+func (c *Client) updateCache(ctx context.Context, d *core.Device, oldDeviceID string) {
+	if d.DeviceID() != oldDeviceID {
+		exp, ok := c.deviceCache.GetDeviceExpiration(oldDeviceID)
+		if ok && exp.IsZero() {
+			c.deviceCache.UpdateOrStoreDevice(d)
+		} else {
+			c.deviceCache.UpdateOrStoreDeviceWithExpiration(d)
 		}
+		_, _ = c.deviceCache.LoadAndDeleteDevice(ctx, oldDeviceID)
 	}
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
-	defer d.Release(ctx)
 	ok := d.IsSecured()
 	if !ok {
 		// don't own insecure device

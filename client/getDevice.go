@@ -10,9 +10,9 @@ import (
 	"github.com/plgd-dev/go-coap/v2/message/status"
 )
 
-func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
-	endpoints := refDev.GetEndpoints()
-	links, err := refDev.GetResourceLinks(ctx, endpoints)
+func getLinksDevice(ctx context.Context, dev *core.Device, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
+	endpoints := dev.GetEndpoints()
+	links, err := dev.GetResourceLinks(ctx, endpoints)
 	if err != nil {
 		return nil, err
 	}
@@ -22,46 +22,44 @@ func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoin
 // Don't remove devices found by IP, the device is probably offline
 // and we will be not able to reestablish the connection when it will
 // come back online
-func removeDeviceNotFoundByIP(ctx context.Context, deviceCache *refDeviceCache, refDev *RefDevice) {
-	refDev.Device().Close(ctx)
-	if refDev.Device().FoundByIP() == "" {
-		deviceCache.RemoveDevice(refDev.DeviceID(), refDev)
+func deleteDeviceNotFoundByIP(ctx context.Context, deviceCache *DeviceCache, dev *core.Device) {
+	if dev.FoundByIP() == "" {
+		deviceCache.LoadAndDeleteDevice(ctx, dev.DeviceID())
 	}
+	dev.Close(ctx)
 }
 
-func getRefDeviceFromCache(ctx context.Context, deviceCache *refDeviceCache,
+func getDeviceFromCache(ctx context.Context, deviceCache *DeviceCache,
 	deviceID string, disableUDPEndpoints bool,
-) (*RefDevice, schema.ResourceLinks, bool) {
-	refDev, ok := deviceCache.GetDevice(deviceID)
+) (*core.Device, schema.ResourceLinks, bool) {
+	dev, ok := deviceCache.GetDevice(deviceID)
 	if ok {
-		links, err := getLinksRefDevice(ctx, refDev, disableUDPEndpoints)
+		links, err := getLinksDevice(ctx, dev, disableUDPEndpoints)
 		if err != nil {
-			removeDeviceNotFoundByIP(ctx, deviceCache, refDev)
-			refDev.Release(ctx)
+			deleteDeviceNotFoundByIP(ctx, deviceCache, dev)
 			return nil, nil, false
 		}
-		return refDev, links, true
+		return dev, links, true
 	}
 	return nil, nil, false
 }
 
-// GetRefDeviceByIP gets the device directly via IP address and multicast listen port 5683. After using it, call device.Release to free resources.
-func (c *Client) GetRefDeviceByIP(
+// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683. After using it, call device.Release to free resources.
+func (c *Client) GetDeviceByIPWithLinks(
 	ctx context.Context,
 	ip string,
-) (*RefDevice, schema.ResourceLinks, error) {
+) (*core.Device, schema.ResourceLinks, error) {
 	// we are intentionaly not searching for the device inside the cache
 	// as we wan't to contact the device
-	dev, err := c.client.GetDeviceByIP(ctx, ip)
+	newDev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
 		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
 			if devIP == ip {
 				e, ok := c.deviceCache.GetDevice(devID)
 				if ok {
-					defer e.Release(ctx)
-					if e.Device().IsConnected() {
+					if e.IsConnected() {
 						// the device is offline so close it's connections
-						e.Device().Close(ctx)
+						e.Close(ctx)
 					}
 				}
 				break
@@ -70,65 +68,54 @@ func (c *Client) GetRefDeviceByIP(
 		return nil, nil, err
 	}
 
-	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDeviceWithoutTimeout(newRefDev)
-	if !stored {
-		newRefDev.Release(ctx)
-	}
-
-	links, err := getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
+	dev, _ := c.deviceCache.UpdateOrStoreDevice(newDev)
+	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
 	if err != nil {
-		deviceID := refDev.DeviceID()
-		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
-		refDev.Release(ctx)
+		deviceID := dev.DeviceID()
+		deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
-	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
+	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
 
-// GetRefDevice returns device, after using call device.Release to free resources.
-func (c *Client) GetRefDevice(
+// GetDevice returns device, after using call device.Release to free resources.
+func (c *Client) GetDevice(
 	ctx context.Context,
 	deviceID string,
 	opts ...GetDeviceOption,
-) (*RefDevice, schema.ResourceLinks, error) {
+) (*core.Device, schema.ResourceLinks, error) {
 	cfg := getDeviceOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDevice(cfg)
 	}
-	refDev, links, ok := getRefDeviceFromCache(ctx, c.deviceCache, deviceID, c.disableUDPEndpoints)
+	dev, links, ok := getDeviceFromCache(ctx, c.deviceCache, deviceID, c.disableUDPEndpoints)
 	if ok {
-		return refDev, links, nil
+		return dev, links, nil
 	}
-	dev, err := c.client.GetDeviceByMulticast(ctx, deviceID, cfg.discoveryConfiguration)
+	newdev, err := c.client.GetDeviceByMulticast(ctx, deviceID, cfg.discoveryConfiguration)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	newRefDev := NewRefDevice(dev)
-	refDev, stored := c.deviceCache.TryStoreDevice(newRefDev)
-	if !stored {
-		newRefDev.Release(ctx)
-	}
-	links, err = getLinksRefDevice(ctx, refDev, c.disableUDPEndpoints)
+	dev, _ = c.deviceCache.UpdateOrStoreDeviceWithExpiration(newdev)
+	links, err = getLinksDevice(ctx, dev, c.disableUDPEndpoints)
 	if err != nil {
-		removeDeviceNotFoundByIP(ctx, c.deviceCache, refDev)
-		refDev.Release(ctx)
+		deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
-	return refDev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
+	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
 
-func (c *Client) getDevice(ctx context.Context, refDev *RefDevice, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
-	devDetails, err := refDev.GetDeviceDetails(ctx, links, getDetails)
+func (c *Client) getDevice(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
+	devDetails, err := getDeviceDetails(ctx, dev, links, getDetails)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
 	var o ownership
 	if devDetails.IsSecured {
-		d, ownErr := refDev.GetOwnership(ctx, links)
+		d, ownErr := dev.GetOwnership(ctx, links)
 		if ownErr != nil {
 			v, ok := status.FromError(ownErr)
 			if ok && v.Code() == codes.Unauthorized {
@@ -156,12 +143,11 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 		cfg = o.applyOnGetDevice(cfg)
 	}
 
-	refDev, links, err := c.GetRefDevice(ctx, deviceID, opts...)
+	dev, links, err := c.GetDevice(ctx, deviceID, opts...)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	defer refDev.Release(ctx)
-	return c.getDevice(ctx, refDev, links, cfg.getDetails)
+	return c.getDevice(ctx, dev, links, cfg.getDetails)
 }
 
 func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
@@ -177,10 +163,9 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 		cfg = o.applyOnGetDeviceByIP(cfg)
 	}
 
-	refDev, links, err := c.GetRefDeviceByIP(ctx, ip)
+	dev, links, err := c.GetDeviceByIPWithLinks(ctx, ip)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	defer refDev.Release(ctx)
-	return c.getDevice(ctx, refDev, links, cfg.getDetails)
+	return c.getDevice(ctx, dev, links, cfg.getDetails)
 }
