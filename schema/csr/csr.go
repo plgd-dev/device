@@ -11,7 +11,7 @@ type CertificateSigningRequestResponse struct {
 	Interfaces                []string            `json:"if"`
 	ResourceTypes             []string            `json:"rt"`
 	Name                      string              `json:"n"`
-	InstanceId                string              `json:"id"`
+	InstanceID                string              `json:"id"`
 	Encoding                  CertificateEncoding `json:"encoding"`
 	CertificateSigningRequest interface{}         `json:"csr"`
 }
