@@ -49,20 +49,13 @@ func (c *Client) GetDeviceByIPWithLinks(
 	ctx context.Context,
 	ip string,
 ) (*core.Device, schema.ResourceLinks, error) {
-	// we are intentionaly not searching for the device inside the cache
+	// we are intentionally not searching for the device inside the cache
 	// as we wan't to contact the device
 	newDev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
-		for devID, devIP := range c.deviceCache.GetDevicesFoundByIP() {
-			if devIP == ip {
-				e, ok := c.deviceCache.GetDevice(devID)
-				if ok {
-					if e.IsConnected() {
-						// the device is offline so close it's connections
-						e.Close(ctx)
-					}
-				}
-				break
+		if dev := c.deviceCache.GetDeviceByFoundIP(ip); dev != nil {
+			if dev.IsConnected() {
+				dev.Close(ctx)
 			}
 		}
 		return nil, nil, err

@@ -63,6 +63,19 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 	return d.Data().(*core.Device), true
 }
 
+func (c *DeviceCache) GetDeviceByFoundIP(ip string) *core.Device {
+	var d *core.Device
+	c.devicesCache.Range(func(key, val interface{}) bool {
+		dev := val.(*core.Device)
+		if dev.FoundByIP() == ip {
+			d = dev
+			return false
+		}
+		return true
+	})
+	return d
+}
+
 func (c *DeviceCache) GetDeviceExpiration(deviceID string) (time.Time, bool) {
 	d := c.devicesCache.Load(deviceID)
 	if d == nil {
