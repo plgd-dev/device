@@ -59,7 +59,7 @@ func (c *Client) GetRefDeviceByIP(
 				e, ok := c.deviceCache.GetDevice(devID)
 				if ok {
 					defer e.Release(ctx)
-					if !e.Device().IsConnected() {
+					if e.Device().IsConnected() {
 						// the device is offline so close it's connections
 						e.Device().Close(ctx)
 					}
