@@ -44,7 +44,7 @@ func getDeviceFromCache(ctx context.Context, deviceCache *DeviceCache,
 	return nil, nil, false
 }
 
-// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683. After using it, call device.Release to free resources.
+// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIPWithLinks(
 	ctx context.Context,
 	ip string,
@@ -71,7 +71,7 @@ func (c *Client) GetDeviceByIPWithLinks(
 	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
 
-// GetDevice returns device, after using call device.Release to free resources.
+// GetDevice returns device.
 func (c *Client) GetDevice(
 	ctx context.Context,
 	deviceID string,
