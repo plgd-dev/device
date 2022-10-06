@@ -65,7 +65,7 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 		return nil, false
 	}
 	if deviceIsStoredWithExpiration(d) {
-		d.ValidUntil.Store(time.Now().Add(c.deviceExpiration))
+		d.ValidUntil.Store(getNextExpiration(c.deviceExpiration))
 	}
 	return d.Data().(*core.Device), true
 }
@@ -102,7 +102,15 @@ func (c *DeviceCache) UpdateOrStoreDevice(device *core.Device) (*core.Device, bo
 // deviceID is already in the cache the device will be updated and the expiration time will be reset
 // only when the device has it set.
 func (c *DeviceCache) UpdateOrStoreDeviceWithExpiration(device *core.Device) (*core.Device, bool) {
-	return c.updateOrStoreDevice(device, time.Now().Add(c.deviceExpiration))
+	return c.updateOrStoreDevice(device, getNextExpiration(c.deviceExpiration))
+}
+
+// return next time of expiration of device in cache. If expiration is 0, then return time.Time{}
+func getNextExpiration(expiration time.Duration) time.Time {
+	if expiration <= 0 {
+		return time.Time{}
+	}
+	return time.Now().Add(expiration)
 }
 
 // Try to change the expiration time for the device in cache to default expiration.
@@ -112,7 +120,7 @@ func (c *DeviceCache) TryToChangeDeviceExpirationToDefault(deviceID string) bool
 		return false
 	}
 	if d.Data().(*core.Device).FoundByIP() == "" {
-		d.ValidUntil.Store(time.Now().Add(c.deviceExpiration))
+		d.ValidUntil.Store(getNextExpiration(c.deviceExpiration))
 		return true
 	}
 	return false

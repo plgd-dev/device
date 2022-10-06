@@ -147,3 +147,22 @@ func TestDeviceCacheExpirationHandling(t *testing.T) {
 	_, found = cache.GetDevice(deviceID2)
 	require.False(t, found)
 }
+
+func TestDeviceCacheExpirationWithInfiniteExpiration(t *testing.T) {
+	cache := client.NewDeviceCache(0, time.Second, func(error) {})
+	deviceType := []string{"unknown"}
+	deviceID := "12345"
+	newdev := core.NewDevice(core.DeviceConfiguration{}, deviceID, deviceType, func() schema.Endpoints { return nil })
+	d, updated := cache.UpdateOrStoreDeviceWithExpiration(newdev)
+	require.False(t, updated)
+	require.NotNil(t, d)
+	expiration, found := cache.GetDeviceExpiration(deviceID)
+	require.True(t, found)
+	require.True(t, expiration.IsZero())
+	d, updated = cache.UpdateOrStoreDevice(newdev)
+	require.True(t, updated)
+	require.NotNil(t, d)
+	expiration, found = cache.GetDeviceExpiration(deviceID)
+	require.True(t, found)
+	require.True(t, expiration.IsZero())
+}
