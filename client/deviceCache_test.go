@@ -70,7 +70,7 @@ func TestDeviceCacheContentHandling(t *testing.T) {
 	require.True(t, found)
 	require.NotNil(t, dev)
 
-	ok := cache.TryToChangeDeviceExpiration(device1ID)
+	ok := cache.TryToChangeDeviceExpirationToDefault(device1ID)
 	require.True(t, ok)
 
 	expiration, found = cache.GetDeviceExpiration(device1ID)
@@ -133,15 +133,17 @@ func TestDeviceCacheExpirationHandling(t *testing.T) {
 	require.True(t, found)
 	require.True(t, expiration.IsZero())
 
-	ok := cache.TryToChangeDeviceExpiration(deviceID2)
+	ok := cache.TryToChangeDeviceExpirationToDefault(deviceID2)
 	require.True(t, ok)
 
 	time.Sleep(6 * time.Second)
 
+	// the device with deviceID should be in the cache because is stored for infinite time
 	expiration, found = cache.GetDeviceExpiration(deviceID)
 	require.True(t, found)
 	require.True(t, expiration.IsZero())
 
-	_, found = cache.GetDeviceExpiration(deviceID2)
+	// the device with deviceID2 should be removed from the cache by the expiration
+	_, found = cache.GetDevice(deviceID2)
 	require.False(t, found)
 }

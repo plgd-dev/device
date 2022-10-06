@@ -11,20 +11,24 @@ import (
 )
 
 type DeviceCache struct {
-	defaultCacheExpiration time.Duration
-	devicesCache           *cache.Cache
-	errors                 func(error)
+	deviceExpiration time.Duration
+	devicesCache     *cache.Cache
+	errors           func(error)
 
 	closed atomic.Bool
 	done   chan struct{}
 }
 
-func NewDeviceCache(defaultCacheExpiration, interval time.Duration, errors func(error)) *DeviceCache {
+// Creates a new cache for devices.
+// - deviceExpiration: default expiration time for the device in the cache, 0 means infinite. The device expiration is refreshed by getting or updating the device.
+// - pollInterval: pool interval for cleaning expired devices from the cache
+// - errors: function for logging errors
+func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(error)) *DeviceCache {
 	done := make(chan struct{})
 	cache := cache.NewCache()
-	if defaultCacheExpiration > 0 {
+	if deviceExpiration > 0 {
 		go func() {
-			t := time.NewTicker(interval)
+			t := time.NewTicker(pollInterval)
 			defer t.Stop()
 			for {
 				select {
@@ -37,13 +41,14 @@ func NewDeviceCache(defaultCacheExpiration, interval time.Duration, errors func(
 		}()
 	}
 	return &DeviceCache{
-		devicesCache:           cache,
-		defaultCacheExpiration: defaultCacheExpiration,
-		errors:                 errors,
-		done:                   done,
+		devicesCache:     cache,
+		deviceExpiration: deviceExpiration,
+		errors:           errors,
+		done:             done,
 	}
 }
 
+// This function loads the device from the cache and deletes it from the cache. To cleanup the device you have to call device.Close.
 func (c *DeviceCache) LoadAndDeleteDevice(ctx context.Context, deviceID string) (*core.Device, bool) {
 	d := c.devicesCache.Load(deviceID)
 	if d == nil {
@@ -60,7 +65,7 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 		return nil, false
 	}
 	if deviceIsStoredWithExpiration(d) {
-		d.ValidUntil.Store(time.Now().Add(c.defaultCacheExpiration))
+		d.ValidUntil.Store(time.Now().Add(c.deviceExpiration))
 	}
 	return d.Data().(*core.Device), true
 }
@@ -88,7 +93,7 @@ func (c *DeviceCache) GetDeviceExpiration(deviceID string) (time.Time, bool) {
 
 // This function stores the device without timeout into the cache. The device can be removed from
 // the cache only by invoking LoadAndDeleteDevice function and device.Close to cleanup connections. If a device with the same deviceID is already
-// in the cache, the previous reference will bet updated in the cache and it's expiration time will be set to infinite.
+// in the cache, the previous reference will be updated in the cache and it's expiration time will be set to infinite.
 func (c *DeviceCache) UpdateOrStoreDevice(device *core.Device) (*core.Device, bool) {
 	return c.updateOrStoreDevice(device, time.Time{})
 }
@@ -97,17 +102,17 @@ func (c *DeviceCache) UpdateOrStoreDevice(device *core.Device) (*core.Device, bo
 // deviceID is already in the cache the device will be updated and the expiration time will be reset
 // only when the device has it set.
 func (c *DeviceCache) UpdateOrStoreDeviceWithExpiration(device *core.Device) (*core.Device, bool) {
-	return c.updateOrStoreDevice(device, time.Now().Add(c.defaultCacheExpiration))
+	return c.updateOrStoreDevice(device, time.Now().Add(c.deviceExpiration))
 }
 
-// Try to change the expiration time for the device in cache when if found by multicast.
-func (c *DeviceCache) TryToChangeDeviceExpiration(deviceID string) bool {
+// Try to change the expiration time for the device in cache to default expiration.
+func (c *DeviceCache) TryToChangeDeviceExpirationToDefault(deviceID string) bool {
 	d := c.devicesCache.Load(deviceID)
 	if d == nil {
 		return false
 	}
 	if d.Data().(*core.Device).FoundByIP() == "" {
-		d.ValidUntil.Store(time.Now().Add(c.defaultCacheExpiration))
+		d.ValidUntil.Store(time.Now().Add(c.deviceExpiration))
 		return true
 	}
 	return false
@@ -156,11 +161,6 @@ func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.T
 	return dev, false
 }
 
-func (c *DeviceCache) popDevices() map[interface{}]interface{} {
-	items := c.devicesCache.PullOutAll()
-	return items
-}
-
 func (c *DeviceCache) GetDevicesFoundByIP() map[string]string {
 	devices := make(map[string]string)
 
@@ -181,7 +181,7 @@ func (c *DeviceCache) Close(ctx context.Context) error {
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
-	for _, val := range c.popDevices() {
+	for _, val := range c.devicesCache.PullOutAll() {
 		d := val.(*core.Device)
 		err := d.Close(ctx)
 		if err != nil {
