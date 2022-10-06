@@ -44,12 +44,7 @@ type Config struct {
 // NewClientFromConfig constructs a new local client from the proto configuration.
 func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
 	var cacheExpiration time.Duration
-	switch {
-	case cfg.DeviceCacheExpirationSeconds < 0:
-		cacheExpiration = time.Microsecond
-	case cfg.DeviceCacheExpirationSeconds == 0:
-		cacheExpiration = time.Second * 3600
-	default:
+	if cfg.DeviceCacheExpirationSeconds > 0 {
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
 	}
 

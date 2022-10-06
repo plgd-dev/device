@@ -22,18 +22,20 @@ type DeviceCache struct {
 func NewDeviceCache(defaultCacheExpiration, interval time.Duration, errors func(error)) *DeviceCache {
 	done := make(chan struct{})
 	cache := cache.NewCache()
-	go func() {
-		t := time.NewTicker(interval)
-		defer t.Stop()
-		for {
-			select {
-			case now := <-t.C:
-				cache.CheckExpirations(now)
-			case <-done:
-				return
+	if defaultCacheExpiration > 0 {
+		go func() {
+			t := time.NewTicker(interval)
+			defer t.Stop()
+			for {
+				select {
+				case now := <-t.C:
+					cache.CheckExpirations(now)
+				case <-done:
+					return
+				}
 			}
-		}
-	}()
+		}()
+	}
 	return &DeviceCache{
 		devicesCache:           cache,
 		defaultCacheExpiration: defaultCacheExpiration,
