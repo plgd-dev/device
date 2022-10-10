@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/softwareupdate"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 )
 
 func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {

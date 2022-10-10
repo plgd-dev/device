@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,6 +46,10 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c2, err := NewTestSecureClientWithCert(cert, false, false)
 	require.NoError(t, err)
+	defer func() {
+		err := c2.Close()
+		require.NoError(t, err)
+	}()
 	d, err := c2.GetDeviceByMulticast(ctx, c.DeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
@@ -58,6 +62,28 @@ func TestProvisioning(t *testing.T) {
 	link, ok := links.GetResourceLink(test.TestResourceLightInstanceHref("1"))
 	require.True(t, ok)
 	err = d.GetResource(ctx, link, nil)
+	require.NoError(t, err)
+
+	c3, err := NewTestSecureClientWithCert(cert, true, false)
+	require.NoError(t, err)
+	defer func() {
+		err := c3.Close()
+		require.NoError(t, err)
+	}()
+	d, err = c3.GetDeviceByMulticast(ctx, c.DeviceID, core.DefaultDiscoveryConfiguration())
+	require.NoError(t, err)
+	defer func() {
+		errClose := d.Close(ctx)
+		require.NoError(t, errClose)
+	}()
+	eps = d.GetEndpoints()
+	links, err = d.GetResourceLinks(ctx, eps)
+	require.NoError(t, err)
+	link, ok = links.GetResourceLink(test.TestResourceLightInstanceHref("1"))
+	require.True(t, ok)
+	err = d.GetResource(ctx, link, nil)
+
+	// DTLS is not supported, but TCP-TLS at the device doesn't support golang cipher suites
 	require.NoError(t, err)
 }
 

@@ -6,14 +6,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/go-coap/v2/pkg/cache"
+	"github.com/plgd-dev/go-coap/v3/pkg/cache"
 	kitSync "github.com/plgd-dev/kit/v2/sync"
 	"go.uber.org/atomic"
 )
 
 type refDeviceCache struct {
 	cacheExpiration    time.Duration
-	temporaryCache     *cache.Cache
+	temporaryCache     *cache.Cache[string, *RefDevice]
 	temporaryCacheLock sync.Mutex
 	errors             func(error)
 
@@ -33,7 +33,7 @@ func (r *refCacheDevice) device() *RefDevice {
 
 func NewRefDeviceCache(cacheExpiration time.Duration, errors func(error)) *refDeviceCache {
 	done := make(chan struct{})
-	cache := cache.NewCache()
+	cache := cache.NewCache[string, *RefDevice]()
 	go func() {
 		t := time.NewTicker(time.Minute)
 		defer t.Stop()
@@ -83,7 +83,7 @@ func (c *refDeviceCache) getFromTemporaryCache(deviceID string) (*RefDevice, boo
 	if d == nil {
 		return nil, false
 	}
-	dev := d.Data().(*RefDevice)
+	dev := d.Data()
 	dev.Acquire()
 	return dev, true
 }
@@ -95,7 +95,7 @@ func (c *refDeviceCache) RemoveDeviceFromTemporaryCache(ctx context.Context, dev
 	if d == nil {
 		return false
 	}
-	dev := d.Data().(*RefDevice)
+	dev := d.Data()
 	if device == dev {
 		// remove device from cache
 		c.temporaryCache.Delete(deviceID)
@@ -129,14 +129,14 @@ func (c *refDeviceCache) TryStoreDeviceToTemporaryCache(device *RefDevice) (*Ref
 		d := c.temporaryCache.Load(deviceID)
 		if d != nil {
 			// record is already in cache
-			dev := d.Data().(*RefDevice)
+			dev := d.Data()
 			dev.Acquire()
 			return dev, false
 		}
-		_, loaded := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 interface{}) {
+		_, loaded := c.temporaryCache.LoadOrStore(deviceID, cache.NewElement(device, time.Now().Add(c.cacheExpiration), func(d1 *RefDevice) {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 			defer cancel()
-			err := d1.(*RefDevice).Release(ctx)
+			err := d1.Release(ctx)
 			if err != nil {
 				c.errors(err)
 			}
@@ -195,10 +195,10 @@ func (c *refDeviceCache) RemoveDeviceFromPermanentCache(ctx context.Context, dev
 	return false
 }
 
-func (c *refDeviceCache) popTemporaryCache() map[interface{}]interface{} {
+func (c *refDeviceCache) popTemporaryCache() map[string]*cache.Element[*RefDevice] {
 	c.temporaryCacheLock.Lock()
 	defer c.temporaryCacheLock.Unlock()
-	items := c.temporaryCache.PullOutAll()
+	items := c.temporaryCache.LoadAndDeleteAll()
 	return items
 }
 
@@ -220,7 +220,7 @@ func (c *refDeviceCache) Close(ctx context.Context) error {
 		close(c.done)
 	}
 	for _, val := range c.popTemporaryCache() {
-		d := val.(*RefDevice)
+		d := val.Data()
 		err := d.Release(ctx)
 		if err != nil {
 			errors = append(errors, err)

@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/pstat"
 )
 
 func connectionWasClosed(ctx context.Context, err error) bool {

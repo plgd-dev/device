@@ -6,10 +6,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
@@ -112,7 +112,7 @@ func (h *deviceHandler) Device() *Device {
 	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
 		h.deviceCfg.ErrFunc(fmt.Errorf("device handler cannot close connection: %w", errC))
 	}

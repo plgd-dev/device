@@ -3,7 +3,7 @@ package acl_test
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/stretchr/testify/require"
 )
 

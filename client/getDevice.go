@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/message/status"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/status"
 )
 
 func getLinksRefDevice(ctx context.Context, refDev *RefDevice, disableUDPEndpoints bool) (schema.ResourceLinks, error) {

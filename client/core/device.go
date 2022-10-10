@@ -11,8 +11,8 @@ import (
 	"sync/atomic"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/kit/v2/net"
 	"golang.org/x/sync/semaphore"
 )

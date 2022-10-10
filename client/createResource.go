@@ -3,9 +3,9 @@ package client
 import (
 	"context"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/device/v2/client/core"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 func (c *Client) CreateResource(

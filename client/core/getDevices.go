@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // DeviceHandler conveys device connections and errors during discovery.
@@ -91,7 +91,7 @@ type discoveryHandler struct {
 	filterDiscoveredDevices sync.Map
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
 		h.handler.Error(fmt.Errorf("discovery handler cannot close connection: %w", errC))
 	}

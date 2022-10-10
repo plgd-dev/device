@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
 	"go.uber.org/atomic"
 )
 

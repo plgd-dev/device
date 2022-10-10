@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/jessevdk/go-flags"
-	local "github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/security/signer"
-	"github.com/plgd-dev/kit/v2/codec/json"
+	local "github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/codec/json"
+	"github.com/plgd-dev/device/v2/pkg/security/signer"
 	"github.com/plgd-dev/kit/v2/security"
 	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )

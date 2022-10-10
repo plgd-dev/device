@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 	"go.uber.org/atomic"
 )
 
@@ -124,7 +124,7 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, dev schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev schema.ResourceLinks) {
 	defer client.Close()
 	d, ok := dev.GetResourceLink(device.ResourceURI)
 	if !ok {

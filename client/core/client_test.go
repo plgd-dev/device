@@ -10,14 +10,16 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	justworks "github.com/plgd-dev/device/client/core/otm/just-works"
-	"github.com/plgd-dev/device/client/core/otm/manufacturer"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"
+	"github.com/plgd-dev/device/v2/client/core/otm/manufacturer"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
 	"github.com/plgd-dev/kit/v2/security"
 	"github.com/stretchr/testify/require"
 )
@@ -79,12 +81,12 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 	var manOpts []manufacturer.OptionFunc
 	if disableDTLS {
-		manOpts = append(manOpts, manufacturer.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		manOpts = append(manOpts, manufacturer.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}
 	if disableTCPTLS {
-		manOpts = append(manOpts, manufacturer.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		manOpts = append(manOpts, manufacturer.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}
@@ -94,12 +96,12 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 
 	var opts []core.OptionFunc
 	if disableDTLS {
-		opts = append(opts, core.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, core.WithDialDTLS(func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}
 	if disableTCPTLS {
-		opts = append(opts, core.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, core.WithDialTLS(func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error) {
 			return nil, pkgError.NotSupported()
 		}))
 	}

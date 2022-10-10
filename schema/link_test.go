@@ -3,10 +3,10 @@ package schema_test
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/ael"
-	"github.com/plgd-dev/device/schema/credential"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/ael"
+	"github.com/plgd-dev/device/v2/schema/credential"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 	"github.com/stretchr/testify/require"
 )

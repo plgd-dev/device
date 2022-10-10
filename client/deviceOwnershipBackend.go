@@ -10,7 +10,7 @@ import (
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
-	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/v2/client/core"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

@@ -3,7 +3,7 @@ package pstat_test
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema/pstat"
 	"github.com/stretchr/testify/require"
 )
 

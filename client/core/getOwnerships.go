@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // OwnershipHandler conveys device ownership and errors during discovery.
@@ -51,7 +51,7 @@ type ownershipHandler struct {
 	handler OwnershipHandler
 }
 
-func (h *ownershipHandler) Handle(ctx context.Context, conn *client.ClientConn, doxm doxm.Doxm) {
+func (h *ownershipHandler) Handle(ctx context.Context, conn *client.Conn, doxm doxm.Doxm) {
 	if errC := conn.Close(); errC != nil {
 		h.Error(fmt.Errorf("ownership handler cannot close connection: %w", errC))
 	}

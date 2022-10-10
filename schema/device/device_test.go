@@ -3,7 +3,7 @@ package device_test
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/schema/device"
+	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/stretchr/testify/require"
 )
 

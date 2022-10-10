@@ -10,12 +10,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/security/signer"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/device/test/resource/types"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/security/signer"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/log"
 )
 

@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/fxamacker/cbor/v2"
-	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/v2/schema"
 )
 
 const (

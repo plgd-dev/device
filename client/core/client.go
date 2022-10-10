@@ -7,9 +7,11 @@ import (
 	"net"
 
 	"github.com/pion/dtls/v2"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	coapNet "github.com/plgd-dev/go-coap/v2/net"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	coapNet "github.com/plgd-dev/go-coap/v3/net"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
 	"github.com/plgd-dev/kit/v2/log"
 )
 
@@ -81,10 +83,10 @@ func WithErr(errFunc ErrFunc) OptionFunc {
 }
 
 type (
-	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialUDP  = func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialTCP  = func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
+	DialUDP  = func(ctx context.Context, addr string, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTCP  = func(ctx context.Context, addr string, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
 )
 
 func WithDialDTLS(dial DialDTLS) OptionFunc {
