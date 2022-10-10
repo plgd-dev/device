@@ -1,4 +1,4 @@
-// Device Provisioning Status
+// Package pstat implements Device Provisioning Status resource.
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.pstat.swagger.json
 package pstat
 
@@ -8,15 +8,19 @@ import (
 )
 
 const (
+	// ResourceType is the resource type of the Device Provisioning Status resource.
 	ResourceType = "oic.r.pstat"
-	ResourceURI  = "/oic/sec/pstat"
+	// ResourceURI is the URI of the Device Provisioning Status resource.
+	ResourceURI = "/oic/sec/pstat"
 )
 
+// DeviceOnboardingState contains the operation state of the device.
 type DeviceOnboardingState struct {
 	Pending                          bool             `json:"p,omitempty"`
 	CurrentOrPendingOperationalState OperationalState `json:"s"`
 }
 
+// ProvisionStatusResponse contains the supported fields of the Device Provisioning Status resource.
 type ProvisionStatusResponse struct {
 	ResourceOwner             string                `json:"rowneruuid"`
 	Interfaces                []string              `json:"if"`
@@ -24,13 +28,14 @@ type ProvisionStatusResponse struct {
 	CurrentOperationalMode    OperationalMode       `json:"om"`
 	CurrentProvisioningMode   ProvisioningMode      `json:"cm"`
 	Name                      string                `json:"n"`
-	InstanceId                string                `json:"id"`
+	InstanceID                string                `json:"id"`
 	DeviceIsOperational       bool                  `json:"isop"`
 	TargetProvisioningMode    ProvisioningMode      `json:"tm"`
 	SupportedOperationalModes OperationalMode       `json:"sm"`
 	DeviceOnboardingState     DeviceOnboardingState `json:"dos"`
 }
 
+// ProvisionStatusUpdateRequest is used to update the Device Provisioning Status resource.
 type ProvisionStatusUpdateRequest struct {
 	ResourceOwner          string                 `json:"rowneruuid,omitempty"`
 	CurrentOperationalMode OperationalMode        `json:"om,omitempty"`
@@ -38,6 +43,7 @@ type ProvisionStatusUpdateRequest struct {
 	DeviceOnboardingState  *DeviceOnboardingState `json:"dos,omitempty"`
 }
 
+// OperationalState represents possible operation states of the device.
 type OperationalState int
 
 const (
@@ -78,29 +84,29 @@ const (
 	OperationalMode_CLIENT_DIRECTED
 )
 
-func (s OperationalMode) String() string {
+func (m OperationalMode) String() string {
 	res := make([]string, 0, 4)
-	if s.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES) {
+	if m.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES) {
 		res = append(res, "SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES")
-		s &^= OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES
+		m &^= OperationalMode_SERVER_DIRECTED_UTILIZING_MULTIPLE_SERVICES
 	}
-	if s.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE) {
+	if m.Has(OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE) {
 		res = append(res, "SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE")
-		s &^= OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE
+		m &^= OperationalMode_SERVER_DIRECTED_UTILIZING_SINGLE_SERVICE
 	}
-	if s.Has(OperationalMode_CLIENT_DIRECTED) {
+	if m.Has(OperationalMode_CLIENT_DIRECTED) {
 		res = append(res, "CLIENT_DIRECTED")
-		s &^= OperationalMode_CLIENT_DIRECTED
+		m &^= OperationalMode_CLIENT_DIRECTED
 	}
-	if s != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(s)))
+	if m != 0 {
+		res = append(res, fmt.Sprintf("unknown(%v)", int(m)))
 	}
 	return strings.Join(res, "|")
 }
 
 // Has returns true if the flag is set.
-func (b OperationalMode) Has(flag OperationalMode) bool {
-	return b&flag != 0
+func (m OperationalMode) Has(flag OperationalMode) bool {
+	return m&flag != 0
 }
 
 type ProvisioningMode uint16
@@ -112,23 +118,23 @@ const (
 	ProvisioningMode_INIT_SEC_SOFT_UPDATE ProvisioningMode = 1 << 7
 )
 
-func (s ProvisioningMode) String() string {
+func (m ProvisioningMode) String() string {
 	res := make([]string, 0, 3)
-	if s.Has(ProvisioningMode_INIT_SOFT_VER_VALIDATION) {
+	if m.Has(ProvisioningMode_INIT_SOFT_VER_VALIDATION) {
 		res = append(res, "INIT_SOFT_VER_VALIDATION")
-		s &^= ProvisioningMode_INIT_SOFT_VER_VALIDATION
+		m &^= ProvisioningMode_INIT_SOFT_VER_VALIDATION
 	}
-	if s.Has(ProvisioningMode_INIT_SEC_SOFT_UPDATE) {
+	if m.Has(ProvisioningMode_INIT_SEC_SOFT_UPDATE) {
 		res = append(res, "INIT_SEC_SOFT_UPDATE")
-		s &^= ProvisioningMode_INIT_SEC_SOFT_UPDATE
+		m &^= ProvisioningMode_INIT_SEC_SOFT_UPDATE
 	}
-	if s != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(s)))
+	if m != 0 {
+		res = append(res, fmt.Sprintf("unknown(%v)", int(m)))
 	}
 	return strings.Join(res, "|")
 }
 
 // Has returns true if the flag is set.
-func (b ProvisioningMode) Has(flag ProvisioningMode) bool {
-	return b&flag != 0
+func (m ProvisioningMode) Has(flag ProvisioningMode) bool {
+	return m&flag != 0
 }

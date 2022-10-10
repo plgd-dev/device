@@ -49,12 +49,7 @@ type Config struct {
 // NewClientFromConfig constructs a new local client from the proto configuration.
 func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
 	var cacheExpiration time.Duration
-	switch {
-	case cfg.DeviceCacheExpirationSeconds < 0:
-		cacheExpiration = time.Microsecond
-	case cfg.DeviceCacheExpirationSeconds == 0:
-		cacheExpiration = time.Second * 3600
-	default:
+	if cfg.DeviceCacheExpirationSeconds > 0 {
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
 	}
 
@@ -168,7 +163,7 @@ func NewClient(
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewRefDeviceCache(cacheExpiration, errors),
+		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, errors),
 		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
@@ -193,7 +188,7 @@ type Client struct {
 	app    ApplicationCallback
 	client *core.Client
 
-	deviceCache *refDeviceCache
+	deviceCache *DeviceCache
 
 	observeResourceCache    *coapSync.Map[string, *observationsHandler]
 	observerPollingInterval time.Duration

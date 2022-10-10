@@ -47,11 +47,11 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	if d == nil {
 		return nil, MakeNotFound(fmt.Errorf("no response from the device with ip %s", ip))
 	}
-
+	d.setFoundByIP(ip)
 	return d, nil
 }
 
-// GetDevice performs a multicast and returns a device object if the device responds.
+// GetDeviceByMulticast performs a multicast and returns a device object if the device responds.
 func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, discoveryConfiguration DiscoveryConfiguration) (*Device, error) {
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()

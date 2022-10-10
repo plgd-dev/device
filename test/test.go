@@ -82,7 +82,7 @@ func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ erro
 		cancel: cancel,
 	}
 
-	err := client.GetDevicesV2(ctx, core.DefaultDiscoveryConfiguration(), &h)
+	err := client.GetDevicesByMulticast(ctx, core.DefaultDiscoveryConfiguration(), &h)
 	if err != nil {
 		return "", fmt.Errorf("could not find the device named %s: %w", name, err)
 	}

@@ -46,37 +46,37 @@ const (
 	AllPermissions = Permission_CREATE | Permission_READ | Permission_WRITE | Permission_DELETE | Permission_NOTIFY
 )
 
-func (s Permission) String() string {
+func (p Permission) String() string {
 	res := make([]string, 0, 5)
-	if s.Has(Permission_CREATE) {
+	if p.Has(Permission_CREATE) {
 		res = append(res, "CREATE")
-		s &^= Permission_CREATE
+		p &^= Permission_CREATE
 	}
-	if s.Has(Permission_READ) {
+	if p.Has(Permission_READ) {
 		res = append(res, "READ")
-		s &^= Permission_READ
+		p &^= Permission_READ
 	}
-	if s.Has(Permission_WRITE) {
+	if p.Has(Permission_WRITE) {
 		res = append(res, "WRITE")
-		s &^= Permission_WRITE
+		p &^= Permission_WRITE
 	}
-	if s.Has(Permission_DELETE) {
+	if p.Has(Permission_DELETE) {
 		res = append(res, "DELETE")
-		s &^= Permission_DELETE
+		p &^= Permission_DELETE
 	}
-	if s.Has(Permission_NOTIFY) {
+	if p.Has(Permission_NOTIFY) {
 		res = append(res, "NOTIFY")
-		s &^= Permission_NOTIFY
+		p &^= Permission_NOTIFY
 	}
-	if s != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(s)))
+	if p != 0 {
+		res = append(res, fmt.Sprintf("unknown(%v)", int(p)))
 	}
 	return strings.Join(res, "|")
 }
 
 // Has returns true if the flag is set.
-func (b Permission) Has(flag Permission) bool {
-	return b&flag != 0
+func (p Permission) Has(flag Permission) bool {
+	return p&flag != 0
 }
 
 type Resource struct {
@@ -123,7 +123,7 @@ const (
 	ConnectionType_ANON_CLEAR ConnectionType = "anon-clear"
 )
 
-// anyof/oneof
+// Subject contains anyof/oneof the subtypes
 type Subject struct {
 	*Subject_Device
 	*Subject_Role

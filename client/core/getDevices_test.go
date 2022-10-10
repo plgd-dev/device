@@ -15,7 +15,7 @@ func TestDeviceDiscovery(t *testing.T) {
 	timeout, cancel := context.WithTimeout(context.Background(), 1*time.Second)
 	defer cancel()
 	h := testDeviceHandler{}
-	err := c.GetDevicesV2(timeout, core.DefaultDiscoveryConfiguration(), &h)
+	err := c.GetDevicesByMulticast(timeout, core.DefaultDiscoveryConfiguration(), &h)
 	require.NoError(t, err)
 }
 
