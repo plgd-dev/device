@@ -24,14 +24,14 @@ func (c *Client) GetOwnerships(
 	status DiscoverOwnershipStatus,
 	handler OwnershipHandler,
 ) error {
-	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return MakeInvalidArgument(fmt.Errorf("could not get the ownerships: %w", err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get ownership error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get ownership error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()

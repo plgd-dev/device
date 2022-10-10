@@ -19,30 +19,7 @@ type DeviceHandler interface {
 	Error(err error)
 }
 
-type deprecatedDeviceHandler struct {
-	h DeviceHandler
-}
-
-func (h deprecatedDeviceHandler) Handle(ctx context.Context, device *Device) {
-	eps := device.GetEndpoints()
-	links, err := device.GetResourceLinks(ctx, eps)
-	if err != nil {
-		if errC := device.Close(ctx); errC != nil {
-			h.Error(errC)
-		}
-		h.Error(err)
-		return
-	}
-
-	h.h.Handle(ctx, device, links)
-}
-
-// Error gets errors during discovery.
-func (h deprecatedDeviceHandler) Error(err error) {
-	h.h.Error(err)
-}
-
-// DeviceHandler conveys device connections and errors during discovery.
+// DeviceMulticastHandler conveys device connections and errors during discovery.
 type DeviceMulticastHandler interface {
 	// Handle gets a device connection and is responsible for closing it.
 	Handle(ctx context.Context, device *Device)
@@ -53,14 +30,14 @@ type DeviceMulticastHandler interface {
 // GetDevicesByMulticast discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
 func (c *Client) GetDevicesByMulticast(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, handler DeviceMulticastHandler) error {
-	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return MakeInvalidArgument(fmt.Errorf("could not get the devices: %w", err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get devices error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get devices error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()

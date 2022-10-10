@@ -25,14 +25,14 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device via ip %s: %w", ip, err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get device by ip error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get device by ip error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()
@@ -56,14 +56,14 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get device by multicast error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get device by multicast error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()
@@ -114,7 +114,7 @@ func (h *deviceHandler) Device() *Device {
 
 func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
-		h.deviceCfg.ErrFunc(fmt.Errorf("device handler cannot close connection: %w", errC))
+		h.deviceCfg.Logger.Debug(fmt.Errorf("device handler cannot close connection: %w", errC).Error())
 	}
 	h.lock.Lock()
 	defer h.lock.Unlock()

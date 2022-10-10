@@ -23,7 +23,7 @@ type DeviceConfiguration struct {
 	DialTLS    DialTLS
 	DialUDP    DialUDP
 	DialTCP    DialTCP
-	ErrFunc    ErrFunc
+	Logger     Logger
 	TLSConfig  *TLSConfig
 	GetOwnerID func() (string, error)
 }

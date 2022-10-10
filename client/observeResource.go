@@ -264,7 +264,7 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	if o.device != nil {
 		deviceID := o.device.DeviceID()
 		if _, err := o.device.StopObservingResource(ctx, o.observationID); err != nil {
-			c.errors(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err))
+			c.logger.Warn(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err).Error())
 		}
 		_ = c.deviceCache.TryToChangeDeviceExpirationToDefault(deviceID)
 	}

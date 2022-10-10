@@ -7,21 +7,18 @@ import (
 	"net"
 
 	"github.com/pion/dtls/v2"
+	"github.com/pion/logging"
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	coapNet "github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/udp"
-	"github.com/plgd-dev/kit/v2/log"
 )
-
-// ErrFunc to log errors in goroutines
-type ErrFunc = func(err error)
 
 // Client an OCF local client.
 type Client struct {
 	tlsConfig *TLSConfig
-	errFunc   ErrFunc
+	logger    Logger
 	dialDTLS  DialDTLS
 	dialTLS   DialTLS
 	dialTCP   DialTCP
@@ -47,7 +44,7 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 
 type config struct {
 	tlsConfig *TLSConfig
-	errFunc   ErrFunc
+	logger    Logger
 	dialDTLS  DialDTLS
 	dialTLS   DialTLS
 	dialTCP   DialTCP
@@ -73,10 +70,10 @@ type DiscoveryConfiguration struct {
 	MulticastOptions     []coapNet.MulticastOption
 }
 
-func WithErr(errFunc ErrFunc) OptionFunc {
+func WithLogger(logger Logger) OptionFunc {
 	return func(cfg config) config {
-		if errFunc != nil {
-			cfg.errFunc = errFunc
+		if logger != nil {
+			cfg.logger = logger
 		}
 		return cfg
 	}
@@ -127,7 +124,7 @@ func WithDialUDP(dial DialUDP) OptionFunc {
 
 func (c *Client) getDeviceConfiguration() DeviceConfiguration {
 	return DeviceConfiguration{
-		ErrFunc:   c.errFunc,
+		Logger:    c.logger,
 		DialDTLS:  c.dialDTLS,
 		DialTLS:   c.dialTLS,
 		DialTCP:   c.dialTCP,
@@ -142,20 +139,14 @@ func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 		MulticastAddressUDP4: DiscoveryAddressUDP4,
 		MulticastAddressUDP6: DiscoveryAddressUDP6,
 		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(iface *net.Interface, err error) {
-			name := ""
-			if iface != nil {
-				name = iface.Name
-			}
-			log.Debugf("network interface '%v': %w", name, err)
+			// ignore error
 		})},
 	}
 }
 
 func NewClient(opts ...OptionFunc) *Client {
 	cfg := config{
-		errFunc: func(err error) {
-			log.Debug(err)
-		},
+		logger:   logging.NewDefaultLoggerFactory().NewLogger("client"),
 		dialDTLS: coap.DialUDPSecure,
 		dialTLS:  coap.DialTCPSecure,
 		dialTCP:  coap.DialTCP,
@@ -171,7 +162,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		dialTLS:   cfg.dialTLS,
 		dialTCP:   cfg.dialTCP,
 		dialUDP:   cfg.dialUDP,
-		errFunc:   cfg.errFunc,
+		logger:    cfg.logger,
 		tlsConfig: cfg.tlsConfig,
 	}
 }

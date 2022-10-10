@@ -13,7 +13,7 @@ import (
 type DeviceCache struct {
 	deviceExpiration time.Duration
 	devicesCache     *cache.Cache[string, *core.Device]
-	errors           func(error)
+	logger           core.Logger
 
 	closed atomic.Bool
 	done   chan struct{}
@@ -22,8 +22,8 @@ type DeviceCache struct {
 // Creates a new cache for devices.
 // - deviceExpiration: default expiration time for the device in the cache, 0 means infinite. The device expiration is refreshed by getting or updating the device.
 // - pollInterval: pool interval for cleaning expired devices from the cache
-// - errors: function for logging errors
-func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(error)) *DeviceCache {
+// - logger: logger for logging
+func NewDeviceCache(deviceExpiration, pollInterval time.Duration, logger core.Logger) *DeviceCache {
 	done := make(chan struct{})
 	cache := cache.NewCache[string, *core.Device]()
 	if deviceExpiration > 0 {
@@ -43,7 +43,7 @@ func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(er
 	return &DeviceCache{
 		devicesCache:     cache,
 		deviceExpiration: deviceExpiration,
-		errors:           errors,
+		logger:           logger,
 		done:             done,
 	}
 }
@@ -156,7 +156,7 @@ func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.T
 		defer cancel()
 		err := d1.Close(ctx)
 		if err != nil {
-			c.errors(err)
+			c.logger.Warn(fmt.Errorf("can't close device (%v) when evicting from cache: %w", d.Data().DeviceID(), err).Error())
 		}
 	}))
 	dev := loadedDev.Data()

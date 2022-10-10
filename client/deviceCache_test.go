@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pion/logging"
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/schema"
@@ -12,7 +13,7 @@ import (
 )
 
 func TestDeviceCacheContentHandling(t *testing.T) {
-	cache := client.NewDeviceCache(time.Second*5, time.Second, func(error) {})
+	cache := client.NewDeviceCache(time.Second*5, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 
 	deviceType := []string{"unknown"}
 	device1ID := "12345"
@@ -89,7 +90,7 @@ func TestDeviceCacheContentHandling(t *testing.T) {
 
 func TestDeviceCacheExpirationHandling(t *testing.T) {
 	expectedExpiration := time.Now().Add(5 * time.Second)
-	cache := client.NewDeviceCache(5*time.Second, time.Second, func(error) {})
+	cache := client.NewDeviceCache(5*time.Second, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 
 	deviceType := []string{"unknown"}
 	deviceID := "12345"
@@ -149,7 +150,7 @@ func TestDeviceCacheExpirationHandling(t *testing.T) {
 }
 
 func TestDeviceCacheExpirationWithInfiniteExpiration(t *testing.T) {
-	cache := client.NewDeviceCache(0, time.Second, func(error) {})
+	cache := client.NewDeviceCache(0, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 	deviceType := []string{"unknown"}
 	deviceID := "12345"
 	newdev := core.NewDevice(core.DeviceConfiguration{}, deviceID, deviceType, func() schema.Endpoints { return nil })

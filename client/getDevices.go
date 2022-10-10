@@ -42,7 +42,6 @@ func (c *Client) GetDevices(
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
-		err:                    c.errors,
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
@@ -86,7 +85,7 @@ func (c *Client) GetDevices(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	handler := newDiscoveryHandler(cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
 	if err := c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
@@ -145,13 +144,13 @@ type DeviceDetails struct {
 
 func newDiscoveryHandler(
 	typeFilter []string,
-	errors func(error),
+	logger core.Logger,
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
 	deviceCache *DeviceCache,
 	disableUDPEndpoints bool,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
+	return &discoveryHandler{typeFilter: typeFilter, logger: logger, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
 }
 
 type detailsWasSet struct {
@@ -161,7 +160,7 @@ type detailsWasSet struct {
 
 type discoveryHandler struct {
 	typeFilter          []string
-	errors              func(error)
+	logger              core.Logger
 	devices             func(DeviceDetails)
 	getDetails          GetDetailsFunc
 	deviceCache         *DeviceCache
@@ -170,7 +169,7 @@ type discoveryHandler struct {
 	getDetailsWasCalled sync.Map
 }
 
-func (h *discoveryHandler) Error(err error) { h.errors(err) }
+func (h *discoveryHandler) Error(err error) { h.logger.Debug(err.Error()) }
 
 func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink(device.ResourceURI)

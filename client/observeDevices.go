@@ -141,7 +141,7 @@ func (o *listDeviceIds) Error(err error) {
 }
 
 func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDevicesHandler) error {
-	multicastConn, err := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, o.c.errors)
+	multicastConn, err := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, func(err error) { o.c.logger.Debug(err.Error()) })
 	if err != nil {
 		return fmt.Errorf("could not discover devices: %w", err)
 	}
@@ -155,7 +155,7 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 }
 
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
-	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
+	newDevices := listDeviceIds{err: func(err error) { o.c.logger.Debug(err.Error()) }, devices: &sync.Map{}}
 
 	// check online status for all devices added by IP
 	var wg sync.WaitGroup
