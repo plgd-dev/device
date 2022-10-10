@@ -155,6 +155,9 @@ func NewClient(opts ...OptionFunc) *Client {
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
+	if cfg.Logger == nil {
+		cfg.Logger = NewNilLogger()
+	}
 
 	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
 	return &Client{

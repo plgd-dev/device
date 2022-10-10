@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/pion/logging"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -63,18 +62,15 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 	udpDialOpts := make([]udp.Option, 0, 5)
 
 	if logger == nil {
-		logger = logging.NewDefaultLoggerFactory().NewLogger("client")
+		logger = core.NewNilLogger()
 	}
 
-	errFn := func(error) {
-		// ignore error
+	errFn := func(err error) {
+		logger.Debug(err.Error())
 	}
-	if logger != nil {
-		errFn = func(err error) {
-			logger.Debug(err.Error())
-		}
-	}
+
 	tcpDialOpts = append(tcpDialOpts, options.WithErrors(errFn))
+	udpDialOpts = append(udpDialOpts, options.WithErrors(errFn))
 
 	keepAliveConnectionTimeout := time.Second * 60
 	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
@@ -159,7 +155,7 @@ func NewClient(
 	}
 
 	if coreCfg.Logger == nil {
-		coreCfg.Logger = logging.NewDefaultLoggerFactory().NewLogger("client")
+		coreCfg.Logger = core.NewNilLogger()
 	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
