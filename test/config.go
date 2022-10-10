@@ -98,8 +98,8 @@ func init() {
 
 	TestDevsimPrivateResources = []schema.ResourceLink{
 		{
-			Href:          cloud.ConfigurationResourceURI,
-			ResourceTypes: []string{cloud.ConfigurationResourceType},
+			Href:          cloud.ResourceURI,
+			ResourceTypes: []string{cloud.ResourceType},
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{

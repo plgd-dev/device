@@ -42,21 +42,21 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 	return cfg
 }
 
-type config struct {
-	tlsConfig *TLSConfig
-	logger    Logger
-	dialDTLS  DialDTLS
-	dialTLS   DialTLS
-	dialTCP   DialTCP
-	dialUDP   DialUDP
+type Config struct {
+	TLSConfig *TLSConfig
+	Logger    Logger
+	DialDTLS  DialDTLS
+	DialTLS   DialTLS
+	DialTCP   DialTCP
+	DialUDP   DialUDP
 }
 
-type OptionFunc func(config) config
+type OptionFunc func(Config) Config
 
 func WithTLS(tlsConfig *TLSConfig) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if tlsConfig != nil {
-			cfg.tlsConfig = tlsConfig
+			cfg.TLSConfig = tlsConfig
 		}
 		return cfg
 	}
@@ -71,9 +71,9 @@ type DiscoveryConfiguration struct {
 }
 
 func WithLogger(logger Logger) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if logger != nil {
-			cfg.logger = logger
+			cfg.Logger = logger
 		}
 		return cfg
 	}
@@ -87,36 +87,36 @@ type (
 )
 
 func WithDialDTLS(dial DialDTLS) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialDTLS = dial
+			cfg.DialDTLS = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialTLS(dial DialTLS) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialTLS = dial
+			cfg.DialTLS = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialTCP(dial DialTCP) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialTCP = dial
+			cfg.DialTCP = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialUDP(dial DialUDP) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialUDP = dial
+			cfg.DialUDP = dial
 		}
 		return cfg
 	}
@@ -145,24 +145,24 @@ func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 }
 
 func NewClient(opts ...OptionFunc) *Client {
-	cfg := config{
-		logger:   logging.NewDefaultLoggerFactory().NewLogger("client"),
-		dialDTLS: coap.DialUDPSecure,
-		dialTLS:  coap.DialTCPSecure,
-		dialTCP:  coap.DialTCP,
-		dialUDP:  coap.DialUDP,
+	cfg := Config{
+		Logger:   logging.NewDefaultLoggerFactory().NewLogger("client"),
+		DialDTLS: coap.DialUDPSecure,
+		DialTLS:  coap.DialTCPSecure,
+		DialTCP:  coap.DialTCP,
+		DialUDP:  coap.DialUDP,
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
 
-	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
+	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
 	return &Client{
-		dialDTLS:  cfg.dialDTLS,
-		dialTLS:   cfg.dialTLS,
-		dialTCP:   cfg.dialTCP,
-		dialUDP:   cfg.dialUDP,
-		logger:    cfg.logger,
-		tlsConfig: cfg.tlsConfig,
+		dialDTLS:  cfg.DialDTLS,
+		dialTLS:   cfg.DialTLS,
+		dialTCP:   cfg.DialTCP,
+		dialUDP:   cfg.DialUDP,
+		logger:    cfg.Logger,
+		tlsConfig: cfg.TLSConfig,
 	}
 }

@@ -3,10 +3,10 @@
 package cloud
 
 const (
-	// ConfigurationResourceType is the resource type of the Cloud Configuration Resource.
-	ConfigurationResourceType = "oic.r.coapcloudconf"
-	// ConfigurationResourceURI is the URI of the Cloud Configuration Resource.
-	ConfigurationResourceURI = "/CoapCloudConfResURI"
+	// ResourceType is the resource type of the Cloud Configuration Resource.
+	ResourceType = "oic.r.coapcloudconf"
+	// ResourceURI is the URI of the Cloud Configuration Resource.
+	ResourceURI = "/CoapCloudConfResURI"
 )
 
 // ProvisioningStatus indicates the Cloud Provisioning status of the Device.

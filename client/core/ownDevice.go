@@ -137,7 +137,7 @@ func setACL(ctx context.Context, conn connUpdateResourcer, links schema.Resource
 	}
 
 	confResources := acl.AllResources
-	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
+	for _, href := range links.GetResourceHrefs(cloud.ResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
 			Interfaces: []string{"*"},

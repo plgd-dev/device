@@ -129,13 +129,14 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 		core.WithDialTLS(dialTLS),
 		core.WithDialTCP(dialTCP),
 		core.WithDialUDP(dialUDP),
+		core.WithLogger(logger),
 	}
 
 	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, logger, opts...)
+	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, opts...)
 }
 
 // NewClient constructs a new local client.
@@ -144,7 +145,6 @@ func NewClient(
 	deviceOwner DeviceOwner,
 	cacheExpiration time.Duration,
 	observerPollingInterval time.Duration,
-	logger core.Logger,
 	opt ...core.OptionFunc,
 ) (*Client, error) {
 	if app == nil {
@@ -153,8 +153,13 @@ func NewClient(
 	if deviceOwner == nil {
 		return nil, fmt.Errorf("missing device owner callback")
 	}
-	if logger == nil {
-		logger = logging.NewDefaultLoggerFactory().NewLogger("client")
+	var coreCfg core.Config
+	for _, o := range opt {
+		coreCfg = o(coreCfg)
+	}
+
+	if coreCfg.Logger == nil {
+		coreCfg.Logger = logging.NewDefaultLoggerFactory().NewLogger("client")
 	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
@@ -163,22 +168,20 @@ func NewClient(
 	opt = append(
 		[]core.OptionFunc{
 			core.WithTLS(&tls),
+			core.WithLogger(coreCfg.Logger),
 		},
 		opt...,
 	)
-	if logger != nil {
-		opt = append(opt, core.WithLogger(logger))
-	}
 	oc := core.NewClient(opt...)
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, logger),
+		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, coreCfg.Logger),
 		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
-		logger:                  logger,
+		logger:                  coreCfg.Logger,
 	}
 	return &client, nil
 }

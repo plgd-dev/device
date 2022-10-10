@@ -114,7 +114,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	var link schema.ResourceLink
 
 	for _, l := range c.links {
-		if strings.SliceContains(l.ResourceTypes, cloud.ConfigurationResourceType) {
+		if strings.SliceContains(l.ResourceTypes, cloud.ResourceType) {
 			link = l
 			break
 		}

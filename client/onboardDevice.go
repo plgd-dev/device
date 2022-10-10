@@ -19,7 +19,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.D
 		CloudID:               cloudID,
 	}
 
-	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
+	for _, l := range links.GetResourceLinks(cloud.ResourceType) {
 		return d.UpdateResource(ctx, l, ob, nil)
 	}
 
