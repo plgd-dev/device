@@ -10,7 +10,8 @@ require (
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.1.6-0.20221001075407-984d41b9981a
-	github.com/plgd-dev/go-coap/v3 v3.0.0-20221007133257-e5ec65d743c0
+	github.com/pion/logging v0.2.2
+	github.com/plgd-dev/go-coap/v3 v3.0.0
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.0
 	github.com/ugorji/go/codec v1.2.7
@@ -23,9 +24,8 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/transport v0.13.1 // indirect
-	github.com/pion/udp v0.1.1 // indirect
+	github.com/pion/udp v0.1.2-0.20221011090648-2589407f52c9 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
