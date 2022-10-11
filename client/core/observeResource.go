@@ -38,9 +38,10 @@ func (d *Device) ObserveResource(
 	return d.ObserveResourceWithCodec(ctx, link, codec, handler, options...)
 }
 
-func (d *Device) StopObservingResource(
+func (d *Device) stopObservingResource(
 	ctx context.Context,
 	observationID string,
+	byClose bool,
 ) (bool, error) {
 	v, ok := d.observations.Load(observationID)
 	if !ok {
@@ -48,7 +49,12 @@ func (d *Device) StopObservingResource(
 	}
 	d.observations.Delete(observationID)
 	o := v.(*observation)
-	err := o.Stop(ctx)
+	var err error
+	if byClose {
+		err = o.Close(ctx)
+	} else {
+		err = o.Stop(ctx)
+	}
 	if err != nil {
 		return false, MakeCanceled(fmt.Errorf("could not cancel observation %s: %w", observationID, err))
 	}
@@ -56,7 +62,14 @@ func (d *Device) StopObservingResource(
 	return true, nil
 }
 
-func (d *Device) stopObservations(ctx context.Context) error {
+func (d *Device) StopObservingResource(
+	ctx context.Context,
+	observationID string,
+) (bool, error) {
+	return d.stopObservingResource(ctx, observationID, false)
+}
+
+func (d *Device) closeObservations(ctx context.Context) error {
 	obs := make([]string, 0, 12)
 	d.observations.Range(func(key, value interface{}) bool {
 		observationID := key.(string)
@@ -65,7 +78,7 @@ func (d *Device) stopObservations(ctx context.Context) error {
 	})
 	var errors []error
 	for _, observationID := range obs {
-		_, err := d.StopObservingResource(ctx, observationID)
+		_, err := d.stopObservingResource(ctx, observationID, true)
 		if err != nil {
 			errors = append(errors, err)
 		}
@@ -101,11 +114,15 @@ func (o *observation) Get() (onCloseID int, obs coap.Observation) {
 	return o.onCloseID, o.obs
 }
 
-func (o *observation) Stop(ctx context.Context) error {
+func (o *observation) stop(ctx context.Context, byClose bool) error {
 	onCloseID, obs := o.Get()
 	o.client.UnregisterCloseHandler(onCloseID)
 	if obs != nil {
-		o.handler.close()
+		if byClose {
+			o.handler.Close()
+		} else {
+			o.handler.close()
+		}
 		err := obs.Cancel(ctx)
 		if err != nil {
 			return MakeCanceled(fmt.Errorf("cannot cancel observation %s: %w", o.id, err))
@@ -113,6 +130,14 @@ func (o *observation) Stop(ctx context.Context) error {
 		return err
 	}
 	return nil
+}
+
+func (o *observation) Stop(ctx context.Context) error {
+	return o.stop(ctx, false)
+}
+
+func (o *observation) Close(ctx context.Context) error {
+	return o.stop(ctx, true)
 }
 
 func (d *Device) observeResource(

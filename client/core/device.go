@@ -152,7 +152,7 @@ func (d *Device) popConnections() []*conn {
 // Close closes open connections to the device.
 func (d *Device) Close(ctx context.Context) error {
 	var errs []error
-	if err := d.stopObservations(ctx); err != nil {
+	if err := d.closeObservations(ctx); err != nil {
 		errs = append(errs, err)
 	}
 
