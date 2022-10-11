@@ -140,7 +140,7 @@ func (c *testSetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certifi
 	return c.ca, nil
 }
 
-var CertIdentity = "00000000-0000-0000-0000-000000000001"
+var certIdentity = "00000000-0000-0000-0000-000000000001"
 
 func NewTestSecureClient() (*Client, error) {
 	mfgTrustedCABlock, _ := pem.Decode(test.RootCACrt)
@@ -157,7 +157,7 @@ func NewTestSecureClient() (*Client, error) {
 	}
 	cfg := Config{
 		DeviceOwnershipSDK: &DeviceOwnershipSDKConfig{
-			ID:               CertIdentity,
+			ID:               certIdentity,
 			Cert:             string(test.IdentityIntermediateCA),
 			CertKey:          string(test.IdentityIntermediateCAKey),
 			CreateSignerFunc: test.NewIdentityCertificateSigner,

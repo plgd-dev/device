@@ -119,9 +119,11 @@ func (o *observation) stop(ctx context.Context, byClose bool) error {
 	o.client.UnregisterCloseHandler(onCloseID)
 	if obs != nil {
 		if byClose {
+			// observation was closed by device.Close()
 			o.handler.Close()
 		} else {
-			o.handler.close()
+			// stop was called by user so we don't want to call OnClose handler
+			o.handler.disableHandlers()
 		}
 		err := obs.Cancel(ctx)
 		if err != nil {
@@ -195,7 +197,7 @@ type observationHandler struct {
 	isClosed atomic.Bool
 }
 
-func (h *observationHandler) close() {
+func (h *observationHandler) disableHandlers() {
 	h.isClosed.Store(true)
 }
 
