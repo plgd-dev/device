@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
+	"testing"
 	"time"
 
 	"github.com/plgd-dev/device/v2/client/core"
@@ -17,6 +18,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/log"
+	"github.com/stretchr/testify/require"
 )
 
 func MustGetHostname() string {
@@ -211,4 +213,27 @@ func MakeSwitchResourceData(overrides map[string]interface{}) map[string]interfa
 		data[k] = v
 	}
 	return data
+}
+
+func DefaultDevsimResourceLinks() schema.ResourceLinks {
+	res := TestDevsimResources
+	res = append(res, TestDevsimSecResources...)
+	res = append(res, TestDevsimPrivateResources...)
+	return res
+}
+
+func CheckResourceLinks(t *testing.T, expected, actual schema.ResourceLinks) {
+	require.Equal(t, len(expected), len(actual))
+	expLinks := make(map[string]bool)
+	for _, l := range expected {
+		expLinks[l.Href] = true
+	}
+	for _, l := range actual {
+		if _, ok := expLinks[l.Href]; ok {
+			delete(expLinks, l.Href)
+		} else {
+			require.FailNowf(t, "unexpected link", l.Href)
+		}
+	}
+	require.Empty(t, expLinks)
 }
