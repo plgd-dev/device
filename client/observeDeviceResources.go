@@ -2,12 +2,12 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"sync"
-	"time"
 
-	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
+	"github.com/plgd-dev/device/pkg/net/coap"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/resources"
 	"go.uber.org/atomic"
 )
 
@@ -30,59 +30,76 @@ type DeviceResourcesObservationHandler = interface {
 }
 
 type deviceResourcesObserver struct {
-	c                      *Client
-	deviceID               string
-	handler                *deviceResourcesObservationHandler
-	discoveryConfiguration core.DiscoveryConfiguration
+	c             *Client
+	deviceID      string
+	observationID atomic.String
+	handler       DeviceResourcesObservationHandler
 
-	cancel   context.CancelFunc
-	interval time.Duration
-	wait     func()
-	links    map[string]schema.ResourceLink
+	links map[string]schema.ResourceLink
+	mutex sync.Mutex
 }
 
-func newDeviceResourcesObserver(c *Client, deviceID string, interval time.Duration, handler *deviceResourcesObservationHandler, discoveryConfiguration core.DiscoveryConfiguration) *deviceResourcesObserver {
-	ctx, cancel := context.WithCancel(context.Background())
-	var wg sync.WaitGroup
-	obs := &deviceResourcesObserver{
-		c:                      c,
-		deviceID:               deviceID,
-		handler:                handler,
-		interval:               interval,
-		discoveryConfiguration: discoveryConfiguration,
-
-		wait:   wg.Wait,
-		cancel: cancel,
+func newDeviceResourcesObserver(ctx context.Context, c *Client, deviceID string, handler DeviceResourcesObservationHandler) (*deviceResourcesObserver, error) {
+	h := &deviceResourcesObserver{
+		c:        c,
+		deviceID: deviceID,
+		handler:  handler,
 	}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		for obs.poll(ctx) {
-		}
-	}()
-	return obs
+	obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, &deviceResourcesObserver{
+		c:        c,
+		deviceID: deviceID,
+		handler:  handler,
+	})
+	if err != nil {
+		return nil, err
+	}
+	h.observationID.Store(obsID)
+	return h, nil
 }
 
-func (o *deviceResourcesObserver) poll(ctx context.Context) bool {
-	pollCtx, cancel := context.WithTimeout(ctx, o.interval)
-	defer cancel()
-	newLinks, err := o.observe(pollCtx)
-	select {
-	case <-ctx.Done():
-		o.handler.OnClose()
-		return false
-	case <-pollCtx.Done():
+func (o *deviceResourcesObserver) Error(err error) {
+	o.handler.Error(err)
+}
+
+func (o *deviceResourcesObserver) OnClose() {
+	o.handler.OnClose()
+}
+
+func (o *deviceResourcesObserver) Handle(ctx context.Context, body coap.DecodeFunc) {
+	var links schema.ResourceLinks
+	err := body(&links)
+	if err != nil {
+		o.handler.Error(err)
+		return
+	}
+
+	added, removed := o.processLinks(links)
+	for _, l := range added {
+		err := o.emit(ctx, l, true)
 		if err != nil {
-			o.handler.Error(err)
-			return false
+			_, err := o.c.StopObservingResource(ctx, o.observationID.Load())
+			if err != nil {
+				o.c.errors(fmt.Errorf("cannot stop observing device(%v) resources(%v): %w", o.deviceID, o.observationID.Load(), err))
+			}
+			return
 		}
-		o.links = newLinks
-		return true
+	}
+	for _, l := range removed {
+		err := o.emit(ctx, l, false)
+		if err != nil {
+			_, err := o.c.StopObservingResource(ctx, o.observationID.Load())
+			if err != nil {
+				o.c.errors(fmt.Errorf("cannot stop observing device(%v) resources(%v): %w", o.deviceID, o.observationID.Load(), err))
+			}
+			return
+		}
 	}
 }
 
-func (o *deviceResourcesObserver) processLinks(links schema.ResourceLinks) (added schema.ResourceLinks, removed schema.ResourceLinks, current map[string]schema.ResourceLink) {
-	current = make(map[string]schema.ResourceLink)
+func (o *deviceResourcesObserver) processLinks(links schema.ResourceLinks) (added schema.ResourceLinks, removed schema.ResourceLinks) {
+	o.mutex.Lock()
+	defer o.mutex.Unlock()
+	current := make(map[string]schema.ResourceLink)
 	for _, l := range links {
 		current[l.Href] = l
 	}
@@ -100,6 +117,7 @@ func (o *deviceResourcesObserver) processLinks(links schema.ResourceLinks) (adde
 			added = append(added, l)
 		}
 	}
+	o.links = current
 	return
 }
 
@@ -114,115 +132,14 @@ func (o *deviceResourcesObserver) emit(ctx context.Context, link schema.Resource
 	})
 }
 
-func (o *deviceResourcesObserver) observe(ctx context.Context) (map[string]schema.ResourceLink, error) {
-	_, links, err := o.c.GetDevice(ctx, o.deviceID, WithDiscoveryConfiguration(o.discoveryConfiguration))
-	if err != nil {
-		return nil, err
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	added, removed, current := o.processLinks(links)
-	for _, l := range added {
-		err := o.emit(ctx, l, true)
-		if err != nil {
-			return nil, err
-		}
-	}
-	for _, l := range removed {
-		err := o.emit(ctx, l, false)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return current, nil
-}
-
-func (o *deviceResourcesObserver) Cancel() {
-	o.handler.close()
-	o.cancel()
-}
-
-func (o *deviceResourcesObserver) Wait() {
-	o.wait()
-}
-
-type deviceResourcesObservationHandler struct {
-	handlerMutex sync.Mutex
-	handler      DeviceResourcesObservationHandler
-	isClosed     atomic.Bool
-
-	removeSubscription func()
-}
-
-func (h *deviceResourcesObservationHandler) close() {
-	h.isClosed.Store(true)
-}
-
-func (h *deviceResourcesObservationHandler) Handle(ctx context.Context, event DeviceResourcesObservationEvent) error {
-	h.handlerMutex.Lock()
-	defer h.handlerMutex.Unlock()
-	if h.isClosed.Load() {
-		return nil
-	}
-	return h.handler.Handle(ctx, event)
-}
-
-func (h *deviceResourcesObservationHandler) OnClose() {
-	h.handlerMutex.Lock()
-	defer h.handlerMutex.Unlock()
-	if h.isClosed.Load() {
-		return
-	}
-	h.isClosed.Store(true)
-	h.removeSubscription()
-	h.handler.OnClose()
-}
-
-func (h *deviceResourcesObservationHandler) Error(err error) {
-	h.handlerMutex.Lock()
-	defer h.handlerMutex.Unlock()
-	if h.isClosed.Load() {
-		return
-	}
-	h.isClosed.Store(true)
-	h.removeSubscription()
-	h.handler.Error(err)
-}
-
-func (c *Client) stopObservingDeviceResources(observationID string) (sync func(), ok bool) {
-	sub, err := c.popSubscription(observationID)
-	if err != nil {
-		return nil, false
-	}
-	sub.Cancel()
-	return sub.Wait, true
-}
-
-func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler, opts ...CommonCommandOption) (string, error) {
-	cfg := applyCommonOptions(opts...)
-	ID, err := uuid.NewRandom()
+func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler) (string, error) {
+	obs, err := newDeviceResourcesObserver(ctx, c, deviceID, handler)
 	if err != nil {
 		return "", err
 	}
-
-	obs := newDeviceResourcesObserver(c, deviceID, c.observerPollingInterval, &deviceResourcesObservationHandler{
-		handler: handler,
-		removeSubscription: func() {
-			c.stopObservingDevices(ID.String())
-		},
-	}, cfg.discoveryConfiguration)
-	c.insertSubscription(ID.String(), obs)
-	return ID.String(), nil
+	return obs.observationID.Load(), nil
 }
 
-func (c *Client) StopObservingDeviceResources(ctx context.Context, observationID string) bool {
-	wait, ok := c.stopObservingDeviceResources(observationID)
-	if !ok {
-		return false
-	}
-	wait()
-	return true
+func (c *Client) StopObservingDeviceResources(ctx context.Context, observationID string) (bool, error) {
+	return c.StopObservingResource(ctx, observationID)
 }
