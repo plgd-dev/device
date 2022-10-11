@@ -45,11 +45,7 @@ func newDeviceResourcesObserver(ctx context.Context, c *Client, deviceID string,
 		deviceID: deviceID,
 		handler:  handler,
 	}
-	obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, &deviceResourcesObserver{
-		c:        c,
-		deviceID: deviceID,
-		handler:  handler,
-	})
+	obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h)
 	if err != nil {
 		return nil, err
 	}
