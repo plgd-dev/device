@@ -46,7 +46,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmTypes, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) updateCache(ctx context.Context, d *core.Device, oldDeviceID string) {
+func (c *Client) updateCache(d *core.Device, oldDeviceID string) {
 	if d.DeviceID() == oldDeviceID {
 		return
 	}
@@ -87,7 +87,7 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	if err != nil {
 		return "", err
 	}
-	c.updateCache(ctx, d, deviceID)
+	c.updateCache(d, deviceID)
 
 	return d.DeviceID(), nil
 }
