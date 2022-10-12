@@ -140,10 +140,14 @@ func NewClient(
 		opt = append(opt, core.WithErr(errors))
 	}
 	oc := core.NewClient(opt...)
+	pollInterval := time.Second * 10
+	if cacheExpiration/2 > pollInterval {
+		pollInterval = cacheExpiration / 2
+	}
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, errors),
+		deviceCache:             NewDeviceCache(cacheExpiration, pollInterval, errors),
 		observeResourceCache:    kitSync.NewMap(),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
