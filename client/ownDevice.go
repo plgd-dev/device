@@ -30,7 +30,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	return c.deviceOwner.OwnDevice(ctx, deviceID, cfg.otmTypes, cfg.discoveryConfiguration, c.ownDeviceWithSigners, cfg.opts...)
 }
 
-func (c *Client) updateCache(ctx context.Context, d *core.Device, oldDeviceID string) {
+func (c *Client) updateCache(d *core.Device, oldDeviceID string) {
 	if d.DeviceID() == oldDeviceID {
 		return
 	}
@@ -44,7 +44,7 @@ func (c *Client) updateCache(ctx context.Context, d *core.Device, oldDeviceID st
 	}
 	// remove device from key oldDeviceID
 	// we don't need to close it because it is already stored on new deviceID position
-	_, _ = c.deviceCache.LoadAndDeleteDevice(ctx, oldDeviceID)
+	_, _ = c.deviceCache.LoadAndDeleteDevice(oldDeviceID)
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
@@ -71,7 +71,7 @@ func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmC
 	if err != nil {
 		return "", err
 	}
-	c.updateCache(ctx, d, deviceID)
+	c.updateCache(d, deviceID)
 
 	return d.DeviceID(), nil
 }

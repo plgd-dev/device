@@ -204,7 +204,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, newdev *core.Device) {
 	dev, _ := h.deviceCache.UpdateOrStoreDeviceWithExpiration(newdev)
 	links, err := getLinksDevice(ctx, dev, h.disableUDPEndpoints)
 	if err != nil {
-		dev, ok := h.deviceCache.LoadAndDeleteDevice(ctx, dev.DeviceID())
+		dev, ok := h.deviceCache.LoadAndDeleteDevice(dev.DeviceID())
 		if ok {
 			dev.Close(ctx)
 		}
