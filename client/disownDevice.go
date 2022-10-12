@@ -30,7 +30,7 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...Comm
 		return err
 	}
 	defer func() {
-		dev, ok := c.deviceCache.LoadAndDeleteDevice(ctx, d.DeviceID())
+		dev, ok := c.deviceCache.LoadAndDeleteDevice(d.DeviceID())
 		if ok {
 			dev.Close(ctx)
 		}

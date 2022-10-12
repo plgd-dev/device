@@ -60,7 +60,7 @@ func (c *Client) updateCache(ctx context.Context, d *core.Device, oldDeviceID st
 	}
 	// remove device from key oldDeviceID
 	// we don't need to close it because it is already stored on new deviceID position
-	_, _ = c.deviceCache.LoadAndDeleteDevice(ctx, oldDeviceID)
+	_, _ = c.deviceCache.LoadAndDeleteDevice(oldDeviceID)
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {

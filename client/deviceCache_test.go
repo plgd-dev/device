@@ -75,11 +75,11 @@ func TestDeviceCacheContentHandling(t *testing.T) {
 	require.True(t, found)
 	require.False(t, expiration.IsZero())
 
-	dev, removed := cache.LoadAndDeleteDevice(context.TODO(), device2ID)
+	dev, removed := cache.LoadAndDeleteDevice(device2ID)
 	require.True(t, removed)
 	err := dev.Close(context.TODO())
 	require.NoError(t, err)
-	dev, removed = cache.LoadAndDeleteDevice(context.TODO(), device2ID)
+	dev, removed = cache.LoadAndDeleteDevice(device2ID)
 	require.False(t, removed)
 	require.Nil(t, dev)
 
@@ -94,7 +94,7 @@ func TestDeviceCacheContentHandling(t *testing.T) {
 	require.True(t, found)
 	require.False(t, expiration.IsZero())
 
-	dev, removed = cache.LoadAndDeleteDevice(context.TODO(), device1ID)
+	dev, removed = cache.LoadAndDeleteDevice(device1ID)
 	require.True(t, removed)
 	err = dev.Close(context.TODO())
 	require.NoError(t, err)

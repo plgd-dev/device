@@ -20,15 +20,27 @@ import (
 	"context"
 )
 
-// DeleteResource deletes a device from the cache.
-func (c *Client) DeleteDevice(ctx context.Context, deviceID string) (bool, error) {
-	dev, ok := c.deviceCache.LoadAndDeleteDevice(ctx, deviceID)
-	if !ok {
-		return false, nil
+func (c *Client) DeleteDevice(ctx context.Context, deviceID string) bool {
+	devs := c.DeleteDevices(ctx, []string{deviceID})
+	if len(devs) == 0 {
+		return false
 	}
-	err := dev.Close(ctx)
-	if err != nil {
-		c.logger.Debugf("can't close device %v during deleting device from the cache: %v", deviceID, err)
+	return true
+}
+
+// DeleteDevices deletes a device from the cache. If deviceIDFilter is empty, all devices are deleted.
+func (c *Client) DeleteDevices(ctx context.Context, deviceIDFilter []string) []string {
+	devs := c.deviceCache.LoadAndDeleteDevices(deviceIDFilter)
+	if len(devs) == 0 {
+		return nil
 	}
-	return true, nil
+	deviceIDs := make([]string, 0, len(devs))
+	for _, d := range devs {
+		deviceIDs = append(deviceIDs, d.DeviceID())
+		err := d.Close(ctx)
+		if err != nil {
+			c.logger.Debugf("can't close device %v during deleting device from the cache: %v", d.DeviceID(), err)
+		}
+	}
+	return deviceIDs
 }

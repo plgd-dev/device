@@ -40,7 +40,7 @@ func getLinksDevice(ctx context.Context, dev *core.Device, disableUDPEndpoints b
 // come back online
 func deleteDeviceNotFoundByIP(ctx context.Context, deviceCache *DeviceCache, dev *core.Device) {
 	if dev.FoundByIP() == "" {
-		deviceCache.LoadAndDeleteDevice(ctx, dev.DeviceID())
+		deviceCache.LoadAndDeleteDevice(dev.DeviceID())
 	}
 	dev.Close(ctx)
 }
