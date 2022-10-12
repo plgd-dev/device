@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/pion/logging"
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
@@ -68,7 +69,7 @@ func NewTestSecureClient() (*client.Client, error) {
 	client, err := client.NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-	}, func(err error) { fmt.Print(err) },
+	}, logging.NewDefaultLoggerFactory().NewLogger("test"),
 	)
 	if err != nil {
 		return nil, err

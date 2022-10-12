@@ -33,7 +33,7 @@ type DeviceOwnershipBackendConfig struct {
 }
 
 func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
-	cfg *DeviceOwnershipBackendConfig, errorsFunc func(err error),
+	cfg *DeviceOwnershipBackendConfig,
 ) (*deviceOwnershipBackend, error) {
 	if cfg == nil {
 		return nil, fmt.Errorf("missing device ownership backend config")

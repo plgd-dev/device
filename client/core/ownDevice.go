@@ -118,7 +118,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.O
 	}
 	defer func() {
 		if errC := coapConn.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("select otm: cannot close connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("select otm: cannot close connection: %w", errC).Error())
 		}
 	}()
 	return setOTM(ctx, coapConn, selectOwnerTransferMethod)
@@ -137,7 +137,7 @@ func setACL(ctx context.Context, conn connUpdateResourcer, links schema.Resource
 	}
 
 	confResources := acl.AllResources
-	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
+	for _, href := range links.GetResourceHrefs(cloud.ResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
 			Interfaces: []string{"*"},
@@ -348,35 +348,35 @@ func (d *Device) Own(
 	}
 	defer func() {
 		if errC := tlsClient.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("cannot close TLS connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("cannot close TLS connection: %w", errC).Error())
 		}
 	}()
 	var provisionState pstat.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, pstat.ResourceURI, &provisionState)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot get provision state %w", err))
 	}
 
 	if provisionState.DeviceOnboardingState.Pending {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
 	}
 
 	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != pstat.OperationalState_RFOTM {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, pstat.OperationalState_RFOTM))
 	}
 
 	if !provisionState.SupportedOperationalModes.Has(pstat.OperationalMode_CLIENT_DIRECTED) {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, pstat.OperationalMode_CLIENT_DIRECTED))
 	}
@@ -388,7 +388,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setCurrentOperationalMode, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update provision state: %w", err))
 	}
@@ -397,7 +397,7 @@ func (d *Device) Own(
 		deviceID, err := cfg.actionDuringOwn(ctx, tlsClient)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return err
 		}
@@ -415,7 +415,7 @@ func (d *Device) Own(
 		_, err := rand.Read(psk)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return MakeAborted(fmt.Errorf("cannot provision owner: %w", err))
 		}
@@ -428,7 +428,7 @@ func (d *Device) Own(
 	err = otm.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, psk, provisionOpts...)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeAborted(errorf("cannot provision owner: %w", err))
 	}
@@ -441,7 +441,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwner, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot set device owner: %w", err))
 	}
@@ -451,13 +451,13 @@ func (d *Device) Own(
 	err = tlsClient.GetResource(ctx, doxm.ResourceURI, &verifyOwner)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot verify owner: %w", err))
 	}
 	if verifyOwner.OwnerID != sdkID {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("%w", err))
 	}
@@ -475,7 +475,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setOwnerProvisionState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set owner of resource pstat: %w", err))
 	}
@@ -487,7 +487,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, acl.ResourceURI, setOwnerACL, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set owner of resource acl2: %w", err))
 	}
@@ -496,7 +496,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set device owned: %w", err))
 	}
@@ -505,7 +505,7 @@ func (d *Device) Own(
 	err = updateOperationalState(ctx, tlsClient, pstat.OperationalState_RFPRO)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set device to provision operation mode: %w", err))
 	}
@@ -525,13 +525,13 @@ func (d *Device) Own(
 	pskConn, err := coap.DialUDPSecure(ctx, tlsAddr.String(), &dtlsConfig)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot create connection for finish ownership transfer: %w", err))
 	}
 	defer func() {
 		if errC := pskConn.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("cannot close DTLS connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("cannot close DTLS connection: %w", errC).Error())
 		}
 	}()
 
@@ -539,7 +539,7 @@ func (d *Device) Own(
 	err = setACL(ctx, pskConn, links, sdkID)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update resource acl: %w", err))
 	}
@@ -548,7 +548,7 @@ func (d *Device) Own(
 	err = updateOperationalState(ctx, pskConn, pstat.OperationalState_RFNOP)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update operation state to normal mode: %w", err))
 	}
@@ -557,7 +557,7 @@ func (d *Device) Own(
 		err = cfg.actionAfterOwn(ctx, pskConn)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return MakeInternal(errorf("cannot create connection for finish ownership transfer: %w", err))
 		}

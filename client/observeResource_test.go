@@ -308,7 +308,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 			case device.ResourceURI:
 			case platform.ResourceURI:
 			case test.TestResourceLightInstanceHref("1"):
-			case cloud.ConfigurationResourceURI:
+			case cloud.ResourceURI:
 			case maintenance.ResourceURI:
 			case introspection.ResourceURI:
 			case configuration.ResourceURI:

@@ -22,11 +22,10 @@ func (c *Client) DeleteResource(
 		cfg = o.applyOnDelete(cfg)
 	}
 
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}
-	defer d.Release(ctx)
 
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {

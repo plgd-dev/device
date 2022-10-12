@@ -11,7 +11,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 )
 
-func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDevice, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
+func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
 	ob := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: authorizationProvider,
 		AuthorizationCode:     authorizationCode,
@@ -19,7 +19,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *RefDev
 		CloudID:               cloudID,
 	}
 
-	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
+	for _, l := range links.GetResourceLinks(cloud.ResourceType) {
 		return d.UpdateResource(ctx, l, ob, nil)
 	}
 
@@ -76,11 +76,10 @@ func (c *Client) OnboardDevice(
 	opts ...CommonCommandOption,
 ) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetRefDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}
-	defer d.Release(ctx)
 
 	ok := d.IsSecured()
 	if ok {

@@ -42,7 +42,6 @@ func (c *Client) GetDevices(
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
-		err:                    c.errors,
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
@@ -86,8 +85,8 @@ func (c *Client) GetDevices(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	handler := newDiscoveryHandler(cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
-	if err := c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler); err != nil {
+	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	if err := c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
 
@@ -99,14 +98,14 @@ func (c *Client) GetDevices(
 
 // GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandlerV2, opts ...GetDevicesWithHandlerOption) error {
+func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceMulticastHandler, opts ...GetDevicesWithHandlerOption) error {
 	cfg := getDevicesWithHandlerOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetGetDevicesWithHandler(cfg)
 	}
-	return c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler)
+	return c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler)
 }
 
 // OwnershipStatus describes ownership status of the device
@@ -127,6 +126,8 @@ const (
 type DeviceDetails struct {
 	// ID of the device
 	ID string
+	// IP used to find this device
+	FoundByIP string
 	// Details result of function which can be set via option WithGetDetails(), by default it is nil.
 	Details interface{}
 	// IsSecured is secured.
@@ -143,13 +144,13 @@ type DeviceDetails struct {
 
 func newDiscoveryHandler(
 	typeFilter []string,
-	errors func(error),
+	logger core.Logger,
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
-	deviceCache *refDeviceCache,
+	deviceCache *DeviceCache,
 	disableUDPEndpoints bool,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
+	return &discoveryHandler{typeFilter: typeFilter, logger: logger, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
 }
 
 type detailsWasSet struct {
@@ -159,16 +160,16 @@ type detailsWasSet struct {
 
 type discoveryHandler struct {
 	typeFilter          []string
-	errors              func(error)
+	logger              core.Logger
 	devices             func(DeviceDetails)
 	getDetails          GetDetailsFunc
-	deviceCache         *refDeviceCache
+	deviceCache         *DeviceCache
 	disableUDPEndpoints bool
 
 	getDetailsWasCalled sync.Map
 }
 
-func (h *discoveryHandler) Error(err error) { h.errors(err) }
+func (h *discoveryHandler) Error(err error) { h.logger.Debug(err.Error()) }
 
 func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink(device.ResourceURI)
@@ -189,6 +190,7 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 
 	return DeviceDetails{
 		ID:              dev.DeviceID(),
+		FoundByIP:       dev.FoundByIP(),
 		Details:         details,
 		IsSecured:       isSecured,
 		Resources:       links,
@@ -197,42 +199,23 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 	}, nil
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, d *core.Device) {
-	newRefDev := NewRefDevice(d)
-	refDev, stored := h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-	defer refDev.Release(ctx)
-	links, err := getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
-	d = refDev.Device()
+func (h *discoveryHandler) Handle(ctx context.Context, newdev *core.Device) {
+	dev, _ := h.deviceCache.UpdateOrStoreDeviceWithExpiration(newdev)
+	links, err := getLinksDevice(ctx, dev, h.disableUDPEndpoints)
 	if err != nil {
-		refDev.Device().Close(ctx)
-		h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
-		if stored {
-			return
+		dev, ok := h.deviceCache.LoadAndDeleteDevice(ctx, dev.DeviceID())
+		if ok {
+			dev.Close(ctx)
 		}
-		refDev, stored = h.deviceCache.TryStoreDeviceToTemporaryCache(newRefDev)
-		if !stored {
-			newRefDev.Release(ctx)
-			return
-		}
-		links, err = getLinksRefDevice(ctx, refDev, h.disableUDPEndpoints)
-		if err != nil {
-			refDev.Device().Close(ctx)
-			h.deviceCache.RemoveDevice(ctx, refDev.DeviceID(), refDev)
-			refDev.Release(ctx)
-			return
-		}
-		d = refDev.Device()
-	} else if !stored {
-		newRefDev.Release(ctx)
+		return
 	}
-
-	deviceTypes := make(kitStrings.Set, len(d.DeviceTypes()))
-	deviceTypes.Add(d.DeviceTypes()...)
+	deviceTypes := make(kitStrings.Set, len(dev.DeviceTypes()))
+	deviceTypes.Add(dev.DeviceTypes()...)
 	if !deviceTypes.HasOneOf(h.typeFilter...) {
 		return
 	}
 
-	devDetails, err := h.getDeviceDetails(ctx, d, links)
+	devDetails, err := h.getDeviceDetails(ctx, dev, links)
 	if err != nil {
 		h.Error(err)
 		return

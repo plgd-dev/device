@@ -15,12 +15,6 @@ func WithInterface(resourceInterface string) ResourceInterfaceOption {
 	}
 }
 
-func WithError(err func(error)) ErrorOption {
-	return ErrorOption{
-		err: err,
-	}
-}
-
 func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error)) GetDetailsOption {
 	return GetDetailsOption{
 		getDetails: getDetails,
@@ -235,15 +229,6 @@ type ObserveDevicesOption = interface {
 	applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions
 }
 
-type ErrorOption struct {
-	err func(error)
-}
-
-func (r ErrorOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
-	opts.err = r.err
-	return opts
-}
-
 type GetDetailsFunc = func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error)
 
 type GetDetailsOption struct {
@@ -267,7 +252,6 @@ func (r GetDetailsOption) applyOnGetDeviceByIP(opts getDeviceByIPOptions) getDev
 
 type getDevicesOptions struct {
 	resourceTypes          []string
-	err                    func(error)
 	getDetails             GetDetailsFunc
 	discoveryConfiguration core.DiscoveryConfiguration
 }

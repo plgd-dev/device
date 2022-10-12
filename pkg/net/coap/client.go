@@ -67,14 +67,14 @@ func GetDeviceIDFromIdentityCertificate(cert *x509.Certificate) (string, error) 
 	if !ekuHasClient {
 		return "", fmt.Errorf("not contains ExtKeyUsageClientAuth")
 	}
-	ekuHasOcfId := false
+	ekuHasOcfID := false
 	for _, eku := range cert.UnknownExtKeyUsage {
 		if eku.Equal(ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
-			ekuHasOcfId = true
+			ekuHasOcfID = true
 			break
 		}
 	}
-	if !ekuHasOcfId {
+	if !ekuHasOcfID {
 		return "", fmt.Errorf("not contains ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
 	}
 	cn := strings.Split(cert.Subject.CommonName, ":")
@@ -84,11 +84,11 @@ func GetDeviceIDFromIdentityCertificate(cert *x509.Certificate) (string, error) 
 	if strings.ToLower(cn[0]) != "uuid" {
 		return "", fmt.Errorf("invalid subject common name %v: 'uuid' - not found", cert.Subject.CommonName)
 	}
-	deviceId, err := uuid.Parse(cn[1])
+	deviceID, err := uuid.Parse(cn[1])
 	if err != nil {
 		return "", fmt.Errorf("invalid subject common name %v: %w", cert.Subject.CommonName, err)
 	}
-	return deviceId.String(), nil
+	return deviceID.String(), nil
 }
 
 func VerifyIdentityCertificate(cert *x509.Certificate) error {

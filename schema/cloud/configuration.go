@@ -1,10 +1,12 @@
-// Cloud Configuration Resource
+// Package cloud implements Cloud Configuration Resource.
 // https://github.com/openconnectivityfoundation/cloud-services/blob/master/swagger2.0/oic.r.coapcloudconf.swagger.json
 package cloud
 
 const (
-	ConfigurationResourceType = "oic.r.coapcloudconf"
-	ConfigurationResourceURI  = "/CoapCloudConfResURI"
+	// ResourceType is the resource type of the Cloud Configuration Resource.
+	ResourceType = "oic.r.coapcloudconf"
+	// ResourceURI is the URI of the Cloud Configuration Resource.
+	ResourceURI = "/CoapCloudConfResURI"
 )
 
 // ProvisioningStatus indicates the Cloud Provisioning status of the Device.
@@ -18,6 +20,7 @@ const (
 	ProvisioningStatus_FAILED            ProvisioningStatus = "failed"
 )
 
+// Configuration contains the supported fields of the Cloud Configuration Resource.
 type Configuration struct {
 	ResourceTypes         []string           `json:"rt"`
 	Interfaces            []string           `json:"if"`
@@ -29,6 +32,7 @@ type Configuration struct {
 	ProvisioningStatus    ProvisioningStatus `json:"cps"`
 }
 
+// ConfigurationUpdateRequest is used to update the Cloud Configuration Resource.
 type ConfigurationUpdateRequest struct {
 	AuthorizationProvider string `json:"apn"`
 	URL                   string `json:"cis"`

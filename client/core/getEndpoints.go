@@ -5,5 +5,11 @@ import (
 )
 
 func (d *Device) GetEndpoints() schema.Endpoints {
-	return d.getEndpoints()
+	d.lock.Lock()
+	getEndpoints := d.getEndpoints
+	d.lock.Unlock()
+	if getEndpoints != nil {
+		return getEndpoints()
+	}
+	return nil
 }

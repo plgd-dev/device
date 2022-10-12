@@ -517,15 +517,14 @@ func NewSecureClient() (*local.Client, error) {
 	} else {
 		cfg = local.Config{
 			// DisablePeerTCPSignalMessageCSMs: true,
+			DeviceCacheExpirationSeconds: 3600,
 			DeviceOwnershipSDK: &local.DeviceOwnershipSDKConfig{
 				ID: CertIdentity,
 			},
 		}
 	}
 
-	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, func(err error) {
-		// Noncompliant - ignore errors for coap protocol layer
-	})
+	client, err := local.NewClientFromConfig(&cfg, &setupSecureClient, nil)
 	if err != nil {
 		return nil, err
 	}

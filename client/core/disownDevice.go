@@ -59,14 +59,14 @@ func (d *Device) Disown(
 	if err != nil {
 		if connectionWasClosed(ctx, err) {
 			// connection was closed by disown so we don't report error just log it.
-			d.cfg.ErrFunc(cannotDisownErr(err))
+			d.cfg.Logger.Debug(fmt.Errorf("device disown error: %w", err).Error())
 			return nil
 		}
 
 		return MakeInternal(cannotDisownErr(err))
 	}
 	if errC := d.Close(ctx); errC != nil {
-		d.cfg.ErrFunc(fmt.Errorf("device disown error: %w", errC))
+		d.cfg.Logger.Debug(fmt.Errorf("device disown error: %w", errC).Error())
 	}
 	return nil
 }
