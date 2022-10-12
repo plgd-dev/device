@@ -49,14 +49,12 @@ func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(er
 }
 
 // This function loads the device from the cache and deletes it from the cache. To cleanup the device you have to call device.Close.
-func (c *DeviceCache) LoadAndDeleteDevice(ctx context.Context, deviceID string) (*core.Device, bool) {
-	d := c.devicesCache.Load(deviceID)
-	if d == nil {
+func (c *DeviceCache) LoadAndDeleteDevice(deviceID string) (*core.Device, bool) {
+	devs := c.LoadAndDeleteDevices([]string{deviceID})
+	if len(devs) == 0 {
 		return nil, false
 	}
-	dev := d.Data().(*core.Device)
-	c.devicesCache.Delete(deviceID)
-	return dev, true
+	return devs[0], true
 }
 
 func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
@@ -181,6 +179,27 @@ func (c *DeviceCache) GetDevicesFoundByIP() map[string]string {
 		return true
 	})
 
+	return devices
+}
+
+func (c *DeviceCache) LoadAndDeleteDevices(deviceIDFilter []string) []*core.Device {
+	devices := make([]*core.Device, 0, len(deviceIDFilter))
+	if len(deviceIDFilter) == 0 {
+		for _, val := range c.devicesCache.PullOutAll() {
+			d := val.(*core.Device)
+			devices = append(devices, d)
+		}
+		return devices
+	}
+	for _, deviceID := range deviceIDFilter {
+		val := c.devicesCache.Load(deviceID)
+		if val == nil {
+			continue
+		}
+		c.devicesCache.Delete(deviceID)
+		d := val.Data().(*core.Device)
+		devices = append(devices, d)
+	}
 	return devices
 }
 

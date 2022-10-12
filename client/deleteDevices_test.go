@@ -191,10 +191,9 @@ func TestClientDeleteDevice(t *testing.T) {
 		deviceID     string
 	}
 	tests := []struct {
-		name    string
-		args    args
-		want    bool
-		wantErr bool
+		name string
+		args args
+		want bool
 	}{
 		{
 			name: "not found",
@@ -202,8 +201,7 @@ func TestClientDeleteDevice(t *testing.T) {
 				addDevice: nil,
 				deviceID:  "not-found",
 			},
-			want:    false,
-			wantErr: false,
+			want: false,
 		},
 		{
 			name: "found",
@@ -211,16 +209,14 @@ func TestClientDeleteDevice(t *testing.T) {
 				addDevice: addDirectDeviceToCache,
 				deviceID:  "found",
 			},
-			want:    true,
-			wantErr: false,
+			want: true,
 		},
 		{
 			name: "try to delete twice",
 			args: args{
 				deviceID: "found",
 			},
-			want:    false,
-			wantErr: false,
+			want: false,
 		},
 		{
 			name: "delete device with resource observation",
@@ -250,8 +246,7 @@ func TestClientDeleteDevice(t *testing.T) {
 				checkForSkip: func(ctx context.Context, t *testing.T, c *Client, deviceID string) {
 					_, links, err := c.GetDevice(ctx, deviceID)
 					require.NoError(t, err)
-					ok, err := c.DeleteDevice(ctx, deviceID)
-					require.NoError(t, err)
+					ok := c.DeleteDevice(ctx, deviceID)
 					require.True(t, ok)
 
 					res := links.GetResourceLinks(resources.ResourceType)
@@ -333,8 +328,7 @@ func TestClientDeleteDevice(t *testing.T) {
 		err := c.DisownDevice(ctx, deviceID)
 		require.NoError(t, err)
 	}()
-	ok, err := c.DeleteDevice(ctx, deviceID)
-	require.NoError(t, err)
+	ok := c.DeleteDevice(ctx, deviceID)
 	require.True(t, ok)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -347,12 +341,7 @@ func TestClientDeleteDevice(t *testing.T) {
 			if tt.args.addDevice != nil {
 				testCtx = tt.args.addDevice(ctx, t, c, tt.args.deviceID)
 			}
-			got, err := c.DeleteDevice(testCtx, tt.args.deviceID)
-			if tt.wantErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
+			got := c.DeleteDevice(testCtx, tt.args.deviceID)
 			require.Equal(t, tt.want, got)
 			if tt.args.cleanUp != nil {
 				tt.args.cleanUp(testCtx, t, c, tt.args.deviceID)
