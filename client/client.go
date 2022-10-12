@@ -185,10 +185,14 @@ func NewClient(
 		opt...,
 	)
 	oc := core.NewClient(opt...)
+	pollInterval := time.Second * 10
+	if cacheExpiration/2 > pollInterval {
+		pollInterval = cacheExpiration / 2
+	}
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewDeviceCache(cacheExpiration, time.Minute, coreCfg.Logger),
+		deviceCache:             NewDeviceCache(cacheExpiration, pollInterval, coreCfg.Logger),
 		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
