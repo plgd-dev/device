@@ -87,7 +87,7 @@ func (c *Client) GetDeviceByIP(
 	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
 }
 
-// GetDeviceByMulticast returns device.
+// GetDeviceByMulticast gets the device via multicast.
 func (c *Client) GetDeviceByMulticast(
 	ctx context.Context,
 	deviceID string,

@@ -26,7 +26,7 @@ func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...Comm
 	if err != nil {
 		return err
 	}
-
+	defer c.removeTemporaryDeviceFromCache(ctx, d)
 	return d.FactoryReset(ctx, links)
 }
 
@@ -36,6 +36,6 @@ func (c *Client) Reboot(ctx context.Context, deviceID string, opts ...CommonComm
 	if err != nil {
 		return err
 	}
-
+	defer c.removeTemporaryDeviceFromCache(ctx, d)
 	return d.Reboot(ctx, links)
 }
