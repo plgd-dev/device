@@ -76,7 +76,7 @@ func TestClientGetResource(t *testing.T) {
 		err := c.Close(context.Background())
 		require.NoError(t, err)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)

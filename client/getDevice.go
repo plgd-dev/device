@@ -6,6 +6,7 @@ import (
 
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema"
+	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/go-coap/v2/message/codes"
 	"github.com/plgd-dev/go-coap/v2/message/status"
 )
@@ -29,19 +30,101 @@ func deleteDeviceNotFoundByIP(ctx context.Context, deviceCache *DeviceCache, dev
 	dev.Close(ctx)
 }
 
-func getDeviceFromCache(ctx context.Context, deviceCache *DeviceCache,
-	deviceID string, disableUDPEndpoints bool,
-) (*core.Device, schema.ResourceLinks, bool) {
-	dev, ok := deviceCache.GetDevice(deviceID)
-	if ok {
-		links, err := getLinksDevice(ctx, dev, disableUDPEndpoints)
-		if err != nil {
-			deleteDeviceNotFoundByIP(ctx, deviceCache, dev)
-			return nil, nil, false
-		}
-		return dev, links, true
+func (c *Client) getDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (*core.Device, schema.ResourceLinks, error) {
+	cfg := getDeviceOptions{
+		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
-	return nil, nil, false
+	for _, o := range opts {
+		cfg = o.applyOnGetDevice(cfg)
+	}
+	dev, err := c.client.GetDeviceByMulticast(ctx, deviceID, cfg.discoveryConfiguration)
+	if err != nil {
+		return nil, nil, err
+	}
+	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
+	if err != nil {
+		dev.Close(ctx)
+		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
+	}
+	retDev, updated := c.deviceCache.UpdateOrStoreDeviceWithExpiration(dev)
+	if updated {
+		dev.Close(ctx)
+	}
+	return retDev, links, nil
+}
+
+func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, schema.ResourceLinks, error) {
+	newDev, err := c.client.GetDeviceByIP(ctx, ip)
+	if err != nil {
+		return nil, nil, err
+	}
+	links, err := getLinksDevice(ctx, newDev, c.disableUDPEndpoints)
+	if err != nil {
+		newDev.Close(ctx)
+		return nil, nil, err
+	}
+	var oldDev *core.Device
+	if expectedDeviceID != "" {
+		oldDev, _ = c.deviceCache.GetDevice(expectedDeviceID)
+	} else {
+		oldDev = c.deviceCache.GetDeviceByFoundIP(ip)
+	}
+	if oldDev != nil && oldDev.DeviceID() != newDev.DeviceID() {
+		tmp, ok := c.deviceCache.LoadAndDeleteDevice(oldDev.DeviceID())
+		if ok && tmp == oldDev {
+			oldDev.UpdateBy(newDev)
+			newDev.Close(ctx)
+			newDev = oldDev
+		}
+	}
+	dev, _ := c.deviceCache.UpdateOrStoreDevice(newDev)
+	return dev, links, nil
+}
+
+func (c *Client) checkAndUpdateCacheByLinks(ctx context.Context, dev *core.Device, links schema.ResourceLinks) (*core.Device, schema.ResourceLinks, error) {
+	devLinks := links.GetResourceLinks(device.ResourceType)
+	if len(devLinks) == 0 {
+		return nil, nil, fmt.Errorf("cannot get %v resourceType for device %v: not found", device.ResourceType, dev.DeviceID())
+	}
+	if devLinks[0].GetDeviceID() == dev.DeviceID() {
+		return dev, links, nil
+	}
+	newDeviceID := devLinks[0].GetDeviceID()
+	tmp, ok := c.deviceCache.LoadAndDeleteDevice(dev.DeviceID())
+	if ok {
+		tmp.SetDeviceID(newDeviceID)
+		_, updated := c.deviceCache.UpdateOrStoreDeviceWithExpiration(tmp)
+		if updated {
+			tmp.Close(ctx)
+		}
+	}
+	return nil, nil, fmt.Errorf("cannot get device %v: not found", dev.DeviceID())
+}
+
+// GetDevice gets the device via multicast.
+func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption,
+) (*core.Device, schema.ResourceLinks, error) {
+	dev, ok := c.deviceCache.GetDevice(deviceID)
+	if !ok {
+		return c.getDeviceByMulticast(ctx, deviceID, opts...)
+	}
+	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
+	if err == nil {
+		return c.checkAndUpdateCacheByLinks(ctx, dev, links)
+	}
+	var newDev *core.Device
+	if dev.FoundByIP() != "" {
+		newDev, links, err = c.getDeviceByIP(ctx, dev.FoundByIP(), deviceID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if newDev.DeviceID() != deviceID {
+			return nil, nil, fmt.Errorf("cannot get device %v: not found", deviceID)
+		}
+		return dev, links, nil
+	}
+	deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
+	return c.getDeviceByMulticast(ctx, deviceID, opts...)
 }
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
@@ -49,56 +132,7 @@ func (c *Client) GetDeviceByIPWithLinks(
 	ctx context.Context,
 	ip string,
 ) (*core.Device, schema.ResourceLinks, error) {
-	// we are intentionally not searching for the device inside the cache
-	// as we wan't to contact the device
-	newDev, err := c.client.GetDeviceByIP(ctx, ip)
-	if err != nil {
-		if dev := c.deviceCache.GetDeviceByFoundIP(ip); dev != nil {
-			if dev.IsConnected() {
-				dev.Close(ctx)
-			}
-		}
-		return nil, nil, err
-	}
-
-	dev, _ := c.deviceCache.UpdateOrStoreDevice(newDev)
-	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
-	if err != nil {
-		deviceID := dev.DeviceID()
-		deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
-		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
-	}
-	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
-}
-
-// GetDevice gets the device via multicast.
-func (c *Client) GetDevice(
-	ctx context.Context,
-	deviceID string,
-	opts ...GetDeviceOption,
-) (*core.Device, schema.ResourceLinks, error) {
-	cfg := getDeviceOptions{
-		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
-	}
-	for _, o := range opts {
-		cfg = o.applyOnGetDevice(cfg)
-	}
-	dev, links, ok := getDeviceFromCache(ctx, c.deviceCache, deviceID, c.disableUDPEndpoints)
-	if ok {
-		return dev, links, nil
-	}
-	newdev, err := c.client.GetDeviceByMulticast(ctx, deviceID, cfg.discoveryConfiguration)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	dev, _ = c.deviceCache.UpdateOrStoreDeviceWithExpiration(newdev)
-	links, err = getLinksDevice(ctx, dev, c.disableUDPEndpoints)
-	if err != nil {
-		deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
-		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
-	}
-	return dev, patchResourceLinksEndpoints(links, c.disableUDPEndpoints), nil
+	return c.getDeviceByIP(ctx, ip, "")
 }
 
 func (c *Client) getDevice(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {

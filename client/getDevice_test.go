@@ -205,3 +205,65 @@ func TestClientGetDeviceByIP(t *testing.T) {
 		})
 	}
 }
+
+func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
+	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
+	defer cancel()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(ctx)
+		require.NoError(t, err)
+	}()
+	// store device to cache
+	d, err := c.GetDeviceByIP(ctx, ip)
+	require.NoError(t, err)
+	_, err = c.OwnDevice(ctx, d.ID)
+	require.NoError(t, err)
+	dev, _, err := c.GetDevice(ctx, d.ID)
+	require.NoError(t, err)
+	err = c.DisownDevice(ctx, d.ID)
+	require.NoError(t, err)
+	time.Sleep(time.Second * 4)
+	// deviceID was changed after disowning - the call fails, but internally the cache is updated so dev.DeviceID() returns new deviceID
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.Error(t, err)
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+
+	// change deviceID by another client
+	c1, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c1.Close(ctx)
+		require.NoError(t, err)
+	}()
+	_, err = c1.OwnDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+	err = c1.DisownDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+	time.Sleep(time.Second * 4)
+
+	// try get old device again
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.Error(t, err)
+	// dev has updated deviceID by previous call so we can get the device
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+	dev.SetEndpoints(nil)
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+
+	deletedDevices := c.DeleteDevices(ctx, []string{dev.DeviceID()})
+	require.Equal(t, []string{dev.DeviceID()}, deletedDevices)
+
+	// device is stored without cache
+	dev, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+	// invalidate endpoints
+	dev.SetEndpoints(nil)
+	// device endpoints will be updated by multicast
+	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	require.NoError(t, err)
+}

@@ -317,10 +317,14 @@ func TestClientDeleteDevice(t *testing.T) {
 			want: true,
 		},
 	}
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(ctx)
+		require.NoError(t, err)
+	}()
 
 	_, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
