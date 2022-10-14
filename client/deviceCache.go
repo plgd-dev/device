@@ -150,7 +150,6 @@ func deviceIsStoredWithExpiration(e *cache.Element[*core.Device]) bool {
 
 func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.Time) (*core.Device, bool) {
 	deviceID := device.DeviceID()
-
 	// if the device was not in the cache store it
 	loadedDev, loaded := c.devicesCache.LoadOrStore(deviceID, cache.NewElement(device, expiration, func(d1 *core.Device) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)

@@ -20,12 +20,13 @@ import (
 	"context"
 )
 
+// DeleteDevice deletes the device from the cache.
 func (c *Client) DeleteDevice(ctx context.Context, deviceID string) bool {
 	devs := c.DeleteDevices(ctx, []string{deviceID})
 	return len(devs) > 0
 }
 
-// DeleteDevices deletes a device from the cache. If deviceIDFilter is empty, all devices are deleted.
+// DeleteDevices deletes devices from the cache. If deviceIDFilter is empty, all devices are deleted.
 func (c *Client) DeleteDevices(ctx context.Context, deviceIDFilter []string) []string {
 	devs := c.deviceCache.LoadAndDeleteDevices(deviceIDFilter)
 	if len(devs) == 0 {

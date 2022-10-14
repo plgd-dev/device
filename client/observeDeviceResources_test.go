@@ -33,7 +33,7 @@ func TestObserveDeviceResources(t *testing.T) {
 }
 
 func isDeviceResourcesObservable(ctx context.Context, t *testing.T, c *client.Client, deviceID string) bool {
-	_, links, err := c.GetDeviceByMulticast(ctx, deviceID)
+	_, links, err := c.GetDevice(ctx, deviceID)
 	require.NoError(t, err)
 	res := links.GetResourceLinks(resources.ResourceType)
 	require.NotEmpty(t, res)

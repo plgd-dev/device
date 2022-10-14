@@ -238,7 +238,7 @@ func TestClientDeleteDevice(t *testing.T) {
 			name: "delete device with resource observation",
 			args: args{
 				addDevice: func(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
-					_, _, err := c.GetDeviceByMulticast(ctx, deviceID)
+					_, _, err := c.GetDevice(ctx, deviceID)
 					require.NoError(t, err)
 					h := makeMockObservationHandler()
 					_, err = c.ObserveResource(ctx, deviceID, device.ResourceURI, h)
@@ -260,7 +260,7 @@ func TestClientDeleteDevice(t *testing.T) {
 			name: "delete device with device resources observation",
 			args: args{
 				checkForSkip: func(ctx context.Context, t *testing.T, c *Client, deviceID string) {
-					_, links, err := c.GetDeviceByMulticast(ctx, deviceID)
+					_, links, err := c.GetDevice(ctx, deviceID)
 					require.NoError(t, err)
 					ok := c.DeleteDevice(ctx, deviceID)
 					require.True(t, ok)
@@ -272,7 +272,7 @@ func TestClientDeleteDevice(t *testing.T) {
 					}
 				},
 				addDevice: func(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
-					_, _, err := c.GetDeviceByMulticast(ctx, deviceID)
+					_, _, err := c.GetDevice(ctx, deviceID)
 					require.NoError(t, err)
 					h := makeMockDeviceResourcesObservationHandler()
 					_, err = c.ObserveDeviceResources(ctx, deviceID, h)
@@ -295,7 +295,7 @@ func TestClientDeleteDevice(t *testing.T) {
 			name: "delete device added by device discovery",
 			args: args{
 				addDevice: func(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
-					_, _, err := c.GetDeviceByMulticast(ctx, deviceID)
+					_, _, err := c.GetDevice(ctx, deviceID)
 					require.NoError(t, err)
 					return ctx
 				},
@@ -316,10 +316,14 @@ func TestClientDeleteDevice(t *testing.T) {
 			want: true,
 		},
 	}
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(ctx)
+		require.NoError(t, err)
+	}()
 
 	_, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)

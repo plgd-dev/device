@@ -23,6 +23,8 @@ import (
 	"github.com/plgd-dev/device/v2/client/core/otm"
 )
 
+// OwnDevice transfer ownership to the client and setup time at the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOption) (string, error) {
 	cfg := ownOptions{
 		otmTypes:               []OTMType{OTMType_JustWorks},
@@ -31,7 +33,7 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 	for _, o := range opts {
 		cfg = o.applyOnOwn(cfg)
 	}
-	d, _, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, _, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
@@ -64,7 +66,7 @@ func (c *Client) updateCache(d *core.Device, oldDeviceID string) {
 }
 
 func (c *Client) ownDeviceWithSigners(ctx context.Context, deviceID string, otmClient []otm.Client, discoveryConfiguration core.DiscoveryConfiguration, opts ...core.OwnOption) (string, error) {
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}

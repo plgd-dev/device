@@ -289,6 +289,8 @@ func (c *Client) stopObservingDevices(observationID string) (sync func(), ok boo
 	return sub.Wait, true
 }
 
+// ObserveDevices method starts observing devices via multicast
+// and added by IP in poll interval configured in observerPollingInterval.
 func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
 	cfg := observeDevicesOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
@@ -313,6 +315,7 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 	return ID.String(), nil
 }
 
+// StopObservingDevices method stops observing devices.
 func (c *Client) StopObservingDevices(ctx context.Context, observationID string) bool {
 	wait, ok := c.stopObservingDevices(observationID)
 	if !ok {

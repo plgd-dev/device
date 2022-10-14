@@ -23,6 +23,8 @@ import (
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 )
 
+// GetResource returns the device resource.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) GetResource(
 	ctx context.Context,
 	deviceID string,
@@ -37,7 +39,7 @@ func (c *Client) GetResource(
 	for _, o := range opts {
 		cfg = o.applyOnGet(cfg)
 	}
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

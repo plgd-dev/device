@@ -417,7 +417,7 @@ func (d *Device) Own(
 			}
 			return err
 		}
-		d.setDeviceID(deviceID)
+		d.SetDeviceID(deviceID)
 	}
 
 	/*setup credentials */

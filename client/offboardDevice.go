@@ -20,9 +20,11 @@ import (
 	"context"
 )
 
+// OffboardDevice disconnects from the cloud and removes cloud configuration at the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) OffboardDevice(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

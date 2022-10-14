@@ -24,6 +24,8 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
+// CreateResource creates the resource from the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) CreateResource(
 	ctx context.Context,
 	deviceID string,
@@ -43,7 +45,7 @@ func (c *Client) CreateResource(
 		cfg = o.applyOnCreate(cfg)
 	}
 
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

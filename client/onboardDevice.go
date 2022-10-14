@@ -86,13 +86,15 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 	return p.UpdateResource(ctx, link, cloudACL, nil)
 }
 
+// OnboardDevice connects device to the cloud.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) OnboardDevice(
 	ctx context.Context,
 	deviceID, authorizationProvider, cloudURL, authCode, cloudID string,
 	opts ...CommonCommandOption,
 ) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

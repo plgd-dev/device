@@ -20,9 +20,10 @@ import (
 	"context"
 )
 
+// FactoryReset factory resets the device.
 func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}
@@ -30,9 +31,10 @@ func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...Comm
 	return d.FactoryReset(ctx, links)
 }
 
+// Reboot reboots the device.
 func (c *Client) Reboot(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

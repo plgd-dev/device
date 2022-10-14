@@ -162,6 +162,8 @@ func parseIDs(id string) (string, string, error) {
 	return v[0], v[1], nil
 }
 
+// ObserveResource method starts observing the resource of the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID string,
@@ -212,7 +214,7 @@ func (c *Client) ObserveResource(
 		return getObservationID(key, resourceObservationID.String()), nil
 	}
 
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return "", err
 	}
@@ -234,6 +236,8 @@ func (c *Client) ObserveResource(
 	return getObservationID(key, resourceObservationID.String()), err
 }
 
+// StopObservingResource method stops observing the resource of the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) StopObservingResource(ctx context.Context, observationID string) (bool, error) {
 	resourceCacheID, internalResourceObservationID, err := parseIDs(observationID)
 	if err != nil {

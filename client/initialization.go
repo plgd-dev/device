@@ -81,6 +81,7 @@ func GenerateSDKManufacturerCertificate(ctx context.Context, sign SignFunc, id s
 	return generateSDKCertificate(ctx, csr, sign, priv)
 }
 
+// Initialization initializes the client.
 func (c *Client) Initialization(ctx context.Context) (err error) {
 	return c.deviceOwner.Initialization(ctx)
 }

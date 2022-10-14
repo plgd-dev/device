@@ -35,7 +35,7 @@ func (c *Client) removeTemporaryDeviceFromCache(ctx context.Context, d *core.Dev
 // For secure device it disowns.
 func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...CommonCommandOption) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDeviceByMulticast(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
 	}

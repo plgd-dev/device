@@ -51,8 +51,8 @@ type ownership struct {
 	status OwnershipStatus
 }
 
-// GetDevices discovers devices in the local mode.
-// The deviceResourceType is applied on the client side, because len(deviceResourceType) > 1 does not work with Iotivity 1.3.
+// GetDevices gets devices by multicast and each device are stored to cache. When the device expiration time has expired,
+// the device will be removed from cache. The device expiration time is prolonged by using the device.
 func (c *Client) GetDevices(
 	ctx context.Context,
 	opts ...GetDevicesOption,
