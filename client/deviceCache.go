@@ -130,20 +130,6 @@ func deviceIsStoredWithExpiration(e *cache.Element) bool {
 
 func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.Time) (*core.Device, bool) {
 	deviceID := device.DeviceID()
-
-	d := c.devicesCache.Load(deviceID)
-	if d != nil {
-		dev := d.Data().(*core.Device)
-		dev.UpdateBy(device)
-
-		// record is already in cache
-		// if someone requirers from the device to be stored permanently (without timeout)
-		// override the expiration
-		if deviceIsStoredWithExpiration(d) {
-			d.ValidUntil.Store(expiration)
-		}
-		return dev, true
-	}
 	// if the device was not in the cache store it
 	loadedDev, loaded := c.devicesCache.LoadOrStore(deviceID, cache.NewElement(device, expiration, func(d1 interface{}) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
@@ -159,7 +145,7 @@ func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.T
 		// record is already in cache
 		// if someone requirers from the device to be stored permanently (without timeout)
 		// override the expiration
-		if deviceIsStoredWithExpiration(d) {
+		if deviceIsStoredWithExpiration(loadedDev) {
 			loadedDev.ValidUntil.Store(expiration)
 		}
 		return dev, true

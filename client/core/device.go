@@ -41,7 +41,7 @@ type Device struct {
 }
 
 func (d *Device) UpdateBy(v *Device) {
-	d.setDeviceID(v.DeviceID())
+	d.SetDeviceID(v.DeviceID())
 	// foundByIP can be overwritten only when it is set.
 	if v.foundByIP.Load() != "" {
 		d.foundByIP.Store(v.foundByIP.Load())
@@ -50,6 +50,12 @@ func (d *Device) UpdateBy(v *Device) {
 	defer d.lock.Unlock()
 	d.deviceTypes = v.deviceTypes
 	d.getEndpoints = v.getEndpoints
+}
+
+func (d *Device) SetEndpoints(getEndpoints func() schema.Endpoints) {
+	d.lock.Lock()
+	defer d.lock.Unlock()
+	d.getEndpoints = getEndpoints
 }
 
 // GetCertificateFunc returns certificate for connection
@@ -134,7 +140,7 @@ func NewDevice(
 		getEndpoints: getEndpoints,
 		conn:         make(map[string]*conn),
 	}
-	d.setDeviceID(deviceID)
+	d.SetDeviceID(deviceID)
 	return d
 }
 
@@ -310,7 +316,7 @@ func (d *Device) DeviceID() string {
 	return d.deviceID.Load()
 }
 
-func (d *Device) setDeviceID(deviceID string) {
+func (d *Device) SetDeviceID(deviceID string) {
 	d.deviceID.Store(deviceID)
 }
 
