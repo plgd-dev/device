@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -5,15 +21,15 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/go-coap/v2/pkg/cache"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/go-coap/v3/pkg/cache"
 	"go.uber.org/atomic"
 )
 
 type DeviceCache struct {
 	deviceExpiration time.Duration
-	devicesCache     *cache.Cache
-	errors           func(error)
+	devicesCache     *cache.Cache[string, *core.Device]
+	logger           core.Logger
 
 	closed atomic.Bool
 	done   chan struct{}
@@ -22,10 +38,10 @@ type DeviceCache struct {
 // Creates a new cache for devices.
 // - deviceExpiration: default expiration time for the device in the cache, 0 means infinite. The device expiration is refreshed by getting or updating the device.
 // - pollInterval: pool interval for cleaning expired devices from the cache
-// - errors: function for logging errors
-func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(error)) *DeviceCache {
+// - logger: logger for logging
+func NewDeviceCache(deviceExpiration, pollInterval time.Duration, logger core.Logger) *DeviceCache {
 	done := make(chan struct{})
-	cache := cache.NewCache()
+	cache := cache.NewCache[string, *core.Device]()
 	if deviceExpiration > 0 {
 		go func() {
 			t := time.NewTicker(pollInterval)
@@ -43,7 +59,7 @@ func NewDeviceCache(deviceExpiration, pollInterval time.Duration, errors func(er
 	return &DeviceCache{
 		devicesCache:     cache,
 		deviceExpiration: deviceExpiration,
-		errors:           errors,
+		logger:           logger,
 		done:             done,
 	}
 }
@@ -65,13 +81,17 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 	if deviceIsStoredWithExpiration(d) {
 		d.ValidUntil.Store(getNextExpiration(c.deviceExpiration))
 	}
-	return d.Data().(*core.Device), true
+	return d.Data(), true
 }
 
 func (c *DeviceCache) GetDeviceByFoundIP(ip string) *core.Device {
 	var d *core.Device
-	c.devicesCache.Range(func(key, val interface{}) bool {
-		dev := val.(*core.Device)
+	now := time.Now()
+	c.devicesCache.Range(func(deviceID string, item *cache.Element[*core.Device]) bool {
+		if item.IsExpired(now) {
+			return true
+		}
+		dev := item.Data()
 		if dev.FoundByIP() == ip {
 			d = dev
 			return false
@@ -117,29 +137,29 @@ func (c *DeviceCache) TryToChangeDeviceExpirationToDefault(deviceID string) bool
 	if d == nil {
 		return false
 	}
-	if d.Data().(*core.Device).FoundByIP() == "" {
+	if d.Data().FoundByIP() == "" {
 		d.ValidUntil.Store(getNextExpiration(c.deviceExpiration))
 		return true
 	}
 	return false
 }
 
-func deviceIsStoredWithExpiration(e *cache.Element) bool {
+func deviceIsStoredWithExpiration(e *cache.Element[*core.Device]) bool {
 	return !e.ValidUntil.Load().IsZero()
 }
 
 func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.Time) (*core.Device, bool) {
 	deviceID := device.DeviceID()
 	// if the device was not in the cache store it
-	loadedDev, loaded := c.devicesCache.LoadOrStore(deviceID, cache.NewElement(device, expiration, func(d1 interface{}) {
+	loadedDev, loaded := c.devicesCache.LoadOrStore(deviceID, cache.NewElement(device, expiration, func(d1 *core.Device) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 		defer cancel()
-		err := d1.(*core.Device).Close(ctx)
+		err := d1.Close(ctx)
 		if err != nil {
-			c.errors(err)
+			c.logger.Warn(fmt.Errorf("can't close device (%v) when evicting from cache: %w", deviceID, err).Error())
 		}
 	}))
-	dev := loadedDev.Data().(*core.Device)
+	dev := loadedDev.Data()
 	if loaded {
 		dev.UpdateBy(device)
 		// record is already in cache
@@ -155,10 +175,12 @@ func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.T
 
 func (c *DeviceCache) GetDevicesFoundByIP() map[string]string {
 	devices := make(map[string]string)
-
-	c.devicesCache.Range(func(key, value interface{}) bool {
-		d := value.(*core.Device)
-
+	now := time.Now()
+	c.devicesCache.Range(func(deviceID string, item *cache.Element[*core.Device]) bool {
+		if item.IsExpired(now) {
+			return true
+		}
+		d := item.Data()
 		if ip := d.FoundByIP(); ip != "" {
 			devices[d.DeviceID()] = ip
 		}
@@ -171,20 +193,17 @@ func (c *DeviceCache) GetDevicesFoundByIP() map[string]string {
 func (c *DeviceCache) LoadAndDeleteDevices(deviceIDFilter []string) []*core.Device {
 	devices := make([]*core.Device, 0, len(deviceIDFilter))
 	if len(deviceIDFilter) == 0 {
-		for _, val := range c.devicesCache.PullOutAll() {
-			d := val.(*core.Device)
-			devices = append(devices, d)
+		for _, d := range c.devicesCache.LoadAndDeleteAll() {
+			devices = append(devices, d.Data())
 		}
 		return devices
 	}
 	for _, deviceID := range deviceIDFilter {
-		val := c.devicesCache.Load(deviceID)
-		if val == nil {
+		d, ok := c.devicesCache.LoadAndDelete(deviceID)
+		if !ok {
 			continue
 		}
-		c.devicesCache.Delete(deviceID)
-		d := val.Data().(*core.Device)
-		devices = append(devices, d)
+		devices = append(devices, d.Data())
 	}
 	return devices
 }
@@ -194,9 +213,8 @@ func (c *DeviceCache) Close(ctx context.Context) error {
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
-	for _, val := range c.devicesCache.PullOutAll() {
-		d := val.(*core.Device)
-		err := d.Close(ctx)
+	for _, val := range c.devicesCache.LoadAndDeleteAll() {
+		err := val.Data().Close(ctx)
 		if err != nil {
 			errors = append(errors, err)
 		}

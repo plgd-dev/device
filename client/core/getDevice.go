@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -6,10 +22,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
@@ -25,14 +41,14 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device via ip %s: %w", ip, err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get device by ip error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get device by ip error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()
@@ -51,19 +67,19 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	return d, nil
 }
 
-// GetDevice performs a multicast and returns a device object if the device responds.
+// GetDeviceByMulticast performs a multicast and returns a device object if the device responds.
 func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, discoveryConfiguration DiscoveryConfiguration) (*Device, error) {
 	findCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, c.errFunc)
+	multicastConn, err := DialDiscoveryAddresses(findCtx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get device by multicast error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get device by multicast error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()
@@ -112,9 +128,9 @@ func (h *deviceHandler) Device() *Device {
 	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
-		h.deviceCfg.ErrFunc(fmt.Errorf("device handler cannot close connection: %w", errC))
+		h.deviceCfg.Logger.Debug(fmt.Errorf("device handler cannot close connection: %w", errC).Error())
 	}
 	h.lock.Lock()
 	defer h.lock.Unlock()

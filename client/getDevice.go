@@ -1,14 +1,30 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/message/codes"
-	"github.com/plgd-dev/go-coap/v2/message/status"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/status"
 )
 
 func getLinksDevice(ctx context.Context, dev *core.Device, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
@@ -30,7 +46,10 @@ func deleteDeviceNotFoundByIP(ctx context.Context, deviceCache *DeviceCache, dev
 	dev.Close(ctx)
 }
 
-func (c *Client) getDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (*core.Device, schema.ResourceLinks, error) {
+// GetDeviceByMulticast gets device by multicast and store it to cache with expiration.
+// When the device expiration time has expired, the device will be removed from cache.
+// The device expiration time is prolonged by using the device.
+func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (*core.Device, schema.ResourceLinks, error) {
 	cfg := getDeviceOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
@@ -101,12 +120,12 @@ func (c *Client) checkAndUpdateCacheByLinks(ctx context.Context, dev *core.Devic
 	return nil, nil, fmt.Errorf("cannot get device %v: not found", dev.DeviceID())
 }
 
-// GetDevice gets the device via multicast.
+// GetDevice gets the device from the cache or via multicast or via IP address if was previously stored by GetDeviceByIP and updates device in the cache.
 func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDeviceOption,
 ) (*core.Device, schema.ResourceLinks, error) {
 	dev, ok := c.deviceCache.GetDevice(deviceID)
 	if !ok {
-		return c.getDeviceByMulticast(ctx, deviceID, opts...)
+		return c.GetDeviceByMulticast(ctx, deviceID, opts...)
 	}
 	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
 	if err == nil {
@@ -124,18 +143,19 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 		return dev, links, nil
 	}
 	deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
-	return c.getDeviceByMulticast(ctx, deviceID, opts...)
+	return c.GetDevice(ctx, deviceID, opts...)
 }
 
-// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
-func (c *Client) GetDeviceByIPWithLinks(
+// GetDeviceByIP gets device by IP and store it to cache without expiration.
+// To delete device, call DeleteDevices with the deviceID.
+func (c *Client) GetDeviceByIP(
 	ctx context.Context,
 	ip string,
 ) (*core.Device, schema.ResourceLinks, error) {
 	return c.getDeviceByIP(ctx, ip, "")
 }
 
-func (c *Client) getDevice(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
+func (c *Client) getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
 	devDetails, err := getDeviceDetails(ctx, dev, links, getDetails)
 	if err != nil {
 		return DeviceDetails{}, err
@@ -161,7 +181,7 @@ func (c *Client) getDevice(ctx context.Context, dev *core.Device, links schema.R
 	})[devDetails.ID], nil
 }
 
-func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
+func (c *Client) GetDeviceDetailsByMulticast(ctx context.Context, deviceID string, opts ...GetDeviceOption) (DeviceDetails, error) {
 	cfg := getDeviceOptions{
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
@@ -174,15 +194,15 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	return c.getDevice(ctx, dev, links, cfg.getDetails)
+	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails)
 }
 
 func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
 	return c.deviceCache.GetDevicesFoundByIP()
 }
 
-// GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
-func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
+// GetDeviceDetailsByIP gets the device directly via IP address and multicast listen port 5683.
+func (c *Client) GetDeviceDetailsByIP(ctx context.Context, ip string, opts ...GetDeviceByIPOption) (DeviceDetails, error) {
 	cfg := getDeviceByIPOptions{
 		getDetails: getDetails,
 	}
@@ -190,9 +210,9 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string, opts ...GetDevice
 		cfg = o.applyOnGetDeviceByIP(cfg)
 	}
 
-	dev, links, err := c.GetDeviceByIPWithLinks(ctx, ip)
+	dev, links, err := c.GetDeviceByIP(ctx, ip)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	return c.getDevice(ctx, dev, links, cfg.getDetails)
+	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails)
 }

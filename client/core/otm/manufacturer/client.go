@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package manufacturer
 
 import (
@@ -7,15 +23,17 @@ import (
 	"fmt"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
 type (
-	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
 )
 
 type Client struct {
@@ -66,7 +84,7 @@ func (*Client) Type() doxm.OwnerTransferMethod {
 	return doxm.ManufacturerCertificate
 }
 
-func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
+func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error) {
 	switch schema.Scheme(addr.GetScheme()) {
 	case schema.UDPSecureScheme:
 		rootCAs := x509.NewCertPool()
@@ -80,7 +98,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOp
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return c.dialDTLS(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialDTLS(ctx, addr.String(), &tlsConfig)
 	case schema.TCPSecureScheme:
 		rootCAs := x509.NewCertPool()
 		for _, ca := range c.manufacturerCA {
@@ -91,7 +109,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOp
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}
-		return c.dialTLS(ctx, addr.String(), &tlsConfig, opts...)
+		return c.dialTLS(ctx, addr.String(), &tlsConfig)
 	}
 	return nil, fmt.Errorf("cannot dial to url %v: scheme %v not supported", addr.URL(), addr.GetScheme())
 }

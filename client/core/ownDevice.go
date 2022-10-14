@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -8,21 +24,21 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/csr"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/maintenance"
-	"github.com/plgd-dev/device/schema/platform"
-	"github.com/plgd-dev/device/schema/pstat"
-	"github.com/plgd-dev/device/schema/resources"
-	"github.com/plgd-dev/device/schema/sdi"
-	"github.com/plgd-dev/device/schema/softwareupdate"
-	"github.com/plgd-dev/device/schema/sp"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/csr"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/maintenance"
+	"github.com/plgd-dev/device/v2/schema/platform"
+	"github.com/plgd-dev/device/v2/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/schema/sdi"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
+	"github.com/plgd-dev/device/v2/schema/sp"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 )
 
@@ -118,7 +134,7 @@ func (d *Device) selectOTM(ctx context.Context, selectOwnerTransferMethod doxm.O
 	}
 	defer func() {
 		if errC := coapConn.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("select otm: cannot close connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("select otm: cannot close connection: %w", errC).Error())
 		}
 	}()
 	return setOTM(ctx, coapConn, selectOwnerTransferMethod)
@@ -137,7 +153,7 @@ func setACL(ctx context.Context, conn connUpdateResourcer, links schema.Resource
 	}
 
 	confResources := acl.AllResources
-	for _, href := range links.GetResourceHrefs(cloud.ConfigurationResourceType) {
+	for _, href := range links.GetResourceHrefs(cloud.ResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
 			Interfaces: []string{"*"},
@@ -348,35 +364,35 @@ func (d *Device) Own(
 	}
 	defer func() {
 		if errC := tlsClient.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("cannot close TLS connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("cannot close TLS connection: %w", errC).Error())
 		}
 	}()
 	var provisionState pstat.ProvisionStatusResponse
 	err = tlsClient.GetResource(ctx, pstat.ResourceURI, &provisionState)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot get provision state %w", err))
 	}
 
 	if provisionState.DeviceOnboardingState.Pending {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("device pending for operation state %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState))
 	}
 
 	if provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState != pstat.OperationalState_RFOTM {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("device operation state %v is not %v", provisionState.DeviceOnboardingState.CurrentOrPendingOperationalState, pstat.OperationalState_RFOTM))
 	}
 
 	if !provisionState.SupportedOperationalModes.Has(pstat.OperationalMode_CLIENT_DIRECTED) {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("device supports %v, but only %v is supported", provisionState.SupportedOperationalModes, pstat.OperationalMode_CLIENT_DIRECTED))
 	}
@@ -388,7 +404,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setCurrentOperationalMode, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update provision state: %w", err))
 	}
@@ -397,7 +413,7 @@ func (d *Device) Own(
 		deviceID, err := cfg.actionDuringOwn(ctx, tlsClient)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return err
 		}
@@ -415,7 +431,7 @@ func (d *Device) Own(
 		_, err := rand.Read(psk)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return MakeAborted(fmt.Errorf("cannot provision owner: %w", err))
 		}
@@ -428,7 +444,7 @@ func (d *Device) Own(
 	err = otm.ProvisionOwnerCredentials(ctx, tlsClient, sdkID, psk, provisionOpts...)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeAborted(errorf("cannot provision owner: %w", err))
 	}
@@ -441,7 +457,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwner, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot set device owner: %w", err))
 	}
@@ -451,13 +467,13 @@ func (d *Device) Own(
 	err = tlsClient.GetResource(ctx, doxm.ResourceURI, &verifyOwner)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot verify owner: %w", err))
 	}
 	if verifyOwner.OwnerID != sdkID {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("%w", err))
 	}
@@ -475,7 +491,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, pstat.ResourceURI, setOwnerProvisionState, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set owner of resource pstat: %w", err))
 	}
@@ -487,7 +503,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, acl.ResourceURI, setOwnerACL, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set owner of resource acl2: %w", err))
 	}
@@ -496,7 +512,7 @@ func (d *Device) Own(
 	err = tlsClient.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set device owned: %w", err))
 	}
@@ -505,17 +521,9 @@ func (d *Device) Own(
 	err = updateOperationalState(ctx, tlsClient, pstat.OperationalState_RFPRO)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot set device to provision operation mode: %w", err))
-	}
-
-	links, err = getResourceLinks(ctx, tlsAddr, tlsClient, d.GetEndpoints())
-	if err != nil {
-		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
-		}
-		return MakeUnavailable(errorf("cannot get resource links: %w", err))
 	}
 
 	id, err := uuid.Parse(sdkID)
@@ -533,13 +541,13 @@ func (d *Device) Own(
 	pskConn, err := coap.DialUDPSecure(ctx, tlsAddr.String(), &dtlsConfig)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeUnavailable(errorf("cannot create connection for finish ownership transfer: %w", err))
 	}
 	defer func() {
 		if errC := pskConn.Close(); errC != nil {
-			d.cfg.ErrFunc(fmt.Errorf("cannot close DTLS connection: %w", errC))
+			d.cfg.Logger.Warn(fmt.Errorf("cannot close DTLS connection: %w", errC).Error())
 		}
 	}()
 
@@ -547,7 +555,7 @@ func (d *Device) Own(
 	err = setACL(ctx, pskConn, links, sdkID)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update resource acl: %w", err))
 	}
@@ -556,7 +564,7 @@ func (d *Device) Own(
 	err = updateOperationalState(ctx, pskConn, pstat.OperationalState_RFNOP)
 	if err != nil {
 		if errDisown := disown(ctx, tlsClient); errDisown != nil {
-			d.cfg.ErrFunc(disownError(errDisown))
+			d.cfg.Logger.Warn(disownError(errDisown).Error())
 		}
 		return MakeInternal(errorf("cannot update operation state to normal mode: %w", err))
 	}
@@ -565,7 +573,7 @@ func (d *Device) Own(
 		err = cfg.actionAfterOwn(ctx, pskConn)
 		if err != nil {
 			if errDisown := disown(ctx, tlsClient); errDisown != nil {
-				d.cfg.ErrFunc(disownError(errDisown))
+				d.cfg.Logger.Warn(disownError(errDisown).Error())
 			}
 			return MakeInternal(errorf("cannot create connection for finish ownership transfer: %w", err))
 		}

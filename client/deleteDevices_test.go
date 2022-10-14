@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -9,12 +25,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/resources"
-	"github.com/plgd-dev/device/test"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,17 +84,17 @@ func (h *mockObservationHandler) waitForClose(ctx context.Context) error {
 
 func makeMockDeviceResourcesObservationHandler() *mockDeviceResourcesObservationHandler {
 	return &mockDeviceResourcesObservationHandler{
-		res:   make(chan DeviceResourcesObservationEvent, 100),
+		res:   make(chan schema.ResourceLinks, 100),
 		close: make(chan struct{}),
 	}
 }
 
 type mockDeviceResourcesObservationHandler struct {
-	res   chan DeviceResourcesObservationEvent
+	res   chan schema.ResourceLinks
 	close chan struct{}
 }
 
-func (h *mockDeviceResourcesObservationHandler) Handle(ctx context.Context, body DeviceResourcesObservationEvent) error {
+func (h *mockDeviceResourcesObservationHandler) Handle(ctx context.Context, body schema.ResourceLinks) error {
 	h.res <- body
 	return nil
 }
@@ -91,14 +107,14 @@ func (h *mockDeviceResourcesObservationHandler) OnClose() {
 	close(h.close)
 }
 
-func (h *mockDeviceResourcesObservationHandler) waitForNotification(ctx context.Context) (DeviceResourcesObservationEvent, error) {
+func (h *mockDeviceResourcesObservationHandler) waitForNotification(ctx context.Context) (schema.ResourceLinks, error) {
 	select {
 	case e := <-h.res:
 		return e, nil
 	case <-ctx.Done():
-		return DeviceResourcesObservationEvent{}, ctx.Err()
+		return nil, ctx.Err()
 	case <-h.close:
-		return DeviceResourcesObservationEvent{}, fmt.Errorf("unexpected close")
+		return nil, fmt.Errorf("unexpected close")
 	}
 }
 
@@ -167,7 +183,7 @@ func NewTestSecureClient() (*Client, error) {
 	client, err := NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-	}, func(err error) { fmt.Print(err) },
+	}, core.NewNilLogger(),
 	)
 	if err != nil {
 		return nil, err
@@ -261,26 +277,9 @@ func TestClientDeleteDevice(t *testing.T) {
 					h := makeMockDeviceResourcesObservationHandler()
 					_, err = c.ObserveDeviceResources(ctx, deviceID, h)
 					require.NoError(t, err)
-					expLinks := make(map[string]bool)
-					for _, l := range test.TestDevsimResources {
-						expLinks[l.Href] = true
-					}
-					for _, l := range test.TestDevsimSecResources {
-						expLinks[l.Href] = true
-					}
-					for _, l := range test.TestDevsimPrivateResources {
-						expLinks[l.Href] = true
-					}
-					for len(expLinks) > 0 {
-						e, err := h.waitForNotification(ctx)
-						require.NoError(t, err)
-						require.Equal(t, DeviceResourcesObservationEvent_ADDED, e.Event)
-						if _, ok := expLinks[e.Link.Href]; ok {
-							delete(expLinks, e.Link.Href)
-						} else {
-							require.FailNowf(t, "unexpected link", e.Link.Href)
-						}
-					}
+					e, err := h.waitForNotification(ctx)
+					require.NoError(t, err)
+					test.CheckResourceLinks(t, test.DefaultDevsimResourceLinks(), e)
 					return context.WithValue(ctx, &ctxValueKeyMockHandler, h)
 				},
 				cleanUp: func(ctx context.Context, t *testing.T, c *Client, deviceID string) {
@@ -308,7 +307,7 @@ func TestClientDeleteDevice(t *testing.T) {
 			name: "delete device added by ip",
 			args: args{
 				addDevice: func(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
-					_, err := c.GetDeviceByIP(ctx, ip)
+					_, _, err := c.GetDeviceByIP(ctx, ip)
 					require.NoError(t, err)
 					return ctx
 				},

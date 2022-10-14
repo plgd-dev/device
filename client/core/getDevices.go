@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -5,10 +21,10 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 // DeviceHandler conveys device connections and errors during discovery.
@@ -19,55 +35,25 @@ type DeviceHandler interface {
 	Error(err error)
 }
 
-type deprecatedDeviceHandler struct {
-	h DeviceHandler
-}
-
-func (h deprecatedDeviceHandler) Handle(ctx context.Context, device *Device) {
-	eps := device.GetEndpoints()
-	links, err := device.GetResourceLinks(ctx, eps)
-	if err != nil {
-		if errC := device.Close(ctx); errC != nil {
-			h.Error(errC)
-		}
-		h.Error(err)
-		return
-	}
-
-	h.h.Handle(ctx, device, links)
-}
-
-// Error gets errors during discovery.
-func (h deprecatedDeviceHandler) Error(err error) {
-	h.h.Error(err)
-}
-
-// GetDevices discovers devices using a CoAP multicast request via UDP to default addresses.
-// Device resources can be queried in DeviceHandler using device.Client,
-// DEPRECATED
-func (c *Client) GetDevices(ctx context.Context, handler DeviceHandler) error {
-	return c.GetDevicesV2(ctx, DefaultDiscoveryConfiguration(), deprecatedDeviceHandler{handler})
-}
-
-// DeviceHandler conveys device connections and errors during discovery.
-type DeviceHandlerV2 interface {
+// DeviceMulticastHandler conveys device connections and errors during discovery.
+type DeviceMulticastHandler interface {
 	// Handle gets a device connection and is responsible for closing it.
 	Handle(ctx context.Context, device *Device)
 	// Error gets errors during discovery.
 	Error(err error)
 }
 
-// GetDevices discovers devices using a CoAP multicast request via UDP.
+// GetDevicesByMulticast discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevicesV2(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, handler DeviceHandlerV2) error {
-	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, c.errFunc)
+func (c *Client) GetDevicesByMulticast(ctx context.Context, discoveryConfiguration DiscoveryConfiguration, handler DeviceMulticastHandler) error {
+	multicastConn, err := DialDiscoveryAddresses(ctx, discoveryConfiguration, func(err error) { c.logger.Debug(err.Error()) })
 	if err != nil {
 		return MakeInvalidArgument(fmt.Errorf("could not get the devices: %w", err))
 	}
 	defer func() {
 		for _, conn := range multicastConn {
 			if errC := conn.Close(); errC != nil {
-				c.errFunc(fmt.Errorf("get devices error: cannot close connection(%s): %w", conn.mcastaddr, errC))
+				c.logger.Debug(fmt.Errorf("get devices error: cannot close connection(%s): %w", conn.mcastaddr, errC).Error())
 			}
 		}
 	}()
@@ -77,7 +63,7 @@ func (c *Client) GetDevicesV2(ctx context.Context, discoveryConfiguration Discov
 
 func newDiscoveryHandler(
 	deviceCfg DeviceConfiguration,
-	h DeviceHandlerV2,
+	h DeviceMulticastHandler,
 ) *discoveryHandler {
 	return &discoveryHandler{
 		deviceCfg: deviceCfg,
@@ -87,11 +73,11 @@ func newDiscoveryHandler(
 
 type discoveryHandler struct {
 	deviceCfg               DeviceConfiguration
-	handler                 DeviceHandlerV2
+	handler                 DeviceMulticastHandler
 	filterDiscoveredDevices sync.Map
 }
 
-func (h *discoveryHandler) Handle(ctx context.Context, conn *client.ClientConn, links schema.ResourceLinks) {
+func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
 		h.handler.Error(fmt.Errorf("discovery handler cannot close connection: %w", errC))
 	}

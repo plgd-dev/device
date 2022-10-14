@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -8,12 +24,12 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/interfaces"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
@@ -35,14 +51,13 @@ type ownership struct {
 	status OwnershipStatus
 }
 
-// GetDevices discovers devices in the local mode.
-// The deviceResourceType is applied on the client side, because len(deviceResourceType) > 1 does not work with Iotivity 1.3.
+// GetDevices gets devices by multicast and each device are stored to cache. When the device expiration time has expired,
+// the device will be removed from cache. The device expiration time is prolonged by using the device.
 func (c *Client) GetDevices(
 	ctx context.Context,
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
 	cfg := getDevicesOptions{
-		err:                    c.errors,
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
@@ -86,8 +101,8 @@ func (c *Client) GetDevices(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	handler := newDiscoveryHandler(cfg.resourceTypes, cfg.err, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
-	if err := c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler); err != nil {
+	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	if err := c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
 
@@ -99,14 +114,14 @@ func (c *Client) GetDevices(
 
 // GetDevicesWithHandler discovers devices using a CoAP multicast request via UDP.
 // Device resources can be queried in DeviceHandler using device.Client,
-func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceHandlerV2, opts ...GetDevicesWithHandlerOption) error {
+func (c *Client) GetDevicesWithHandler(ctx context.Context, handler core.DeviceMulticastHandler, opts ...GetDevicesWithHandlerOption) error {
 	cfg := getDevicesWithHandlerOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetGetDevicesWithHandler(cfg)
 	}
-	return c.client.GetDevicesV2(ctx, cfg.discoveryConfiguration, handler)
+	return c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler)
 }
 
 // OwnershipStatus describes ownership status of the device
@@ -145,13 +160,13 @@ type DeviceDetails struct {
 
 func newDiscoveryHandler(
 	typeFilter []string,
-	errors func(error),
+	logger core.Logger,
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
 	deviceCache *DeviceCache,
 	disableUDPEndpoints bool,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, errors: errors, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
+	return &discoveryHandler{typeFilter: typeFilter, logger: logger, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
 }
 
 type detailsWasSet struct {
@@ -161,7 +176,7 @@ type detailsWasSet struct {
 
 type discoveryHandler struct {
 	typeFilter          []string
-	errors              func(error)
+	logger              core.Logger
 	devices             func(DeviceDetails)
 	getDetails          GetDetailsFunc
 	deviceCache         *DeviceCache
@@ -170,7 +185,7 @@ type discoveryHandler struct {
 	getDetailsWasCalled sync.Map
 }
 
-func (h *discoveryHandler) Error(err error) { h.errors(err) }
+func (h *discoveryHandler) Error(err error) { h.logger.Debug(err.Error()) }
 
 func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink(device.ResourceURI)

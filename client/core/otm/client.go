@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package otm
 
 import (
@@ -5,10 +21,10 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema/credential"
-	"github.com/plgd-dev/device/schema/csr"
-	"github.com/plgd-dev/device/schema/doxm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/csr"
+	"github.com/plgd-dev/device/v2/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
@@ -18,7 +34,7 @@ type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client interface {
 	Type() doxm.OwnerTransferMethod
-	Dial(ctx context.Context, addr kitNet.Addr, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+	Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error)
 }
 
 func encodeToPem(encoding csr.CertificateEncoding, data []byte) []byte {

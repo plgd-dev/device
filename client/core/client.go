@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -7,19 +23,18 @@ import (
 	"net"
 
 	"github.com/pion/dtls/v2"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	coapNet "github.com/plgd-dev/go-coap/v2/net"
-	"github.com/plgd-dev/kit/v2/log"
+	"github.com/pion/logging"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	coapNet "github.com/plgd-dev/go-coap/v3/net"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	"github.com/plgd-dev/go-coap/v3/udp"
 )
-
-// ErrFunc to log errors in goroutines
-type ErrFunc = func(err error)
 
 // Client an OCF local client.
 type Client struct {
 	tlsConfig *TLSConfig
-	errFunc   ErrFunc
+	logger    Logger
 	dialDTLS  DialDTLS
 	dialTLS   DialTLS
 	dialTCP   DialTCP
@@ -43,21 +58,21 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 	return cfg
 }
 
-type config struct {
-	tlsConfig *TLSConfig
-	errFunc   ErrFunc
-	dialDTLS  DialDTLS
-	dialTLS   DialTLS
-	dialTCP   DialTCP
-	dialUDP   DialUDP
+type Config struct {
+	TLSConfig *TLSConfig
+	Logger    Logger
+	DialDTLS  DialDTLS
+	DialTLS   DialTLS
+	DialTCP   DialTCP
+	DialUDP   DialUDP
 }
 
-type OptionFunc func(config) config
+type OptionFunc func(Config) Config
 
 func WithTLS(tlsConfig *TLSConfig) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if tlsConfig != nil {
-			cfg.tlsConfig = tlsConfig
+			cfg.TLSConfig = tlsConfig
 		}
 		return cfg
 	}
@@ -71,53 +86,53 @@ type DiscoveryConfiguration struct {
 	MulticastOptions     []coapNet.MulticastOption
 }
 
-func WithErr(errFunc ErrFunc) OptionFunc {
-	return func(cfg config) config {
-		if errFunc != nil {
-			cfg.errFunc = errFunc
+func WithLogger(logger Logger) OptionFunc {
+	return func(cfg Config) Config {
+		if logger != nil {
+			cfg.Logger = logger
 		}
 		return cfg
 	}
 }
 
 type (
-	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialUDP  = func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
-	DialTCP  = func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error)
+	DialDTLS = func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTLS  = func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
+	DialUDP  = func(ctx context.Context, addr string, opts ...udp.Option) (*coap.ClientCloseHandler, error)
+	DialTCP  = func(ctx context.Context, addr string, opts ...tcp.Option) (*coap.ClientCloseHandler, error)
 )
 
 func WithDialDTLS(dial DialDTLS) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialDTLS = dial
+			cfg.DialDTLS = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialTLS(dial DialTLS) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialTLS = dial
+			cfg.DialTLS = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialTCP(dial DialTCP) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialTCP = dial
+			cfg.DialTCP = dial
 		}
 		return cfg
 	}
 }
 
 func WithDialUDP(dial DialUDP) OptionFunc {
-	return func(cfg config) config {
+	return func(cfg Config) Config {
 		if dial != nil {
-			cfg.dialUDP = dial
+			cfg.DialUDP = dial
 		}
 		return cfg
 	}
@@ -125,7 +140,7 @@ func WithDialUDP(dial DialUDP) OptionFunc {
 
 func (c *Client) getDeviceConfiguration() DeviceConfiguration {
 	return DeviceConfiguration{
-		ErrFunc:   c.errFunc,
+		Logger:    c.logger,
 		DialDTLS:  c.dialDTLS,
 		DialTLS:   c.dialTLS,
 		DialTCP:   c.dialTCP,
@@ -140,36 +155,33 @@ func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 		MulticastAddressUDP4: DiscoveryAddressUDP4,
 		MulticastAddressUDP6: DiscoveryAddressUDP6,
 		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(iface *net.Interface, err error) {
-			name := ""
-			if iface != nil {
-				name = iface.Name
-			}
-			log.Debugf("network interface '%v': %w", name, err)
+			// ignore error
 		})},
 	}
 }
 
 func NewClient(opts ...OptionFunc) *Client {
-	cfg := config{
-		errFunc: func(err error) {
-			log.Debug(err)
-		},
-		dialDTLS: coap.DialUDPSecure,
-		dialTLS:  coap.DialTCPSecure,
-		dialTCP:  coap.DialTCP,
-		dialUDP:  coap.DialUDP,
+	cfg := Config{
+		Logger:   logging.NewDefaultLoggerFactory().NewLogger("client"),
+		DialDTLS: coap.DialUDPSecure,
+		DialTLS:  coap.DialTCPSecure,
+		DialTCP:  coap.DialTCP,
+		DialUDP:  coap.DialUDP,
 	}
 	for _, o := range opts {
 		cfg = o(cfg)
 	}
+	if cfg.Logger == nil {
+		cfg.Logger = NewNilLogger()
+	}
 
-	cfg.tlsConfig = checkTLSConfig(cfg.tlsConfig)
+	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)
 	return &Client{
-		dialDTLS:  cfg.dialDTLS,
-		dialTLS:   cfg.dialTLS,
-		dialTCP:   cfg.dialTCP,
-		dialUDP:   cfg.dialUDP,
-		errFunc:   cfg.errFunc,
-		tlsConfig: cfg.tlsConfig,
+		dialDTLS:  cfg.DialDTLS,
+		dialTLS:   cfg.DialTLS,
+		dialTCP:   cfg.DialTCP,
+		dialUDP:   cfg.DialUDP,
+		logger:    cfg.Logger,
+		tlsConfig: cfg.TLSConfig,
 	}
 }

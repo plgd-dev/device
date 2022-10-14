@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package main
 
 import (
@@ -9,9 +25,9 @@ import (
 	"fmt"
 	"time"
 
-	local "github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/kit/v2/codec/json"
+	local "github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/pkg/codec/json"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 )
 
 const Timeout = time.Second * 10
@@ -55,9 +71,7 @@ func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate
 func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), discoveryTimeout)
 	defer cancel()
-	res, err := c.client.GetDevices(ctx, local.WithError(func(error) {
-		// no-op
-	}))
+	res, err := c.client.GetDevices(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -94,7 +108,7 @@ func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
-	_, links, err := c.client.GetDevice(ctx, deviceID)
+	_, links, err := c.client.GetDeviceByMulticast(ctx, deviceID)
 	if err != nil {
 		return "", err
 	}

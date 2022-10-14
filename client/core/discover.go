@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -6,14 +22,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/go-coap/v2/net"
-	"github.com/plgd-dev/go-coap/v2/net/blockwise"
-	"github.com/plgd-dev/go-coap/v2/udp"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
-	udpMessage "github.com/plgd-dev/go-coap/v2/udp/message"
-	"github.com/plgd-dev/go-coap/v2/udp/message/pool"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/go-coap/v3/message"
+	udpMessage "github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/net"
+	"github.com/plgd-dev/go-coap/v3/net/blockwise"
+	"github.com/plgd-dev/go-coap/v3/options"
+	"github.com/plgd-dev/go-coap/v3/udp"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
+	coapUdpServer "github.com/plgd-dev/go-coap/v3/udp/server"
 )
 
 // See the section 10.4 on the line 2482 of the Core specification:
@@ -24,13 +42,13 @@ var (
 	DiscoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
 )
 
-type DiscoveryHandler = func(conn *client.ClientConn, req *pool.Message)
+type DiscoveryHandler = func(conn *client.Conn, req *pool.Message)
 
 type DiscoveryClient struct {
 	mcastaddr string
 	msgID     uint16
 	l         *net.UDPConn
-	server    *udp.Server
+	server    *coapUdpServer.Server
 	wg        sync.WaitGroup
 	opts      []net.MulticastOption
 }
@@ -40,7 +58,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 	if err != nil {
 		return nil, err
 	}
-	s := udp.NewServer(udp.WithErrors(errors), udp.WithBlockwise(true, blockwise.SZX1024, timeout), udp.WithMessagePool(pool.New(0, 0)))
+	s := udp.NewServer(options.WithErrors(errors), options.WithBlockwise(true, blockwise.SZX1024, timeout), options.WithMessagePool(pool.New(0, 0)))
 	c := &DiscoveryClient{
 		mcastaddr: mcastaddr,
 		msgID:     msgID,
@@ -60,7 +78,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 }
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
-	req.SetMessageID(d.msgID)
+	req.SetMessageID(int32(d.msgID))
 	req.SetType(udpMessage.NonConfirmable)
 	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler, d.opts...)
 }
@@ -84,7 +102,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
 	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is
 	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
-	msgIDudp4 := udpMessage.GetMID()
+	msgIDudp4 := uint16(udpMessage.GetMID())
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
@@ -152,11 +170,13 @@ func runDiscovery(
 			for _, o := range options {
 				opts = o(opts)
 			}
-			req, err := client.NewGetRequest(ctx, pool.New(0, 0), href, opts...)
+			req := pool.NewMessage(ctx)
+			token, err := message.GetToken()
 			if err != nil {
 				errors <- MakeInternal(fmt.Errorf("device discovery request creation failed: %w", err))
 				return
 			}
+			req.SetupGet(href, token, opts...)
 
 			err = conn.PublishMsgWithContext(req, handler)
 			if err != nil {

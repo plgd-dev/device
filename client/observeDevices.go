@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -8,11 +24,11 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/go-coap/v2/udp/client"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/udp/client"
 	"go.uber.org/atomic"
 )
 
@@ -124,7 +140,7 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, client *client.ClientConn, dev schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev schema.ResourceLinks) {
 	defer client.Close()
 	d, ok := dev.GetResourceLink(device.ResourceURI)
 	if !ok {
@@ -141,7 +157,7 @@ func (o *listDeviceIds) Error(err error) {
 }
 
 func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDevicesHandler) error {
-	multicastConn, err := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, o.c.errors)
+	multicastConn, err := core.DialDiscoveryAddresses(ctx, o.discoveryConfiguration, func(err error) { o.c.logger.Debug(err.Error()) })
 	if err != nil {
 		return fmt.Errorf("could not discover devices: %w", err)
 	}
@@ -155,7 +171,7 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 }
 
 func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
-	newDevices := listDeviceIds{err: o.c.errors, devices: &sync.Map{}}
+	newDevices := listDeviceIds{err: func(err error) { o.c.logger.Debug(err.Error()) }, devices: &sync.Map{}}
 
 	// check online status for all devices added by IP
 	var wg sync.WaitGroup
@@ -185,7 +201,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 	for deviceID, ip := range devicesByIP {
 		go func(deviceID string, ip string) {
 			defer wg.Done()
-			if _, e := o.c.GetDeviceByIP(ctx, ip); e == nil {
+			if _, e := o.c.GetDeviceDetailsByIP(ctx, ip); e == nil {
 				newDevices.devices.LoadOrStore(deviceID, true)
 			}
 		}(deviceID, ip)
@@ -273,6 +289,8 @@ func (c *Client) stopObservingDevices(observationID string) (sync func(), ok boo
 	return sub.Wait, true
 }
 
+// ObserveDevices method starts observing devices via multicast
+// and added by IP in poll interval configured in observerPollingInterval.
 func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
 	cfg := observeDevicesOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
@@ -297,6 +315,7 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 	return ID.String(), nil
 }
 
+// StopObservingDevices method stops observing devices.
 func (c *Client) StopObservingDevices(ctx context.Context, observationID string) bool {
 	wait, ok := c.stopObservingDevices(observationID)
 	if !ok {

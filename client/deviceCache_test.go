@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client_test
 
 import (
@@ -5,14 +21,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/plgd-dev/device/client"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
+	"github.com/pion/logging"
+	"github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/stretchr/testify/require"
 )
 
 func TestDeviceCacheContentHandling(t *testing.T) {
-	cache := client.NewDeviceCache(time.Second*5, time.Second, func(error) {})
+	cache := client.NewDeviceCache(time.Second*5, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 
 	deviceType := []string{"unknown"}
 	device1ID := "12345"
@@ -89,7 +106,7 @@ func TestDeviceCacheContentHandling(t *testing.T) {
 
 func TestDeviceCacheExpirationHandling(t *testing.T) {
 	expectedExpiration := time.Now().Add(5 * time.Second)
-	cache := client.NewDeviceCache(5*time.Second, time.Second, func(error) {})
+	cache := client.NewDeviceCache(5*time.Second, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 
 	deviceType := []string{"unknown"}
 	deviceID := "12345"
@@ -149,7 +166,7 @@ func TestDeviceCacheExpirationHandling(t *testing.T) {
 }
 
 func TestDeviceCacheExpirationWithInfiniteExpiration(t *testing.T) {
-	cache := client.NewDeviceCache(0, time.Second, func(error) {})
+	cache := client.NewDeviceCache(0, time.Second, logging.NewDefaultLoggerFactory().NewLogger(""))
 	deviceType := []string{"unknown"}
 	deviceID := "12345"
 	newdev := core.NewDevice(core.DeviceConfiguration{}, deviceID, deviceType, func() schema.Endpoints { return nil })

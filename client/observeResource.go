@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -9,12 +25,13 @@ import (
 	"sync/atomic"
 
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/client/core"
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/message"
-	codecOcf "github.com/plgd-dev/kit/v2/codec/ocf"
-	kitSync "github.com/plgd-dev/kit/v2/sync"
+	"github.com/plgd-dev/device/v2/client/core"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 )
 
 type observerCodec struct {
@@ -31,16 +48,16 @@ func (c observerCodec) Encode(v interface{}) ([]byte, error) {
 
 // Decode validates the content format and
 // propagates the payload to v as *[]byte without any conversions.
-func (c observerCodec) Decode(m *message.Message, v interface{}) error {
+func (c observerCodec) Decode(m *pool.Message, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if m.Body == nil {
+	if m.Body() == nil {
 		return fmt.Errorf("unexpected empty body")
 	}
-	p, ok := v.(**message.Message)
+	p, ok := v.(**pool.Message)
 	if !ok {
-		return fmt.Errorf("expected **message.Message instead of %T", v)
+		return fmt.Errorf("expected **pool.Message instead of %T", v)
 	}
 	*p = m
 	return nil
@@ -56,7 +73,7 @@ type observationsHandler struct {
 	observationID string
 	lastMessage   atomic.Value
 
-	observations *kitSync.Map
+	observations *coapSync.Map[string, *observationHandler]
 }
 
 type decodeFunc = func(v interface{}, codec coap.Codec) error
@@ -69,12 +86,12 @@ type observationHandler struct {
 	firstMessage decodeFunc
 }
 
-func createDecodeFunc(message *message.Message) decodeFunc {
+func createDecodeFunc(message *pool.Message) decodeFunc {
 	var l sync.Mutex
 	return func(v interface{}, codec coap.Codec) error {
 		l.Lock()
 		defer l.Unlock()
-		_, err := message.Body.Seek(0, io.SeekStart)
+		_, err := message.Body().Seek(0, io.SeekStart)
 		if err != nil {
 			return err
 		}
@@ -145,6 +162,8 @@ func parseIDs(id string) (string, string, error) {
 	return v[0], v[1], nil
 }
 
+// ObserveResource method starts observing the resource of the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) ObserveResource(
 	ctx context.Context,
 	deviceID string,
@@ -165,20 +184,18 @@ func (c *Client) ObserveResource(
 	}
 
 	key := uuid.NewSHA1(uuid.NameSpaceURL, []byte(deviceID+href+"?if="+cfg.resourceInterface)).String()
-	val, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(value interface{}) interface{} {
-		h := value.(*observationsHandler)
+	h, loaded := c.observeResourceCache.LoadOrStoreWithFunc(key, func(h *observationsHandler) *observationsHandler {
 		h.Lock()
 		return h
-	}, func() interface{} {
+	}, func() *observationsHandler {
 		h := observationsHandler{
-			observations: kitSync.NewMap(),
+			observations: coapSync.NewMap[string, *observationHandler](),
 			client:       c,
 			id:           key,
 		}
 		h.Lock()
 		return &h
 	})
-	h := val.(*observationsHandler)
 	defer h.Unlock()
 	lastMessage := h.lastMessage.Load()
 	var firstMessage decodeFunc
@@ -219,6 +236,8 @@ func (c *Client) ObserveResource(
 	return getObservationID(key, resourceObservationID.String()), err
 }
 
+// StopObservingResource method stops observing the resource of the device.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) StopObservingResource(ctx context.Context, observationID string) (bool, error) {
 	resourceCacheID, internalResourceObservationID, err := parseIDs(observationID)
 	if err != nil {
@@ -226,13 +245,13 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 	}
 	var resourceObservationID string
 	var dev *core.Device
-	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue interface{}, oldLoaded bool) (newValue interface{}, doDelete bool) {
+	c.observeResourceCache.ReplaceWithFunc(resourceCacheID, func(oldValue *observationsHandler, oldLoaded bool) (newValue *observationsHandler, deleteHandler bool) {
 		if !oldLoaded {
 			return nil, true
 		}
-		h := oldValue.(*observationsHandler)
+		h := oldValue
 		resourceObservationID = h.observationID
-		_, ok := h.observations.PullOut(internalResourceObservationID)
+		_, ok := h.observations.LoadAndDelete(internalResourceObservationID)
 		if !ok {
 			return h, false
 		}
@@ -256,7 +275,7 @@ func (c *Client) StopObservingResource(ctx context.Context, observationID string
 }
 
 func (c *Client) closeObservingResource(ctx context.Context, o *observationsHandler) {
-	_, ok := c.observeResourceCache.PullOut(o.id)
+	_, ok := c.observeResourceCache.LoadAndDelete(o.id)
 	if !ok {
 		return
 	}
@@ -265,14 +284,14 @@ func (c *Client) closeObservingResource(ctx context.Context, o *observationsHand
 	if o.device != nil {
 		deviceID := o.device.DeviceID()
 		if _, err := o.device.StopObservingResource(ctx, o.observationID); err != nil {
-			c.errors(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err))
+			c.logger.Warn(fmt.Errorf("failed to stop resources observation in device(%s): %w", deviceID, err).Error())
 		}
 		_ = c.deviceCache.TryToChangeDeviceExpirationToDefault(deviceID)
 	}
 }
 
 func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
-	var message *message.Message
+	var message *pool.Message
 	err := body(&message)
 	if err != nil {
 		o.Error(err)
@@ -280,22 +299,18 @@ func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) 
 	}
 	decode := createDecodeFunc(message)
 	o.lastMessage.Store(decode)
-	observations := make([]*observationHandler, 0, 4)
-	o.observations.Range(func(key, value interface{}) bool {
-		observations = append(observations, value.(*observationHandler))
+	o.observations.Range(func(key string, h *observationHandler) bool {
+		h.HandleMessage(ctx, decode)
 		return true
 	})
-	for _, h := range observations {
-		h.HandleMessage(ctx, decode)
-	}
 }
 
 func (o *observationsHandler) OnClose() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	o.client.closeObservingResource(ctx, o)
-	for _, h := range o.observations.PullOutAll() {
-		h.(*observationHandler).handler.OnClose()
+	for _, h := range o.observations.LoadAndDeleteAll() {
+		h.handler.OnClose()
 	}
 }
 
@@ -303,7 +318,7 @@ func (o *observationsHandler) Error(err error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	o.client.closeObservingResource(ctx, o)
-	for _, h := range o.observations.PullOutAll() {
-		h.(*observationHandler).handler.Error(err)
+	for _, h := range o.observations.LoadAndDeleteAll() {
+		h.handler.Error(err)
 	}
 }

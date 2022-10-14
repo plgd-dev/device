@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
@@ -6,11 +22,11 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/credential"
-	"github.com/plgd-dev/device/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/pstat"
 	"github.com/plgd-dev/kit/v2/strings"
 )
 
@@ -114,7 +130,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	var link schema.ResourceLink
 
 	for _, l := range c.links {
-		if strings.SliceContains(l.ResourceTypes, cloud.ConfigurationResourceType) {
+		if strings.SliceContains(l.ResourceTypes, cloud.ResourceType) {
 			link = l
 			break
 		}

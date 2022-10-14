@@ -6,9 +6,20 @@
 
 # Device
 
-The **client** enables interacting with devices in a local network:
-- Listing devices 
+The **client** enables interaction with devices in a local network:
+
+- Listing devices
 - Retrieving and updating resources
 - Secure ownership transfer via coaps+tcp and coaps
 - Onboard and offboard device
 - Provisioning the cloud resource and credentials
+
+## Requirements
+
+- Go 1.18 or higher
+
+## Installation OCF Client
+
+```bash
+go install github.com/plgd-dev/device/v2/cmd/ocfclient@latest
+```

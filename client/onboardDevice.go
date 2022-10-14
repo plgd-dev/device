@@ -1,14 +1,30 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/softwareupdate"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 )
 
 func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
@@ -19,7 +35,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.D
 		CloudID:               cloudID,
 	}
 
-	for _, l := range links.GetResourceLinks(cloud.ConfigurationResourceType) {
+	for _, l := range links.GetResourceLinks(cloud.ResourceType) {
 		return d.UpdateResource(ctx, l, ob, nil)
 	}
 
@@ -70,6 +86,8 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 	return p.UpdateResource(ctx, link, cloudACL, nil)
 }
 
+// OnboardDevice connects device to the cloud.
+// In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) OnboardDevice(
 	ctx context.Context,
 	deviceID, authorizationProvider, cloudURL, authCode, cloudID string,

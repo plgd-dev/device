@@ -23,6 +23,14 @@ jobs:
       # Checks-out repository under $GITHUB_WORKSPACE
       - uses: actions/checkout@v3
 
+      - name: Set up Go 1.18+
+        uses: actions/setup-go@v3
+        with:
+          go-version: "^1.18" # The Go version to download (if necessary) and use.
+          check-latest: true
+
+      - run: go version
+
       - name: Setup kernel for multicast messages, increase read buffer to 8MB
         run: sudo sysctl -w net.core.rmem_max=8388608
 

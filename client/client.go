@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package client
 
 import (
@@ -9,11 +25,16 @@ import (
 	"time"
 
 	"github.com/pion/dtls/v2"
-	"github.com/plgd-dev/device/client/core"
-	"github.com/plgd-dev/device/client/core/otm"
-	"github.com/plgd-dev/device/pkg/net/coap"
-	"github.com/plgd-dev/go-coap/v2/net/blockwise"
-	kitSync "github.com/plgd-dev/kit/v2/sync"
+	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/go-coap/v3/net/blockwise"
+	"github.com/plgd-dev/go-coap/v3/options"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
+	"github.com/plgd-dev/go-coap/v3/tcp"
+	tcpClient "github.com/plgd-dev/go-coap/v3/tcp/client"
+	"github.com/plgd-dev/go-coap/v3/udp"
+	udpClient "github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
 type ApplicationCallback = interface {
@@ -42,7 +63,7 @@ type Config struct {
 }
 
 // NewClientFromConfig constructs a new local client from the proto configuration.
-func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error)) (*Client, error) {
+func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logger) (*Client, error) {
 	var cacheExpiration time.Duration
 	if cfg.DeviceCacheExpirationSeconds > 0 {
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
@@ -52,48 +73,66 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 	if cfg.ObserverPollingIntervalSeconds > 0 {
 		observerPollingInterval = time.Second * time.Duration(cfg.ObserverPollingIntervalSeconds)
 	}
-	dialOpts := make([]coap.DialOptionFunc, 0, 5)
+
+	tcpDialOpts := make([]tcp.Option, 0, 5)
+	udpDialOpts := make([]udp.Option, 0, 5)
+
+	if logger == nil {
+		logger = core.NewNilLogger()
+	}
+
+	errFn := func(err error) {
+		logger.Debug(err.Error())
+	}
+
+	tcpDialOpts = append(tcpDialOpts, options.WithErrors(errFn))
+	udpDialOpts = append(udpDialOpts, options.WithErrors(errFn))
+
+	keepAliveConnectionTimeout := time.Second * 60
 	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
-		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)))
-	} else {
-		dialOpts = append(dialOpts, coap.WithKeepAlive(time.Second*60))
+		keepAliveConnectionTimeout = time.Second * time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)
 	}
+	tcpDialOpts = append(tcpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *tcpClient.Conn) {
+		errFn(fmt.Errorf("keepalive failed for tcp: %v", cc.RemoteAddr()))
+		cc.Close()
+	}))
+	udpDialOpts = append(udpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *udpClient.Conn) {
+		errFn(fmt.Errorf("keepalive failed for udp: %v", cc.RemoteAddr()))
+		cc.Close()
+	}))
+
+	maxMessageSize := uint32(512 * 1024)
 	if cfg.MaxMessageSize > 0 {
-		dialOpts = append(dialOpts, coap.WithMaxMessageSize(cfg.MaxMessageSize))
-	} else {
-		dialOpts = append(dialOpts, coap.WithMaxMessageSize(512*1024))
+		maxMessageSize = cfg.MaxMessageSize
 	}
+	tcpDialOpts = append(tcpDialOpts, options.WithMaxMessageSize(maxMessageSize))
+	udpDialOpts = append(udpDialOpts, options.WithMaxMessageSize(maxMessageSize))
+
 	if cfg.DisablePeerTCPSignalMessageCSMs {
-		dialOpts = append(dialOpts, coap.WithDialDisablePeerTCPSignalMessageCSMs())
+		tcpDialOpts = append(tcpDialOpts, options.WithDisablePeerTCPSignalMessageCSMs())
 	}
 
-	errFn := func(error) {
-		// ignore error
-	}
-	if errors != nil {
-		errFn = errors
-	}
-	dialOpts = append(dialOpts, coap.WithErrors(errFn))
+	defaultTransferDuration := time.Second * 15
 	if cfg.DefaultTransferDurationSeconds > 0 {
-		dialOpts = append(dialOpts, coap.WithBlockwise(true, blockwise.SZX1024, time.Second*time.Duration(cfg.DefaultTransferDurationSeconds)))
-	} else {
-		dialOpts = append(dialOpts, coap.WithBlockwise(true, blockwise.SZX1024, 15*time.Second))
+		defaultTransferDuration = time.Second * time.Duration(cfg.DefaultTransferDurationSeconds)
 	}
+	tcpDialOpts = append(tcpDialOpts, options.WithBlockwise(true, blockwise.SZX1024, defaultTransferDuration))
+	udpDialOpts = append(udpDialOpts, options.WithBlockwise(true, blockwise.SZX1024, defaultTransferDuration))
 
-	dialTLS := func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-		opts = append(opts, dialOpts...)
+	dialTLS := func(ctx context.Context, addr string, tlsCfg *tls.Config, opts ...tcp.Option) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, tcpDialOpts...)
 		return coap.DialTCPSecure(ctx, addr, tlsCfg, opts...)
 	}
-	dialDTLS := func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-		opts = append(opts, dialOpts...)
+	dialDTLS := func(ctx context.Context, addr string, dtlsCfg *dtls.Config, opts ...udp.Option) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, udpDialOpts...)
 		return coap.DialUDPSecure(ctx, addr, dtlsCfg, opts...)
 	}
-	dialTCP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-		opts = append(opts, dialOpts...)
+	dialTCP := func(ctx context.Context, addr string, opts ...tcp.Option) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, tcpDialOpts...)
 		return coap.DialTCP(ctx, addr, opts...)
 	}
-	dialUDP := func(ctx context.Context, addr string, opts ...coap.DialOptionFunc) (*coap.ClientCloseHandler, error) {
-		opts = append(opts, dialOpts...)
+	dialUDP := func(ctx context.Context, addr string, opts ...udp.Option) (*coap.ClientCloseHandler, error) {
+		opts = append(opts, udpDialOpts...)
 		return coap.DialUDP(ctx, addr, opts...)
 	}
 
@@ -102,13 +141,14 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, errors func(error
 		core.WithDialTLS(dialTLS),
 		core.WithDialTCP(dialTCP),
 		core.WithDialUDP(dialUDP),
+		core.WithLogger(logger),
 	}
 
-	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app, errors)
+	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, errors, opts...)
+	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, opts...)
 }
 
 // NewClient constructs a new local client.
@@ -117,7 +157,6 @@ func NewClient(
 	deviceOwner DeviceOwner,
 	cacheExpiration time.Duration,
 	observerPollingInterval time.Duration,
-	errors func(error),
 	opt ...core.OptionFunc,
 ) (*Client, error) {
 	if app == nil {
@@ -126,6 +165,14 @@ func NewClient(
 	if deviceOwner == nil {
 		return nil, fmt.Errorf("missing device owner callback")
 	}
+	var coreCfg core.Config
+	for _, o := range opt {
+		coreCfg = o(coreCfg)
+	}
+
+	if coreCfg.Logger == nil {
+		coreCfg.Logger = core.NewNilLogger()
+	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
 		GetCertificateAuthorities: deviceOwner.GetIdentityCACerts,
@@ -133,12 +180,10 @@ func NewClient(
 	opt = append(
 		[]core.OptionFunc{
 			core.WithTLS(&tls),
+			core.WithLogger(coreCfg.Logger),
 		},
 		opt...,
 	)
-	if errors != nil {
-		opt = append(opt, core.WithErr(errors))
-	}
 	oc := core.NewClient(opt...)
 	pollInterval := time.Second * 10
 	if cacheExpiration/2 > pollInterval {
@@ -147,12 +192,12 @@ func NewClient(
 	client := Client{
 		client:                  oc,
 		app:                     app,
-		deviceCache:             NewDeviceCache(cacheExpiration, pollInterval, errors),
-		observeResourceCache:    kitSync.NewMap(),
+		deviceCache:             NewDeviceCache(cacheExpiration, pollInterval, coreCfg.Logger),
+		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
 		deviceOwner:             deviceOwner,
 		subscriptions:           make(map[string]subscription),
 		observerPollingInterval: observerPollingInterval,
-		errors:                  errors,
+		logger:                  coreCfg.Logger,
 	}
 	return &client, nil
 }
@@ -174,7 +219,7 @@ type Client struct {
 
 	deviceCache *DeviceCache
 
-	observeResourceCache    *kitSync.Map
+	observeResourceCache    *coapSync.Map[string, *observationsHandler]
 	observerPollingInterval time.Duration
 
 	deviceOwner DeviceOwner
@@ -183,7 +228,7 @@ type Client struct {
 	subscriptions     map[string]subscription
 
 	disableUDPEndpoints bool
-	errors              func(error)
+	logger              core.Logger
 }
 
 func (c *Client) popSubscriptions() map[string]subscription {
@@ -223,7 +268,7 @@ func (c *Client) Close(ctx context.Context) error {
 	return c.deviceCache.Close(ctx)
 }
 
-func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback, errors func(error)) (DeviceOwner, error) {
+func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback) (DeviceOwner, error) {
 	if cfg.DeviceOwnershipSDK != nil {
 		c, err := NewDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK)
 		if err != nil {
@@ -232,7 +277,7 @@ func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.D
 		return c, nil
 	}
 	if cfg.DeviceOwnershipBackend != nil {
-		c, err := NewDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend, errors)
+		c, err := NewDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create server signers: %w", err)
 		}

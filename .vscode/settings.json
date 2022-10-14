@@ -14,5 +14,8 @@
 		"IDENTITY_CRT": "${workspaceFolder}/.tmp/pki_certs/identitycrt.pem",
 		"IDENTITY_KEY": "${workspaceFolder}/.tmp/pki_certs/identitykey.pem",
 	},
+	"files.watcherExclude": {
+        "**/plgd-dev/device/v2/**": true
+    },
 	"go.testTimeout": "600s",
 }

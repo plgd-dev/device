@@ -1,3 +1,19 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package test
 
 import (
@@ -11,26 +27,26 @@ import (
 	"os"
 	"time"
 
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/device/schema/acl"
-	"github.com/plgd-dev/device/schema/ael"
-	"github.com/plgd-dev/device/schema/cloud"
-	"github.com/plgd-dev/device/schema/collection"
-	"github.com/plgd-dev/device/schema/configuration"
-	"github.com/plgd-dev/device/schema/credential"
-	"github.com/plgd-dev/device/schema/csr"
-	"github.com/plgd-dev/device/schema/device"
-	"github.com/plgd-dev/device/schema/doxm"
-	"github.com/plgd-dev/device/schema/interfaces"
-	"github.com/plgd-dev/device/schema/introspection"
-	"github.com/plgd-dev/device/schema/maintenance"
-	"github.com/plgd-dev/device/schema/platform"
-	"github.com/plgd-dev/device/schema/pstat"
-	"github.com/plgd-dev/device/schema/resources"
-	"github.com/plgd-dev/device/schema/roles"
-	"github.com/plgd-dev/device/schema/sdi"
-	"github.com/plgd-dev/device/schema/sp"
-	testTypes "github.com/plgd-dev/device/test/resource/types"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/acl"
+	"github.com/plgd-dev/device/v2/schema/ael"
+	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/collection"
+	"github.com/plgd-dev/device/v2/schema/configuration"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/csr"
+	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/doxm"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/schema/introspection"
+	"github.com/plgd-dev/device/v2/schema/maintenance"
+	"github.com/plgd-dev/device/v2/schema/platform"
+	"github.com/plgd-dev/device/v2/schema/pstat"
+	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/schema/roles"
+	"github.com/plgd-dev/device/v2/schema/sdi"
+	"github.com/plgd-dev/device/v2/schema/sp"
+	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/security"
 	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
@@ -98,8 +114,8 @@ func init() {
 
 	TestDevsimPrivateResources = []schema.ResourceLink{
 		{
-			Href:          cloud.ConfigurationResourceURI,
-			ResourceTypes: []string{cloud.ConfigurationResourceType},
+			Href:          cloud.ResourceURI,
+			ResourceTypes: []string{cloud.ResourceType},
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 		{

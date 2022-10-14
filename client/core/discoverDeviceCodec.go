@@ -1,12 +1,29 @@
+// ************************************************************************
+// Copyright (C) 2022 plgd.dev, s.r.o.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// ************************************************************************
+
 package core
 
 import (
 	"fmt"
 
-	pkgError "github.com/plgd-dev/device/pkg/error"
-	"github.com/plgd-dev/device/schema"
-	"github.com/plgd-dev/go-coap/v2/message"
-	"github.com/plgd-dev/kit/v2/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
 )
 
 type DiscoverDeviceCodec struct{}
@@ -24,7 +41,7 @@ type deviceLink struct {
 	Links    schema.ResourceLinks `json:"links"`
 }
 
-func decodeDiscoverDevices(msg *message.Message, resources *schema.ResourceLinks) error {
+func decodeDiscoverDevices(msg *pool.Message, resources *schema.ResourceLinks) error {
 	codec := ocf.VNDOCFCBORCodec{}
 	var devices []deviceLink
 
@@ -49,12 +66,12 @@ func decodeDiscoverDevices(msg *message.Message, resources *schema.ResourceLinks
 
 // Decode validates the content format and
 // propagates the payload to v as *schema.ResourceLinks
-func (c DiscoverDeviceCodec) Decode(msg *message.Message, v interface{}) error {
+func (c DiscoverDeviceCodec) Decode(msg *pool.Message, v interface{}) error {
 	resources, ok := v.(*schema.ResourceLinks)
 	if !ok {
 		return MakeInvalidArgument(fmt.Errorf("invalid type %T", v))
 	}
-	mt, err := msg.Options.ContentFormat()
+	mt, err := msg.Options().ContentFormat()
 	if err != nil {
 		return MakeUnimplemented(fmt.Errorf("content format not found"))
 	}
