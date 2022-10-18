@@ -24,6 +24,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
+	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/doxm"
@@ -183,4 +184,22 @@ func TestClientOwnDeviceInvalidClient(t *testing.T) {
 
 	err = device.Own(timeout, links, []otm.Client{InvalidOtmClient{}}, core.WithSetupCertificates(signer.Sign))
 	require.Error(err)
+}
+
+func TestClientOwnDeviceWithFailSetupCertificates(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
+	defer cancel()
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	dev, err := c.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
+	require.NoError(t, err)
+	links, err := dev.GetResourceLinks(ctx, dev.GetEndpoints())
+	require.NoError(t, err)
+	err = dev.Own(ctx, links, []otm.Client{justworks.NewClient()}, core.WithSetupCertificates(func(ctx context.Context, csr []byte) ([]byte, error) {
+		return nil, fmt.Errorf("invalid")
+	}))
+	require.Error(t, err)
+	deviceID2 := test.MustFindDeviceByName(test.DevsimName)
+	require.NotEqual(t, deviceID, deviceID2)
 }
