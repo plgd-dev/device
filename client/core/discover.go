@@ -173,10 +173,13 @@ func runDiscovery(
 			req := pool.NewMessage(ctx)
 			token, err := message.GetToken()
 			if err != nil {
+				errors <- MakeInternal(fmt.Errorf("device discovery request get token: %w", err))
+				return
+			}
+			if err = req.SetupGet(href, token, opts...); err != nil {
 				errors <- MakeInternal(fmt.Errorf("device discovery request creation failed: %w", err))
 				return
 			}
-			req.SetupGet(href, token, opts...)
 
 			err = conn.PublishMsgWithContext(req, handler)
 			if err != nil {

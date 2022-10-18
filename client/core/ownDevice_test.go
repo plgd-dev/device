@@ -50,8 +50,8 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 
 	deviceID := secureDeviceID
@@ -62,8 +62,8 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	dev, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
-		errClose := dev.Close(timeout)
-		require.NoError(errClose)
+		errC := dev.Close(timeout)
+		require.NoError(errC)
 	}()
 	eps := dev.GetEndpoints()
 	links, err := dev.GetResourceLinks(timeout, eps)
@@ -83,8 +83,8 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	dev, err = c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
-		errClose := dev.Close(timeout)
-		require.NoError(errClose)
+		errC := dev.Close(timeout)
+		require.NoError(errC)
 	}()
 	eps = dev.GetEndpoints()
 	links, err = dev.GetResourceLinks(timeout, eps)
@@ -100,16 +100,14 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	require.NoError(err)
 	err = dev.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 		var d device.Device
-		err := client.GetResource(ctx, device.ResourceURI, &d)
-		if err != nil {
+		if err = client.GetResource(ctx, device.ResourceURI, &d); err != nil {
 			return "", core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, err))
 		}
 		setDeviceOwned := doxm.DoxmUpdate{
 			DeviceID: &d.ProtocolIndependentID,
 		}
 		/*doxm doesn't send any content for select OTM*/
-		err = client.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil)
-		if err != nil {
+		if err = client.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil); err != nil {
 			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
 		}
 		return d.ProtocolIndependentID, nil
@@ -133,8 +131,8 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
@@ -143,8 +141,8 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
-		errClose := device.Close(timeout)
-		require.NoError(errClose)
+		errC := device.Close(timeout)
+		require.NoError(errC)
 	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
@@ -165,8 +163,8 @@ func TestClientOwnDeviceInvalidClient(t *testing.T) {
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	require := require.New(t)
 	timeout, cancelTimeout := context.WithTimeout(context.Background(), 10*time.Second)
@@ -175,8 +173,8 @@ func TestClientOwnDeviceInvalidClient(t *testing.T) {
 	device, err := c.GetDeviceByMulticast(timeout, secureDeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
-		errClose := device.Close(timeout)
-		require.NoError(errClose)
+		errC := device.Close(timeout)
+		require.NoError(errC)
 	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)

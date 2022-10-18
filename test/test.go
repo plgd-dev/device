@@ -66,8 +66,8 @@ type findDeviceIDByNameHandler struct {
 
 func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, dev *core.Device) {
 	defer func() {
-		if errClose := dev.Close(ctx); errClose != nil {
-			h.Error(errClose)
+		if errC := dev.Close(ctx); errC != nil {
+			h.Error(errC)
 		}
 	}()
 	eps := dev.GetEndpoints()
@@ -173,8 +173,8 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 		return "", err
 	}
 	defer func() {
-		if errClose := device.Close(ctx); errClose != nil {
-			log.Errorf("FindDeviceIP: %w", errClose)
+		if errC := device.Close(ctx); errC != nil {
+			log.Errorf("FindDeviceIP: %w", errC)
 		}
 	}()
 	return getDeviceIP(device, ipType)

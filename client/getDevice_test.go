@@ -122,13 +122,13 @@ func TestClientGetDevice(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close(context.Background())
-		require.NoError(t, errClose)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			ctx, cancel = context.WithTimeout(ctx, time.Second)
 			defer cancel()
 			got, err := c.GetDeviceDetailsByMulticast(ctx, tt.args.deviceID)
 			if tt.wantErr {
@@ -188,13 +188,13 @@ func TestClientGetDeviceByIP(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close(context.Background())
-		require.NoError(t, errClose)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
+			ctx, cancel = context.WithTimeout(ctx, time.Second)
 			defer cancel()
 			got, err := c.GetDeviceDetailsByIP(ctx, tt.args.ip)
 			if tt.wantErr {
@@ -229,8 +229,8 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(ctx)
-		require.NoError(t, err)
+		errC := c.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	// store device to cache
 	dev, _, err := c.GetDeviceByIP(ctx, ip)
@@ -252,8 +252,8 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	c1, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c1.Close(ctx)
-		require.NoError(t, err)
+		errC := c1.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	_, err = c1.OwnDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)

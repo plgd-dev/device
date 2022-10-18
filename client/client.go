@@ -94,11 +94,15 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 	}
 	tcpDialOpts = append(tcpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *tcpClient.Conn) {
 		errFn(fmt.Errorf("keepalive failed for tcp: %v", cc.RemoteAddr()))
-		cc.Close()
+		if err := cc.Close(); err != nil {
+			errFn(fmt.Errorf("failed to close tcp connection: %v", cc.RemoteAddr()))
+		}
 	}))
 	udpDialOpts = append(udpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *udpClient.Conn) {
 		errFn(fmt.Errorf("keepalive failed for udp: %v", cc.RemoteAddr()))
-		cc.Close()
+		if err := cc.Close(); err != nil {
+			errFn(fmt.Errorf("failed to close udp connection: %v", cc.RemoteAddr()))
+		}
 	}))
 
 	maxMessageSize := uint32(512 * 1024)

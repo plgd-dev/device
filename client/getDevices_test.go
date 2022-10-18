@@ -35,8 +35,8 @@ func TestDeviceDiscovery(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
@@ -81,8 +81,8 @@ func TestDeviceDiscoveryWithFilter(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)

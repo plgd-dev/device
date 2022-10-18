@@ -57,8 +57,8 @@ func TestClientFactoryReset(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
@@ -104,8 +104,8 @@ func TestClient_Reboot(t *testing.T) {
 
 	c := NewTestClient()
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	for _, tt := range tests {

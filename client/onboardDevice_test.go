@@ -65,8 +65,8 @@ func TestClientOnboardDevice(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
@@ -75,7 +75,7 @@ func TestClientOnboardDevice(t *testing.T) {
 	defer disown(t, c, deviceID)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second*2)
+			ctx, cancel = context.WithTimeout(ctx, time.Second*2)
 			defer cancel()
 			err = c.OnboardDevice(ctx, tt.args.deviceID, tt.args.authorizationProvider, tt.args.cloudURL, tt.args.authorizationCode, tt.args.cloudID)
 			if tt.wantErr {
