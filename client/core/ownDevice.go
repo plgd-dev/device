@@ -266,7 +266,7 @@ func supportedOTMTypes(otmClients []otm.Client) []string {
 	return v
 }
 
-func (d *Device) setDeviceID(ctx context.Context, cc *coap.ClientCloseHandler) (string, error) {
+func (d *Device) setDoxmDeviceID(ctx context.Context, cc *coap.ClientCloseHandler) (string, error) {
 	deviceID := d.DeviceID()
 	setDeviceOwned := doxm.DoxmUpdate{
 		DeviceID: &deviceID,
@@ -357,7 +357,7 @@ func (d *Device) Own( //nolint:gocognit,gocyclo //TODO:reduce complexity
 	options ...OwnOption,
 ) error {
 	cfg := ownCfg{
-		actionDuringOwn: d.setDeviceID,
+		actionDuringOwn: d.setDoxmDeviceID,
 	}
 	for _, opt := range options {
 		cfg = opt(cfg)

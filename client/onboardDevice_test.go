@@ -75,15 +75,15 @@ func TestClientOnboardDevice(t *testing.T) {
 	defer disown(t, c, deviceID)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel = context.WithTimeout(ctx, time.Second*2)
-			defer cancel()
-			err = c.OnboardDevice(ctx, tt.args.deviceID, tt.args.authorizationProvider, tt.args.cloudURL, tt.args.authorizationCode, tt.args.cloudID)
+			ttCtx, ttCancel := context.WithTimeout(ctx, time.Second*2)
+			defer ttCancel()
+			err = c.OnboardDevice(ttCtx, tt.args.deviceID, tt.args.authorizationProvider, tt.args.cloudURL, tt.args.authorizationCode, tt.args.cloudID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
-			err = c.OffboardDevice(ctx, tt.args.deviceID)
+			err = c.OffboardDevice(ttCtx, tt.args.deviceID)
 			require.NoError(t, err)
 		})
 	}

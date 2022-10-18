@@ -100,15 +100,15 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	require.NoError(err)
 	err = dev.Own(timeout, links, []otm.Client{c.mfgOtm}, core.WithActionDuringOwn(func(ctx context.Context, client *coap.ClientCloseHandler) (string, error) {
 		var d device.Device
-		if err = client.GetResource(ctx, device.ResourceURI, &d); err != nil {
-			return "", core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, err))
+		if errInner := client.GetResource(ctx, device.ResourceURI, &d); errInner != nil {
+			return "", core.MakeInternal(fmt.Errorf("cannot get device resource for owned device(%v): %w", secureDeviceID, errInner))
 		}
 		setDeviceOwned := doxm.DoxmUpdate{
 			DeviceID: &d.ProtocolIndependentID,
 		}
 		/*doxm doesn't send any content for select OTM*/
-		if err = client.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil); err != nil {
-			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, err))
+		if errInner := client.UpdateResource(ctx, doxm.ResourceURI, setDeviceOwned, nil); errInner != nil {
+			return "", core.MakeInternal(fmt.Errorf("cannot set device id %v for owned device(%v): %w", d.ProtocolIndependentID, secureDeviceID, errInner))
 		}
 		return d.ProtocolIndependentID, nil
 	}), core.WithSetupCertificates(signer.Sign))
