@@ -76,6 +76,10 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 	}
 	d := h.Device()
 	if d == nil {
+		err = h.Err()
+		if err != nil {
+			return nil, MakeInternal(fmt.Errorf("no response from the device %s: %w", deviceID, err))
+		}
 		return nil, MakeInternal(fmt.Errorf("no response from the device %s", deviceID))
 	}
 
