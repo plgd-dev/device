@@ -190,8 +190,8 @@ func (d *Device) observeResource(
 		o.handler.OnClose()
 		obsCtx, cancel := context.WithCancel(context.Background())
 		cancel()
-		if _, errClose := d.StopObservingResource(obsCtx, o.id); errClose != nil {
-			o.handler.Error(fmt.Errorf("failed to stop observing resource(%s): %w", link.Href, errClose))
+		if _, errC := d.StopObservingResource(obsCtx, o.id); errC != nil {
+			o.handler.Error(fmt.Errorf("failed to stop observing resource(%s): %w", link.Href, errC))
 		}
 	})
 

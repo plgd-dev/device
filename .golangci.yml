@@ -2,8 +2,7 @@ linters-settings:
   gocyclo:
     min-complexity: 15
   govet:
-    check-shadowing: false
-    # check-shadowing: true
+    check-shadowing: true
   exhaustive:
     default-signifies-exhaustive: true
   gomodguard:
@@ -35,10 +34,10 @@ linters:
     - gci              # Gci control golang package import order and make it always deterministic.
     # - gochecknoglobals # Checks that no globals are present in Go code
     # - gochecknoinits   # Checks that no init functions are present in Go code
-    # - gocognit         # Computes and checks the cognitive complexity of functions
+    - gocognit         # Computes and checks the cognitive complexity of functions
     - goconst          # Finds repeated strings that could be replaced by a constant
     - gocritic         # The most opinionated Go source code linter
-    # - gocyclo          # Computes and checks the cyclomatic complexity of functions
+    - gocyclo          # Computes and checks the cyclomatic complexity of functions
     # - godox            # Tool for detection of FIXME, TODO and other comment keywords
     # - goerr113         # Golang linter to check the errors handling expressions
     - gofmt            # Gofmt checks whether code was gofmt-ed. By default this tool runs with -s option to check for code simplification
@@ -107,12 +106,13 @@ issues:
     - path: _test\.go
       linters:
         - gocognit
+        - gocyclo
 
     # Allow complex main function in examples
-    - path: examples
-      text: "of func `main` is high"
+    - path: cmd/ocfclient/main\.go
       linters:
         - gocognit
+        - gocyclo
 
     - path: pkg/error
       text: "package name error has same name as predeclared identifier"

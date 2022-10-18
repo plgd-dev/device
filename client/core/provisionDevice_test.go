@@ -35,8 +35,8 @@ func TestProvisioning(t *testing.T) {
 	require.NoError(t, err)
 	c.SetUpTestDevice(t)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -63,14 +63,14 @@ func TestProvisioning(t *testing.T) {
 	c2, err := NewTestSecureClientWithCert(cert, false, false)
 	require.NoError(t, err)
 	defer func() {
-		err := c2.Close()
-		require.NoError(t, err)
+		errC := c2.Close()
+		require.NoError(t, errC)
 	}()
 	d, err := c2.GetDeviceByMulticast(ctx, c.DeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
-		errClose := d.Close(ctx)
-		require.NoError(t, errClose)
+		errC := d.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	eps := d.GetEndpoints()
 	links, err := d.GetResourceLinks(ctx, eps)
@@ -83,14 +83,14 @@ func TestProvisioning(t *testing.T) {
 	c3, err := NewTestSecureClientWithCert(cert, true, false)
 	require.NoError(t, err)
 	defer func() {
-		err := c3.Close()
-		require.NoError(t, err)
+		errC := c3.Close()
+		require.NoError(t, errC)
 	}()
 	d, err = c3.GetDeviceByMulticast(ctx, c.DeviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
 	defer func() {
-		errClose := d.Close(ctx)
-		require.NoError(t, errClose)
+		errC := d.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	eps = d.GetEndpoints()
 	links, err = d.GetResourceLinks(ctx, eps)
@@ -107,8 +107,8 @@ func TestSettingCloudResource(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	c.SetUpTestDevice(t)
 

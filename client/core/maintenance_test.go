@@ -60,8 +60,8 @@ func TestDeviceReboot(t *testing.T) {
 			signer, err := NewTestSigner()
 			require.NoError(t, err)
 			defer func() {
-				errClose := c.Close()
-				require.NoError(t, errClose)
+				errC := c.Close()
+				require.NoError(t, errC)
 			}()
 			deviceID := test.MustFindDeviceByName(test.DevsimName)
 			require := require.New(t)
@@ -70,8 +70,8 @@ func TestDeviceReboot(t *testing.T) {
 			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer func() {
-				errClose := device.Close(timeout)
-				require.NoError(errClose)
+				errC := device.Close(timeout)
+				require.NoError(errC)
 			}()
 			eps := device.GetEndpoints()
 			links, err := device.GetResourceLinks(timeout, eps)
@@ -82,8 +82,8 @@ func TestDeviceReboot(t *testing.T) {
 			require.NoError(err)
 			links = sepEpToLinks(t, links)
 			defer func() {
-				err := device.Disown(timeout, links)
-				require.NoError(err)
+				errD := device.Disown(timeout, links)
+				require.NoError(errD)
 			}()
 
 			err = device.Reboot(timeout, links)
@@ -100,8 +100,8 @@ func TestDeviceFactoryReset(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	require := require.New(t)
@@ -110,8 +110,8 @@ func TestDeviceFactoryReset(t *testing.T) {
 	device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(err)
 	defer func() {
-		errClose := device.Close(timeout)
-		require.NoError(errClose)
+		errC := device.Close(timeout)
+		require.NoError(errC)
 	}()
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)

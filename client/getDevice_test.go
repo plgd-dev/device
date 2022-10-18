@@ -122,15 +122,15 @@ func TestClientGetDevice(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close(context.Background())
-		require.NoError(t, errClose)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			got, err := c.GetDeviceDetailsByMulticast(ctx, tt.args.deviceID)
+			ttCtx, ttCancel := context.WithTimeout(ctx, time.Second)
+			defer ttCancel()
+			got, err := c.GetDeviceDetailsByMulticast(ttCtx, tt.args.deviceID)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -188,15 +188,15 @@ func TestClientGetDeviceByIP(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close(context.Background())
-		require.NoError(t, errClose)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx, cancel := context.WithTimeout(ctx, time.Second)
-			defer cancel()
-			got, err := c.GetDeviceDetailsByIP(ctx, tt.args.ip)
+			ttCtx, ttCancel := context.WithTimeout(ctx, time.Second)
+			defer ttCancel()
+			got, err := c.GetDeviceDetailsByIP(ttCtx, tt.args.ip)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
@@ -204,7 +204,7 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			require.NoError(t, err)
 
 			var v interface{}
-			err = c.GetResource(ctx, got.ID, device.ResourceURI, &v)
+			err = c.GetResource(ttCtx, got.ID, device.ResourceURI, &v)
 			require.NoError(t, err)
 
 			got.Resources = cleanUpResources(sortResources(got.Resources))
@@ -212,11 +212,11 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
 			got.Details.(*device.Device).ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
-			ok := c.DeleteDevice(ctx, got.ID)
+			ok := c.DeleteDevice(ttCtx, got.ID)
 			require.True(t, ok)
 
 			// we should not be able to remove the device second time
-			ok = c.DeleteDevice(ctx, got.ID)
+			ok = c.DeleteDevice(ttCtx, got.ID)
 			require.False(t, ok)
 		})
 	}
@@ -229,8 +229,8 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(ctx)
-		require.NoError(t, err)
+		errC := c.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	// store device to cache
 	dev, _, err := c.GetDeviceByIP(ctx, ip)
@@ -252,8 +252,8 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	c1, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c1.Close(ctx)
-		require.NoError(t, err)
+		errC := c1.Close(ctx)
+		require.NoError(t, errC)
 	}()
 	_, err = c1.OwnDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)

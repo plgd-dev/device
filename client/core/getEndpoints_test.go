@@ -47,8 +47,8 @@ func TestDeviceGetEndpoints(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
 			defer func() {
-				errClose := c.Close()
-				require.NoError(t, errClose)
+				errC := c.Close()
+				require.NoError(t, errC)
 			}()
 			deviceID := tt.args.deviceID
 			require := require.New(t)
@@ -58,8 +58,8 @@ func TestDeviceGetEndpoints(t *testing.T) {
 			device, err := c.GetDeviceByMulticast(timeout, deviceID, core.DefaultDiscoveryConfiguration())
 			require.NoError(err)
 			defer func() {
-				errClose := device.Close(timeout)
-				require.NoError(errClose)
+				errC := device.Close(timeout)
+				require.NoError(errC)
 			}()
 
 			got := device.GetEndpoints()

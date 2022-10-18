@@ -35,8 +35,8 @@ func TestClientGetDeviceByIPWithIP4(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
@@ -59,8 +59,8 @@ func TestClientGetDeviceParallel(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
@@ -98,8 +98,8 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 	signer, err := NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
-		errClose := c.Close()
-		require.NoError(t, errClose)
+		errC := c.Close()
+		require.NoError(t, errC)
 	}()
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

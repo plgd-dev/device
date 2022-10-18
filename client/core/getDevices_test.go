@@ -39,8 +39,8 @@ type testDeviceHandler struct{}
 
 func (h *testDeviceHandler) Handle(ctx context.Context, d *core.Device) {
 	defer func() {
-		if errClose := d.Close(ctx); errClose != nil {
-			h.Error(fmt.Errorf("testDeviceHandler.Handle: %w", errClose))
+		if errC := d.Close(ctx); errC != nil {
+			h.Error(fmt.Errorf("testDeviceHandler.Handle: %w", errC))
 		}
 	}()
 }

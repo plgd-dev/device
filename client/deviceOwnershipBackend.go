@@ -87,15 +87,15 @@ func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, acc
 	parser := &jwt.Parser{
 		SkipClaimsValidation: true,
 	}
-	var claims claims
-	_, _, err := parser.ParseUnverified(accessToken, &claims)
+	var c claims
+	_, _, err := parser.ParseUnverified(accessToken, &c)
 	if err != nil {
 		return fmt.Errorf("cannot parse jwt token: %w", err)
 	}
-	if claims[o.jwtClaimOwnerID] == nil {
+	if c[o.jwtClaimOwnerID] == nil {
 		return fmt.Errorf("cannot get '%v' from jwt token: is not set", o.jwtClaimOwnerID)
 	}
-	ownerStr := fmt.Sprintf("%v", claims[o.jwtClaimOwnerID])
+	ownerStr := fmt.Sprintf("%v", c[o.jwtClaimOwnerID])
 	ownerID, err := uuid.Parse(ownerStr)
 	if err != nil || ownerStr == uuid.Nil.String() {
 		ownerID = uuid.NewSHA1(uuid.NameSpaceURL, []byte(ownerStr))

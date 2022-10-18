@@ -110,8 +110,8 @@ func TestClientUpdateResource(t *testing.T) {
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
-		err := c.Close(context.Background())
-		require.NoError(t, err)
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)
