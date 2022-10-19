@@ -275,7 +275,6 @@ func (d *Device) removeConn(addr string, cc *conn) {
 	} else if c == cc && c.err != nil {
 		// check if the wrapped connection is the same we are about to delete
 		delete(d.conn, addr)
-
 	}
 }
 

@@ -207,5 +207,4 @@ func TestClientOwnDeviceWithPreviouslyBrokenConnection(t *testing.T) {
 	require.NoError(t, err)
 	err = got.Disown(ctx, links)
 	require.NoError(t, err)
-
 }
