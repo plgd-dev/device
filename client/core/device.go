@@ -270,7 +270,7 @@ func (d *Device) removeConn(addr string, cc *conn) {
 		return
 	}
 	// check if the underlayer connection is same as the one we want to remove
-	if c.get() == clientConn {
+	if clientConn != nil && c.get() == clientConn {
 		delete(d.conn, addr)
 	} else if c == cc && c.err != nil {
 		// check if the wrapped connection is the same we are about to delete
