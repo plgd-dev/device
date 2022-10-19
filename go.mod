@@ -15,6 +15,7 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/atomic v1.10.0
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
+	google.golang.org/genproto v0.0.0-20220902135211-223410557253
 	google.golang.org/grpc v1.49.0
 )
 
@@ -34,7 +35,7 @@ require (
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0 // indirect
 	golang.org/x/net v0.0.0-20220930213112-107f3e3c3b0b // indirect
 	golang.org/x/sys v0.0.0-20220907062415-87db552b00fd // indirect
-	google.golang.org/genproto v0.0.0-20220902135211-223410557253 // indirect
+	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
