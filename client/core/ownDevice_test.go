@@ -9,6 +9,7 @@ import (
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
+	"github.com/plgd-dev/device/schema/credential"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/schema/doxm"
 	"github.com/plgd-dev/device/test"
@@ -167,4 +168,43 @@ func TestClientOwnDeviceInvalidClient(t *testing.T) {
 
 	err = device.Own(timeout, links, []otm.Client{InvalidOtmClient{}}, core.WithSetupCertificates(signer.Sign))
 	require.Error(err)
+}
+
+func TestClientOwnDeviceWithPreviouslyBrokenConnection(t *testing.T) {
+	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+	signer, err := NewTestSigner()
+	require.NoError(t, err)
+
+	c, err := NewTestSecureClientWithTLS(true, false)
+	require.NoError(t, err)
+	defer func() {
+		errClose := c.Close()
+		require.NoError(t, errClose)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	got, err := c.GetDeviceByIP(ctx, ip)
+	require.NoError(t, err)
+	require.NotEmpty(t, got)
+	links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
+	require.NoError(t, err)
+	link, ok := links.GetResourceLink(credential.ResourceURI)
+	require.True(t, ok)
+	var v interface{}
+
+	getResource := func() {
+		resourceCtx, cancel := context.WithTimeout(ctx, time.Second*1)
+		defer cancel()
+		err = got.GetResource(resourceCtx, link, &v)
+		require.Error(t, err)
+	}
+	getResource()
+
+	err = got.Own(ctx, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
+	require.NoError(t, err)
+	links, err = got.GetResourceLinks(ctx, got.GetEndpoints())
+	require.NoError(t, err)
+	err = got.Disown(ctx, links)
+	require.NoError(t, err)
 }
