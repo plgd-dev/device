@@ -105,7 +105,7 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseH
 			rootCAs.AddCert(ca)
 		}
 		tlsConfig := tls.Config{
-			InsecureSkipVerify:    true,
+			InsecureSkipVerify:    true, //nolint:gosec
 			Certificates:          []tls.Certificate{c.manufacturerCertificate},
 			VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, func(*x509.Certificate) error { return nil }),
 		}

@@ -141,7 +141,12 @@ type listDeviceIds struct {
 
 // Handle gets a device connection and is responsible for closing it.
 func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev schema.ResourceLinks) {
-	defer client.Close()
+	defer func() {
+		err := client.Close()
+		if err != nil {
+			o.err(fmt.Errorf("device connection handler error: %w", err))
+		}
+	}()
 	d, ok := dev.GetResourceLink(device.ResourceURI)
 	if !ok {
 		return
@@ -163,7 +168,9 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 	}
 	defer func() {
 		for _, conn := range multicastConn {
-			conn.Close()
+			if errC := conn.Close(); errC != nil {
+				o.c.logger.Debugf("discover devices error: %w", errC)
+			}
 		}
 	}()
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res

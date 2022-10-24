@@ -25,7 +25,7 @@ import (
 )
 
 type DeviceResourcesObservationHandler = interface {
-	Handle(ctx context.Context, links schema.ResourceLinks) error
+	Handle(ctx context.Context, links schema.ResourceLinks)
 	OnClose()
 	Error(err error)
 }

@@ -99,21 +99,21 @@ func (b CredentialType) Has(flag CredentialType) bool {
 type CredentialUsage string
 
 const (
-	CredentialUsage_TRUST_CA     CredentialUsage = "oic.sec.cred.trustca"
-	CredentialUsage_CERT         CredentialUsage = "oic.sec.cred.cert"
-	CredentialUsage_ROLE_CERT    CredentialUsage = "oic.sec.cred.rolecert"
-	CredentialUsage_MFG_TRUST_CA CredentialUsage = "oic.sec.cred.mfgtrustca"
-	CredentialUsage_MFG_CERT     CredentialUsage = "oic.sec.cred.mfgcert"
+	CredentialUsage_TRUST_CA     CredentialUsage = "oic.sec.cred.trustca"    //nolint:gosec
+	CredentialUsage_CERT         CredentialUsage = "oic.sec.cred.cert"       //nolint:gosec
+	CredentialUsage_ROLE_CERT    CredentialUsage = "oic.sec.cred.rolecert"   //nolint:gosec
+	CredentialUsage_MFG_TRUST_CA CredentialUsage = "oic.sec.cred.mfgtrustca" //nolint:gosec
+	CredentialUsage_MFG_CERT     CredentialUsage = "oic.sec.cred.mfgcert"    //nolint:gosec
 )
 
 type CredentialRefreshMethod string
 
 const (
-	CredentialRefreshMethod_PROVISION_SERVICE                     CredentialRefreshMethod = "oic.sec.crm.pro"
-	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL_AND_RANDOM_PIN CredentialRefreshMethod = "oic.sec.crm.psk"
-	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL                CredentialRefreshMethod = "oic.sec.crm.rdp"
-	CredentialRefreshMethod_KEY_DISTRIBUTION_SERVICE              CredentialRefreshMethod = "oic.sec.crm.skdc"
-	CredentialRefreshMethod_PKCS10_REQUEST_TO_CA                  CredentialRefreshMethod = "oic.sec.crm.pk10"
+	CredentialRefreshMethod_PROVISION_SERVICE                     CredentialRefreshMethod = "oic.sec.crm.pro"  //nolint:gosec
+	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL_AND_RANDOM_PIN CredentialRefreshMethod = "oic.sec.crm.psk"  //nolint:gosec
+	CredentialRefreshMethod_KEY_AGREEMENT_PROTOCOL                CredentialRefreshMethod = "oic.sec.crm.rdp"  //nolint:gosec
+	CredentialRefreshMethod_KEY_DISTRIBUTION_SERVICE              CredentialRefreshMethod = "oic.sec.crm.skdc" //nolint:gosec
+	CredentialRefreshMethod_PKCS10_REQUEST_TO_CA                  CredentialRefreshMethod = "oic.sec.crm.pk10" //nolint:gosec
 )
 
 type CredentialOptionalData struct {
