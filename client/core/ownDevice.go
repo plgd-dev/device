@@ -312,7 +312,7 @@ func (d *Device) Own(
 	}
 
 	errorf := func(format string, a ...any) error {
-		return fmt.Errorf("otmClient: %v: %w", otmClient.Type(), fmt.Errorf(format, a))
+		return fmt.Errorf("otmClient: %v: %w", otmClient.Type(), fmt.Errorf(format, a...))
 	}
 
 	err = d.selectOTM(ctx, otmClient.Type())
