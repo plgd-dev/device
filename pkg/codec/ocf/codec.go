@@ -65,8 +65,8 @@ func (VNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 	return nil
 }
 
-// RawVNDOCFCBORCodec performes no encoding/decoding but
-// it propagates/validates the CoAP content format/media type.
+// MakeRawVNDOCFCBORCodec creates a RawVNDOCFCBORCodec codec, which performs no encoding/decoding,
+// but propagates/validates the CoAP content format/media type.
 func MakeRawVNDOCFCBORCodec() RawCodec {
 	return RawCodec{
 		EncodeMediaType: message.AppOcfCbor,
@@ -77,8 +77,7 @@ func MakeRawVNDOCFCBORCodec() RawCodec {
 	}
 }
 
-// RawCodec performs no encoding/decoding but
-// it propagates/validates the CoAP content format/media type.
+// RawCodec performs no encoding/decoding but it propagates/validates the CoAP content format/media type.
 type RawCodec struct {
 	EncodeMediaType  message.MediaType
 	DecodeMediaTypes []message.MediaType
@@ -87,7 +86,7 @@ type RawCodec struct {
 // ContentFormat propagates the CoAP media type
 func (c RawCodec) ContentFormat() message.MediaType { return c.EncodeMediaType }
 
-// ContentFormat propagates the CoAP media type
+// DecodeContentFormat propagates the CoAP media type
 func (c RawCodec) DecodeContentFormat() []message.MediaType {
 	return c.DecodeMediaTypes
 }

@@ -25,7 +25,7 @@ import (
 )
 
 type DeviceResourcesObservationHandler = interface {
-	Handle(ctx context.Context, links schema.ResourceLinks) error
+	Handle(ctx context.Context, links schema.ResourceLinks)
 	OnClose()
 	Error(err error)
 }
@@ -64,7 +64,7 @@ func (o *deviceResourcesObserver) Handle(ctx context.Context, body coap.DecodeFu
 	o.handler.Handle(ctx, links)
 }
 
-// ObserveDeviceResources method starts observing links in the device.
+// ObserveDeviceResources starts observing links in the device.
 // In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, handler DeviceResourcesObservationHandler) (string, error) {
 	observationID, err := newDeviceResourcesObserver(ctx, c, deviceID, handler)
@@ -74,7 +74,7 @@ func (c *Client) ObserveDeviceResources(ctx context.Context, deviceID string, ha
 	return observationID, nil
 }
 
-// ObserveDeviceResources method stops observing links in the device.
+// StopObservingDeviceResources stops observing links in the device.
 // In the absence of a cached device, it is found through multicast and stored with an expiration time.
 func (c *Client) StopObservingDeviceResources(ctx context.Context, observationID string) (bool, error) {
 	return c.StopObservingResource(ctx, observationID)

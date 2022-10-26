@@ -221,7 +221,9 @@ func (h *discoveryHandler) Handle(ctx context.Context, newdev *core.Device) {
 	if err != nil {
 		dev2, ok := h.deviceCache.LoadAndDeleteDevice(dev.DeviceID())
 		if ok {
-			dev2.Close(ctx)
+			if errC := dev2.Close(ctx); errC != nil {
+				h.logger.Debugf("discovery error: %w", errC)
+			}
 		}
 		return
 	}

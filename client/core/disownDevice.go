@@ -33,7 +33,7 @@ func connectionWasClosed(ctx context.Context, err error) bool {
 	return false
 }
 
-// DisownDevice removes ownership of device
+// Disown removes ownership of device
 func (d *Device) Disown(
 	ctx context.Context,
 	links schema.ResourceLinks,

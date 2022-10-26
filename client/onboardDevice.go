@@ -105,7 +105,11 @@ func (c *Client) OnboardDevice(
 		if err != nil {
 			return err
 		}
-		defer p.Close(ctx)
+		defer func() {
+			if errC := p.Close(ctx); errC != nil {
+				c.logger.Debugf("onboard device error: %w", errC)
+			}
+		}()
 
 		err = setACLForCloud(ctx, p, cloudID, links)
 		if err != nil {

@@ -35,7 +35,7 @@ type DeviceCache struct {
 	done   chan struct{}
 }
 
-// Creates a new cache for devices.
+// NewDeviceCache creates a new cache for devices.
 // - deviceExpiration: default expiration time for the device in the cache, 0 means infinite. The device expiration is refreshed by getting or updating the device.
 // - pollInterval: pool interval for cleaning expired devices from the cache
 // - logger: logger for logging
@@ -64,7 +64,8 @@ func NewDeviceCache(deviceExpiration, pollInterval time.Duration, logger core.Lo
 	}
 }
 
-// This function loads the device from the cache and deletes it from the cache. To cleanup the device you have to call device.Close.
+// LoadAndDeleteDevice loads the device from the cache and deletes it from the cache. To cleanup
+// the device you have to call device.Close.
 func (c *DeviceCache) LoadAndDeleteDevice(deviceID string) (*core.Device, bool) {
 	devs := c.LoadAndDeleteDevices([]string{deviceID})
 	if len(devs) == 0 {
@@ -109,21 +110,21 @@ func (c *DeviceCache) GetDeviceExpiration(deviceID string) (time.Time, bool) {
 	return d.ValidUntil.Load(), true
 }
 
-// This function stores the device without timeout into the cache. The device can be removed from
+// UpdateOrStoreDevice stores the device without timeout into the cache. The device can be removed from
 // the cache only by invoking LoadAndDeleteDevice function and device.Close to cleanup connections. If a device with the same deviceID is already
 // in the cache, the previous reference will be updated in the cache and it's expiration time will be set to infinite.
 func (c *DeviceCache) UpdateOrStoreDevice(device *core.Device) (*core.Device, bool) {
 	return c.updateOrStoreDevice(device, time.Time{})
 }
 
-// This function stores the device with the default timeout into the cache. If a device with the same
+// UpdateOrStoreDeviceWithExpiration stores the device with the default timeout into the cache. If a device with the same
 // deviceID is already in the cache the device will be updated and the expiration time will be reset
 // only when the device has it set.
 func (c *DeviceCache) UpdateOrStoreDeviceWithExpiration(device *core.Device) (*core.Device, bool) {
 	return c.updateOrStoreDevice(device, getNextExpiration(c.deviceExpiration))
 }
 
-// return next time of expiration of device in cache. If expiration is 0, then return time.Time{}
+// getNextExpiration returns next time of expiration of device in cache. If expiration is 0, then return time.Time{}
 func getNextExpiration(expiration time.Duration) time.Time {
 	if expiration <= 0 {
 		return time.Time{}
@@ -131,7 +132,7 @@ func getNextExpiration(expiration time.Duration) time.Time {
 	return time.Now().Add(expiration)
 }
 
-// Try to change the expiration time for the device in cache to default expiration.
+// TryToChangeDeviceExpirationToDefault attempts to change the expiration time for the device in cache to default expiration.
 func (c *DeviceCache) TryToChangeDeviceExpirationToDefault(deviceID string) bool {
 	d := c.devicesCache.Load(deviceID)
 	if d == nil {

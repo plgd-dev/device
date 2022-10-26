@@ -207,7 +207,7 @@ func (d *Device) dialTLS(ctx context.Context, addr string, tlsConfig *TLSConfig,
 		rootCAs.AddCert(ca)
 	}
 	tlsCfg := tls.Config{
-		InsecureSkipVerify:    true,
+		InsecureSkipVerify:    true, //nolint:gosec
 		ClientCAs:             rootCAs,
 		Certificates:          []tls.Certificate{cert},
 		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(rootCAs, verifyPeerCertificate),

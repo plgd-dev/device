@@ -29,7 +29,7 @@ import (
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
 
-// csr is encoded by PEM and returns PEM
+// SignFunc handles a certifice signing request (csr), the csr and returned certificate chain are encoded in PEM format
 type SignFunc = func(ctx context.Context, csr []byte) ([]byte, error)
 
 type Client interface {

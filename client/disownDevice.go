@@ -27,7 +27,7 @@ func (c *Client) removeTemporaryDeviceFromCache(ctx context.Context, d *core.Dev
 		// device is found by IP, so it is not temporary
 		return
 	}
-	deleteDeviceNotFoundByIP(ctx, c.deviceCache, d)
+	c.deleteDeviceNotFoundByIP(ctx, d)
 }
 
 // DisownDevice disowns a device.

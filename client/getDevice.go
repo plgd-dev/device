@@ -39,11 +39,13 @@ func getLinksDevice(ctx context.Context, dev *core.Device, disableUDPEndpoints b
 // Don't remove devices found by IP, the device is probably offline
 // and we will be not able to reestablish the connection when it will
 // come back online
-func deleteDeviceNotFoundByIP(ctx context.Context, deviceCache *DeviceCache, dev *core.Device) {
+func (c *Client) deleteDeviceNotFoundByIP(ctx context.Context, dev *core.Device) {
 	if dev.FoundByIP() == "" {
-		deviceCache.LoadAndDeleteDevice(dev.DeviceID())
+		c.deviceCache.LoadAndDeleteDevice(dev.DeviceID())
 	}
-	dev.Close(ctx)
+	if err := dev.Close(ctx); err != nil {
+		c.logger.Debugf("delete device error: %s", err.Error())
+	}
 }
 
 // GetDeviceByMulticast gets device by multicast and store it to cache with expiration.
@@ -62,12 +64,16 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	}
 	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
 	if err != nil {
-		dev.Close(ctx)
+		if errC := dev.Close(ctx); errC != nil {
+			c.logger.Debugf("get links for device error: %w", errC)
+		}
 		return nil, nil, fmt.Errorf("cannot get links for device %v: %w", deviceID, err)
 	}
 	retDev, updated := c.deviceCache.UpdateOrStoreDeviceWithExpiration(dev)
 	if updated {
-		dev.Close(ctx)
+		if errC := dev.Close(ctx); errC != nil {
+			c.logger.Debugf("get device by multicast error: %w", errC)
+		}
 	}
 	return retDev, links, nil
 }
@@ -77,9 +83,14 @@ func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID 
 	if err != nil {
 		return nil, nil, err
 	}
+	closeDev := func(dev *core.Device) {
+		if errC := dev.Close(ctx); errC != nil {
+			c.logger.Debugf("get device by ip error: %w", errC)
+		}
+	}
 	links, err := getLinksDevice(ctx, newDev, c.disableUDPEndpoints)
 	if err != nil {
-		newDev.Close(ctx)
+		closeDev(newDev)
 		return nil, nil, err
 	}
 	var oldDev *core.Device
@@ -92,7 +103,7 @@ func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID 
 		tmp, ok := c.deviceCache.LoadAndDeleteDevice(oldDev.DeviceID())
 		if ok && tmp == oldDev {
 			oldDev.UpdateBy(newDev)
-			newDev.Close(ctx)
+			closeDev(newDev)
 			newDev = oldDev
 		}
 	}
@@ -114,7 +125,9 @@ func (c *Client) checkAndUpdateCacheByLinks(ctx context.Context, dev *core.Devic
 		tmp.SetDeviceID(newDeviceID)
 		_, updated := c.deviceCache.UpdateOrStoreDeviceWithExpiration(tmp)
 		if updated {
-			tmp.Close(ctx)
+			if errC := tmp.Close(ctx); errC != nil {
+				c.logger.Debugf("update device cache error: %w", errC)
+			}
 		}
 	}
 	return nil, nil, fmt.Errorf("cannot get device %v: not found", dev.DeviceID())
@@ -142,7 +155,7 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 		}
 		return dev, links, nil
 	}
-	deleteDeviceNotFoundByIP(ctx, c.deviceCache, dev)
+	c.deleteDeviceNotFoundByIP(ctx, dev)
 	return c.GetDevice(ctx, deviceID, opts...)
 }
 

@@ -90,11 +90,11 @@ const (
 func (b BitMask) Has(flag BitMask) bool { return b&flag != 0 }
 
 // GetResourceHrefs resolves URIs for a resource type.
-func (d ResourceLinks) GetResourceHrefs(resourceTypes ...string) []string {
+func (r ResourceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make(kitStrings.Set, len(d))
-	for _, r := range d {
+	links := make(kitStrings.Set, len(r))
+	for _, r := range r {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links.Add(r.Href)
 		}
@@ -103,8 +103,8 @@ func (d ResourceLinks) GetResourceHrefs(resourceTypes ...string) []string {
 }
 
 // GetResourceLink finds a resource link with the same href.
-func (d ResourceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
-	for _, r := range d {
+func (r ResourceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
+	for _, r := range r {
 		if r.Href == href {
 			return r, true
 		}
@@ -113,11 +113,11 @@ func (d ResourceLinks) GetResourceLink(href string) (_ ResourceLink, ok bool) {
 }
 
 // GetResourceLinks resolves URIs for a resource type.
-func (d ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
+func (r ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
 	rt := make(kitStrings.Set, len(resourceTypes))
 	rt.Add(resourceTypes...)
-	links := make([]ResourceLink, 0, len(d))
-	for _, r := range d {
+	links := make([]ResourceLink, 0, len(r))
+	for _, r := range r {
 		if rt.HasOneOf(r.ResourceTypes...) {
 			links = append(links, r)
 		}
@@ -126,28 +126,28 @@ func (d ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
 }
 
 // PatchEndpoint adds Endpoint information where missing.
-func (d ResourceLinks) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLinks {
-	links := make(ResourceLinks, 0, len(d))
-	for _, r := range d {
+func (r ResourceLinks) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLinks {
+	links := make(ResourceLinks, 0, len(r))
+	for _, r := range r {
 		links = append(links, r.PatchEndpoint(addr, deviceEndpoints))
 	}
 	return links
 }
 
-func (a ResourceLinks) Len() int      { return len(a) }
-func (a ResourceLinks) Swap(i, j int) { a[i], a[j] = a[j], a[i] }
-func (a ResourceLinks) Less(i, j int) bool {
-	return a[i].Href < a[j].Href
+func (r ResourceLinks) Len() int      { return len(r) }
+func (r ResourceLinks) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
+func (r ResourceLinks) Less(i, j int) bool {
+	return r[i].Href < r[j].Href
 }
 
-func (a ResourceLinks) Sort() ResourceLinks {
-	sort.Sort(a)
-	return a
+func (r ResourceLinks) Sort() ResourceLinks {
+	sort.Sort(r)
+	return r
 }
 
 // GetEndpoints returns endpoints in order of priority.
-func (d ResourceLink) GetEndpoints() Endpoints {
-	return d.Endpoints.Sort()
+func (r ResourceLink) GetEndpoints() Endpoints {
+	return r.Endpoints.Sort()
 }
 
 // Sort sorts in order priority
@@ -178,8 +178,8 @@ func (r Endpoints) getEndpointsWithFilter(filter func(scheme string) bool) Endpo
 	return endpoints
 }
 
-func (d ResourceLink) GetSecureEndpoints() Endpoints {
-	return d.Endpoints.FilterSecureEndpoints()
+func (r ResourceLink) GetSecureEndpoints() Endpoints {
+	return r.Endpoints.FilterSecureEndpoints()
 }
 
 func isSecuredScheme(scheme string) bool {
@@ -198,8 +198,8 @@ func (r Endpoints) FilterSecureEndpoints() Endpoints {
 	return r.getEndpointsWithFilter(isSecuredScheme)
 }
 
-func (d ResourceLink) GetUnsecureEndpoints() Endpoints {
-	return d.Endpoints.FilterUnsecureEndpoints()
+func (r ResourceLink) GetUnsecureEndpoints() Endpoints {
+	return r.Endpoints.FilterUnsecureEndpoints()
 }
 
 func isUnsecuredScheme(scheme string) bool {
