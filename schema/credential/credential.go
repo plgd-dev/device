@@ -56,44 +56,44 @@ const (
 	CredentialType_ASYMMETRIC_ENCRYPTION_KEY           CredentialType = 32
 )
 
-func (s CredentialType) String() string {
-	if s == CredentialType_EMPTY {
+func (c CredentialType) String() string {
+	if c == CredentialType_EMPTY {
 		return "EMPTY"
 	}
 	res := make([]string, 0, 7)
-	if s.Has(CredentialType_SYMMETRIC_PAIR_WISE) {
+	if c.Has(CredentialType_SYMMETRIC_PAIR_WISE) {
 		res = append(res, "SYMMETRIC_PAIR_WISE")
-		s &^= CredentialType_SYMMETRIC_PAIR_WISE
+		c &^= CredentialType_SYMMETRIC_PAIR_WISE
 	}
-	if s.Has(CredentialType_SYMMETRIC_GROUP) {
+	if c.Has(CredentialType_SYMMETRIC_GROUP) {
 		res = append(res, "SYMMETRIC_GROUP")
-		s &^= CredentialType_SYMMETRIC_GROUP
+		c &^= CredentialType_SYMMETRIC_GROUP
 	}
-	if s.Has(CredentialType_ASYMMETRIC_SIGNING) {
+	if c.Has(CredentialType_ASYMMETRIC_SIGNING) {
 		res = append(res, "ASYMMETRIC_SIGNING")
-		s &^= CredentialType_ASYMMETRIC_SIGNING
+		c &^= CredentialType_ASYMMETRIC_SIGNING
 	}
-	if s.Has(CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE) {
+	if c.Has(CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE) {
 		res = append(res, "ASYMMETRIC_SIGNING_WITH_CERTIFICATE")
-		s &^= CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE
+		c &^= CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE
 	}
-	if s.Has(CredentialType_PIN_OR_PASSWORD) {
+	if c.Has(CredentialType_PIN_OR_PASSWORD) {
 		res = append(res, "PIN_OR_PASSWORD")
-		s &^= CredentialType_PIN_OR_PASSWORD
+		c &^= CredentialType_PIN_OR_PASSWORD
 	}
-	if s.Has(CredentialType_ASYMMETRIC_ENCRYPTION_KEY) {
+	if c.Has(CredentialType_ASYMMETRIC_ENCRYPTION_KEY) {
 		res = append(res, "ASYMMETRIC_ENCRYPTION_KEY")
-		s &^= CredentialType_ASYMMETRIC_ENCRYPTION_KEY
+		c &^= CredentialType_ASYMMETRIC_ENCRYPTION_KEY
 	}
-	if s != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(s)))
+	if c != 0 {
+		res = append(res, fmt.Sprintf("unknown(%v)", int(c)))
 	}
 	return strings.Join(res, "|")
 }
 
 // Has returns true if the flag is set.
-func (b CredentialType) Has(flag CredentialType) bool {
-	return b&flag != 0
+func (c CredentialType) Has(flag CredentialType) bool {
+	return c&flag != 0
 }
 
 type CredentialUsage string

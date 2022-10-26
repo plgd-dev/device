@@ -146,6 +146,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 	return nil
 }
 
+// SetAccessControl updates the acl resource.
 // Usage: SetAccessControl(ctx, schema.AllPermissions, schema.TLSConnection, schema.AllResources)
 func (c *ProvisioningClient) SetAccessControl(
 	ctx context.Context,

@@ -59,7 +59,7 @@ func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *coap.
 
 // WithActionAfterOwn allows initialize configuration at the device via DTLS connection with preshared key. For example setup time / NTP.
 // if it returns error device will be disowned.
-func WithActionAftersOwn(actionAfterOwn func(ctx context.Context, client *coap.ClientCloseHandler) error) OwnOption {
+func WithActionAfterOwn(actionAfterOwn func(ctx context.Context, client *coap.ClientCloseHandler) error) OwnOption {
 	return actionAfterOwnOption{
 		actionAfterOwn: actionAfterOwn,
 	}
@@ -212,7 +212,7 @@ type CreateOption = interface {
 	applyOnCreate(opts createOptions) createOptions
 }
 
-// UpdateOption option definition.
+// DeleteOption option definition.
 type DeleteOption = interface {
 	applyOnDelete(opts deleteOptions) deleteOptions
 }

@@ -11,6 +11,10 @@ linters-settings:
         - github.com/pkg/errors:
             recommendations:
             - errors
+  stylecheck:
+    # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
+    # Default: ["*"]
+    checks: [ "all", "-ST1000", "-ST1003" ]
 
 linters:
   enable:
@@ -63,7 +67,7 @@ linters:
     - predeclared      # find code that shadows one of Go's predeclared identifiers
     # - revive           # golint replacement, finds style mistakes
     - staticcheck      # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
-    # - stylecheck       # Stylecheck is a replacement for golint
+    - stylecheck       # Stylecheck is a replacement for golint
     # - tenv             # tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
     # - tparallel        # tparallel detects inappropriate usage of t.Parallel() method in your Go test codes
     - typecheck        # Like the front-end of a Go compiler, parses and type-checks Go code

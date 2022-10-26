@@ -33,7 +33,7 @@ import (
 const Timeout = time.Second * 10
 
 type (
-	// OCF Client for working with devices
+	// OCFClient is an OCF Client for working with devices
 	OCFClient struct {
 		client  *local.Client
 		devices []local.DeviceDetails
@@ -104,7 +104,7 @@ func (c *OCFClient) OwnDevice(deviceID string) (string, error) {
 	return c.client.OwnDevice(ctx, deviceID, local.WithOTMs([]local.OTMType{local.OTMType_JustWorks}))
 }
 
-// Get all resource Info of the device
+// GetResources returns all resources info of the device
 func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
@@ -125,7 +125,7 @@ func (c *OCFClient) GetResources(deviceID string) (string, error) {
 	return string(linksJSON), nil
 }
 
-// Get a resource Info of the device
+// GetResource returns info of the resource at the given href of the device
 func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()
@@ -149,7 +149,7 @@ func (c *OCFClient) GetResource(deviceID, href string) (string, error) {
 	return resourceJSON.String(), nil
 }
 
-// Update a resource of the device
+// UpdateResource updates a resource of the device
 func (c *OCFClient) UpdateResource(deviceID string, href string, data interface{}) error {
 	ctx, cancel := context.WithTimeout(context.Background(), Timeout)
 	defer cancel()

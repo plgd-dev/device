@@ -24,7 +24,6 @@ import (
 
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/message"
-	udpMessage "github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
@@ -79,7 +78,7 @@ func newDiscoveryClient(network, mcastaddr string, msgID uint16, timeout time.Du
 
 func (d *DiscoveryClient) PublishMsgWithContext(req *pool.Message, discoveryHandler DiscoveryHandler) error {
 	req.SetMessageID(int32(d.msgID))
-	req.SetType(udpMessage.NonConfirmable)
+	req.SetType(message.NonConfirmable)
 	return d.server.DiscoveryRequest(req, d.mcastaddr, discoveryHandler, d.opts...)
 }
 
@@ -102,7 +101,7 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
 	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is
 	// not discovered and msgid is cached so all other multicast messages from another interfaces are dropped for deduplication.
-	msgIDudp4 := uint16(udpMessage.GetMID())
+	msgIDudp4 := uint16(message.GetMID())
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
