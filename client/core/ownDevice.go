@@ -265,6 +265,8 @@ func supportedOTMTypes(otmClients []otm.Client) []string {
 }
 
 // Own set ownership of device. For owning, the first match in order of otmClients with the device will be used.
+// Note: In case if the device fails before changing RFOTM the iotivity-stack invokes disown by itself. This can result
+//       in a state where the disown is invoked two times in a row. Once by the iotivity-stack and second time by device core.
 func (d *Device) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
