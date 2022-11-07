@@ -48,7 +48,7 @@ type DeviceOwnershipBackendConfig struct {
 	Sign            SignFunc
 }
 
-func NewDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
+func newDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.DialTLS, dialDTLS core.DialDTLS,
 	cfg *DeviceOwnershipBackendConfig,
 ) (*deviceOwnershipBackend, error) {
 	if cfg == nil {

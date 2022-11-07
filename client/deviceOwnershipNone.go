@@ -28,7 +28,7 @@ import (
 
 type deviceOwnershipNone struct{}
 
-func NewDeviceOwnershipNone() *deviceOwnershipNone {
+func newDeviceOwnershipNone() *deviceOwnershipNone {
 	return &deviceOwnershipNone{}
 }
 

@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 	"go.uber.org/atomic"
 )
@@ -58,7 +59,7 @@ type devicesObserver struct {
 	cancel          context.CancelFunc
 	interval        time.Duration
 	wait            func()
-	onlineDeviceIDs map[string]bool
+	onlineDeviceIDs map[string]struct{}
 }
 
 func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
@@ -100,13 +101,13 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 	}
 }
 
-func (o *devicesObserver) processDevices(devices *sync.Map) (added map[string]bool, removed []string, current map[string]bool) {
-	current = make(map[string]bool)
-	devices.Range(func(key, value interface{}) bool {
-		current[key.(string)] = true
+func (o *devicesObserver) processDevices(devices *coapSync.Map[string, struct{}]) (added map[string]struct{}, removed []string, current map[string]struct{}) {
+	current = make(map[string]struct{})
+	devices.Range(func(key string, value struct{}) bool {
+		current[key] = struct{}{}
 		return true
 	})
-	added = make(map[string]bool)
+	added = make(map[string]struct{})
 	removed = make([]string, 0, len(current))
 	for deviceID := range o.onlineDeviceIDs {
 		_, ok := current[deviceID]
@@ -117,7 +118,7 @@ func (o *devicesObserver) processDevices(devices *sync.Map) (added map[string]bo
 	for deviceID := range current {
 		_, ok := o.onlineDeviceIDs[deviceID]
 		if !ok {
-			added[deviceID] = true
+			added[deviceID] = struct{}{}
 		}
 	}
 	return
@@ -135,7 +136,7 @@ func (o *devicesObserver) emit(ctx context.Context, deviceID string, added bool)
 }
 
 type listDeviceIds struct {
-	devices *sync.Map
+	devices *coapSync.Map[string, struct{}]
 	err     func(err error)
 }
 
@@ -151,7 +152,7 @@ func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev sch
 	if !ok {
 		return
 	}
-	o.devices.Store(d.GetDeviceID(), nil)
+	o.devices.Store(d.GetDeviceID(), struct{}{})
 }
 
 // Error gets errors during discovery.
@@ -177,8 +178,11 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType(device.ResourceType))
 }
 
-func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) {
-	newDevices := listDeviceIds{err: func(err error) { o.c.logger.Debug(err.Error()) }, devices: &sync.Map{}}
+func (o *devicesObserver) observe(ctx context.Context) (map[string]struct{}, error) {
+	newDevices := listDeviceIds{
+		err:     func(err error) { o.c.logger.Debug(err.Error()) },
+		devices: coapSync.NewMap[string, struct{}](),
+	}
 
 	// check online status for all devices added by IP
 	var wg sync.WaitGroup
@@ -209,7 +213,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]bool, error) 
 		go func(deviceID string, ip string) {
 			defer wg.Done()
 			if _, e := o.c.GetDeviceDetailsByIP(ctx, ip); e == nil {
-				newDevices.devices.LoadOrStore(deviceID, true)
+				newDevices.devices.LoadOrStore(deviceID, struct{}{})
 			}
 		}(deviceID, ip)
 	}

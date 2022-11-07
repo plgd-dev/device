@@ -58,7 +58,7 @@ type deviceOwnershipSDK struct {
 	app                  ApplicationCallback
 }
 
-func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialTLS,
+func newDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialTLS,
 	dialDLTS core.DialDTLS, cfg *DeviceOwnershipSDKConfig,
 ) (*deviceOwnershipSDK, error) {
 	certExpiry := time.Hour * 24 * 365 * 10
@@ -78,10 +78,10 @@ func NewDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialT
 		return nil, fmt.Errorf("invalid ID for device ownership SDK: %w", err)
 	}
 
-	return NewDeviceOwnershipSDK(app, uid.String(), dialTLS, dialDLTS, &signerCert, cfg.ValidFrom, certExpiry, cfg.CreateSignerFunc)
+	return newDeviceOwnershipSDK(app, uid.String(), dialTLS, dialDLTS, &signerCert, cfg.ValidFrom, certExpiry, cfg.CreateSignerFunc)
 }
 
-func NewDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS core.DialTLS,
+func newDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS core.DialTLS,
 	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner,
 ) (*deviceOwnershipSDK, error) {
 	if validFrom == "" {

@@ -42,11 +42,10 @@ func MakeSdkError(code codes.Code, err error) error {
 	var orig SdkError
 	if errors.As(err, &orig) {
 		return err
-	} else {
-		return SdkError{
-			errorCode:    code,
-			wrappedError: err,
-		}
+	}
+	return SdkError{
+		errorCode:    code,
+		wrappedError: err,
 	}
 }
 

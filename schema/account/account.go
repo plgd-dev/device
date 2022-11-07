@@ -14,11 +14,13 @@
 // limitations under the License.
 // ************************************************************************
 
-// Account Token
+// Package account implements the Account Token resource.
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.account.swagger.json
 package account
 
 const (
+	// ResourceType is the resource type of the Account Token resource.
 	ResourceType = "oic.r.account"
-	ResourceURI  = "/oic/sec/account"
+	// ResourceURI is the URI of the Account Token resource.
+	ResourceURI = "/oic/sec/account"
 )

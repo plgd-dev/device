@@ -138,8 +138,10 @@ func TestClientGetDevice(t *testing.T) {
 			require.NoError(t, err)
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
-			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
-			got.Details.(*device.Device).ProtocolIndependentID = ""
+			details, ok := got.Details.(*device.Device)
+			require.True(t, ok)
+			require.NotEmpty(t, details.ProtocolIndependentID)
+			details.ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
 		})
 	}
@@ -209,10 +211,12 @@ func TestClientGetDeviceByIP(t *testing.T) {
 
 			got.Resources = cleanUpResources(sortResources(got.Resources))
 			got.Endpoints = nil
-			require.NotEmpty(t, got.Details.(*device.Device).ProtocolIndependentID)
-			got.Details.(*device.Device).ProtocolIndependentID = ""
+			details, ok := got.Details.(*device.Device)
+			require.True(t, ok)
+			require.NotEmpty(t, details.ProtocolIndependentID)
+			details.ProtocolIndependentID = ""
 			require.Equal(t, tt.want, got)
-			ok := c.DeleteDevice(ttCtx, got.ID)
+			ok = c.DeleteDevice(ttCtx, got.ID)
 			require.True(t, ok)
 
 			// we should not be able to remove the device second time

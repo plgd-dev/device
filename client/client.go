@@ -274,18 +274,18 @@ func (c *Client) Close(ctx context.Context) error {
 
 func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.DialDTLS, app ApplicationCallback) (DeviceOwner, error) {
 	if cfg.DeviceOwnershipSDK != nil {
-		c, err := NewDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK)
+		c, err := newDeviceOwnershipSDKFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipSDK)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create sdk signers: %w", err)
 		}
 		return c, nil
 	}
 	if cfg.DeviceOwnershipBackend != nil {
-		c, err := NewDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend)
+		c, err := newDeviceOwnershipBackendFromConfig(app, dialTLS, dialDTLS, cfg.DeviceOwnershipBackend)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create server signers: %w", err)
 		}
 		return c, nil
 	}
-	return NewDeviceOwnershipNone(), nil
+	return newDeviceOwnershipNone(), nil
 }

@@ -200,7 +200,7 @@ func (c *Client) ObserveResource(
 	lastMessage := h.lastMessage.Load()
 	var firstMessage decodeFunc
 	if lastMessage != nil {
-		firstMessage = lastMessage.(decodeFunc)
+		firstMessage = lastMessage.(decodeFunc) //nolint:forcetypeassert
 	}
 
 	obsHandler := observationHandler{
