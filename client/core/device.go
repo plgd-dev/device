@@ -29,6 +29,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
+	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 	"github.com/plgd-dev/kit/v2/net"
 	uberAtom "go.uber.org/atomic"
 	"golang.org/x/sync/semaphore"
@@ -45,34 +46,45 @@ type DeviceConfiguration struct {
 }
 
 type Device struct {
-	deviceID     uberAtom.String
-	foundByIP    uberAtom.String
-	deviceTypes  []string
-	getEndpoints func() schema.Endpoints
-	cfg          DeviceConfiguration
+	deviceID  uberAtom.String
+	foundByIP uberAtom.String
+	cfg       DeviceConfiguration
 
-	conn         map[string]*conn
-	observations *sync.Map
-	lock         sync.Mutex
+	observations *coapSync.Map[string, *observation]
+	private      struct {
+		lock         sync.Mutex
+		conn         map[string]*conn
+		deviceTypes  []string
+		getEndpoints func() schema.Endpoints
+	}
 }
 
 func (d *Device) UpdateBy(v *Device) {
+	if d == v {
+		return
+	}
+
 	d.SetDeviceID(v.DeviceID())
 	// foundByIP can be overwritten only when it is set.
 	foundByIP := v.foundByIP.Load()
 	if foundByIP != "" {
 		d.foundByIP.Store(foundByIP)
 	}
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	d.deviceTypes = v.deviceTypes
-	d.getEndpoints = v.getEndpoints
+	v.private.lock.Lock()
+	deviceTypes := v.private.deviceTypes
+	getEndpoints := v.private.getEndpoints
+	v.private.lock.Unlock()
+
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
+	d.private.deviceTypes = deviceTypes
+	d.private.getEndpoints = getEndpoints
 }
 
 func (d *Device) SetEndpoints(getEndpoints func() schema.Endpoints) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	d.getEndpoints = getEndpoints
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
+	d.private.getEndpoints = getEndpoints
 }
 
 // GetCertificateFunc returns certificate for connection
@@ -152,21 +164,21 @@ func NewDevice(
 ) *Device {
 	d := &Device{
 		cfg:          cfg,
-		deviceTypes:  deviceTypes,
-		observations: &sync.Map{},
-		getEndpoints: getEndpoints,
-		conn:         make(map[string]*conn),
+		observations: coapSync.NewMap[string, *observation](),
 	}
+	d.private.deviceTypes = deviceTypes
+	d.private.getEndpoints = getEndpoints
+	d.private.conn = make(map[string]*conn)
 	d.SetDeviceID(deviceID)
 	return d
 }
 
 func (d *Device) popConnections() []*conn {
 	conns := make([]*conn, 0, 4)
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	for key, conn := range d.conn {
-		delete(d.conn, key)
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
+	for key, conn := range d.private.conn {
+		delete(d.private.conn, key)
 		conns = append(conns, conn)
 	}
 	return conns
@@ -241,14 +253,14 @@ func (d *Device) dialDTLS(ctx context.Context, addr string, tlsConfig *TLSConfig
 }
 
 func (d *Device) loadORCreate(addr string) (c *conn) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	c, ok := d.conn[addr]
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
+	c, ok := d.private.conn[addr]
 	if !ok {
 		c = &conn{
 			mutex: semaphore.NewWeighted(1),
 		}
-		d.conn[addr] = c
+		d.private.conn[addr] = c
 	}
 	return c
 }
@@ -268,10 +280,10 @@ func (d *Device) dial(ctx context.Context, addr net.Addr) (*coap.ClientCloseHand
 }
 
 func (d *Device) removeConn(addr string, cc *conn) {
-	d.lock.Lock()
-	defer d.lock.Unlock()
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
 	// check if the connection is still in the map
-	c, ok := d.conn[addr]
+	c, ok := d.private.conn[addr]
 	if !ok {
 		return
 	}
@@ -286,12 +298,12 @@ func (d *Device) removeConn(addr string, cc *conn) {
 	if clientConn == nil && c.err == nil {
 		return
 	}
-	// check if the underlayer connection is same as the one we want to remove
+	// check if the underlying connection is same as the one we want to remove
 	if clientConn != nil && c.get() == clientConn {
-		delete(d.conn, addr)
+		delete(d.private.conn, addr)
 	} else if c == cc && c.err != nil {
 		// check if the wrapped connection is the same we are about to delete
-		delete(d.conn, addr)
+		delete(d.private.conn, addr)
 	}
 }
 
@@ -345,9 +357,9 @@ func (d *Device) FoundByIP() string {
 }
 
 func (d *Device) IsConnected() bool {
-	d.lock.Lock()
-	defer d.lock.Unlock()
-	return len(d.conn) > 0
+	d.private.lock.Lock()
+	defer d.private.lock.Unlock()
+	return len(d.private.conn) > 0
 }
 
 func (d *Device) setFoundByIP(foundByIP string) {
@@ -355,11 +367,8 @@ func (d *Device) setFoundByIP(foundByIP string) {
 }
 
 func (d *Device) DeviceTypes() []string {
-	d.lock.Lock()
-	deviceTypes := d.deviceTypes
-	d.lock.Unlock()
-	if deviceTypes == nil {
-		return nil
-	}
+	d.private.lock.Lock()
+	deviceTypes := d.private.deviceTypes
+	d.private.lock.Unlock()
 	return deviceTypes
 }

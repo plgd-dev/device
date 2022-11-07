@@ -485,24 +485,22 @@ func NewSecureClient() (*local.Client, error) {
 	setupSecureClient := SetupSecureClient{}
 	if len(MfgTrustedCA) > 0 {
 		mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
-		if mfgTrustedCABlock != nil {
-			mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
-			if err != nil {
-				return nil, err
-			}
-			setupSecureClient.mfgCA = mfgCA
-		} else {
+		if mfgTrustedCABlock == nil {
 			return nil, fmt.Errorf("mfgTrustedCABlock is empty")
 		}
+		mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		setupSecureClient.mfgCA = mfgCA
 	}
 
 	if len(MfgCert) > 0 && len(MfgKey) > 0 {
 		mfgCert, err := tls.X509KeyPair(MfgCert, MfgKey)
 		if err != nil {
 			return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
-		} else {
-			setupSecureClient.mfgCert = mfgCert
 		}
+		setupSecureClient.mfgCert = mfgCert
 	}
 
 	if len(IdentityTrustedCA) > 0 {
@@ -513,9 +511,8 @@ func NewSecureClient() (*local.Client, error) {
 		identityTrustedCACert, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
 		if err != nil {
 			return nil, fmt.Errorf("cannot parse cert: %w", err)
-		} else {
-			setupSecureClient.ca = identityTrustedCACert
 		}
+		setupSecureClient.ca = identityTrustedCACert
 	}
 	var cfg local.Config
 	if len(IdentityIntermediateCA) > 0 && len(IdentityIntermediateCAKey) > 0 {

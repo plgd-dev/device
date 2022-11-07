@@ -34,7 +34,7 @@ linters:
     # - exhaustive       # check exhaustiveness of enum switch statements
     - exportloopref    # checks for pointers to enclosing loop variables
     # - forbidigo        # Forbids identifiers
-    # - forcetypeassert  # finds forced type assertions
+    - forcetypeassert  # finds forced type assertions
     - gci              # Gci control golang package import order and make it always deterministic.
     # - gochecknoglobals # Checks that no globals are present in Go code
     # - gochecknoinits   # Checks that no init functions are present in Go code
@@ -65,7 +65,7 @@ linters:
     - nolintlint       # Reports ill-formed or insufficient nolint directives
     # - paralleltest     # paralleltest detects missing usage of t.Parallel() method in your Go test
     - predeclared      # find code that shadows one of Go's predeclared identifiers
-    # - revive           # golint replacement, finds style mistakes
+    - revive           # golint replacement, finds style mistakes
     - staticcheck      # Staticcheck is a go vet on steroids, applying a ton of static analysis checks
     - stylecheck       # Stylecheck is a replacement for golint
     # - tenv             # tenv is analyzer that detects using os.Setenv instead of t.Setenv since Go1.17
@@ -108,6 +108,7 @@ issues:
     # Allow complex tests, better to be self contained
     - path: _test\.go
       linters:
+        - forcetypeassert
         - gocognit
         - gocyclo
 
@@ -122,6 +123,10 @@ issues:
       text: "package name error has same name as predeclared identifier"
       linters:
         - predeclared
+
+    - text: "var-naming:|exported:|package-comments:"
+      linters:
+        - revive
 
   # Fix found issues (if it's supported by the linter).
   # fix: true

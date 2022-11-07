@@ -19,6 +19,8 @@ package ocf
 import (
 	"bytes"
 	"context"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -144,7 +146,8 @@ func TestRawCodecDecode(t *testing.T) {
 
 func TestDump(t *testing.T) {
 	type args struct {
-		message *pool.Message
+		cf   message.MediaType
+		body io.ReadSeeker
 	}
 	tests := []struct {
 		name string
@@ -152,24 +155,31 @@ func TestDump(t *testing.T) {
 		want string
 	}{
 		{
-			name: "get request",
+			name: "get request (AppJSON)",
 			args: args{
-				message: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
-					m.SetContentFormat(message.AppOcfCbor)
-					err := m.SetPath("/oic/res")
-					require.NoError(t, err)
-					m.SetBody(bytes.NewReader([]byte{0xa1, 0x63, 0x6b, 0x65, 0x79, 0x61, 0x76, 0x61, 0x6c, 0x75, 0x65}))
-					m.SetCode(codes.GET)
-					return m
-				}(),
+				cf:   message.AppJSON,
+				body: strings.NewReader("{\"key\":\"v\"}"),
+			},
+			want: "Format: application/json\n\nContent: {\"key\":\"v\"}\n",
+		},
+		{
+			name: "get request (AppOcfCbor)",
+			args: args{
+				cf:   message.AppOcfCbor,
+				body: bytes.NewReader([]byte{0xa1, 0x63, 0x6b, 0x65, 0x79, 0x61, 0x76, 0x61, 0x6c, 0x75, 0x65}),
 			},
 			want: "Format: application/vnd.ocf+cbor\n\nContent: {\"key\":\"v\"}\n",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := Dump(tt.args.message)
+			m := pool.NewMessage(context.TODO())
+			m.SetContentFormat(tt.args.cf)
+			err := m.SetPath("/oic/res")
+			require.NoError(t, err)
+			m.SetBody(tt.args.body)
+			m.SetCode(codes.GET)
+			got := Dump(m)
 			require.Equal(t, tt.want, got)
 		})
 	}

@@ -46,12 +46,16 @@ func TestDeviceDiscovery(t *testing.T) {
 
 	d := devices[deviceID]
 	require.NotEmpty(t, d)
-	assert.Equal(t, test.DevsimName, d.Details.(*device.Device).Name)
+	dev, ok := d.Details.(*device.Device)
+	require.True(t, ok)
+	assert.Equal(t, test.DevsimName, dev.Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)
 	require.NotNil(t, d)
-	assert.Equal(t, test.DevsimName, d.Details.(*device.Device).Name)
+	dev, ok = d.Details.(*device.Device)
+	require.True(t, ok)
+	assert.Equal(t, test.DevsimName, dev.Name)
 	require.NotNil(t, d.Ownership)
 	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
 

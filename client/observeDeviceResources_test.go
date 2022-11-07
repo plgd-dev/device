@@ -40,7 +40,7 @@ func isDeviceResourcesObservable(ctx context.Context, t *testing.T, c *client.Cl
 	return res[0].Policy.BitMask.Has(schema.Observable)
 }
 
-func runObserveDeviceResourcesTest(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+func runObserveDeviceResourcesTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 	h := makeMockDeviceResourcesObservationHandler()
 	if !isDeviceResourcesObservable(ctx, t, c, deviceID) {
 		t.Skip("resource is not observable")

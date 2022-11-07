@@ -245,7 +245,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, newdev *core.Device) {
 func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (out DeviceDetails, _ error) {
 	getDetails := h.getDetails
 	v, _ := h.getDetailsWasCalled.LoadOrStore(d.DeviceID(), &detailsWasSet{})
-	m := v.(*detailsWasSet)
+	m := v.(*detailsWasSet) //nolint:forcetypeassert
 	m.Lock()
 	defer m.Unlock()
 	if m.wasSet {

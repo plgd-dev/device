@@ -21,9 +21,9 @@ import (
 )
 
 func (d *Device) GetEndpoints() schema.Endpoints {
-	d.lock.Lock()
-	getEndpoints := d.getEndpoints
-	d.lock.Unlock()
+	d.private.lock.Lock()
+	getEndpoints := d.private.getEndpoints
+	d.private.lock.Unlock()
 	if getEndpoints != nil {
 		return getEndpoints()
 	}

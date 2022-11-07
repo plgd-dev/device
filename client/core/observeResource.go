@@ -59,12 +59,11 @@ func (d *Device) stopObservingResource(
 	observationID string,
 	byClose bool,
 ) (bool, error) {
-	v, ok := d.observations.Load(observationID)
+	o, ok := d.observations.Load(observationID)
 	if !ok {
 		return false, nil
 	}
 	d.observations.Delete(observationID)
-	o := v.(*observation)
 	var err error
 	if byClose {
 		err = o.Close(ctx)
@@ -87,8 +86,8 @@ func (d *Device) StopObservingResource(
 
 func (d *Device) closeObservations(ctx context.Context) error {
 	obs := make([]string, 0, 12)
-	d.observations.Range(func(key, value interface{}) bool {
-		observationID := key.(string)
+	d.observations.Range(func(key string, value *observation) bool {
+		observationID := key
 		obs = append(obs, observationID)
 		return false
 	})
@@ -110,24 +109,25 @@ type observation struct {
 	handler *observationHandler
 	client  *coap.ClientCloseHandler
 
-	lock      sync.Mutex
-	onCloseID int
-	obs       coap.Observation
+	private struct {
+		lock      sync.Mutex
+		onCloseID int
+		obs       coap.Observation
+	}
 }
 
 func (o *observation) Set(onCloseID int, obs coap.Observation) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
-
-	o.onCloseID = onCloseID
-	o.obs = obs
+	o.private.lock.Lock()
+	defer o.private.lock.Unlock()
+	o.private.onCloseID = onCloseID
+	o.private.obs = obs
 }
 
 func (o *observation) Get() (onCloseID int, obs coap.Observation) {
-	o.lock.Lock()
-	defer o.lock.Unlock()
+	o.private.lock.Lock()
+	defer o.private.lock.Unlock()
 
-	return o.onCloseID, o.obs
+	return o.private.onCloseID, o.private.obs
 }
 
 func (o *observation) stop(ctx context.Context, byClose bool) error {
@@ -197,7 +197,7 @@ func (d *Device) observeResource(
 
 	obs, err := client.Observe(ctx, link.Href, codec, &h, options...)
 	if err != nil {
-		client.UnregisterCloseHandler(o.onCloseID)
+		client.UnregisterCloseHandler(onCloseID)
 		return "", err
 	}
 

@@ -38,7 +38,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testDevice(t *testing.T, name string, runTest func(t *testing.T, ctx context.Context, c *client.Client, deviceID string)) {
+func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *testing.T, c *client.Client, deviceID string)) {
 	deviceID := test.MustFindDeviceByName(name)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -54,10 +54,10 @@ func testDevice(t *testing.T, name string, runTest func(t *testing.T, ctx contex
 	require.NoError(t, err)
 	defer disown(t, c, deviceID)
 
-	runTest(t, ctx, c, deviceID)
+	runTest(ctx, t, c, deviceID)
 }
 
-func runObservingResourceTest(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 	h := makeObservationHandler()
 	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
@@ -171,7 +171,7 @@ func TestObservingResource(t *testing.T) {
 }
 
 func TestObservingDiscoveryResource(t *testing.T) {
-	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h)
 		require.NoError(t, err)
@@ -225,7 +225,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 }
 
 func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
-	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_BASELINE))
 		require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 }
 
 func TestObservingNonObservableResource(t *testing.T) {
-	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
 		_, err := c.ObserveResource(ctx, deviceID, maintenance.ResourceURI, h)
 		require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestObservingNonObservableResource(t *testing.T) {
 }
 
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
-	testDevice(t, test.DevsimName, func(t *testing.T, ctx context.Context, c *client.Client, deviceID string) {
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
 		var v interface{}
 		err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_LL))

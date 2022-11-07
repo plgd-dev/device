@@ -14,7 +14,7 @@
 // limitations under the License.
 // ************************************************************************
 
-// Access Control List
+// Package acl implements the Access Control List resource.
 // https://github.com/openconnectivityfoundation/security/blob/master/swagger2.0/oic.sec.acl2.swagger.json
 package acl
 
@@ -24,10 +24,13 @@ import (
 )
 
 const (
+	// ResourceType is the resource type of the Access Control List resource.
 	ResourceType = "oic.r.acl2"
-	ResourceURI  = "/oic/sec/acl2"
+	// ResourceURI is the URI of the Access Control List resource.
+	ResourceURI = "/oic/sec/acl2"
 )
 
+// Response contains the supported fields of the Access Control List resource.
 type Response struct {
 	ResourceOwner     string          `json:"rowneruuid"`
 	Interfaces        []string        `json:"if"`
@@ -36,11 +39,13 @@ type Response struct {
 	AccessControlList []AccessControl `json:"aclist2"`
 }
 
+// UpdateRequest is used to update the Access Control List resource.
 type UpdateRequest struct {
 	ResourceOwner     string          `json:"rowneruuid,omitempty"`
 	AccessControlList []AccessControl `json:"aclist2"`
 }
 
+// AccessControl defines permissions for one or more resources.
 type AccessControl struct {
 	ID         int           `json:"id,omitempty"`
 	Permission Permission    `json:"permission"`
@@ -50,15 +55,22 @@ type AccessControl struct {
 	Validity   []TimePattern `json:"validity,omitempty"`
 }
 
+// Permission is a bitmask encoding of CRUDN persmissions.
 type Permission int
 
 const (
+	// Permission_CREATE grants permission for CREATE operations.
 	Permission_CREATE Permission = 1
-	Permission_READ   Permission = 2
-	Permission_WRITE  Permission = 4
+	// Permission_READ grants permission for RETRIEVE, OBSERVE and DISCOVER operations.
+	Permission_READ Permission = 2
+	// Permission_WRITE grants permission for WRITE and UPDATE operations.
+	Permission_WRITE Permission = 4
+	// Permission_DELETE grants permission for DELETE operations.
 	Permission_DELETE Permission = 8
+	// Permission_NOTIFY grants permission for NOTIFY operations.
 	Permission_NOTIFY Permission = 16
 
+	// AllPermissions is a convenience bitmask with all available permissions granted.
 	AllPermissions = Permission_CREATE | Permission_READ | Permission_WRITE | Permission_DELETE | Permission_NOTIFY
 )
 
