@@ -282,12 +282,15 @@ func (d *Device) removeConn(addr string, cc *conn) {
 	}
 	defer c.mutex.Release(1)
 	clientConn := cc.get()
-	// check if the dial was called
-	if clientConn == nil {
+	// check if the dial was called and never failed
+	if clientConn == nil && c.err == nil {
 		return
 	}
 	// check if the underlayer connection is same as the one we want to remove
-	if c.get() == clientConn {
+	if clientConn != nil && c.get() == clientConn {
+		delete(d.conn, addr)
+	} else if c == cc && c.err != nil {
+		// check if the wrapped connection is the same we are about to delete
 		delete(d.conn, addr)
 	}
 }

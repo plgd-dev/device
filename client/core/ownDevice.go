@@ -325,7 +325,7 @@ func otmErrorf(oc otm.Client, format string, a ...any) error {
 
 func checkProvisionState(ctx context.Context, cc *coap.ClientCloseHandler, oc otm.Client) error {
 	errorf := func(format string, a ...any) error {
-		return otmErrorf(oc, format, a)
+		return otmErrorf(oc, format, a...)
 	}
 
 	var provisionState pstat.ProvisionStatusResponse
@@ -419,7 +419,7 @@ func (d *Device) ownershipTransfer(ctx context.Context, cfg ownCfg, sdkID string
 	}
 
 	errorf := func(format string, a ...any) error {
-		return otmErrorf(oc, format, a)
+		return otmErrorf(oc, format, a...)
 	}
 
 	setCurrentOperationalMode := pstat.ProvisionStatusUpdateRequest{
@@ -501,7 +501,7 @@ type deviceConfigurer struct {
 
 func (d deviceConfigurer) configure(ctx context.Context, links schema.ResourceLinks, psk []byte) error {
 	errorf := func(format string, a ...any) error {
-		return otmErrorf(d.otmClient, format, a)
+		return otmErrorf(d.otmClient, format, a...)
 	}
 
 	/*set device to provision operation mode*/
@@ -542,6 +542,9 @@ func (d deviceConfigurer) configure(ctx context.Context, links schema.ResourceLi
 }
 
 // Own set ownership of device. For owning, the first match in order of otmClients with the device will be used.
+// Note: In case if the device fails before changing RFOTM the iotivity-stack invokes disown by itself. This can result
+//
+//	in a state where the disown is invoked two times in a row. Once by the iotivity-stack and second time by device core.
 func (d *Device) Own(
 	ctx context.Context,
 	links schema.ResourceLinks,
@@ -578,7 +581,7 @@ func (d *Device) Own(
 	}
 
 	errorf := func(format string, a ...any) error {
-		return otmErrorf(otmClient, format, a)
+		return otmErrorf(otmClient, format, a...)
 	}
 
 	if err = d.selectOTM(ctx, otmClient.Type()); err != nil {
