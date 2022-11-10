@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/client"
+	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/device/schema/device"
 	"github.com/plgd-dev/device/test"
 	"github.com/stretchr/testify/assert"
@@ -80,4 +81,45 @@ func TestDeviceDiscoveryWithFilter(t *testing.T) {
 	devices, err = c.GetDevices(ctx, client.WithResourceTypes("x.com.device"))
 	require.NoError(t, err)
 	assert.Empty(t, devices, "test device not filtered out")
+}
+
+func TestDevicesWithFoundByIP(t *testing.T) {
+	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		err := c.Close(context.Background())
+		require.NoError(t, err)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	dev, err := c.GetDeviceByIP(ctx, ip4)
+	require.NoError(t, err)
+	require.NotNil(t, dev)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+
+	devices, err := c.GetDevices(ctx, client.WithDiscoveryConfiguration(core.DiscoveryConfiguration{}))
+	require.NoError(t, err)
+	assert.Equal(t, devices[dev.ID], dev)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	devices, err = c.GetDevices(ctx, client.WithDiscoveryConfiguration(core.DiscoveryConfiguration{}), client.WithResourceTypes(device.ResourceType))
+	require.NoError(t, err)
+	assert.Equal(t, devices[dev.ID], dev)
+
+	ctx, cancel = context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	devices, err = c.GetDevices(ctx, client.WithDiscoveryConfiguration(core.DiscoveryConfiguration{}), client.WithResourceTypes("x.com.device"))
+	require.NoError(t, err)
+	assert.Empty(t, devices, "test device not filtered out")
+
+	require.True(t, c.DeleteDevice(ctx, dev.ID))
+	devices, err = c.GetDevices(ctx, client.WithDiscoveryConfiguration(core.DiscoveryConfiguration{}), client.WithResourceTypes(device.ResourceType))
+	require.NoError(t, err)
+	assert.Empty(t, devices, "empty devices are expected")
 }
