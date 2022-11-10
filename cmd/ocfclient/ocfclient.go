@@ -71,7 +71,7 @@ func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate
 func (c *OCFClient) Discover(discoveryTimeout time.Duration) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), discoveryTimeout)
 	defer cancel()
-	res, err := c.client.GetDevices(ctx)
+	res, err := c.client.GetDevicesDetails(ctx)
 	if err != nil {
 		return "", err
 	}

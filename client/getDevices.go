@@ -51,9 +51,30 @@ type ownership struct {
 	status OwnershipStatus
 }
 
-// GetDevices gets devices by multicast and each device are stored to cache. When the device expiration time has expired,
+func (c *Client) getDevicesAppendDeviceByIP(ctx context.Context, ip string, resourceTypes []string, getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error), appendDevice func(d DeviceDetails)) {
+	d, err := c.GetDeviceDetailsByIP(ctx, ip, WithGetDetails(getDetails))
+	if err != nil {
+		return
+	}
+	devLinks := d.Resources.GetResourceLinks(device.ResourceType)
+	if len(devLinks) == 0 {
+		return
+	}
+	if len(resourceTypes) == 0 {
+		appendDevice(d)
+		return
+	}
+	for _, t := range resourceTypes {
+		if kitStrings.SliceContains(devLinks[0].ResourceTypes, t) {
+			appendDevice(d)
+			return
+		}
+	}
+}
+
+// GetDevices gets devices by multicast and devices found by ip. Each device are stored or refreshed in cache. When the device expiration time has expired,
 // the device will be removed from cache. The device expiration time is prolonged by using the device.
-func (c *Client) GetDevices(
+func (c *Client) GetDevicesDetails(
 	ctx context.Context,
 	opts ...GetDevicesOption,
 ) (map[string]DeviceDetails, error) {
@@ -98,14 +119,22 @@ func (c *Client) GetDevices(
 		res = append(res, d)
 	}
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	devicesFoundByIP := c.GetAllDeviceIDsFoundByIP()
+	var wg sync.WaitGroup
+	wg.Add(len(devicesFoundByIP))
+	for _, ip := range devicesFoundByIP {
+		go func(ip string) {
+			defer wg.Done()
+			c.getDevicesAppendDeviceByIP(ctx, ip, cfg.resourceTypes, getDetails, devices)
+		}(ip)
+	}
 
 	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
 	if err := c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
 
+	wg.Wait()
 	m.Lock()
 	defer m.Unlock()
 	ownerID, _ := c.client.GetSdkOwnerID()
@@ -151,7 +180,7 @@ type DeviceDetails struct {
 	// Ownership describes ownership of the device, for unsecure device it is nil.
 	Ownership *doxm.Doxm
 	// Resources list of the device resources.
-	Resources []schema.ResourceLink
+	Resources schema.ResourceLinks
 	// Resources list of the device endpoints.
 	Endpoints []schema.Endpoint
 	// Ownership status
