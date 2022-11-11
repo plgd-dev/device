@@ -116,8 +116,8 @@ func TestSettingCloudResource(t *testing.T) {
 	require.NoError(t, err)
 
 	defer func() {
-		err = pc.Close(context.Background())
-		require.NoError(t, err)
+		errC := pc.Close(context.Background())
+		require.NoError(t, errC)
 	}()
 
 	require.NoError(t, pc.SetAccessControl(context.Background(), acl.AllPermissions, acl.TLSConnection, acl.AllResources...))
