@@ -72,7 +72,7 @@ func (c *Client) getDevicesAppendDeviceByIP(ctx context.Context, ip string, reso
 	}
 }
 
-// GetDevices gets devices by multicast and devices found by ip. Each device are stored or refreshed in cache. When the device expiration time has expired,
+// GetDevicesDetails gets devices by multicast and devices found by ip. Each device are stored or refreshed in cache. When the device expiration time has expired,
 // the device will be removed from cache. The device expiration time is prolonged by using the device.
 func (c *Client) GetDevicesDetails(
 	ctx context.Context,
