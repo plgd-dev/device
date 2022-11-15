@@ -34,7 +34,6 @@ import (
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/log"
-	kitNet "github.com/plgd-dev/kit/v2/net"
 	"github.com/stretchr/testify/require"
 )
 
@@ -46,15 +45,22 @@ func MustGetHostname() string {
 	return n
 }
 
-func MustFindDeviceByName(name string) (deviceID string) {
-	var err error
-	for i := 0; i < 3; i++ {
+func findDeviceByNameWithRetry(name string, tries int) (string, error) {
+	for i := 0; i < tries; i++ {
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 		defer cancel()
-		deviceID, err = FindDeviceByName(ctx, name)
+		deviceID, err := FindDeviceByName(ctx, name)
 		if err == nil {
-			return deviceID
+			return deviceID, nil
 		}
+	}
+	return "", fmt.Errorf("device named %s not found", name)
+}
+
+func MustFindDeviceByName(name string) string {
+	deviceID, err := findDeviceByNameWithRetry(name, 3)
+	if err == nil {
+		return deviceID
 	}
 	panic(err)
 }
@@ -135,17 +141,31 @@ func getDiscoveryConfiguration(ipType IPType) core.DiscoveryConfiguration {
 	return discoveryCfg
 }
 
-func getDeviceAddr(device *core.Device, ipType IPType) (kitNet.Addr, error) {
+func findDevice(ctx context.Context, deviceName string, ipType IPType) (*core.Device, error) {
+	deviceID, err := findDeviceByNameWithRetry(deviceName, 3)
+	if err != nil {
+		return nil, err
+	}
+	client := core.NewClient()
+	discoveryCfg := getDiscoveryConfiguration(ipType)
+	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
+	if err != nil {
+		return nil, err
+	}
+	return device, nil
+}
+
+func getDeviceIP(device *core.Device, ipType IPType) (string, error) {
 	if len(device.GetEndpoints()) == 0 {
-		return kitNet.Addr{}, fmt.Errorf("endpoints are not set for device %v", device)
+		return "", fmt.Errorf("endpoints are not set for device %v", device)
 	}
 	eps := device.GetEndpoints().FilterUnsecureEndpoints()
 	if ipType == ANY {
 		addr, err := eps.GetAddr(schema.UDPScheme)
 		if err != nil {
-			return kitNet.Addr{}, fmt.Errorf("cannot get coap endpoint %v", device)
+			return "", fmt.Errorf("cannot get coap endpoint %v", device)
 		}
-		return addr, nil
+		return addr.GetHostname(), nil
 	}
 	for _, e := range eps {
 		addr, err := e.GetAddr()
@@ -155,40 +175,28 @@ func getDeviceAddr(device *core.Device, ipType IPType) (kitNet.Addr, error) {
 		if schema.Scheme(addr.GetScheme()) != schema.UDPScheme {
 			continue
 		}
-		if (strings.Contains(addr.GetHostname(), ":") && ipType == IP6) ||
-			(ipType == IP4) {
-			return addr, nil
+		isIpV6 := strings.Contains(addr.GetHostname(), ":")
+		if isIpV6 && ipType == IP6 {
+			return addr.GetHostname(), nil
+		}
+		if !isIpV6 && ipType == IP4 {
+			return addr.GetHostname(), nil
 		}
 	}
-	return kitNet.Addr{}, fmt.Errorf("ipType(%v) not found in %v", ipType, eps)
-}
-
-func FindDeviceAddress(ctx context.Context, deviceName string, ipType IPType) (kitNet.Addr, error) {
-	deviceID := MustFindDeviceByName(deviceName)
-	client := core.NewClient()
-	discoveryCfg := getDiscoveryConfiguration(ipType)
-	device, err := client.GetDeviceByMulticast(ctx, deviceID, discoveryCfg)
-	if err != nil {
-		return kitNet.Addr{}, err
-	}
-	defer func() {
-		if errC := device.Close(ctx); errC != nil {
-			log.Errorf("FindDeviceAddress: %w", errC)
-		}
-	}()
-	addr, err := getDeviceAddr(device, ipType)
-	if err != nil {
-		return kitNet.Addr{}, err
-	}
-	return addr, nil
+	return "", fmt.Errorf("ipType(%v) not found in %v", ipType, eps)
 }
 
 func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string, error) {
-	addr, err := FindDeviceAddress(ctx, deviceName, ipType)
+	device, err := findDevice(ctx, deviceName, ipType)
 	if err != nil {
 		return "", err
 	}
-	return addr.GetHostname(), nil
+	defer func() {
+		if errC := device.Close(ctx); errC != nil {
+			log.Errorf("FindDeviceIP: %w", errC)
+		}
+	}()
+	return getDeviceIP(device, ipType)
 }
 
 func MustFindDeviceIP(name string, ipType IPType) (ip string) {
@@ -199,6 +207,19 @@ func MustFindDeviceIP(name string, ipType IPType) (ip string) {
 		return ip
 	}
 	panic(err)
+}
+
+func FindDeviceEndpoints(ctx context.Context, deviceName string, ipType IPType) (schema.Endpoints, error) {
+	device, err := findDevice(ctx, deviceName, ipType)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if errC := device.Close(ctx); errC != nil {
+			log.Errorf("FindDeviceEndpoints: %w", errC)
+		}
+	}()
+	return device.GetEndpoints(), nil
 }
 
 func DefaultSwitchResourceLink(id string) schema.ResourceLink {
