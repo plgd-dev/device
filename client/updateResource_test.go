@@ -131,3 +131,104 @@ func TestClientUpdateResource(t *testing.T) {
 		})
 	}
 }
+
+func TestClientUpdateResourceInRFOTM(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	type args struct {
+		deviceID string
+		href     string
+		data     interface{}
+		opts     []client.UpdateOption
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    interface{}
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			args: args{
+				deviceID: deviceID,
+				href:     test.TestResourceLightInstanceHref("1"),
+				data: map[string]interface{}{
+					"state": true,
+				},
+				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
+			},
+			want: map[interface{}]interface{}{
+				"name":  "Light",
+				"power": uint64(0),
+				"state": true,
+			},
+		},
+		{
+			name: "valid with interface",
+			args: args{
+				deviceID: deviceID,
+				href:     test.TestResourceLightInstanceHref("1"),
+				data: map[string]interface{}{
+					"power": 1,
+				},
+				opts: []client.UpdateOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
+			},
+			want: map[interface{}]interface{}{
+				"name":  "Light",
+				"power": uint64(1),
+				"state": true,
+			},
+		},
+		{
+			name: "valid - revert update",
+			args: args{
+				deviceID: deviceID,
+				href:     test.TestResourceLightInstanceHref("1"),
+				data: map[string]interface{}{
+					"state": false,
+					"power": uint64(0),
+				},
+			},
+			want: map[interface{}]interface{}{
+				"name":  "Light",
+				"power": uint64(0),
+				"state": false,
+			},
+		},
+		{
+			name: "forbidden",
+			args: args{
+				deviceID: deviceID,
+				href:     configuration.ResourceURI,
+				data: map[string]interface{}{
+					"n": t.Name() + "-valid",
+				},
+				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
+			},
+			wantErr: true,
+		},
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err = c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, nil, tt.args.opts...)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			var got interface{}
+			err = c.GetResource(ctx, tt.args.deviceID, tt.args.href, &got)
+			require.NoError(t, err)
+			require.Equal(t, tt.want, got)
+		})
+	}
+}
