@@ -18,6 +18,8 @@ package client
 
 import (
 	"context"
+	"crypto/x509"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/client/core"
@@ -168,6 +170,14 @@ func (c *Client) GetDeviceByIP(
 	return c.getDeviceByIP(ctx, ip, "")
 }
 
+func isDeviceOwnedByOther(err error) bool {
+	if v, ok := status.FromError(err); ok && v.Code() == codes.Unauthorized {
+		return true
+	}
+	var unknownAuth x509.UnknownAuthorityError
+	return errors.As(err, &unknownAuth)
+}
+
 func (c *Client) getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
 	devDetails, err := getDeviceDetails(ctx, dev, links, getDetails)
 	if err != nil {
@@ -177,8 +187,7 @@ func (c *Client) getDeviceDetails(ctx context.Context, dev *core.Device, links s
 	if devDetails.IsSecured {
 		d, ownErr := dev.GetOwnership(ctx, links)
 		if ownErr != nil {
-			v, ok := status.FromError(ownErr)
-			if ok && v.Code() == codes.Unauthorized {
+			if isDeviceOwnedByOther(ownErr) {
 				o.status = OwnershipStatus_OwnedByOther
 			}
 		} else {

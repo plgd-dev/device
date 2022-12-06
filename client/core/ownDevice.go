@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -280,25 +281,25 @@ func (d *Device) setDoxmDeviceID(ctx context.Context, cc *coap.ClientCloseHandle
 }
 
 func getTLSClient(ctx context.Context, links schema.ResourceLinks, otmClient otm.Client) (*coap.ClientCloseHandler, kitNet.Addr, error) {
-	var errors []error
+	var errors *multierror.Error
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
 			tlsClient, err := otmClient.Dial(ctx, addr)
 			if err == nil {
 				return tlsClient, addr, nil
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err := otmClient.Dial(ctx, addr)
 			if err == nil {
 				return tlsClient, addr, nil
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 	}
-	if len(errors) != 0 {
-		return nil, kitNet.Addr{}, fmt.Errorf("%+v", errors)
+	if errors.ErrorOrNil() != nil {
+		return nil, kitNet.Addr{}, errors
 	}
 	return nil, kitNet.Addr{}, fmt.Errorf("not found")
 }

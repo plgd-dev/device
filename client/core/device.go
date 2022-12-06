@@ -26,6 +26,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
@@ -186,21 +187,21 @@ func (d *Device) popConnections() []*conn {
 
 // Close closes open connections to the device.
 func (d *Device) Close(ctx context.Context) error {
-	var errs []error
+	var errs *multierror.Error
 	if err := d.closeObservations(ctx); err != nil {
-		errs = append(errs, err)
+		errs = multierror.Append(errs, err)
 	}
 
 	for _, conn := range d.popConnections() {
 		if errC := conn.Close(); errC != nil && !errors.Is(errC, goNet.ErrClosed) {
-			errs = append(errs, errC)
+			errs = multierror.Append(errs, errC)
 		}
 		// wait for closing socket
 		<-conn.Done()
 	}
 
-	if len(errs) > 0 {
-		return MakeInternal(fmt.Errorf("cannot close device %v: %v", d.DeviceID(), errs))
+	if errs.ErrorOrNil() != nil {
+		return MakeInternal(fmt.Errorf("cannot close device %v: %w", d.DeviceID(), errs))
 	}
 	return nil
 }
@@ -328,18 +329,18 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 }
 
 func (d *Device) connectToEndpoints(ctx context.Context, endpoints schema.Endpoints) (net.Addr, *coap.ClientCloseHandler, error) {
-	errors := make([]error, 0, 4)
+	var errors *multierror.Error
 
 	for _, endpoint := range endpoints {
 		addr, conn, err := d.connectToEndpoint(ctx, endpoint)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 			continue
 		}
 		return addr, conn, nil
 	}
-	if len(errors) > 0 {
-		return net.Addr{}, nil, fmt.Errorf("%v", errors)
+	if errors.ErrorOrNil() != nil {
+		return net.Addr{}, nil, errors
 	}
 	return net.Addr{}, nil, MakeInternal(fmt.Errorf("cannot connect to empty endpoints"))
 }
