@@ -7,6 +7,7 @@ require (
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/google/uuid v1.3.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.0.0-rc.2
+	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.1.6-0.20221001075407-984d41b9981a
@@ -15,7 +16,6 @@ require (
 	github.com/stretchr/testify v1.8.0
 	go.uber.org/atomic v1.10.0
 	golang.org/x/sync v0.0.0-20220929204114-8fcdb60fdcc0
-	google.golang.org/genproto v0.0.0-20220902135211-223410557253
 	google.golang.org/grpc v1.49.0
 )
 
@@ -23,6 +23,7 @@ require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/pion/logging v0.2.2 // indirect
 	github.com/pion/transport v0.13.1 // indirect
 	github.com/pion/udp v0.1.1 // indirect
@@ -35,7 +36,7 @@ require (
 	golang.org/x/exp v0.0.0-20220907003533-145caa8ea1d0 // indirect
 	golang.org/x/net v0.0.0-20220930213112-107f3e3c3b0b // indirect
 	golang.org/x/sys v0.0.0-20220907062415-87db552b00fd // indirect
-	golang.org/x/text v0.3.7 // indirect
+	google.golang.org/genproto v0.0.0-20220902135211-223410557253 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

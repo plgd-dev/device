@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/client/core/otm"
 	"github.com/plgd-dev/device/pkg/net/coap"
@@ -323,7 +324,7 @@ func (d *Device) Own(
 	}
 	var tlsClient *coap.ClientCloseHandler
 	var tlsAddr kitNet.Addr
-	var errors []error
+	var errors *multierror.Error
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr)
@@ -331,7 +332,7 @@ func (d *Device) Own(
 				tlsAddr = addr
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err = otmClient.Dial(ctx, addr)
@@ -339,14 +340,14 @@ func (d *Device) Own(
 				tlsAddr = addr
 				break
 			}
-			errors = append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 	}
 	if tlsClient == nil {
-		if len(errors) == 0 {
+		if errors.ErrorOrNil() == nil {
 			return MakeInternal(errorf("cannot get udp/tcp secure address: not found"))
 		}
-		return MakeInternal(errorf("cannot get udp/tcp secure address: %+v", errors))
+		return MakeInternal(errorf("cannot get udp/tcp secure address: %w", errors))
 	}
 	defer func() {
 		if errC := tlsClient.Close(); errC != nil {

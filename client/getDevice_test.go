@@ -2,6 +2,13 @@ package client_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/tls"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,6 +20,7 @@ import (
 	"github.com/plgd-dev/device/schema/interfaces"
 	"github.com/plgd-dev/device/test"
 	testTypes "github.com/plgd-dev/device/test/resource/types"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -266,4 +274,93 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	// device endpoints will be updated by multicast
 	_, _, err = c.GetDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)
+}
+
+func anotherClient() (*client.Client, error) {
+	var cfgCA generateCertificate.Configuration
+	cfgCA.Subject.CommonName = "anotherClient"
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate private key: %w", err)
+	}
+	cert, err := generateCertificate.GenerateRootCA(cfgCA, priv)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate root ca: %w", err)
+	}
+	derKey, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marhsal private key: %w", err)
+	}
+	key := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: derKey})
+
+	cfg := client.Config{
+		DeviceOwnershipSDK: &client.DeviceOwnershipSDKConfig{
+			ID:               CertIdentity,
+			Cert:             string(cert),
+			CertKey:          string(key),
+			CreateSignerFunc: test.NewIdentityCertificateSigner,
+		},
+	}
+	mfgTrustedCABlock, _ := pem.Decode(test.RootCACrt)
+	if mfgTrustedCABlock == nil {
+		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
+	}
+	mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	mfgCert, err := tls.X509KeyPair(test.MfgCert, test.MfgKey)
+	if err != nil {
+		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
+	}
+
+	client, err := client.NewClientFromConfig(&cfg, &testSetupSecureClient{
+		mfgCA:   mfgCA,
+		mfgCert: mfgCert,
+	}, func(err error) { fmt.Print(err) },
+	)
+	if err != nil {
+		return nil, err
+	}
+	err = client.Initialization(context.Background())
+	if err != nil {
+		return nil, err
+	}
+	return client, nil
+}
+
+func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*1000)
+	defer cancel()
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errClose := c.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
+
+	c1, err := anotherClient()
+	require.NoError(t, err)
+	defer func() {
+		errClose := c1.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
+
+	_, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+
+	defer func() {
+		err = c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
+
+	device, err := c1.GetDeviceByIP(ctx, ip4)
+	require.NoError(t, err)
+	require.Equal(t, deviceID, device.ID)
+	require.Equal(t, client.OwnershipStatus_OwnedByOther, device.OwnershipStatus)
 }

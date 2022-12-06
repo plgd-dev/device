@@ -2,9 +2,9 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/client/core"
 	"github.com/plgd-dev/go-coap/v2/pkg/cache"
 	"go.uber.org/atomic"
@@ -190,7 +190,7 @@ func (c *DeviceCache) LoadAndDeleteDevices(deviceIDFilter []string) []*core.Devi
 }
 
 func (c *DeviceCache) Close(ctx context.Context) error {
-	var errors []error
+	var errors *multierror.Error
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
@@ -198,12 +198,9 @@ func (c *DeviceCache) Close(ctx context.Context) error {
 		d := val.(*core.Device)
 		err := d.Close(ctx)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("%v", errors)
-	}
-	return nil
+	return errors.ErrorOrNil()
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -88,7 +87,7 @@ func (c *Client) GetDevices(
 					doxm:   &doxm,
 					status: OwnershipStatus_Unknown, // will be resolved later
 				})
-			} else if strings.Contains(ownErr.Error(), "x509: certificate signed by unknown authority") {
+			} else if isDeviceOwnedByOther(ownErr) {
 				ownerships(d.DeviceID(), ownership{
 					status: OwnershipStatus_OwnedByOther,
 				})

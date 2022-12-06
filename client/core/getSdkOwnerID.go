@@ -4,6 +4,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/pkg/net/coap"
 )
 
@@ -20,22 +21,22 @@ func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 		return "", MakeInternal(getSdkError(err))
 	}
 
-	var errors []error
+	var errors *multierror.Error
 
 	for _, c := range cert.Certificate {
 		x509cert, err := x509.ParseCertificate(c)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 			continue
 		}
 		id, err := coap.GetDeviceIDFromIdentityCertificate(x509cert)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 			continue
 		}
 		return id, nil
 	}
-	return "", MakeInternal(fmt.Errorf("cannot get sdk id: %v", errors))
+	return "", MakeInternal(fmt.Errorf("cannot get sdk id: %w", errors))
 }
 
 // GetSdkOwnerID returns sdk ownerID from sdk identity certificate.
