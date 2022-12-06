@@ -18,6 +18,9 @@ package client_test
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -25,9 +28,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/logging"
 	"github.com/plgd-dev/device/v2/client"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -61,6 +65,38 @@ func (c *testSetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certifi
 }
 
 func NewTestSecureClient() (*client.Client, error) {
+	return newTestSecureClient(test.IdentityIntermediateCA, test.IdentityIntermediateCAKey)
+}
+
+func NewTestSecureClientWithGeneratedCertificate() (*client.Client, error) {
+	var cfgCA generateCertificate.Configuration
+	cfgCA.Subject.CommonName = "anotherClient"
+
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate private key: %w", err)
+	}
+	cert, err := generateCertificate.GenerateRootCA(cfgCA, priv)
+	if err != nil {
+		return nil, fmt.Errorf("cannot generate root ca: %w", err)
+	}
+	derKey, err := x509.MarshalECPrivateKey(priv)
+	if err != nil {
+		return nil, fmt.Errorf("cannot marhsal private key: %w", err)
+	}
+	key := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: derKey})
+	return newTestSecureClient(cert, key)
+}
+
+func newTestSecureClient(signerCert, signerKey []byte) (*client.Client, error) {
+	cfg := client.Config{
+		DeviceOwnershipSDK: &client.DeviceOwnershipSDKConfig{
+			ID:               CertIdentity,
+			Cert:             string(signerCert),
+			CertKey:          string(signerKey),
+			CreateSignerFunc: test.NewIdentityCertificateSigner,
+		},
+	}
 	mfgTrustedCABlock, _ := pem.Decode(test.RootCACrt)
 	if mfgTrustedCABlock == nil {
 		return nil, fmt.Errorf("mfgTrustedCABlock is empty")
@@ -73,19 +109,11 @@ func NewTestSecureClient() (*client.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("cannot X509KeyPair: %w", err)
 	}
-	cfg := client.Config{
-		DeviceOwnershipSDK: &client.DeviceOwnershipSDKConfig{
-			ID:               CertIdentity,
-			Cert:             string(test.IdentityIntermediateCA),
-			CertKey:          string(test.IdentityIntermediateCAKey),
-			CreateSignerFunc: test.NewIdentityCertificateSigner,
-		},
-	}
 
 	client, err := client.NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-	}, logging.NewDefaultLoggerFactory().NewLogger("test"),
+	}, core.NewNilLogger(),
 	)
 	if err != nil {
 		return nil, err
@@ -94,7 +122,6 @@ func NewTestSecureClient() (*client.Client, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return client, nil
 }
 

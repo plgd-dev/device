@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/go-coap/v3/pkg/cache"
 	"go.uber.org/atomic"
@@ -210,19 +211,16 @@ func (c *DeviceCache) LoadAndDeleteDevices(deviceIDFilter []string) []*core.Devi
 }
 
 func (c *DeviceCache) Close(ctx context.Context) error {
-	var errors []error
+	var errors *multierror.Error
 	if c.closed.CompareAndSwap(false, true) {
 		close(c.done)
 	}
 	for _, val := range c.devicesCache.LoadAndDeleteAll() {
 		err := val.Data().Close(ctx)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 		}
 	}
 
-	if len(errors) > 0 {
-		return fmt.Errorf("%v", errors)
-	}
-	return nil
+	return errors.ErrorOrNil()
 }

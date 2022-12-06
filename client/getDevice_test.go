@@ -287,3 +287,38 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	_, _, err = c.GetDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)
 }
+
+func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errClose := c.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
+
+	c1, err := NewTestSecureClientWithGeneratedCertificate()
+	require.NoError(t, err)
+	defer func() {
+		errClose := c1.Close(context.Background())
+		require.NoError(t, errClose)
+	}()
+
+	_, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+
+	defer func() {
+		err = c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
+
+	device, err := c1.GetDeviceDetailsByIP(ctx, ip4)
+	require.NoError(t, err)
+	require.Equal(t, deviceID, device.ID)
+	require.Equal(t, client.OwnershipStatus_OwnedByOther, device.OwnershipStatus)
+}

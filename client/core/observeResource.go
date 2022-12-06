@@ -22,6 +22,7 @@ import (
 	"sync"
 
 	"github.com/google/uuid"
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
@@ -91,17 +92,14 @@ func (d *Device) closeObservations(ctx context.Context) error {
 		obs = append(obs, observationID)
 		return false
 	})
-	var errors []error
+	var errors *multierror.Error
 	for _, observationID := range obs {
 		_, err := d.stopObservingResource(ctx, observationID, true)
 		if err != nil {
-			errors = append(errors, err)
+			errors = multierror.Append(errors, err)
 		}
 	}
-	if len(errors) > 0 {
-		return MakeInternal(fmt.Errorf("%v", errors))
-	}
-	return nil
+	return errors.ErrorOrNil()
 }
 
 type observation struct {
