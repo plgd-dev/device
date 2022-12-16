@@ -56,7 +56,7 @@ func (c *Client) getDeviceByMulticast(ctx context.Context, deviceID string, opts
 }
 
 func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, schema.ResourceLinks, error) {
-	dev, err := c.GetDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
+	dev, err := c.getDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,7 +67,7 @@ func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID 
 	return dev, links, nil
 }
 
-func (c *Client) GetDeviceByIPWithUpdateCache(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, error) {
+func (c *Client) getDeviceByIPWithUpdateCache(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, error) {
 	newDev, err := c.client.GetDeviceByIP(ctx, ip)
 	if err != nil {
 		return nil, err
