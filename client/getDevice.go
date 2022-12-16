@@ -62,7 +62,6 @@ func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID 
 	}
 	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
 	if err != nil {
-		dev.Close(ctx)
 		return nil, nil, err
 	}
 	return dev, links, nil
