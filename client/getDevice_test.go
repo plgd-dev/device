@@ -279,6 +279,8 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 func anotherClient() (*client.Client, error) {
 	var cfgCA generateCertificate.Configuration
 	cfgCA.Subject.CommonName = "anotherClient"
+	cfgCA.ValidFrom = "now"
+	cfgCA.ValidFor = time.Hour
 
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
@@ -334,7 +336,7 @@ func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*1000)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
 	c, err := NewTestSecureClient()
