@@ -12,7 +12,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.1.6-0.20230104045405-f40c61d83b5f
 	github.com/pion/logging v0.2.2
-	github.com/plgd-dev/go-coap/v3 v3.0.2-0.20230109094200-ac1d6381a9ba
+	github.com/plgd-dev/go-coap/v3 v3.0.2
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.1
 	github.com/ugorji/go/codec v1.2.8

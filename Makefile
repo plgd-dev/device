@@ -49,7 +49,7 @@ env: clean certificates
 unit-test:
 	mkdir -p $(TMP_PATH)
 	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.coverage.txt
-	go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
+	ROOT_CA_CRT="$(CERT_PATH)/cloudca.pem" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
 
 test: env build-testcontainer
 	docker run \
