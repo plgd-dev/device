@@ -27,6 +27,14 @@ func NewOCFIdentityCertificate(caCert []*x509.Certificate, caKey crypto.PrivateK
 }
 
 func (s *OCFIdentityCertificate) Sign(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
+	now := time.Now()
+	if now.Before(s.validNotBefore) {
+		return nil, fmt.Errorf("not valid yet: current time %v is out of time range %v-%v", now, s.validNotBefore, s.validNotAfter)
+	}
+	if now.After(s.validNotAfter) {
+		return nil, fmt.Errorf("expired: current time %v is out of time range %v-%v", now, s.validNotBefore, s.validNotAfter)
+	}
+
 	csrBlock, _ := pem.Decode(csr)
 	if csrBlock == nil {
 		err = fmt.Errorf("pem not found")
