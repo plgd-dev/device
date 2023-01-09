@@ -71,6 +71,8 @@ func NewTestSecureClient() (*client.Client, error) {
 func NewTestSecureClientWithGeneratedCertificate() (*client.Client, error) {
 	var cfgCA generateCertificate.Configuration
 	cfgCA.Subject.CommonName = "anotherClient"
+	cfgCA.ValidFrom = "now"
+	cfgCA.ValidFor = time.Hour
 
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	if err != nil {
