@@ -217,6 +217,16 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 		require.NoError(t, errC)
 	}()
 
+	_, links, err := c.GetDevice(ctx, deviceID)
+	require.NoError(t, err)
+	l, ok := links.GetResourceLink(test.TestResourceLightInstanceHref("1"))
+	if !ok {
+		t.Skip("Device doesn't support light resource")
+	}
+	if len(l.GetUnsecureEndpoints()) == 0 {
+		t.Skip("Device doesn't support access to light resource via unsecure endpoint")
+	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err = c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, nil, tt.args.opts...)
