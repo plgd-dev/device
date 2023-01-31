@@ -18,6 +18,7 @@ package client
 
 import (
 	"context"
+	"crypto/elliptic"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -26,6 +27,7 @@ import (
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
+	"github.com/pion/dtls/v2/pkg/crypto/signature"
 	"github.com/plgd-dev/device/v2/client/core"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -41,6 +43,8 @@ type deviceOwnershipBackend struct {
 	dialTLS             core.DialTLS
 	dialDTLS            core.DialDTLS
 	sign                SignFunc
+	ellipticCurve       elliptic.Curve
+	signatureAlgorithm  signature.Algorithm
 }
 
 type DeviceOwnershipBackendConfig struct {

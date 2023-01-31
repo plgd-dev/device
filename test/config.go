@@ -27,6 +27,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/ael"
@@ -48,7 +49,6 @@ import (
 	"github.com/plgd-dev/device/v2/schema/sp"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
 
 var (

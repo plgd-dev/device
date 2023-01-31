@@ -18,9 +18,6 @@ package client_test
 
 import (
 	"context"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
@@ -30,8 +27,8 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/test"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 	"github.com/stretchr/testify/require"
 )
 
@@ -74,7 +71,7 @@ func NewTestSecureClientWithGeneratedCertificate() (*client.Client, error) {
 	cfgCA.ValidFrom = "now"
 	cfgCA.ValidFor = time.Hour
 
-	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	priv, err := cfgCA.GenerateKey()
 	if err != nil {
 		return nil, fmt.Errorf("cannot generate private key: %w", err)
 	}

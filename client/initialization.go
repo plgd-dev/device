@@ -26,8 +26,8 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	kitSecurity "github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
 
 func generateSDKCertificate(ctx context.Context, csr []byte, sign SignFunc, priv *ecdsa.PrivateKey) (tls.Certificate, []*x509.Certificate, error) {
