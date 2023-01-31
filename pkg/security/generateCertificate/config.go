@@ -49,9 +49,11 @@ type Configuration struct {
 		Ignore     bool `yaml:"ignore" long:"ignore"  description:"bool, don't set basic constraints"`
 		MaxPathLen int  `yaml:"maxPathLen" long:"maxPathLen" default:"-1"  description:"int, -1 means unlimited"`
 	} `yaml:"basicConstraints" group:"Basic Constraints" namespace:"basicConstraints"`
-	ValidFrom          string             `yaml:"validFrom" long:"validFrom" default:"now" description:"valid from time, format in RFC3339 (eg:2014-11-12T11:45:00Z)"`
-	ValidFor           time.Duration      `yaml:"validFor" long:"validFor" default:"8760h" description:"duration, format in NUMh"`
-	KeyUsages          []string           `yaml:"keyUsages" long:"ku" default:"digitalSignature" default:"keyAgreement" description:"to set more values repeat option with parameter"`
+	ValidFrom string        `yaml:"validFrom" long:"validFrom" default:"now" description:"valid from time, format in RFC3339 (eg:2014-11-12T11:45:00Z)"`
+	ValidFor  time.Duration `yaml:"validFor" long:"validFor" default:"8760h" description:"duration, format in NUMh"`
+	//nolint:staticcheck
+	KeyUsages []string `yaml:"keyUsages" long:"ku" default:"digitalSignature" default:"keyAgreement" description:"to set more values repeat option with parameter"`
+	//nolint:staticcheck
 	ExtensionKeyUsages []string           `yaml:"extensionKeyUsages" long:"eku" default:"client" default:"server" description:"to set more values repeat option with parameter"`
 	EllipticCurve      EllipticCurve      `yaml:"ellipticCurve" long:"ellipticCurve" default:"P256" description:"supported values:P256, P384, P521"`
 	SignatureAlgorithm SignatureAlgorithm `yaml:"signatureAlgorithm" long:"signatureAlgorithm" default:"ECDSA-SHA256" description:"supported values:ECDSA-SHA256, ECDSA-SHA384, ECDSA-SHA512"`
@@ -108,7 +110,7 @@ func (cfg Configuration) ToValidFrom() (time.Time, error) {
 	}
 	t, err := time.Parse(time.RFC3339, cfg.ValidFrom)
 	if err != nil {
-		return time.Time{}, fmt.Errorf("invalid validFrom(%v): %v", cfg.ValidFrom, err)
+		return time.Time{}, fmt.Errorf("invalid validFrom(%v): %w", cfg.ValidFrom, err)
 	}
 	return t, nil
 }
