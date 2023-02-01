@@ -51,6 +51,8 @@ type Configuration struct {
 	} `yaml:"basicConstraints" group:"Basic Constraints" namespace:"basicConstraints"`
 	ValidFrom string        `yaml:"validFrom" long:"validFrom" default:"now" description:"valid from time, format in RFC3339 (eg:2014-11-12T11:45:00Z)"`
 	ValidFor  time.Duration `yaml:"validFor" long:"validFor" default:"8760h" description:"duration, format in NUMh"`
+	NotBefore string        `yaml:"notBefore" long:"notBefore" default:"now" description:"not valid before time, format in RFC3339 (eg:2014-11-12T11:45:00Z)"`
+	NotAfter  string        `yaml:"notAfter" long:"notAfter" default:"now+8760h" description:"not valid after time, format in RFC3339 (eg:2014-11-12T11:45:00Z)"`
 	//nolint:staticcheck
 	KeyUsages []string `yaml:"keyUsages" long:"ku" default:"digitalSignature" default:"keyAgreement" description:"to set more values repeat option with parameter"`
 	//nolint:staticcheck

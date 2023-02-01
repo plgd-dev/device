@@ -92,7 +92,6 @@ func GenerateIdentityCert(cfg Configuration, deviceID string, privateKey *ecdsa.
 	if err != nil {
 		return nil, err
 	}
-
 	notAfter := notBefore.Add(cfg.ValidFor)
 
 	s := ocfSigner.NewOCFIdentityCertificate(signerCA, signerCAKey, notBefore, notAfter)
