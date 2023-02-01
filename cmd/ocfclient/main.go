@@ -35,9 +35,9 @@ import (
 	local "github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/pkg/security/signer"
 	"github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 )
 
 type Options struct {

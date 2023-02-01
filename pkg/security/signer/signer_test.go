@@ -1,4 +1,4 @@
-package signer
+package signer_test
 
 import (
 	"context"
@@ -12,12 +12,13 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
+	"github.com/plgd-dev/device/v2/pkg/security/signer"
 	"github.com/plgd-dev/kit/v2/security"
-	"github.com/plgd-dev/kit/v2/security/generateCertificate"
 	"github.com/stretchr/testify/require"
 )
 
-func TestOCFIdentityCertificate_Sign(t *testing.T) {
+func TestOCFIdentityCertificateSign(t *testing.T) {
 	type fields struct {
 		caCert         []*x509.Certificate
 		caKey          crypto.PrivateKey
@@ -115,12 +116,7 @@ func TestOCFIdentityCertificate_Sign(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := &OCFIdentityCertificate{
-				caCert:         tt.fields.caCert,
-				caKey:          tt.fields.caKey,
-				validNotBefore: tt.fields.validNotBefore,
-				validNotAfter:  tt.fields.validNotAfter,
-			}
+			s := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter)
 			gotSignedCsr, err := s.Sign(tt.args.ctx, tt.args.csr)
 			if tt.wantErr {
 				require.Error(t, err)
