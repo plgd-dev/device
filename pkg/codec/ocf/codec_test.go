@@ -47,6 +47,28 @@ func TestVNDOCFCBORCodecDecode(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name: "invalid cbor format",
+			args: args{
+				m: func() *pool.Message {
+					m := pool.NewMessage(context.TODO())
+					m.SetContentFormat(message.TextPlain)
+					return m
+				}(),
+			},
+			wantErr: true,
+		},
+		{
+			name: "empty body",
+			args: args{
+				m: func() *pool.Message {
+					m := pool.NewMessage(context.TODO())
+					m.SetContentFormat(message.AppCBOR)
+					return m
+				}(),
+			},
+			wantErr: true,
+		},
+		{
 			name: "empty object",
 			args: args{
 				m: func() *pool.Message {
@@ -97,6 +119,17 @@ func TestRawCodecDecode(t *testing.T) {
 			want: nil,
 		},
 		{
+			name: "empty body",
+			args: args{
+				m: func() *pool.Message {
+					m := pool.NewMessage(context.TODO())
+					m.SetContentFormat(message.AppCBOR)
+					return m
+				}(),
+			},
+			wantErr: true,
+		},
+		{
 			name: "unknown media type",
 			args: args{
 				m: func() *pool.Message {
@@ -139,6 +172,8 @@ func TestRawCodecDecode(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
+			require.Equal(t, tt.fields.MediaType, c.ContentFormat())
+			require.ElementsMatch(t, []message.MediaType{tt.fields.MediaType}, c.DecodeContentFormat())
 			require.Equal(t, tt.want, got)
 		})
 	}
