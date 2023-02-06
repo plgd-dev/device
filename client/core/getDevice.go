@@ -86,7 +86,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 
 	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
-	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType))
+	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType), coap.WithDeviceID(deviceID))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
