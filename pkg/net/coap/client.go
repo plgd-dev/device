@@ -157,6 +157,15 @@ func WithResourceType(in string) OptionFunc {
 	}
 }
 
+func WithDeviceID(in string) OptionFunc {
+	return func(opts message.Options) message.Options {
+		v := "di=" + in
+		buf := make([]byte, len(v))
+		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
+		return opts
+	}
+}
+
 func WithAccept(contentFormat message.MediaType) OptionFunc {
 	return func(opts message.Options) message.Options {
 		buf := make([]byte, 4)
