@@ -24,6 +24,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/maintenance"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 )
 
@@ -63,6 +64,12 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 	}
 	confResources := acl.AllResources
 	for _, href := range links.GetResourceHrefs(softwareupdate.ResourceType) {
+		confResources = append(confResources, acl.Resource{
+			Href:       href,
+			Interfaces: []string{"*"},
+		})
+	}
+	for _, href := range links.GetResourceHrefs(maintenance.ResourceType) {
 		confResources = append(confResources, acl.Resource{
 			Href:       href,
 			Interfaces: []string{"*"},
