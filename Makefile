@@ -36,13 +36,15 @@ env: clean certificates
 	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
 		sudo sh -c 'echo 0 > /proc/sys/net/ipv6/conf/all/disable_ipv6'; \
 	fi
-	mkdir -p $(DEVSIM_NET_HOST_PATH)
+	mkdir -p $(DEVSIM_NET_HOST_PATH)/creds
+
 	docker pull $(DEVSIM_IMAGE)
 	docker run -d \
 		--privileged \
 		--network=host \
 		--name devsim-net-host \
 		-v $(DEVSIM_NET_HOST_PATH):/tmp \
+		-v $(DEVSIM_NET_HOST_PATH)/creds:/cloud_server_creds \
 		-v $(CERT_PATH):/pki_certs \
 		$(DEVSIM_IMAGE) devsim-$(SIMULATOR_NAME_SUFFIX)
 

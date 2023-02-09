@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"sync"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/client/core"
@@ -56,19 +55,19 @@ type devicesObserver struct {
 	handler                *devicesObservationHandler
 	discoveryConfiguration core.DiscoveryConfiguration
 
-	cancel          context.CancelFunc
-	interval        time.Duration
-	wait            func()
-	onlineDeviceIDs map[string]struct{}
+	cancel                context.CancelFunc
+	observerConfiguration ObserverConfig
+	wait                  func()
+	onlineDeviceIDs       map[string]uint8
 }
 
-func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
+func newDevicesObserver(c *Client, observerConfiguration ObserverConfig, discoveryConfiguration core.DiscoveryConfiguration, handler *devicesObservationHandler) *devicesObserver {
 	ctx, cancel := context.WithCancel(context.Background())
 	var wg sync.WaitGroup
 	obs := &devicesObserver{
 		c:                      c,
 		handler:                handler,
-		interval:               interval,
+		observerConfiguration:  observerConfiguration,
 		discoveryConfiguration: discoveryConfiguration,
 
 		cancel: cancel,
@@ -84,7 +83,7 @@ func newDevicesObserver(c *Client, interval time.Duration, discoveryConfiguratio
 }
 
 func (o *devicesObserver) poll(ctx context.Context) bool {
-	pollCtx, cancel := context.WithTimeout(ctx, o.interval)
+	pollCtx, cancel := context.WithTimeout(ctx, o.observerConfiguration.PollingInterval)
 	defer cancel()
 	newDeviceIDs, err := o.observe(pollCtx)
 	select {
@@ -101,18 +100,24 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 	}
 }
 
-func (o *devicesObserver) processDevices(devices *coapSync.Map[string, struct{}]) (added map[string]struct{}, removed []string, current map[string]struct{}) {
-	current = make(map[string]struct{})
+func (o *devicesObserver) processDevices(devices *coapSync.Map[string, struct{}]) (added map[string]struct{}, removed []string, current map[string]uint8) {
+	current = make(map[string]uint8)
 	devices.Range(func(key string, value struct{}) bool {
-		current[key] = struct{}{}
+		current[key] = 0
 		return true
 	})
 	added = make(map[string]struct{})
 	removed = make([]string, 0, len(current))
-	for deviceID := range o.onlineDeviceIDs {
+	for deviceID, failures := range o.onlineDeviceIDs {
 		_, ok := current[deviceID]
 		if !ok {
-			removed = append(removed, deviceID)
+			// we start counting from 0 so we need to subtract 1
+			maxFailures := o.observerConfiguration.FailureThreshold - 1
+			if failures < maxFailures {
+				current[deviceID] = failures + 1
+			} else {
+				removed = append(removed, deviceID)
+			}
 		}
 	}
 	for deviceID := range current {
@@ -178,7 +183,7 @@ func (o *devicesObserver) discover(ctx context.Context, handler core.DiscoverDev
 	return core.DiscoverDevices(ctx, multicastConn, handler, coap.WithResourceType(device.ResourceType))
 }
 
-func (o *devicesObserver) observe(ctx context.Context) (map[string]struct{}, error) {
+func (o *devicesObserver) observe(ctx context.Context) (map[string]uint8, error) {
 	newDevices := listDeviceIds{
 		err:     func(err error) { o.c.logger.Debug(err.Error()) },
 		devices: coapSync.NewMap[string, struct{}](),
@@ -315,7 +320,7 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 		return "", err
 	}
 
-	obs := newDevicesObserver(c, c.observerPollingInterval, cfg.discoveryConfiguration, &devicesObservationHandler{
+	obs := newDevicesObserver(c, c.observerConfig, cfg.discoveryConfiguration, &devicesObservationHandler{
 		handler: handler,
 		removeSubscription: func() {
 			c.stopObservingDevices(ID.String())

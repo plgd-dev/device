@@ -22,6 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -284,4 +285,18 @@ func CheckResourceLinks(t *testing.T, expected, actual schema.ResourceLinks) {
 		}
 	}
 	require.Empty(t, expLinks)
+}
+
+func DockerStopDevsim(t *testing.T) {
+	cmd := exec.Command("docker")
+	cmd.Args = []string{"docker", "kill", DockerDevsimName}
+	err := cmd.Run()
+	require.NoError(t, err)
+}
+
+func DockerStartDevsim(t *testing.T) {
+	cmd := exec.Command("docker")
+	cmd.Args = []string{"docker", "start", DockerDevsimName}
+	err := cmd.Run()
+	require.NoError(t, err)
 }

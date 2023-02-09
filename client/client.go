@@ -51,6 +51,7 @@ type subscription = interface {
 type Config struct {
 	DeviceCacheExpirationSeconds   int64
 	ObserverPollingIntervalSeconds uint64 // 0 means 3 seconds
+	ObserverFailureThreshold       uint8  // 0 means 3
 
 	KeepAliveConnectionTimeoutSeconds uint64 // 0 means keepalive is disabled
 	MaxMessageSize                    uint32
@@ -140,28 +141,124 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 		return coap.DialUDP(ctx, addr, opts...)
 	}
 
-	opts := []core.OptionFunc{
-		core.WithDialDTLS(dialDTLS),
-		core.WithDialTLS(dialTLS),
-		core.WithDialTCP(dialTCP),
-		core.WithDialUDP(dialUDP),
-		core.WithLogger(logger),
+	opts := []ClientOptionFunc{
+		WithDialDTLS(dialDTLS),
+		WithDialTLS(dialTLS),
+		WithDialTCP(dialTCP),
+		WithDialUDP(dialUDP),
+		WithLogger(logger),
+		WithObserverConfig(ObserverConfig{
+			PollingInterval:  observerPollingInterval,
+			FailureThreshold: cfg.ObserverFailureThreshold,
+		}),
+		WithCacheExpiration(cacheExpiration),
 	}
 
 	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app)
 	if err != nil {
 		return nil, err
 	}
-	return NewClient(app, deviceOwner, cacheExpiration, observerPollingInterval, opts...)
+	return NewClient(app, deviceOwner, opts...)
+}
+
+// ObserverConfig is a configuration of the devices observation.
+type ObserverConfig struct {
+	// PollingInterval is a time between two consecutive observations.
+	PollingInterval time.Duration
+	// FailureThreshold is a number of consecutive observation failures after which the device is marked as offline.
+	FailureThreshold uint8
+}
+
+type ClientConfig struct {
+	CoreOptions []core.OptionFunc
+	// CacheExpiration is a time after which the device entry in cache is invalidated.
+	CacheExpiration time.Duration
+	// Observer is a configuration of the devices observation.
+	Observer ObserverConfig
+}
+
+type ClientOptionFunc func(ClientConfig) ClientConfig
+
+// WithObserverConfig sets the observer config.
+func WithObserverConfig(observerConfig ObserverConfig) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if observerConfig.PollingInterval <= 0 {
+			observerConfig.PollingInterval = 3 * time.Second
+		}
+		if observerConfig.FailureThreshold <= 0 {
+			observerConfig.FailureThreshold = 3
+		}
+		cfg.Observer = observerConfig
+		return cfg
+	}
+}
+
+func WithCacheExpiration(cacheExpiration time.Duration) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		cfg.CacheExpiration = cacheExpiration
+		return cfg
+	}
+}
+
+func WithTLS(tlsConfig *core.TLSConfig) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if tlsConfig != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithTLS(tlsConfig))
+		}
+		return cfg
+	}
+}
+
+func WithLogger(logger core.Logger) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if logger != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithLogger(logger))
+		}
+		return cfg
+	}
+}
+
+func WithDialDTLS(dial core.DialDTLS) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if dial != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithDialDTLS(dial))
+		}
+		return cfg
+	}
+}
+
+func WithDialTLS(dial core.DialTLS) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if dial != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithDialTLS(dial))
+		}
+		return cfg
+	}
+}
+
+func WithDialTCP(dial core.DialTCP) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if dial != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithDialTCP(dial))
+		}
+		return cfg
+	}
+}
+
+func WithDialUDP(dial core.DialUDP) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		if dial != nil {
+			cfg.CoreOptions = append(cfg.CoreOptions, core.WithDialUDP(dial))
+		}
+		return cfg
+	}
 }
 
 // NewClient constructs a new local client.
 func NewClient(
 	app ApplicationCallback,
 	deviceOwner DeviceOwner,
-	cacheExpiration time.Duration,
-	observerPollingInterval time.Duration,
-	opt ...core.OptionFunc,
+	opt ...ClientOptionFunc,
 ) (*Client, error) {
 	if app == nil {
 		return nil, fmt.Errorf("missing application callback")
@@ -169,8 +266,19 @@ func NewClient(
 	if deviceOwner == nil {
 		return nil, fmt.Errorf("missing device owner callback")
 	}
-	var coreCfg core.Config
+	clientCfg := ClientConfig{
+		CacheExpiration: time.Hour,
+		Observer: ObserverConfig{
+			PollingInterval:  time.Second * 3,
+			FailureThreshold: 3,
+		},
+	}
 	for _, o := range opt {
+		clientCfg = o(clientCfg)
+	}
+
+	var coreCfg core.Config
+	for _, o := range clientCfg.CoreOptions {
 		coreCfg = o(coreCfg)
 	}
 
@@ -181,27 +289,27 @@ func NewClient(
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
 		GetCertificateAuthorities: deviceOwner.GetIdentityCACerts,
 	}
-	opt = append(
+	clientCfg.CoreOptions = append(
 		[]core.OptionFunc{
 			core.WithTLS(&tls),
 			core.WithLogger(coreCfg.Logger),
 		},
-		opt...,
+		clientCfg.CoreOptions...,
 	)
-	oc := core.NewClient(opt...)
+	oc := core.NewClient(clientCfg.CoreOptions...)
 	pollInterval := time.Second * 10
-	if cacheExpiration/2 > pollInterval {
-		pollInterval = cacheExpiration / 2
+	if clientCfg.CacheExpiration/2 > pollInterval {
+		pollInterval = clientCfg.CacheExpiration / 2
 	}
 	client := Client{
-		client:                  oc,
-		app:                     app,
-		deviceCache:             NewDeviceCache(cacheExpiration, pollInterval, coreCfg.Logger),
-		observeResourceCache:    coapSync.NewMap[string, *observationsHandler](),
-		deviceOwner:             deviceOwner,
-		subscriptions:           make(map[string]subscription),
-		observerPollingInterval: observerPollingInterval,
-		logger:                  coreCfg.Logger,
+		client:               oc,
+		app:                  app,
+		deviceCache:          NewDeviceCache(clientCfg.CacheExpiration, pollInterval, coreCfg.Logger),
+		observeResourceCache: coapSync.NewMap[string, *observationsHandler](),
+		deviceOwner:          deviceOwner,
+		subscriptions:        make(map[string]subscription),
+		observerConfig:       clientCfg.Observer,
+		logger:               coreCfg.Logger,
 	}
 	return &client, nil
 }
@@ -223,8 +331,8 @@ type Client struct {
 
 	deviceCache *DeviceCache
 
-	observeResourceCache    *coapSync.Map[string, *observationsHandler]
-	observerPollingInterval time.Duration
+	observeResourceCache *coapSync.Map[string, *observationsHandler]
+	observerConfig       ObserverConfig
 
 	deviceOwner DeviceOwner
 
