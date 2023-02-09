@@ -49,19 +49,6 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 		return err
 	}
 
-	var acls acl.Response
-	err = p.GetResource(ctx, link, &acls)
-	if err != nil {
-		return err
-	}
-
-	for _, acl := range acls.AccessControlList {
-		if acl.Subject.Subject_Device != nil {
-			if acl.Subject.Subject_Device.DeviceID == cloudID {
-				return nil
-			}
-		}
-	}
 	confResources := acl.AllResources
 	for _, href := range links.GetResourceHrefs(softwareupdate.ResourceType) {
 		confResources = append(confResources, acl.Resource{

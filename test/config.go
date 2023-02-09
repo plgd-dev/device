@@ -61,6 +61,7 @@ var (
 
 const (
 	TestResourceSwitchesHref = "/switches"
+	DockerDevsimName         = "devsim-net-host"
 )
 
 func TestResourceSwitchesInstanceHref(id string) string {
