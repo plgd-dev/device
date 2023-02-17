@@ -1,0 +1,73 @@
+# Workflow to run tests, publish coverage to codecov and run SonarCloud scan
+name: Tests
+
+# Run for events in main repository (for forked repository look in test-for-fork.yml)
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  tests:
+    # don't run for forks
+    if: github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: cloud-server-debug
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+          - name: cloud-server-debug-sha384
+            test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+          - name: cloud-server-discovery-resource-observable-debug
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+          - name: cloud-server-discovery-resource-observable-debug-384
+            test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
+            coverage: true
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+    uses: ./.github/workflows/test-with-cfg.yml
+    with:
+      name: ${{ matrix.name }}
+      coverage: ${{ matrix.coverage }}
+      tag: ${{ matrix.tag }}
+      test-args: ${{ matrix.test-args }}
+
+  analysis:
+    name: SonarCloud and codecov analysis
+    runs-on: ubuntu-22.04
+    if: github.event_name == 'push' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
+      github.event_name == 'workflow_dispatch'
+    needs: [tests]
+    steps:
+      - name: Full checkout
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: Get coverage from all tests job
+        uses: actions/download-artifact@v3
+        with:
+          path: coverage
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@master
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Publish the coverage to codecov
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          directory: ./coverage/
+          verbose: true

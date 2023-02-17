@@ -6,6 +6,10 @@ TMP_PATH = $(shell pwd)/.tmp
 CERT_PATH = $(TMP_PATH)/pki_certs
 DEVSIM_NET_HOST_PATH = $(shell pwd)/.tmp/devsim-net-host
 CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
+# supported values: ECDSA-SHA256, ECDSA-SHA384, ECDSA-SHA512
+CERT_TOOL_SIGN_ALG ?= ECDSA-SHA256
+# supported values: P256, P384, P521
+CERT_TOOL_ELLIPTIC_CURVE ?= P256
 DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
 
 default: build
@@ -27,9 +31,17 @@ build: build-testcontainer
 certificates:
 	mkdir -p $(CERT_PATH)
 	docker pull $(CERT_TOOL_IMAGE)
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --outCert=/out/cloudca.pem --outKey=/out/cloudcakey.pem --cert.subject.cn="ca" --cmd.generateRootCA
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem  --outCert=/out/intermediatecacrt.pem --outKey=/out/intermediatecakey.pem --cert.basicConstraints.maxPathLen=0 --cert.subject.cn="intermediateCA" --cmd.generateIntermediateCA
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/intermediatecacrt.pem --signerKey=/out/intermediatecakey.pem --outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost --cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" --cmd.generateCertificate
+	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --outCert=/out/cloudca.pem --outKey=/out/cloudcakey.pem \
+		--cert.subject.cn="ca" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
+		--cmd.generateRootCA
+	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem  \
+		--outCert=/out/intermediatecacrt.pem --outKey=/out/intermediatecakey.pem --cert.basicConstraints.maxPathLen=0 \
+		--cert.subject.cn="intermediateCA" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
+		--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cmd.generateIntermediateCA
+	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/intermediatecacrt.pem \
+		--signerKey=/out/intermediatecakey.pem --outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost \
+		--cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
+		--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cmd.generateCertificate
 	sudo chmod -R 0777 $(CERT_PATH)
 
 env: clean certificates
@@ -48,7 +60,7 @@ env: clean certificates
 		-v $(CERT_PATH):/pki_certs \
 		$(DEVSIM_IMAGE) devsim-$(SIMULATOR_NAME_SUFFIX)
 
-unit-test:
+unit-test: certificates
 	mkdir -p $(TMP_PATH)
 	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.coverage.txt
 	ROOT_CA_CRT="$(CERT_PATH)/cloudca.pem" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
