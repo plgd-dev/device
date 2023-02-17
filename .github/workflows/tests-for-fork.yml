@@ -1,0 +1,29 @@
+# Workflow to run tests for PRs from forked repository
+name: Tests for forked repository
+
+# Run on pull requests events from forked repository
+on: [pull_request]
+
+jobs:
+  test-for-fork:
+    # Run only for forked repository
+    if: github.event.pull_request.head.repo.full_name != github.repository
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: cloud-server-debug
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+          - name: cloud-server-debug-sha384
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+            test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
+          - name: cloud-server-discovery-resource-observable-debug
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+          - name: cloud-server-discovery-resource-observable-debug-384
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+            test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
+    uses: ./.github/workflows/test-with-cfg.yml
+    with:
+      name: ${{ matrix.name }}
+      tag: ${{ matrix.tag }}
+      test-args: ${{ matrix.test-args }}

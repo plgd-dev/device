@@ -1,0 +1,74 @@
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Test
+
+on:
+  workflow_call:
+    inputs:
+      name:
+        type: string
+        required: true
+      coverage:
+        type: boolean
+        required: false
+        default: false
+      tag:
+        type: string
+        required: true
+      test-args:
+        type: string
+        required: false
+        default: ""
+      unittest-args:
+        type: string
+        required: false
+        default: ""
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Shallow checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go 1.18+
+        uses: actions/setup-go@v3
+        with:
+          go-version: "^1.18" # The Go version to download (if necessary) and use.
+          check-latest: true
+
+      - run: go version
+
+      - name: Setup kernel for multicast messages, increase read buffer to 8MB
+        run: sudo sysctl -w net.core.rmem_max=8388608
+
+      - name: Run integration tests
+        run: make test DEVSIM_IMAGE=${{ inputs.tag }} ${{ inputs.test-args }}
+
+      - name: Collect iotivity logs for devsim-net-host failed test
+        if: ${{ failure() }}
+        run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
+
+      # Run after integration tests, because they first clean-up the output directory
+      - name: Run unit tests
+        if: ${{ inputs.coverage }}
+        run: |
+          make unit-test ${{ inputs.unittest-args }}
+
+      - name: Get output file name
+        if: ${{ inputs.coverage }}
+        id: coverage
+        run: |
+          HASH=`echo "${{ inputs.name }}${{ inputs.test-args }}" | sha1sum | cut -f 1 -d ' '`
+          echo "directory=${HASH}" >> $GITHUB_OUTPUT
+
+      - name: Upload coverage data
+        if: ${{ inputs.coverage }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.coverage.outputs.directory }}
+          path: .tmp/*coverage.txt
+          if-no-files-found: error
+          retention-days: 1
