@@ -30,6 +30,7 @@ build: build-testcontainer
 
 certificates:
 	mkdir -p $(CERT_PATH)
+	chmod 0777 $(CERT_PATH)
 	docker pull $(CERT_TOOL_IMAGE)
 	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --outCert=/out/cloudca.pem --outKey=/out/cloudcakey.pem \
 		--cert.subject.cn="ca" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
@@ -42,7 +43,8 @@ certificates:
 		--signerKey=/out/intermediatecakey.pem --outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost \
 		--cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
 		--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cmd.generateCertificate
-	sudo chmod -R 0777 $(CERT_PATH)
+	sudo chown -R $(shell whoami) $(CERT_PATH)
+	chmod -R 0777 $(CERT_PATH)
 
 env: clean certificates
 	if [ "${TRAVIS_OS_NAME}" == "linux" ]; then \
