@@ -33,6 +33,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/maintenance"
 	"github.com/plgd-dev/device/v2/schema/platform"
 	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/schema/systemclock"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -317,7 +318,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotEmpty(t, d)
 		d.Sort()
-		require.Len(t, d, 8)
+		require.Len(t, d, 9)
 		for i := range d {
 			require.Equal(t, deviceID, d[i].DeviceID())
 			switch d[i].Href() {
@@ -329,6 +330,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 			case introspection.ResourceURI:
 			case configuration.ResourceURI:
 			case test.TestResourceSwitchesHref:
+			case systemclock.ResourceURI:
 			default:
 				require.NoError(t, fmt.Errorf("unknown resource href: %v", d[i].Href()))
 			}
