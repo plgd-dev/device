@@ -42,12 +42,12 @@ import (
 	"github.com/plgd-dev/device/v2/schema/introspection"
 	"github.com/plgd-dev/device/v2/schema/maintenance"
 	"github.com/plgd-dev/device/v2/schema/platform"
+	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/pstat"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/roles"
 	"github.com/plgd-dev/device/v2/schema/sdi"
 	"github.com/plgd-dev/device/v2/schema/sp"
-	"github.com/plgd-dev/device/v2/schema/systemclock"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/security"
 )
@@ -84,8 +84,8 @@ func init() {
 		},
 
 		{
-			Href:          systemclock.ResourceURI,
-			ResourceTypes: []string{systemclock.ResourceType},
+			Href:          plgdtime.ResourceURI,
+			ResourceTypes: []string{plgdtime.ResourceType},
 			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 

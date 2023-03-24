@@ -32,8 +32,8 @@ import (
 	"github.com/plgd-dev/device/v2/schema/introspection"
 	"github.com/plgd-dev/device/v2/schema/maintenance"
 	"github.com/plgd-dev/device/v2/schema/platform"
+	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/resources"
-	"github.com/plgd-dev/device/v2/schema/systemclock"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -330,7 +330,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 			case introspection.ResourceURI:
 			case configuration.ResourceURI:
 			case test.TestResourceSwitchesHref:
-			case systemclock.ResourceURI:
+			case plgdtime.ResourceURI:
 			default:
 				require.NoError(t, fmt.Errorf("unknown resource href: %v", d[i].Href()))
 			}
