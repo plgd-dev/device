@@ -76,7 +76,10 @@ func newDevicesObserver(c *Client, observerConfiguration ObserverConfig, discove
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for obs.poll(ctx) {
+		for {
+			if !obs.poll(ctx) {
+				break
+			}
 		}
 	}()
 	return obs
@@ -146,7 +149,7 @@ type listDeviceIds struct {
 }
 
 // Handle gets a device connection and is responsible for closing it.
-func (o *listDeviceIds) Handle(ctx context.Context, client *client.Conn, dev schema.ResourceLinks) {
+func (o *listDeviceIds) Handle(_ context.Context, client *client.Conn, dev schema.ResourceLinks) {
 	defer func() {
 		err := client.Close()
 		if err != nil {
@@ -307,7 +310,7 @@ func (c *Client) stopObservingDevices(observationID string) (sync func(), ok boo
 
 // ObserveDevices method starts observing devices via multicast
 // and added by IP in poll interval configured in observerPollingInterval.
-func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
+func (c *Client) ObserveDevices(handler DevicesObservationHandler, opts ...ObserveDevicesOption) (string, error) {
 	cfg := observeDevicesOptions{
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
 	}
@@ -332,7 +335,7 @@ func (c *Client) ObserveDevices(ctx context.Context, handler DevicesObservationH
 }
 
 // StopObservingDevices method stops observing devices.
-func (c *Client) StopObservingDevices(ctx context.Context, observationID string) bool {
+func (c *Client) StopObservingDevices(observationID string) bool {
 	wait, ok := c.stopObservingDevices(observationID)
 	if !ok {
 		return false

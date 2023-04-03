@@ -40,7 +40,7 @@ func (InvalidOtmClient) Type() doxm.OwnerTransferMethod {
 	return doxm.OwnerTransferMethod(-1)
 }
 
-func (InvalidOtmClient) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseHandler, error) {
+func (InvalidOtmClient) Dial(context.Context, kitNet.Addr) (*coap.ClientCloseHandler, error) {
 	return nil, fmt.Errorf("invalid client")
 }
 

@@ -32,7 +32,7 @@ type DiscoverDeviceCodec struct{}
 func (c DiscoverDeviceCodec) ContentFormat() message.MediaType { return message.MediaType(0) }
 
 // Encode propagates the payload without any conversions.
-func (c DiscoverDeviceCodec) Encode(v interface{}) ([]byte, error) {
+func (c DiscoverDeviceCodec) Encode(interface{}) ([]byte, error) {
 	return nil, MakeUnimplemented(pkgError.NotSupported())
 }
 

@@ -42,7 +42,7 @@ type observerCodec struct {
 func (c observerCodec) ContentFormat() message.MediaType { return c.contentFormat }
 
 // Encode propagates the payload without any conversions.
-func (c observerCodec) Encode(v interface{}) ([]byte, error) {
+func (c observerCodec) Encode(interface{}) ([]byte, error) {
 	return nil, pkgError.NotSupported()
 }
 

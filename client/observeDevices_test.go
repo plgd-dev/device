@@ -59,7 +59,7 @@ func TestObserveDevicesAddedByIP(t *testing.T) {
 
 	h := makeTestDevicesObservationHandler()
 	discoveryConfig := core.DiscoveryConfiguration{}
-	ID, err := c.ObserveDevices(ctx, h, client.WithDiscoveryConfiguration(discoveryConfig))
+	ID, err := c.ObserveDevices(h, client.WithDiscoveryConfiguration(discoveryConfig))
 	require.NoError(t, err)
 	_, err = c.GetDeviceDetailsByIP(ctx, ip)
 	require.NoError(t, err)
@@ -91,7 +91,7 @@ LOOP:
 		}
 	}
 
-	ok := c.StopObservingDevices(ctx, ID)
+	ok := c.StopObservingDevices(ID)
 	require.True(t, ok)
 	select {
 	case <-h.devs:
@@ -113,7 +113,7 @@ func TestObserveDevices(t *testing.T) {
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()
-	ID, err := c.ObserveDevices(ctx, h)
+	ID, err := c.ObserveDevices(h)
 	require.NoError(t, err)
 
 	waitForDevicesObservationEvent(ctx, t, h.devs, client.DevicesObservationEvent{
@@ -142,7 +142,7 @@ LOOP:
 		}
 	}
 
-	ok := c.StopObservingDevices(ctx, ID)
+	ok := c.StopObservingDevices(ID)
 	require.True(t, ok)
 	select {
 	case <-h.devs:
@@ -159,7 +159,7 @@ type testDevicesObservationHandler struct {
 	devs chan client.DevicesObservationEvent
 }
 
-func (h *testDevicesObservationHandler) Handle(ctx context.Context, body client.DevicesObservationEvent) error {
+func (h *testDevicesObservationHandler) Handle(_ context.Context, body client.DevicesObservationEvent) error {
 	h.devs <- body
 	return nil
 }

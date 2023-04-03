@@ -30,7 +30,6 @@ import (
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"
 	"github.com/plgd-dev/device/v2/client/core/otm/manufacturer"
-	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/kit/v2/security"
 )
 
@@ -185,12 +184,4 @@ func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
 		return nil, fmt.Errorf("client is not initialized")
 	}
 	return o.identityCACert, nil
-}
-
-func (o *deviceOwnershipSDK) GetAccessTokenURL(ctx context.Context) (string, error) {
-	return "", pkgError.NotSupported()
-}
-
-func (o *deviceOwnershipSDK) GetOnboardAuthorizationCodeURL(ctx context.Context, deviceID string) (string, error) {
-	return "", pkgError.NotSupported()
 }
