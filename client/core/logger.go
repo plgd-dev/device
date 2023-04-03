@@ -51,18 +51,18 @@ func (*NilLogger) Error(string) {
 	// no-op
 }
 
-func (*NilLogger) Debugf(template string, args ...interface{}) {
+func (*NilLogger) Debugf(string, ...interface{}) {
 	// no-op
 }
 
-func (*NilLogger) Infof(template string, args ...interface{}) {
+func (*NilLogger) Infof(string, ...interface{}) {
 	// no-op
 }
 
-func (*NilLogger) Warnf(template string, args ...interface{}) {
+func (*NilLogger) Warnf(string, ...interface{}) {
 	// no-op
 }
 
-func (*NilLogger) Errorf(template string, args ...interface{}) {
+func (*NilLogger) Errorf(string, ...interface{}) {
 	// no-op
 }

@@ -91,7 +91,7 @@ type testOwnerShipHandler struct {
 	anyFound atomic.Bool
 }
 
-func (h *testOwnerShipHandler) Handle(ctx context.Context, doxm doxm.Doxm) {
+func (h *testOwnerShipHandler) Handle(context.Context, doxm.Doxm) {
 	h.anyFound.Store(true)
 }
 

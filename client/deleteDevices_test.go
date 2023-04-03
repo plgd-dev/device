@@ -34,7 +34,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func addDirectDeviceToCache(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
+func addDirectDeviceToCache(ctx context.Context, _ *testing.T, c *Client, deviceID string) context.Context {
 	_, _ = c.deviceCache.UpdateOrStoreDevice(core.NewDevice(core.DeviceConfiguration{}, deviceID, []string{}, nil))
 	return ctx
 }
@@ -48,7 +48,7 @@ type mockObservationHandler struct {
 	close chan struct{}
 }
 
-func (h *mockObservationHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
+func (h *mockObservationHandler) Handle(_ context.Context, body coap.DecodeFunc) {
 	h.res <- body
 }
 
@@ -94,7 +94,7 @@ type mockDeviceResourcesObservationHandler struct {
 	close chan struct{}
 }
 
-func (h *mockDeviceResourcesObservationHandler) Handle(ctx context.Context, body schema.ResourceLinks) {
+func (h *mockDeviceResourcesObservationHandler) Handle(_ context.Context, body schema.ResourceLinks) {
 	h.res <- body
 }
 

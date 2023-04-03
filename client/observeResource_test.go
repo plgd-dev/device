@@ -132,7 +132,7 @@ type observationHandler struct {
 	close chan struct{}
 }
 
-func (h *observationHandler) Handle(ctx context.Context, body coap.DecodeFunc) {
+func (h *observationHandler) Handle(_ context.Context, body coap.DecodeFunc) {
 	h.res <- body
 }
 

@@ -53,7 +53,7 @@ func TestDeviceGetResourcesIterator(t *testing.T) {
 			links = append(links, link)
 		}
 	}
-	it := dev.GetResources(ctx, links)
+	it := dev.GetResources(links)
 	require.NotEmpty(t, it)
 
 	var p platform.Platform

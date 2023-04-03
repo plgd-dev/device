@@ -26,7 +26,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 		validNotAfter  time.Time
 	}
 	type args struct {
-		ctx context.Context
 		csr []byte
 	}
 	caCert, err := security.LoadX509(os.Getenv("ROOT_CA_CRT"))
@@ -54,7 +53,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 				validNotAfter:  time.Now().Add(time.Hour),
 			},
 			args: args{
-				ctx: context.Background(),
 				csr: csr,
 			},
 		},
@@ -67,7 +65,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 				validNotAfter:  time.Now().Add(time.Hour * 8760 * 10),
 			},
 			args: args{
-				ctx: context.Background(),
 				csr: csr,
 			},
 		},
@@ -80,7 +77,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 				validNotAfter:  time.Now().Add(-time.Second),
 			},
 			args: args{
-				ctx: context.Background(),
 				csr: csr,
 			},
 			wantErr: true,
@@ -94,7 +90,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 				validNotAfter:  time.Now().Add(time.Hour * 2),
 			},
 			args: args{
-				ctx: context.Background(),
 				csr: csr,
 			},
 			wantErr: true,
@@ -108,7 +103,6 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 				validNotAfter:  time.Now().Add(time.Nanosecond),
 			},
 			args: args{
-				ctx: context.Background(),
 				csr: csr,
 			},
 			wantErr: true,
@@ -117,7 +111,7 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter)
-			gotSignedCsr, err := s.Sign(tt.args.ctx, tt.args.csr)
+			gotSignedCsr, err := s.Sign(context.Background(), tt.args.csr)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

@@ -42,7 +42,7 @@ func NewOCFIdentityCertificate(caCert []*x509.Certificate, caKey crypto.PrivateK
 	return &OCFIdentityCertificate{caCert: caCert, caKey: caKey, validNotBefore: validNotBefore, validNotAfter: validNotAfter}
 }
 
-func (s *OCFIdentityCertificate) Sign(ctx context.Context, csr []byte) (signedCsr []byte, err error) {
+func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr []byte, err error) {
 	now := time.Now()
 	notBefore := s.validNotBefore
 	notAfter := s.validNotAfter

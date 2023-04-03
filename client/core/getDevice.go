@@ -132,7 +132,7 @@ func (h *deviceHandler) Device() *Device {
 	return h.device
 }
 
-func (h *deviceHandler) Handle(ctx context.Context, conn *client.Conn, links schema.ResourceLinks) {
+func (h *deviceHandler) Handle(_ context.Context, conn *client.Conn, links schema.ResourceLinks) {
 	if errC := conn.Close(); errC != nil {
 		h.deviceCfg.Logger.Debug(fmt.Errorf("device handler cannot close connection: %w", errC).Error())
 	}

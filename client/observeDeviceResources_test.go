@@ -91,7 +91,7 @@ type mockDeviceResourcesObservationHandler struct {
 	close chan struct{}
 }
 
-func (h *mockDeviceResourcesObservationHandler) Handle(ctx context.Context, body schema.ResourceLinks) {
+func (h *mockDeviceResourcesObservationHandler) Handle(_ context.Context, body schema.ResourceLinks) {
 	h.res <- body
 }
 
