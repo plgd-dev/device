@@ -57,7 +57,7 @@ func TestDeviceReboot(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			c, err := NewTestSecureClient()
 			require.NoError(t, err)
-			signer, err := NewTestSigner()
+			signer, err := test.NewTestSigner()
 			require.NoError(t, err)
 			defer func() {
 				errC := c.Close()
@@ -116,7 +116,7 @@ func TestDeviceFactoryReset(t *testing.T) {
 	eps := device.GetEndpoints()
 	links, err := device.GetResourceLinks(timeout, eps)
 	require.NoError(err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(err)
 	err = device.Own(timeout, links, []otm.Client{c.justWorksOtm}, core.WithSetupCertificates(signer.Sign))
 	require.NoError(err)

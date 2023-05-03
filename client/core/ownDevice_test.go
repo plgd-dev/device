@@ -48,7 +48,7 @@ func TestClientOwnDeviceMfg(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close()
@@ -129,7 +129,7 @@ func TestClientOwnDeviceJustWorks(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close()
@@ -161,7 +161,7 @@ func TestClientOwnDeviceInvalidClient(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close()
@@ -205,7 +205,7 @@ func TestClientOwnDeviceWithFailSetupCertificates(t *testing.T) {
 
 func TestClientOwnDeviceWithPreviouslyBrokenConnection(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 
 	c, err := NewTestSecureClientWithTLS(true, false)

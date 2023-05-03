@@ -20,8 +20,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/pem"
-	"fmt"
 	"testing"
 	"time"
 
@@ -58,25 +56,6 @@ func NewTestSecureClient() (*Client, error) {
 func NewTestSecureClientWithTLS(disableDTLS, disableTCPTLS bool) (*Client, error) {
 	identityCert := test.GenerateIdentityCert(CertIdentity)
 	return NewTestSecureClientWithCert(identityCert, disableDTLS, disableTCPTLS)
-}
-
-func NewTestSigner() (core.CertificateSigner, error) {
-	identityIntermediateCA, err := security.ParseX509FromPEM(test.IdentityIntermediateCA)
-	if err != nil {
-		return nil, err
-	}
-	identityIntermediateCAKeyBlock, _ := pem.Decode(test.IdentityIntermediateCAKey)
-	if identityIntermediateCAKeyBlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
-	}
-	identityIntermediateCAKey, err := x509.ParseECPrivateKey(identityIntermediateCAKeyBlock.Bytes)
-	if err != nil {
-		return nil, err
-	}
-
-	notBefore := time.Now()
-	notAfter := notBefore.Add(time.Hour * 86400)
-	return test.NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter), nil
 }
 
 func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTLS bool) (*Client, error) {
@@ -137,7 +116,7 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 }
 
 func (c *Client) SetUpTestDevice(t *testing.T) {
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)

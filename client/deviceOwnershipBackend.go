@@ -23,7 +23,7 @@ import (
 	"fmt"
 	"strings"
 
-	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
 	"github.com/plgd-dev/device/v2/client/core"
@@ -77,17 +77,9 @@ func (o *deviceOwnershipBackend) OwnDevice(ctx context.Context, deviceID string,
 	return own(ctx, deviceID, otmClients, discoveryConfiguration, opts...)
 }
 
-type claims map[string]interface{}
-
-func (c *claims) Valid() error {
-	return nil
-}
-
 func (o *deviceOwnershipBackend) setIdentityCertificate(ctx context.Context, accessToken string) error {
-	parser := &jwt.Parser{
-		SkipClaimsValidation: true,
-	}
-	var c claims
+	parser := jwt.NewParser(jwt.WithoutClaimsValidation())
+	var c jwt.MapClaims
 	_, _, err := parser.ParseUnverified(accessToken, &c)
 	if err != nil {
 		return fmt.Errorf("cannot parse jwt token: %w", err)

@@ -42,7 +42,7 @@ func testGetOwnerShips(ctx context.Context, t *testing.T, c *Client, ownStatus c
 }
 
 func ownDevice(ctx context.Context, t *testing.T, c *Client, deviceID string) func() {
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	device, err := c.GetDeviceByMulticast(ctx, deviceID, core.DefaultDiscoveryConfiguration())
 	require.NoError(t, err)
