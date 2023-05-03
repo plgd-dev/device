@@ -32,7 +32,7 @@ func TestGetOwnership(t *testing.T) {
 	secureDeviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c.Close()

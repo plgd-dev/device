@@ -95,7 +95,7 @@ func TestClientGetDeviceByIPWithIP6(t *testing.T) {
 
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
-	signer, err := NewTestSigner()
+	signer, err := test.NewTestSigner()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close()
