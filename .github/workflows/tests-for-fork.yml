@@ -13,14 +13,14 @@ jobs:
       matrix:
         include:
           - name: cloud-server-debug
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:vnext
           - name: cloud-server-debug-sha384
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:vnext
             test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
           - name: cloud-server-discovery-resource-observable-debug
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
           - name: cloud-server-discovery-resource-observable-debug-384
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
             test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
     uses: ./.github/workflows/test-with-cfg.yml
     with:

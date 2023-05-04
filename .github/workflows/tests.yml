@@ -22,18 +22,18 @@ jobs:
         include:
           - name: cloud-server-debug
             coverage: true
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:vnext
           - name: cloud-server-debug-sha384
             test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
             coverage: true
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:vnext
           - name: cloud-server-discovery-resource-observable-debug
             coverage: true
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
           - name: cloud-server-discovery-resource-observable-debug-384
             test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
             coverage: true
-            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+            tag: ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
     uses: ./.github/workflows/test-with-cfg.yml
     with:
       name: ${{ matrix.name }}

@@ -10,7 +10,7 @@ CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
 CERT_TOOL_SIGN_ALG ?= ECDSA-SHA256
 # supported values: P256, P384, P521
 CERT_TOOL_ELLIPTIC_CURVE ?= P256
-DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:master
+DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
 
 default: build
 
