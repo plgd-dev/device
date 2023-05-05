@@ -25,12 +25,12 @@ const (
 )
 
 type Maintenance struct {
-	ResourceTypes []string `json:"rt"`
-	Interfaces    []string `json:"if"`
-	Name          string   `json:"n"`
-	FactoryReset  bool     `json:"fr"`
-	Reboot        bool     `json:"rb"`
-	LastHTTPError int      `json:"err"`
+	ResourceTypes []string `json:"rt,omitempty"`
+	Interfaces    []string `json:"if,omitempty"`
+	Name          string   `json:"n,omitempty"`
+	FactoryReset  bool     `json:"fr,omitempty"`
+	Reboot        bool     `json:"rb,omitempty"`
+	LastHTTPError int      `json:"err,omitempty"`
 }
 
 type MaintenanceUpdateRequest struct {

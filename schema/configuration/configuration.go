@@ -22,3 +22,9 @@ const (
 	ResourceType = "oic.wk.con"
 	ResourceURI  = "/oc/con"
 )
+
+type Configuration struct {
+	ResourceTypes []string `json:"rt,omitempty"`
+	Interfaces    []string `json:"if,omitempty"`
+	Name          string   `json:"n"`
+}
