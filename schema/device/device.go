@@ -24,13 +24,18 @@ const (
 )
 
 type Device struct {
-	ID                    string            `json:"di"`
-	ResourceTypes         []string          `json:"rt"`
-	Interfaces            []string          `json:"if"`
-	Name                  string            `json:"n"`
-	ManufacturerName      []LocalizedString `json:"dmn"`
-	ModelNumber           string            `json:"dmno"`
-	ProtocolIndependentID string            `json:"piid"`
+	ID                    string            `json:"di,omitempty"`
+	ResourceTypes         []string          `json:"rt,omitempty"`
+	Interfaces            []string          `json:"if,omitempty"`
+	Name                  string            `json:"n,omitempty"`
+	ManufacturerName      []LocalizedString `json:"dmn,omitempty"`
+	ModelNumber           string            `json:"dmno,omitempty"`
+	ProtocolIndependentID string            `json:"piid,omitempty"`
+	DataModelVersion      string            `json:"dmv,omitempty"`
+	SpecificationVersion  string            `json:"icv,omitempty"`
+	SoftwareVersion       string            `json:"sv,omitempty"`
+	EcosystemName         string            `json:"econame,omitempty"`
+	EcosystemVersion      string            `json:"ecoversion,omitempty"`
 }
 
 // LocalizedString struct.
