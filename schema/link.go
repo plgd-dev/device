@@ -50,12 +50,40 @@ type ResourceLinks []ResourceLink
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 type Policy struct {
 	BitMask    BitMask `json:"bm"`
-	UDPPort    uint16  `json:"port"`
-	TCPPort    uint16  `json:"x.org.iotivity.tcp"`
-	TCPTLSPort uint16  `json:"x.org.iotivity.tls"`
+	UDPPort    *uint16 `json:"port,omitempty"`
+	TCPPort    *uint16 `json:"x.org.iotivity.tcp,omitempty"`
+	TCPTLSPort *uint16 `json:"x.org.iotivity.tls,omitempty"`
 
 	// Secured is true if the resource is only available via an encrypted connection.
-	Secured bool `json:"sec"`
+	Secured *bool `json:"sec,omitempty"`
+}
+
+func (p *Policy) GetUDPPort() uint16 {
+	if p == nil || p.UDPPort == nil {
+		return 0
+	}
+	return *p.UDPPort
+}
+
+func (p *Policy) GetTCPPort() uint16 {
+	if p == nil || p.TCPPort == nil {
+		return 0
+	}
+	return *p.TCPPort
+}
+
+func (p *Policy) GetTCPTLSPort() uint16 {
+	if p == nil || p.TCPTLSPort == nil {
+		return 0
+	}
+	return *p.TCPTLSPort
+}
+
+func (p *Policy) GetSecured() bool {
+	if p == nil || p.Secured == nil {
+		return false
+	}
+	return *p.Secured
 }
 
 // Endpoint is defined on the line 2439 and 1892, Priority on 2434 of the Core specification:
@@ -237,18 +265,18 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints)
 		return r
 	}
 	r.Endpoints = make([]Endpoint, 0, 4)
-	if r.Policy.UDPPort != 0 {
-		if r.Policy.Secured {
-			r.Endpoints = append(r.Endpoints, udpTlsEndpoint(addr.SetPort(r.Policy.UDPPort)))
+	if r.Policy.GetUDPPort() != 0 {
+		if r.Policy.GetSecured() {
+			r.Endpoints = append(r.Endpoints, udpTlsEndpoint(addr.SetPort(r.Policy.GetUDPPort())))
 		} else {
-			r.Endpoints = append(r.Endpoints, udpEndpoint(addr.SetPort(r.Policy.UDPPort)))
+			r.Endpoints = append(r.Endpoints, udpEndpoint(addr.SetPort(r.Policy.GetUDPPort())))
 		}
 	}
-	if r.Policy.TCPPort != 0 {
-		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.TCPPort)))
+	if r.Policy.GetTCPPort() != 0 {
+		r.Endpoints = append(r.Endpoints, tcpEndpoint(addr.SetPort(r.Policy.GetTCPPort())))
 	}
-	if r.Policy.TCPTLSPort != 0 {
-		r.Endpoints = append(r.Endpoints, tcpTlsEndpoint(addr.SetPort(r.Policy.TCPTLSPort)))
+	if r.Policy.GetTCPTLSPort() != 0 {
+		r.Endpoints = append(r.Endpoints, tcpTlsEndpoint(addr.SetPort(r.Policy.GetTCPTLSPort())))
 	}
 	if len(r.Endpoints) == 0 {
 		// When the device running in docker, sometimes it cannot fill endpoints for links,
