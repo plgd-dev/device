@@ -59,6 +59,7 @@ func (v BatchResourceDiscovery) Sort() {
 
 type BatchRepresentation struct {
 	HrefRaw string          `json:"href"`
+	ETag    []byte          `json:"etag"`
 	Content cbor.RawMessage `json:"rep"`
 }
 
