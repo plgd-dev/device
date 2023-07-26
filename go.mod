@@ -18,7 +18,7 @@ require (
 	github.com/ugorji/go/codec v1.2.11
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.3.0
-	google.golang.org/grpc v1.56.1
+	google.golang.org/grpc v1.57.0
 )
 
 require (
