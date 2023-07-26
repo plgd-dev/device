@@ -49,6 +49,12 @@ func WithResourceTypes(resourceTypes ...string) ResourceTypesOption {
 	}
 }
 
+func WithETag(etag []byte) ResourceETagOption {
+	return ResourceETagOption{
+		etag: etag,
+	}
+}
+
 // WithActionDuringOwn allows to set deviceID of owned device and other staff over owner TLS.
 // returns new deviceID, if it returns error device will be disowned.
 func WithActionDuringOwn(actionDuringOwn func(ctx context.Context, client *coap.ClientCloseHandler) (string, error)) OwnOption {
@@ -84,6 +90,17 @@ func WithOTM(otmType OTMType) OwnOption {
 	return otmOption{
 		otmTypes: []OTMType{otmType},
 	}
+}
+
+type ResourceETagOption struct {
+	etag []byte
+}
+
+func (r ResourceETagOption) applyOnGet(opts getOptions) getOptions {
+	if r.etag != nil {
+		opts.opts = append(opts.opts, coap.WithETag(r.etag))
+	}
+	return opts
 }
 
 type ResourceInterfaceOption struct {

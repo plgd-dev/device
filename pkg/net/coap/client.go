@@ -22,6 +22,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -174,6 +175,14 @@ func WithAccept(contentFormat message.MediaType) OptionFunc {
 	}
 }
 
+func WithETag(etag []byte) OptionFunc {
+	return func(opts message.Options) message.Options {
+		buf := make([]byte, len(etag))
+		opts, _, _ = opts.SetBytes(buf, message.ETag, etag)
+		return opts
+	}
+}
+
 func (c *Client) UpdateResource(
 	ctx context.Context,
 	href string,
@@ -249,12 +258,26 @@ func (c *Client) GetResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could not get %s: %w", href, err)
 	}
-	if resp.Code() != codes.Content {
+
+	if responseDetail, ok := response.(detailedResponse); ok {
+		etag, err := resp.ETag()
+		if err == nil {
+			responseDetail.SetETag(etag)
+		} else if !errors.Is(err, message.ErrOptionNotFound) {
+			return fmt.Errorf("cannot get ETag: %w", err)
+		}
+		responseDetail.SetCode(resp.Code())
+		response = responseDetail.GetBody()
+	}
+
+	if resp.Code() == codes.Content {
+		if errD := codec.Decode(resp, response); errD != nil {
+			return status.Error(resp, decodeError(href, errD))
+		}
+	} else if resp.Code() != codes.Valid {
 		return status.Error(resp, requestError(resp))
 	}
-	if err := codec.Decode(resp, response); err != nil {
-		return status.Error(resp, decodeError(href, err))
-	}
+
 	return nil
 }
 

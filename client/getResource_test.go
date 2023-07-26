@@ -22,11 +22,14 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
 )
 
@@ -126,10 +129,75 @@ func TestClientGetDiscoveryResourceWithResourceTypeFilter(t *testing.T) {
 	defer disown(t, c, deviceID)
 
 	var v schema.ResourceLinks
-	err = c.GetResource(ctx, deviceID, "/oic/res", &v, client.WithResourceTypes("oic.wk.res", "oic.wk.d"))
+	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithResourceTypes("oic.wk.res", "oic.wk.d"))
 	require.NoError(t, err)
 	require.Len(t, v, 2)
 	v.Sort()
 	v = cleanUpResources(v)
-	require.Equal(t, test.TestDevsimResources.GetResourceLinks("oic.wk.res", "oic.wk.d").Sort(), v)
+	require.Equal(t, test.TestDevsimResources.GetResourceLinks(resources.ResourceType, "oic.wk.d").Sort(), v)
+}
+
+func TestClientGetConResourceByETag(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*80)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	v1 := coap.DetailedResponse[configuration.Configuration]{}
+	err = c.GetResource(ctx, deviceID, configuration.ResourceURI, &v1)
+	require.NoError(t, err)
+	require.Equal(t, codes.Content, v1.Code)
+	if v1.ETag == nil {
+		t.Skip("Device doesn't support ETag")
+	}
+	etag := v1.ETag
+
+	// if the resource is not changed, we should always get the same ETag
+	v2 := coap.DetailedResponse[configuration.Configuration]{}
+	err = c.GetResource(ctx, deviceID, configuration.ResourceURI, &v2)
+	require.NoError(t, err)
+	require.Equal(t, codes.Content, v2.Code)
+	require.Equal(t, etag, v2.ETag)
+
+	// non-matching ETag should return content and current ETag
+	etag2 := []byte{'l', 'e', 'e', 't', '4', '2'}
+	err = c.GetResource(ctx, deviceID, configuration.ResourceURI, &v1, client.WithETag(etag2))
+	require.NoError(t, err)
+	require.Equal(t, codes.Content, v1.Code)
+	require.Equal(t, etag, v1.ETag)
+
+	// matching ETag should return valid and no content
+	v1 = coap.DetailedResponse[configuration.Configuration]{}
+	err = c.GetResource(ctx, deviceID, configuration.ResourceURI, &v1, client.WithETag(etag))
+	require.NoError(t, err)
+	require.Equal(t, codes.Valid, v1.Code)
+	require.Empty(t, v1.Body)
+
+	// after update, ETag should change
+	var got interface{}
+	err = c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
+		"n": test.DevsimName + "-updated",
+	}, &got)
+	require.NoError(t, err)
+
+	// restore name - for other tests following this test case
+	err = c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
+		"n": test.DevsimName,
+	}, &got)
+	require.NoError(t, err)
+
+	// previous ETag should no longer match
+	v3 := coap.DetailedResponse[configuration.Configuration]{}
+	err = c.GetResource(ctx, deviceID, configuration.ResourceURI, &v3)
+	require.NoError(t, err)
+	require.Equal(t, codes.Content, v3.Code)
+	require.NotEqual(t, etag, v3.ETag)
 }
