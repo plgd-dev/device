@@ -12,7 +12,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.2.7
 	github.com/pion/logging v0.2.2
-	github.com/plgd-dev/go-coap/v3 v3.1.4-0.20230801150122-b52290eae102
+	github.com/plgd-dev/go-coap/v3 v3.1.4-0.20230802114331-351cd00bab2d
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.4
 	github.com/ugorji/go/codec v1.2.11
@@ -33,7 +33,7 @@ require (
 	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230801115018-d63ba01acd4b // indirect
-	golang.org/x/net v0.12.0 // indirect
+	golang.org/x/net v0.13.0 // indirect
 	golang.org/x/sys v0.10.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230731193218-e0aa005b6bdf // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
@@ -44,4 +44,6 @@ exclude (
 	// note: go.uber.org/multierr must be kept at v1.9.0 as long as golang1.18 is supported
 	go.uber.org/multierr v1.10.0
 	go.uber.org/multierr v1.11.0
+	// note: go.uber.org/zap must be kept at v1.24.0 as long as golang1.18 is supported
+	go.uber.org/zap v1.25.0
 )
