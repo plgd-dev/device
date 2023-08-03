@@ -46,7 +46,6 @@ type Configuration struct {
 	URL                   string             `json:"cis"`
 	LastErrorCode         int                `json:"clec"`
 	ProvisioningStatus    ProvisioningStatus `json:"cps"`
-	RedirectURI           string             `json:"redirecturi"`
 }
 
 // ConfigurationUpdateRequest is used to update the Cloud Configuration Resource.
@@ -55,5 +54,4 @@ type ConfigurationUpdateRequest struct {
 	URL                   string `json:"cis"`
 	AuthorizationCode     string `json:"at"`
 	CloudID               string `json:"sid"`
-	RedirectURI           string `json:"redirecturi,omitempty"`
 }
