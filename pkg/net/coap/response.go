@@ -16,9 +16,16 @@
 
 package coap
 
-import "github.com/plgd-dev/go-coap/v3/message/codes"
+import (
+	"errors"
+	"fmt"
 
-type detailedResponse interface {
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+)
+
+type DetailedResponseSetter interface {
 	SetCode(code codes.Code)
 	SetETag(etag []byte)
 	GetBody() interface{}
@@ -41,4 +48,20 @@ func (dr *DetailedResponse[T]) SetETag(etag []byte) {
 
 func (dr *DetailedResponse[T]) GetBody() interface{} {
 	return &dr.Body
+}
+
+// TrySetDetailedReponse checks if the output value implements DetailedResponseSetter interface
+// and sets the response options (Code and ETag) to the value.
+func TrySetDetailedReponse(response *pool.Message, v interface{}) (interface{}, error) {
+	if responseDetail, ok := v.(DetailedResponseSetter); ok {
+		etag, err := response.ETag()
+		if err == nil {
+			responseDetail.SetETag(etag)
+		} else if !errors.Is(err, message.ErrOptionNotFound) {
+			return nil, fmt.Errorf("cannot get ETag: %w", err)
+		}
+		responseDetail.SetCode(response.Code())
+		v = responseDetail.GetBody()
+	}
+	return v, nil
 }

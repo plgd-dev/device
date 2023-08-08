@@ -22,7 +22,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/asn1"
-	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -44,7 +43,7 @@ import (
 )
 
 type Observation = interface {
-	Cancel(context.Context) error
+	Cancel(context.Context, ...message.Option) error
 	Canceled() bool
 }
 
@@ -259,25 +258,19 @@ func (c *Client) GetResourceWithCodec(
 		return fmt.Errorf("could not get %s: %w", href, err)
 	}
 
-	if responseDetail, ok := response.(detailedResponse); ok {
-		etag, err := resp.ETag()
-		if err == nil {
-			responseDetail.SetETag(etag)
-		} else if !errors.Is(err, message.ErrOptionNotFound) {
-			return fmt.Errorf("cannot get ETag: %w", err)
-		}
-		responseDetail.SetCode(resp.Code())
-		response = responseDetail.GetBody()
+	response, err = TrySetDetailedReponse(resp, response)
+	if err != nil {
+		return err
 	}
 
-	if resp.Code() == codes.Content {
+	switch code := resp.Code(); {
+	case code == codes.Content:
 		if errD := codec.Decode(resp, response); errD != nil {
 			return status.Error(resp, decodeError(href, errD))
 		}
-	} else if resp.Code() != codes.Valid {
+	case code != codes.Valid:
 		return status.Error(resp, requestError(resp))
 	}
-
 	return nil
 }
 
