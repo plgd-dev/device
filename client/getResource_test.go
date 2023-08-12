@@ -18,15 +18,21 @@ package client_test
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/schema/introspection"
+	"github.com/plgd-dev/device/v2/schema/maintenance"
+	"github.com/plgd-dev/device/v2/schema/platform"
+	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -137,6 +143,81 @@ func TestClientGetDiscoveryResourceWithResourceTypeFilter(t *testing.T) {
 	require.Equal(t, test.TestDevsimResources.GetResourceLinks(resources.ResourceType, "oic.wk.d").Sort(), v)
 }
 
+func updateConfigurationResource(ctx context.Context, c *client.Client, deviceID string) error {
+	var got interface{}
+	err := c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
+		"n": test.DevsimName + "-updated",
+	}, &got)
+	if err != nil {
+		return err
+	}
+
+	// restore name - for other tests following this test case
+	return c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
+		"n": test.DevsimName,
+	}, &got)
+}
+
+func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	// update /oc/con, etags are always increasing so by updating /oc/con we ensure that it has the highest etag
+	err = updateConfigurationResource(ctx, c, deviceID)
+	require.NoError(t, err)
+
+	v := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_B))
+	require.NoError(t, err)
+	require.Equal(t, codes.Content, v.Code)
+	if v.ETag == nil {
+		t.Skip("Device doesn't support ETag")
+	}
+
+	for i := range v.Body {
+		require.Equal(t, deviceID, v.Body[i].DeviceID())
+		switch v.Body[i].Href() {
+		case platform.ResourceURI:
+		case plgdtime.ResourceURI:
+		case configuration.ResourceURI:
+		case introspection.ResourceURI:
+		case maintenance.ResourceURI:
+		case cloud.ResourceURI:
+		case device.ResourceURI:
+		case test.TestResourceLightInstanceHref("1"):
+		case test.TestResourceSwitchesHref:
+		default:
+			require.NoError(t, fmt.Errorf("unknown resource href: %v", v.Body[i].Href()))
+		}
+	}
+
+	var etag []byte
+	for _, bi := range v.Body {
+		if bi.Href() == configuration.ResourceURI {
+			etag = bi.ETag
+		}
+		require.NotEmpty(t, bi.ETag)
+	}
+	require.Equal(t, v.ETag, etag)
+
+	v = coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+	// when using a valid ETag we should get a Valid response with an empty payload
+	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_B), client.WithETag(etag))
+	require.NoError(t, err)
+	require.Equal(t, codes.Valid, v.Code)
+	require.Empty(t, v.Body)
+}
+
 func TestClientGetConResourceByETag(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
@@ -145,7 +226,7 @@ func TestClientGetConResourceByETag(t *testing.T) {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*80)
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
@@ -182,16 +263,7 @@ func TestClientGetConResourceByETag(t *testing.T) {
 	require.Empty(t, v1.Body)
 
 	// after update, ETag should change
-	var got interface{}
-	err = c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
-		"n": test.DevsimName + "-updated",
-	}, &got)
-	require.NoError(t, err)
-
-	// restore name - for other tests following this test case
-	err = c.UpdateResource(ctx, deviceID, configuration.ResourceURI, map[string]interface{}{
-		"n": test.DevsimName,
-	}, &got)
+	err = updateConfigurationResource(ctx, c, deviceID)
 	require.NoError(t, err)
 
 	// previous ETag should no longer match
