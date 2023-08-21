@@ -23,6 +23,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -176,8 +177,16 @@ func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
 	err = updateConfigurationResource(ctx, c, deviceID)
 	require.NoError(t, err)
 
+	d, links, err := c.GetDevice(ctx, deviceID, client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()))
+	require.NoError(t, err)
+	link, err := core.GetResourceLink(links, resources.ResourceURI)
+	require.NoError(t, err)
+	// force the use of a secure endpoint
+	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
+
 	v := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_B))
+	opts := []coap.OptionFunc{coap.WithInterface(interfaces.OC_IF_B)}
+	err = d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v, opts...)
 	require.NoError(t, err)
 	require.Equal(t, codes.Content, v.Code)
 	if v.ETag == nil {
@@ -212,10 +221,65 @@ func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
 
 	v = coap.DetailedResponse[resources.BatchResourceDiscovery]{}
 	// when using a valid ETag we should get a Valid response with an empty payload
-	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_B), client.WithETag(etag))
+	opts = []coap.OptionFunc{
+		coap.WithInterface(interfaces.OC_IF_B),
+		coap.WithETag(etag),
+	}
+	err = d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v, opts...)
 	require.NoError(t, err)
 	require.Equal(t, codes.Valid, v.Code)
 	require.Empty(t, v.Body)
+}
+
+// Creating and deleting resource should update the batch etag of the /oic/res resource
+func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *testing.T) {
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	d, links, err := c.GetDevice(ctx, deviceID, client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()))
+	require.NoError(t, err)
+	link, err := core.GetResourceLink(links, resources.ResourceURI)
+	require.NoError(t, err)
+	// force the use of a secure endpoint
+	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
+
+	// get batch etag
+	getBatchEtag := func() []byte {
+		v := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		opts := []coap.OptionFunc{coap.WithInterface(interfaces.OC_IF_B)}
+		err = d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v, opts...)
+		require.NoError(t, err)
+		require.Equal(t, codes.Content, v.Code)
+		return v.ETag
+	}
+	etag1 := getBatchEtag()
+	if etag1 == nil {
+		t.Skip("Device doesn't support ETag")
+	}
+
+	// add resource
+	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), nil)
+	require.NoError(t, err)
+	etag2 := getBatchEtag()
+	require.NotNil(t, etag2)
+	require.NotEqual(t, etag1, etag2)
+
+	// remove resource
+	err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
+	require.NoError(t, err)
+	etag3 := getBatchEtag()
+	require.NotNil(t, etag3)
+	require.NotEqual(t, etag2, etag3)
 }
 
 func TestClientGetConResourceByETag(t *testing.T) {
