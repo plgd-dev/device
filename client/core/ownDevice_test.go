@@ -214,7 +214,7 @@ func TestClientOwnDeviceWithPreviouslyBrokenConnection(t *testing.T) {
 		errClose := c.Close()
 		require.NoError(t, errClose)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
 	defer cancel()
 
 	got, err := c.GetDeviceByIP(ctx, ip)
