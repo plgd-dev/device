@@ -30,6 +30,7 @@ import (
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 )
@@ -52,7 +53,7 @@ func (c observerCodec) Decode(m *pool.Message, v interface{}) error {
 	if v == nil {
 		return nil
 	}
-	if m.Body() == nil {
+	if m.Code() != codes.Valid && m.Body() == nil {
 		return fmt.Errorf("unexpected empty body")
 	}
 	p, ok := v.(**pool.Message)
@@ -91,11 +92,21 @@ func createDecodeFunc(message *pool.Message) decodeFunc {
 	return func(v interface{}, codec coap.Codec) error {
 		l.Lock()
 		defer l.Unlock()
-		_, err := message.Body().Seek(0, io.SeekStart)
+		v, err := coap.TrySetDetailedReponse(message, v)
 		if err != nil {
 			return err
 		}
-		return codec.Decode(message, v)
+		switch code := message.Code(); {
+		case code == codes.Content:
+			_, err := message.Body().Seek(0, io.SeekStart)
+			if err != nil {
+				return err
+			}
+			return codec.Decode(message, v)
+		case code == codes.Valid:
+			return nil
+		}
+		return fmt.Errorf("request failed: %s", codecOcf.Dump(message))
 	}
 }
 

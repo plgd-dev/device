@@ -39,91 +39,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *testing.T, c *client.Client, deviceID string)) {
-	deviceID := test.MustFindDeviceByName(name)
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		errC := c.Close(context.Background())
-		require.NoError(t, errC)
-	}()
-
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
-	defer cancel()
-
-	deviceID, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-	defer disown(t, c, deviceID)
-
-	runTest(ctx, t, c, deviceID)
-}
-
-func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-	h := makeObservationHandler()
-	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
-	require.NoError(t, err)
-	defer func(observationID string) {
-		_, errC := c.StopObservingResource(ctx, observationID)
-		require.NoError(t, errC)
-	}(id)
-
-	var d map[string]interface{}
-	res, err := h.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(0), d["power"].(uint64))
-
-	h2 := makeObservationHandler()
-	id, err = c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h2)
-	require.NoError(t, err)
-	defer func(observationID string) {
-		_, errC := c.StopObservingResource(ctx, observationID)
-		require.NoError(t, errC)
-	}(id)
-
-	var d2 map[string]interface{}
-	res, err = h2.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d2)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(0), d2["power"].(uint64))
-
-	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
-		"power": uint64(123),
-	}, nil)
-	require.NoError(t, err)
-
-	res, err = h.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(123), d["power"].(uint64))
-
-	res, err = h2.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d2)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(123), d2["power"].(uint64))
-
-	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
-		"power": uint64(0),
-	}, nil)
-	assert.NoError(t, err)
-
-	res, err = h.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(0), d["power"].(uint64))
-
-	res, err = h2.waitForNotification(ctx)
-	require.NoError(t, err)
-	err = res(&d2)
-	require.NoError(t, err)
-	assert.Equal(t, uint64(0), d2["power"].(uint64))
-}
-
 func makeObservationHandler() *observationHandler {
 	return &observationHandler{res: make(chan coap.DecodeFunc, 1), close: make(chan struct{})}
 }
@@ -167,6 +82,124 @@ func (h *observationHandler) waitForClose(ctx context.Context) error {
 	}
 }
 
+func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *testing.T, c *client.Client, deviceID string)) {
+	deviceID := test.MustFindDeviceByName(name)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	runTest(ctx, t, c, deviceID)
+}
+
+func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+	h := makeObservationHandler()
+	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
+	require.NoError(t, err)
+	defer func(observationID string) {
+		_, errC := c.StopObservingResource(ctx, observationID)
+		require.NoError(t, errC)
+	}(id)
+
+	res, err := h.waitForNotification(ctx)
+	require.NoError(t, err)
+	d := coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d.Body["power"].(uint64))
+	etag1 := d.ETag
+	if ETagSupported {
+		assert.NotEmpty(t, d.ETag)
+	}
+
+	h2 := makeObservationHandler()
+	id, err = c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h2)
+	require.NoError(t, err)
+	defer func(observationID string) {
+		_, errC := c.StopObservingResource(ctx, observationID)
+		require.NoError(t, errC)
+	}(id)
+
+	res, err = h2.waitForNotification(ctx)
+	require.NoError(t, err)
+	d2 := coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d2.Body["power"].(uint64))
+	etag2 := d2.ETag
+	if ETagSupported {
+		assert.NotEmpty(t, d2.ETag)
+		require.Equal(t, d.ETag, d2.ETag)
+	}
+
+	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
+		"power": uint64(123),
+	}, nil)
+	require.NoError(t, err)
+
+	res, err = h.waitForNotification(ctx)
+	require.NoError(t, err)
+	d = coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(123), d.Body["power"].(uint64))
+	if ETagSupported {
+		require.NotEmpty(t, d.ETag)
+		require.NotEqual(t, etag1, d.ETag)
+		etag1 = d.ETag
+	}
+
+	res, err = h2.waitForNotification(ctx)
+	require.NoError(t, err)
+	d2 = coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(123), d2.Body["power"].(uint64))
+	if ETagSupported {
+		require.NotEmpty(t, d2.ETag)
+		require.NotEqual(t, etag2, d2.ETag)
+		require.Equal(t, d.ETag, d2.ETag)
+		etag2 = d2.ETag
+	}
+
+	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
+		"power": uint64(0),
+	}, nil)
+	assert.NoError(t, err)
+
+	res, err = h.waitForNotification(ctx)
+	require.NoError(t, err)
+	d = coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d.Body["power"].(uint64))
+	if ETagSupported {
+		require.NotEmpty(t, d.ETag)
+		require.NotEqual(t, etag1, d.ETag)
+	}
+
+	res, err = h2.waitForNotification(ctx)
+	require.NoError(t, err)
+	d2 = coap.DetailedResponse[map[string]interface{}]{}
+	err = res(&d2)
+	require.NoError(t, err)
+	assert.Equal(t, uint64(0), d2.Body["power"].(uint64))
+	if ETagSupported {
+		require.NotEmpty(t, d2.ETag)
+		require.NotEqual(t, etag2, d2.ETag)
+		require.Equal(t, d.ETag, d2.ETag)
+	}
+}
+
 func TestObservingResource(t *testing.T) {
 	testDevice(t, test.DevsimName, runObservingResourceTest)
 }
@@ -176,14 +209,17 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		h := makeObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h)
 		require.NoError(t, err)
-		var d schema.ResourceLinks
+		d := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err := h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
-		assert.NotEmpty(t, d)
-		numResources := len(d)
-		d.Sort()
+		if ETagSupported {
+			require.NotEmpty(t, d.ETag)
+		}
+		assert.NotEmpty(t, d.Body)
+		numResources := len(d.Body)
+		d.Body.Sort()
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
 		err = h.waitForClose(checkForNonObservationCtx)
@@ -197,31 +233,40 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
-		var d1 schema.ResourceLinks
+		d1 := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
-		d1.Sort()
-		require.Equal(t, numResources+1, len(d1))
+		if ETagSupported {
+			require.NotEmpty(t, d1.ETag)
+			require.NotEqual(t, d.ETag, d1.ETag)
+		}
+		d1.Body.Sort()
+		require.Equal(t, numResources+1, len(d1.Body))
 		var j int
-		for i := range d1 {
-			if j < len(d) && d[j].Href == d1[i].Href {
-				require.Equal(t, d[j], d1[i])
+		for i := range d1.Body {
+			if j < len(d.Body) && d.Body[j].Href == d1.Body[i].Href {
+				require.Equal(t, d.Body[j], d1.Body[i])
 				j++
 			} else {
-				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1[i].Href)
+				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1.Body[i].Href)
 			}
 		}
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
 		require.NoError(t, err)
-		var d2 schema.ResourceLinks
+		d2 := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
-		d2.Sort()
-		require.Equal(t, d, d2)
+		if ETagSupported {
+			require.NotEmpty(t, d2.ETag)
+			require.NotEqual(t, d.ETag, d2.ETag)
+			require.NotEqual(t, d1.ETag, d2.ETag)
+		}
+		d2.Body.Sort()
+		require.Equal(t, d.Body, d2.Body)
 	})
 }
 
@@ -230,14 +275,17 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		h := makeObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_BASELINE))
 		require.NoError(t, err)
-		var d resources.BaselineResourceDiscovery
+		d := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err := h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
-		require.NotEmpty(t, d)
-		numResources := len(d[0].Links)
-		d[0].Links.Sort()
+		if ETagSupported {
+			require.NotEmpty(t, d.ETag)
+		}
+		require.NotEmpty(t, d.Body)
+		numResources := len(d.Body[0].Links)
+		d.Body[0].Links.Sort()
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
 		err = h.waitForClose(checkForNonObservationCtx)
@@ -251,33 +299,42 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
-		var d1 resources.BaselineResourceDiscovery
+		d1 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
-		require.NotEmpty(t, d1)
-		d1[0].Links.Sort()
-		require.Equal(t, numResources+1, len(d1[0].Links))
+		if ETagSupported {
+			require.NotEmpty(t, d1.ETag)
+			require.NotEqual(t, d.ETag, d1.ETag)
+		}
+		require.NotEmpty(t, d1.Body)
+		d1.Body[0].Links.Sort()
+		require.Equal(t, numResources+1, len(d1.Body[0].Links))
 		var j int
-		for i := range d1 {
-			if j < len(d) && d[0].Links[j].Href == d1[0].Links[i].Href {
-				require.Equal(t, d[0].Links[j], d1[0].Links[i])
+		for i := range d1.Body {
+			if j < len(d.Body) && d.Body[0].Links[j].Href == d1.Body[0].Links[i].Href {
+				require.Equal(t, d.Body[0].Links[j], d1.Body[0].Links[i])
 				j++
 			} else {
-				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1[0].Links[i].Href)
+				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1.Body[0].Links[i].Href)
 			}
 		}
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
 		require.NoError(t, err)
-		var d2 resources.BaselineResourceDiscovery
+		d2 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
-		require.NotEmpty(t, d1)
-		d2[0].Links.Sort()
-		require.Equal(t, d, d2)
+		if ETagSupported {
+			require.NotEmpty(t, d1.ETag)
+			require.NotEqual(t, d.ETag, d2.ETag)
+			require.NotEqual(t, d1.ETag, d2.ETag)
+		}
+		require.NotEmpty(t, d2.Body)
+		d2.Body[0].Links.Sort()
+		require.Equal(t, d.Body, d2.Body)
 	})
 }
 
@@ -286,12 +343,15 @@ func TestObservingNonObservableResource(t *testing.T) {
 		h := makeObservationHandler()
 		_, err := c.ObserveResource(ctx, deviceID, maintenance.ResourceURI, h)
 		require.NoError(t, err)
-		var d maintenance.Maintenance
+		d := coap.DetailedResponse[maintenance.Maintenance]{}
 		// resource is not observable so action (close/event) depends on goroutine scheduler which is not deterministic
 		select {
 		case e := <-h.res:
 			err = e(&d)
 			require.NoError(t, err)
+			if ETagSupported {
+				require.NotEmpty(t, d.ETag)
+			}
 			err = h.waitForClose(ctx)
 			require.NoError(t, err)
 		case <-h.close:
