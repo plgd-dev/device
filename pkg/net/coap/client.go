@@ -354,11 +354,11 @@ func observationHandler(c *Client, codec Codec, handler ObservationHandler) func
 
 func decodeObservation(codec Codec, m *pool.Message) DecodeFunc {
 	return func(body interface{}) error {
-		if m.Code() != codes.Content {
+		if m.Code() != codes.Content && m.Code() != codes.Valid {
 			return status.Error(m, fmt.Errorf("observation failed: %s", codecOcf.Dump(m)))
 		}
-		if err := codec.Decode(m, body); err != nil {
-			return status.Error(m, fmt.Errorf("could not decode observation: %w", err))
+		if errD := codec.Decode(m, body); errD != nil {
+			return status.Error(m, fmt.Errorf("could not decode observation: %w", errD))
 		}
 		return nil
 	}

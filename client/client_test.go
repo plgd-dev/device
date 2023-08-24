@@ -27,12 +27,52 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
+	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 
 const TestTimeout = time.Second * 8
+
+var ETagSupported = false
+
+func init() {
+	panicIfErr := func(err error) {
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	panicIfErr(err)
+	defer func() {
+		errC := c.Close(context.Background())
+		panicIfErr(errC)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	panicIfErr(err)
+	defer func() {
+		ctxD, cancelD := context.WithTimeout(context.Background(), time.Second*2)
+		defer cancelD()
+		errD := c.DisownDevice(ctxD, deviceID)
+		panicIfErr(errD)
+	}()
+
+	v := coap.DetailedResponse[interface{}]{}
+	err = c.GetResource(ctx, deviceID, device.ResourceURI, &v)
+	panicIfErr(err)
+	if v.ETag != nil {
+		ETagSupported = true
+		fmt.Println("ETags supported")
+	}
+}
 
 type testSetupSecureClient struct {
 	ca      []*x509.Certificate
