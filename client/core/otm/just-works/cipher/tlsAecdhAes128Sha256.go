@@ -123,11 +123,11 @@ func (c *TLSAecdhAes128Sha256) Encrypt(pkt *recordlayer.RecordLayer, raw []byte)
 }
 
 // Decrypt decrypts a single TLS RecordLayer
-func (c *TLSAecdhAes128Sha256) Decrypt(raw []byte) ([]byte, error) {
+func (c *TLSAecdhAes128Sha256) Decrypt(h recordlayer.Header, raw []byte) ([]byte, error) {
 	cbc := c.cbc.Load()
 	if cbc == nil {
 		return nil, fmt.Errorf("CipherSuite is not ready, unable to decrypt")
 	}
 
-	return cbc.(*ciphersuite.CBC).Decrypt(raw) //nolint:forcetypeassert
+	return cbc.(*ciphersuite.CBC).Decrypt(h, raw) //nolint:forcetypeassert
 }
