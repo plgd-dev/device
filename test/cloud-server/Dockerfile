@@ -1,4 +1,4 @@
-FROM golang:1.19.5-alpine AS build
+FROM golang:1.19.12-alpine AS build
 RUN apk add --no-cache curl git build-base
 WORKDIR $GOPATH/src/github.com/plgd-dev/device
 COPY go.mod go.sum ./
@@ -7,7 +7,7 @@ COPY . .
 RUN go test -c -coverpkg=./... -covermode=atomic ./client -o /go/bin/device.client.test
 RUN go test -c -coverpkg=./... -covermode=atomic ./client/core -o /go/bin/device.client.core.test
 
-FROM alpine:3.17 AS service
+FROM alpine:3.18 AS service
 RUN apk add bash
 COPY --from=build /go/bin/device.client.test /usr/local/bin/device.client.test
 COPY --from=build /go/bin/device.client.core.test /usr/local/bin/device.client.core.test
