@@ -42,7 +42,7 @@ func TestVNDOCFCBORCodecDecode(t *testing.T) {
 		{
 			name: "empty",
 			args: args{
-				m: pool.NewMessage(context.TODO()),
+				m: pool.NewMessage(context.Background()),
 			},
 			wantErr: true,
 		},
@@ -50,7 +50,7 @@ func TestVNDOCFCBORCodecDecode(t *testing.T) {
 			name: "invalid cbor format",
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.TextPlain)
 					return m
 				}(),
@@ -61,7 +61,7 @@ func TestVNDOCFCBORCodecDecode(t *testing.T) {
 			name: "empty body",
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.AppCBOR)
 					return m
 				}(),
@@ -72,7 +72,7 @@ func TestVNDOCFCBORCodecDecode(t *testing.T) {
 			name: "empty object",
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.AppOcfCbor)
 					m.SetBody(bytes.NewReader([]byte{0xa0}))
 					m.SetCode(codes.Content)
@@ -114,7 +114,7 @@ func TestRawCodecDecode(t *testing.T) {
 		{
 			name: "empty",
 			args: args{
-				m: pool.NewMessage(context.TODO()),
+				m: pool.NewMessage(context.Background()),
 			},
 			want: nil,
 		},
@@ -122,7 +122,7 @@ func TestRawCodecDecode(t *testing.T) {
 			name: "empty body",
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.AppCBOR)
 					return m
 				}(),
@@ -133,7 +133,7 @@ func TestRawCodecDecode(t *testing.T) {
 			name: "unknown media type",
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.AppOcfCbor)
 					m.SetBody(bytes.NewReader([]byte{0xa0}))
 					m.SetCode(codes.Content)
@@ -149,7 +149,7 @@ func TestRawCodecDecode(t *testing.T) {
 			},
 			args: args{
 				m: func() *pool.Message {
-					m := pool.NewMessage(context.TODO())
+					m := pool.NewMessage(context.Background())
 					m.SetContentFormat(message.AppOcfCbor)
 					m.SetBody(bytes.NewReader([]byte{0xa1, 0x63, 0x6b, 0x65, 0x79, 0x61, 0x76, 0x61, 0x6c, 0x75, 0x65}))
 					m.SetCode(codes.Content)
@@ -201,14 +201,15 @@ func TestDump(t *testing.T) {
 			name: "get request (AppOcfCbor)",
 			args: args{
 				cf:   message.AppOcfCbor,
-				body: bytes.NewReader([]byte{0xa1, 0x63, 0x6b, 0x65, 0x79, 0x61, 0x76, 0x61, 0x6c, 0x75, 0x65}),
+				body: bytes.NewReader([]byte{0xa1, 0x63, 0x6b, 0x65, 0x79, 0x61, 0x76}),
 			},
 			want: "Format: application/vnd.ocf+cbor\n\nContent: {\"key\":\"v\"}\n",
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := pool.NewMessage(context.TODO())
+			m := pool.NewMessage(context.Background())
 			m.SetContentFormat(tt.args.cf)
 			err := m.SetPath("/oic/res")
 			require.NoError(t, err)
