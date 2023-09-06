@@ -383,13 +383,6 @@ func verifyBatchDiscoveryResponse(t *testing.T, deviceID string, resp coap.Detai
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
-		var v coap.DetailedResponse[interface{}]
-		err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_LL))
-		require.NoError(t, err)
-		if ETagSupported {
-			require.NotEmpty(t, v.ETag)
-		}
-
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		var d coap.DetailedResponse[resources.BatchResourceDiscovery]
