@@ -37,6 +37,7 @@ import (
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/exp/slices"
 )
 
 func makeObservationHandler() *observationHandler {
@@ -362,38 +363,42 @@ func TestObservingNonObservableResource(t *testing.T) {
 	})
 }
 
+func verifyBatchDiscoveryResponse(t *testing.T, deviceID string, resp coap.DetailedResponse[resources.BatchResourceDiscovery], hrefs ...string) {
+	hrefs_len := len(hrefs)
+	resp.Body.Sort()
+	require.Len(t, resp.Body, hrefs_len)
+
+	for i := range resp.Body {
+		require.Equal(t, deviceID, resp.Body[i].DeviceID())
+		if !slices.Contains(hrefs, resp.Body[i].Href()) {
+			require.NoError(t, fmt.Errorf("unknown resource href: %v", resp.Body[i].Href()))
+		}
+		require.NotEmpty(t, resp.Body[i].Content)
+		if ETagSupported {
+			require.NotEmpty(t, resp.Body[i].ETag)
+		}
+	}
+}
+
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
-		var v interface{}
-		err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v, client.WithInterface(interfaces.OC_IF_LL))
-		require.NoError(t, err)
-
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
-		var d resources.BatchResourceDiscovery
+		var d coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err := h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
-		assert.NotEmpty(t, d)
-		d.Sort()
-		require.Len(t, d, 9)
-		for i := range d {
-			require.Equal(t, deviceID, d[i].DeviceID())
-			switch d[i].Href() {
-			case device.ResourceURI:
-			case platform.ResourceURI:
-			case test.TestResourceLightInstanceHref("1"):
-			case cloud.ResourceURI:
-			case maintenance.ResourceURI:
-			case introspection.ResourceURI:
-			case configuration.ResourceURI:
-			case test.TestResourceSwitchesHref:
-			case plgdtime.ResourceURI:
-			default:
-				require.NoError(t, fmt.Errorf("unknown resource href: %v", d[i].Href()))
-			}
+		assert.NotEmpty(t, d.Body)
+		expected_hrefs := []string{
+			device.ResourceURI, platform.ResourceURI, test.TestResourceLightInstanceHref("1"),
+			cloud.ResourceURI, maintenance.ResourceURI, introspection.ResourceURI, configuration.ResourceURI, test.TestResourceSwitchesHref,
+			plgdtime.ResourceURI,
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d, expected_hrefs...)
+		if ETagSupported {
+			require.NotEmpty(t, d.ETag)
 		}
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
@@ -408,38 +413,44 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		createSwitch(ctx, t, c, deviceID)
-		var d1 resources.BatchResourceDiscovery
+		var d1 coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
-		d1.Sort()
-		require.Len(t, d1, 2)
-		for i := range d1 {
-			require.Equal(t, deviceID, d1[i].DeviceID())
-			switch d1[i].Href() {
-			case test.TestResourceSwitchesInstanceHref("1"):
-			case test.TestResourceSwitchesHref:
-			default:
-				require.NoError(t, fmt.Errorf("unknown resource href: %v", d1[i].Href()))
-			}
+		changed_hrefs := []string{test.TestResourceSwitchesInstanceHref("1"), test.TestResourceSwitchesHref}
+		verifyBatchDiscoveryResponse(t, deviceID, d1, changed_hrefs...)
+		if ETagSupported {
+			require.NotEmpty(t, d1.ETag)
+			require.NotEqual(t, d.ETag, d1.ETag)
 		}
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
 		require.NoError(t, err)
-		var d2 resources.BatchResourceDiscovery
+		var d2 coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
-		d2.Sort()
-		require.GreaterOrEqual(t, len(d2), 1)
-		for i := range d2 {
-			require.Equal(t, deviceID, d2[i].DeviceID())
-			switch d2[i].Href() {
+		d2.Body.Sort()
+		require.GreaterOrEqual(t, len(d2.Body), 1)
+		if ETagSupported {
+			require.NotEmpty(t, d2.ETag)
+			require.NotEqual(t, d.ETag, d2.ETag)
+			require.NotEqual(t, d1.ETag, d2.ETag)
+		}
+		for i := range d2.Body {
+			require.Equal(t, deviceID, d2.Body[i].DeviceID())
+			switch d2.Body[i].Href() {
 			case test.TestResourceSwitchesHref:
+				if ETagSupported {
+					require.NotEmpty(t, d2.Body[i].ETag)
+				}
 			case test.TestResourceSwitchesInstanceHref("1"):
+				if ETagSupported {
+					require.Empty(t, d2.Body[i].ETag)
+				}
 			default:
-				require.NoError(t, fmt.Errorf("unknown resource href: %v", d2[i].Href()))
+				require.NoError(t, fmt.Errorf("unknown resource href: %v", d2.Body[i].Href()))
 			}
 		}
 	})
