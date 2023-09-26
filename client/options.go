@@ -24,6 +24,13 @@ import (
 	"github.com/plgd-dev/device/v2/schema"
 )
 
+// WithQuery updates/gets resource with a query directly from a device.
+func WithQuery(resourceQuery string) ResourceQueryOption {
+	return ResourceQueryOption{
+		resourceQuery: resourceQuery,
+	}
+}
+
 // WithInterface updates/gets resource with interface directly from a device.
 func WithInterface(resourceInterface string) ResourceInterfaceOption {
 	return ResourceInterfaceOption{
@@ -125,6 +132,24 @@ func (r ResourceInterfaceOption) applyOnObserve(opts observeOptions) observeOpti
 func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions {
 	if r.resourceInterface != "" {
 		opts.opts = append(opts.opts, coap.WithInterface(r.resourceInterface))
+	}
+	return opts
+}
+
+type ResourceQueryOption struct {
+	resourceQuery string
+}
+
+func (r ResourceQueryOption) applyOnGet(opts getOptions) getOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnObserve(opts observeOptions) observeOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
 	}
 	return opts
 }

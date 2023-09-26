@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
@@ -35,9 +36,9 @@ import (
 	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"golang.org/x/exp/slices"
 )
 
 func makeObservationHandler() *observationHandler {
@@ -233,7 +234,8 @@ func TestObservingDiscoveryResource(t *testing.T) {
 			require.NoError(t, errC)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
-		createSwitch(ctx, t, c, deviceID)
+		const switchID = "1"
+		createSingleSwitch(ctx, t, c, deviceID)
 		d1 := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
@@ -251,10 +253,10 @@ func TestObservingDiscoveryResource(t *testing.T) {
 				require.Equal(t, d.Body[j], d1.Body[i])
 				j++
 			} else {
-				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1.Body[i].Href)
+				require.Equal(t, test.TestResourceSwitchesInstanceHref(switchID), d1.Body[i].Href)
 			}
 		}
-		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
+		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err = h.waitForNotification(ctx)
@@ -299,7 +301,8 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 			require.NoError(t, errC)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
-		createSwitch(ctx, t, c, deviceID)
+		const switchID = "1"
+		createSingleSwitch(ctx, t, c, deviceID)
 		d1 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
@@ -318,10 +321,10 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 				require.Equal(t, d.Body[0].Links[j], d1.Body[0].Links[i])
 				j++
 			} else {
-				require.Equal(t, test.TestResourceSwitchesInstanceHref("1"), d1.Body[0].Links[i].Href)
+				require.Equal(t, test.TestResourceSwitchesInstanceHref(switchID), d1.Body[0].Links[i].Href)
 			}
 		}
-		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
+		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err = h.waitForNotification(ctx)
@@ -363,19 +366,48 @@ func TestObservingNonObservableResource(t *testing.T) {
 	})
 }
 
-func verifyBatchDiscoveryResponse(t *testing.T, deviceID string, resp coap.DetailedResponse[resources.BatchResourceDiscovery], hrefs ...string) {
-	hrefs_len := len(hrefs)
+type batchResource struct {
+	href    string
+	deleted bool
+}
+
+func verifyBatchDiscoveryResponse(t *testing.T, deviceID string, resp coap.DetailedResponse[resources.BatchResourceDiscovery], code codes.Code, expected ...batchResource) {
+	require.Equal(t, code, resp.Code)
+	if code == codes.Valid {
+		require.Empty(t, resp.Body)
+		return
+	}
+
+	hrefs_len := len(expected)
+	expectedResources := make(map[string]bool, hrefs_len)
+	for _, batch := range expected {
+		expectedResources[batch.href] = batch.deleted
+	}
+
 	resp.Body.Sort()
 	require.Len(t, resp.Body, hrefs_len)
 
+	bodyHrefs := make(map[string]struct{}, hrefs_len)
 	for i := range resp.Body {
 		require.Equal(t, deviceID, resp.Body[i].DeviceID())
-		if !slices.Contains(hrefs, resp.Body[i].Href()) {
+		deleted, ok := expectedResources[resp.Body[i].Href()]
+		if !ok {
 			require.NoError(t, fmt.Errorf("unknown resource href: %v", resp.Body[i].Href()))
 		}
 		require.NotEmpty(t, resp.Body[i].Content)
 		if ETagSupported {
-			require.NotEmpty(t, resp.Body[i].ETag)
+			if deleted {
+				require.Empty(t, resp.Body[i].ETag)
+			} else {
+				require.NotEmpty(t, resp.Body[i].ETag)
+			}
+		}
+		bodyHrefs[resp.Body[i].Href()] = struct{}{}
+	}
+
+	for _, batch := range expected {
+		if _, ok := bodyHrefs[batch.href]; !ok {
+			require.NoError(t, fmt.Errorf("missing resource href: %v", batch.href))
 		}
 	}
 }
@@ -391,12 +423,18 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		err = res(&d)
 		require.NoError(t, err)
 		assert.NotEmpty(t, d.Body)
-		expected_hrefs := []string{
-			device.ResourceURI, platform.ResourceURI, test.TestResourceLightInstanceHref("1"),
-			cloud.ResourceURI, maintenance.ResourceURI, introspection.ResourceURI, configuration.ResourceURI, test.TestResourceSwitchesHref,
-			plgdtime.ResourceURI,
+		expected := []batchResource{
+			{device.ResourceURI, false},
+			{platform.ResourceURI, false},
+			{test.TestResourceLightInstanceHref("1"), false},
+			{cloud.ResourceURI, false},
+			{maintenance.ResourceURI, false},
+			{introspection.ResourceURI, false},
+			{configuration.ResourceURI, false},
+			{test.TestResourceSwitchesHref, false},
+			{plgdtime.ResourceURI, false},
 		}
-		verifyBatchDiscoveryResponse(t, deviceID, d, expected_hrefs...)
+		verifyBatchDiscoveryResponse(t, deviceID, d, codes.Content, expected...)
 		if ETagSupported {
 			require.NotEmpty(t, d.ETag)
 		}
@@ -412,19 +450,23 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 			require.NoError(t, errC)
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
-		createSwitch(ctx, t, c, deviceID)
+		const switchID = "1"
+		createSingleSwitch(ctx, t, c, deviceID)
 		var d1 coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
-		changed_hrefs := []string{test.TestResourceSwitchesInstanceHref("1"), test.TestResourceSwitchesHref}
-		verifyBatchDiscoveryResponse(t, deviceID, d1, changed_hrefs...)
+		changed := []batchResource{
+			{test.TestResourceSwitchesInstanceHref(switchID), false},
+			{test.TestResourceSwitchesHref, false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d1, codes.Content, changed...)
 		if ETagSupported {
 			require.NotEmpty(t, d1.ETag)
 			require.NotEqual(t, d.ETag, d1.ETag)
 		}
-		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
+		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		var d2 coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err = h.waitForNotification(ctx)
@@ -453,5 +495,330 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 				require.NoError(t, fmt.Errorf("unknown resource href: %v", d2.Body[i].Href()))
 			}
 		}
+	})
+}
+
+func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
+	if !ETagIncrementalChangesSupported {
+		t.Skip("incremental changes not supported")
+	}
+
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+		h := makeObservationHandler()
+		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
+		require.NoError(t, err)
+		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err := h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d0)
+		require.NoError(t, err)
+		assert.NotEmpty(t, d0.Body)
+		expected := []batchResource{
+			{device.ResourceURI, false},
+			{platform.ResourceURI, false},
+			{test.TestResourceLightInstanceHref("1"), false},
+			{cloud.ResourceURI, false},
+			{maintenance.ResourceURI, false},
+			{introspection.ResourceURI, false},
+			{configuration.ResourceURI, false},
+			{test.TestResourceSwitchesHref, false},
+			{plgdtime.ResourceURI, false},
+		}
+		require.NotEmpty(t, d0.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
+		etags := make([][]byte, 0, len(d0.Body)-1)
+		for _, resource := range d0.Body {
+			if resource.Href() == test.TestResourceLightInstanceHref("1") {
+				continue
+			}
+			etags = append(etags, resource.ETag)
+		}
+
+		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		err = h.waitForClose(checkForNonObservationCtx)
+		if err == nil {
+			t.Skip("oic/res doesn't support observation")
+			return
+		}
+
+		err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
+			"power": uint64(123),
+		}, nil)
+		require.NoError(t, err)
+		defer func() {
+			// restore to original value
+			errU := c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
+				"power": uint64(0),
+			}, nil)
+			require.NoError(t, errU)
+		}()
+
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		err = res(&d1)
+		require.NoError(t, err)
+		require.NotEqual(t, d0.ETag, d1.ETag)
+		changed := []batchResource{
+			{test.TestResourceLightInstanceHref("1"), false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d1, codes.Content, changed...)
+		require.Equal(t, d1.ETag, d1.Body[0].ETag)
+
+		_, err = c.StopObservingResource(ctx, obsID)
+		require.NoError(t, err)
+
+		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d2)
+		require.NoError(t, err)
+		require.Equal(t, d1.ETag, d2.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d2, codes.Valid)
+
+		_, errC := c.StopObservingResource(ctx, obsID)
+		require.NoError(t, errC)
+
+		// every resource except the updated switch should match original etags, thus only the updated switch should be in the payload
+		queries = coap.EncodeETagsForIncrementalChanges(etags)
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		defer func(observationID string) {
+			_, errC := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errC)
+		}(obsID)
+		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d3)
+		require.NoError(t, err)
+		require.Equal(t, d2.ETag, d3.ETag)
+		changed = []batchResource{
+			{test.TestResourceLightInstanceHref("1"), false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d3, codes.Content, changed...)
+	})
+}
+
+func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
+	if !ETagIncrementalChangesSupported {
+		t.Skip("incremental changes not supported")
+	}
+
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+		h := makeObservationHandler()
+		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
+		require.NoError(t, err)
+		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err := h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d0)
+		require.NoError(t, err)
+		assert.NotEmpty(t, d0.Body)
+		expected := []batchResource{
+			{device.ResourceURI, false},
+			{platform.ResourceURI, false},
+			{test.TestResourceLightInstanceHref("1"), false},
+			{cloud.ResourceURI, false},
+			{maintenance.ResourceURI, false},
+			{introspection.ResourceURI, false},
+			{configuration.ResourceURI, false},
+			{test.TestResourceSwitchesHref, false},
+			{plgdtime.ResourceURI, false},
+		}
+		require.NotEmpty(t, d0.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
+		etags := make([][]byte, 0, len(d0.Body)-1)
+		for _, resource := range d0.Body {
+			if resource.Href() == test.TestResourceSwitchesHref {
+				continue
+			}
+			etags = append(etags, resource.ETag)
+		}
+
+		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		err = h.waitForClose(checkForNonObservationCtx)
+		if err == nil {
+			t.Skip("oic/res doesn't support observation")
+			return
+		}
+
+		const switchID = "1"
+		createSingleSwitch(ctx, t, c, deviceID)
+		defer func() {
+			errD := c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
+			require.NoError(t, errD)
+		}()
+
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		err = res(&d1)
+		require.NoError(t, err)
+		require.NotEqual(t, d0.ETag, d1.ETag)
+		changed := []batchResource{
+			{test.TestResourceSwitchesInstanceHref(switchID), false},
+			{test.TestResourceSwitchesHref, false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d1, codes.Content, changed...)
+
+		_, err = c.StopObservingResource(ctx, obsID)
+		require.NoError(t, err)
+
+		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d2)
+		require.NoError(t, err)
+		require.Equal(t, d1.ETag, d2.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d2, codes.Valid)
+
+		_, errC := c.StopObservingResource(ctx, obsID)
+		require.NoError(t, errC)
+
+		// every resource except the updated /switches resources should match original etags
+		queries = coap.EncodeETagsForIncrementalChanges(etags)
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		defer func(observationID string) {
+			_, errC := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errC)
+		}(obsID)
+		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d3)
+		require.NoError(t, err)
+		require.Equal(t, d2.ETag, d3.ETag)
+		changed = []batchResource{
+			{test.TestResourceSwitchesInstanceHref(switchID), false},
+			{test.TestResourceSwitchesHref, false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d3, codes.Content, changed...)
+	})
+}
+
+func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
+	if !ETagIncrementalChangesSupported {
+		t.Skip("incremental changes not supported")
+	}
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+		const switchID = "1"
+		createSingleSwitch(ctx, t, c, deviceID)
+		toDelete := []string{test.TestResourceSwitchesInstanceHref(switchID)}
+		defer func() {
+			var errs *multierror.Error
+			for _, href := range toDelete {
+				if err := c.DeleteResource(ctx, deviceID, href, nil); err != nil {
+					errs = multierror.Append(errs, err)
+				}
+			}
+			require.NoError(t, errs.ErrorOrNil())
+		}()
+
+		h := makeObservationHandler()
+		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
+		require.NoError(t, err)
+		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err := h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d0)
+		require.NoError(t, err)
+		assert.NotEmpty(t, d0.Body)
+		expected := []batchResource{
+			{device.ResourceURI, false},
+			{platform.ResourceURI, false},
+			{test.TestResourceLightInstanceHref("1"), false},
+			{cloud.ResourceURI, false},
+			{maintenance.ResourceURI, false},
+			{introspection.ResourceURI, false},
+			{configuration.ResourceURI, false},
+			{test.TestResourceSwitchesHref, false},
+			{test.TestResourceSwitchesInstanceHref(switchID), false},
+			{plgdtime.ResourceURI, false},
+		}
+		require.NotEmpty(t, d0.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
+		etags := make([][]byte, 0, len(d0.Body)-1)
+		for _, resource := range d0.Body {
+			if resource.Href() == test.TestResourceSwitchesHref {
+				continue
+			}
+			etags = append(etags, resource.ETag)
+		}
+
+		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
+		defer cancel()
+		err = h.waitForClose(checkForNonObservationCtx)
+		if err == nil {
+			t.Skip("oic/res doesn't support observation")
+			return
+		}
+
+		errD := c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
+		require.NoError(t, errD)
+		toDelete = nil
+
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		err = res(&d1)
+		require.NoError(t, err)
+		require.NotEqual(t, d0.ETag, d1.ETag)
+		changed := []batchResource{
+			{test.TestResourceSwitchesHref, false},
+			{test.TestResourceSwitchesInstanceHref(switchID), true},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d1, codes.Content, changed...)
+
+		_, err = c.StopObservingResource(ctx, obsID)
+		require.NoError(t, err)
+
+		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d2)
+		require.NoError(t, err)
+		require.Equal(t, d1.ETag, d2.ETag)
+		verifyBatchDiscoveryResponse(t, deviceID, d2, codes.Valid)
+
+		_, errC := c.StopObservingResource(ctx, obsID)
+		require.NoError(t, errC)
+
+		// every resource except the updated /switches resources should match original etags
+		queries = coap.EncodeETagsForIncrementalChanges(etags)
+		require.Equal(t, 1, len(queries))
+		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
+		require.NoError(t, err)
+		defer func(observationID string) {
+			_, errC := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errC)
+		}(obsID)
+		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+		res, err = h.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = res(&d3)
+		require.NoError(t, err)
+		require.Equal(t, d2.ETag, d3.ETag)
+		changed = []batchResource{
+			{test.TestResourceSwitchesHref, false},
+		}
+		verifyBatchDiscoveryResponse(t, deviceID, d3, codes.Content, changed...)
 	})
 }

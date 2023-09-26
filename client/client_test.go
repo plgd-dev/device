@@ -30,13 +30,42 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
 )
 
 const TestTimeout = time.Second * 8
 
-var ETagSupported = false
+var (
+	ETagSupported                   = false
+	ETagIncrementalChangesSupported = false
+)
+
+func checkIfIncrementalChangesSupported(ctx context.Context, c *client.Client, deviceID string) bool {
+	v1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+	err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v1, client.WithInterface(interfaces.OC_IF_B))
+	if err != nil {
+		return false
+	}
+	if v1.ETag == nil {
+		return false
+	}
+	opts := make([]client.GetOption, 0, 2)
+	opts = append(opts, client.WithInterface(interfaces.OC_IF_B))
+	queries := coap.EncodeETagsForIncrementalChanges([][]byte{v1.ETag})
+	for _, q := range queries {
+		opts = append(opts, client.WithQuery(q))
+	}
+	v2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
+	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v2, opts...)
+	if err != nil {
+		return false
+	}
+	return v2.Code == codes.Valid
+}
 
 func init() {
 	panicIfErr := func(err error) {
@@ -71,6 +100,11 @@ func init() {
 	if v.ETag != nil {
 		ETagSupported = true
 		fmt.Println("ETags supported")
+
+		if checkIfIncrementalChangesSupported(ctx, c, deviceID) {
+			ETagIncrementalChangesSupported = true
+			fmt.Println("ETags incremental changes supported")
+		}
 	}
 }
 
