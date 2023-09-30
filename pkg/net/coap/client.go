@@ -139,31 +139,24 @@ func NewClient(conn ClientConn) *Client {
 
 type OptionFunc = func(message.Options) message.Options
 
-func WithInterface(in string) OptionFunc {
+func WithQuery(query string) OptionFunc {
 	return func(opts message.Options) message.Options {
-		v := "if=" + in
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
+		buf := make([]byte, len(query))
+		opts, _, _ = opts.AddString(buf, message.URIQuery, query)
 		return opts
 	}
+}
+
+func WithInterface(in string) OptionFunc {
+	return WithQuery("if=" + in)
 }
 
 func WithResourceType(in string) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "rt=" + in
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
+	return WithQuery("rt=" + in)
 }
 
 func WithDeviceID(in string) OptionFunc {
-	return func(opts message.Options) message.Options {
-		v := "di=" + in
-		buf := make([]byte, len(v))
-		opts, _, _ = opts.AddString(buf, message.URIQuery, v)
-		return opts
-	}
+	return WithQuery("di=" + in)
 }
 
 func WithAccept(contentFormat message.MediaType) OptionFunc {

@@ -233,6 +233,10 @@ func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
 
 // Creating and deleting resource should update the batch etag of the /oic/res resource
 func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *testing.T) {
+	if !ETagBatchSupported {
+		t.Skip("Device doesn't support ETag for batch interface")
+	}
+
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	c, err := NewTestSecureClient()
 	require.NoError(t, err)
@@ -251,7 +255,10 @@ func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *
 	link, err := core.GetResourceLink(links, resources.ResourceURI)
 	require.NoError(t, err)
 	// force the use of a secure endpoint
-	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
+	secureEndpoints := link.Endpoints.FilterSecureEndpoints()
+	if (len(secureEndpoints)) != 0 {
+		link.Endpoints = secureEndpoints
+	}
 
 	// get batch etag
 	getBatchEtag := func() []byte {
@@ -263,9 +270,7 @@ func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *
 		return v.ETag
 	}
 	etag1 := getBatchEtag()
-	if etag1 == nil {
-		t.Skip("Device doesn't support ETag")
-	}
+	require.NotNil(t, etag1)
 
 	// add resource
 	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), nil)

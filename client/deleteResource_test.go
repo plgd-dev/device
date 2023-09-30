@@ -29,7 +29,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createSwitch(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+func createSingleSwitch(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 	var got map[string]interface{}
 	err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), &got)
 	require.NoError(t, err)
@@ -46,6 +46,7 @@ func createSwitch(ctx context.Context, t *testing.T, c *client.Client, deviceID 
 
 func TestClientDeleteResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	const switchID = "1"
 	type args struct {
 		deviceID string
 		href     string
@@ -60,7 +61,7 @@ func TestClientDeleteResource(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
-				href:     test.TestResourceSwitchesInstanceHref("1"),
+				href:     test.TestResourceSwitchesInstanceHref(switchID),
 				opts:     []client.DeleteOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
 		},
@@ -94,7 +95,7 @@ func TestClientDeleteResource(t *testing.T) {
 	require.NoError(t, err)
 	defer disown(t, c, deviceID)
 
-	createSwitch(ctx, t, c, deviceID)
+	createSingleSwitch(ctx, t, c, deviceID)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
