@@ -22,14 +22,16 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
+	"log"
 	"testing"
 	"time"
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
-	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
@@ -41,30 +43,40 @@ const TestTimeout = time.Second * 8
 
 var (
 	ETagSupported                   = false
+	ETagBatchSupported              = false
 	ETagIncrementalChangesSupported = false
 )
 
-func checkIfIncrementalChangesSupported(ctx context.Context, c *client.Client, deviceID string) bool {
+func checkIfBatchAndIncrementalChangesSupported(ctx context.Context, d *core.Device, link schema.ResourceLink) (bool, bool) {
 	v1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-	err := c.GetResource(ctx, deviceID, resources.ResourceURI, &v1, client.WithInterface(interfaces.OC_IF_B))
+	err := d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v1, coap.WithInterface(interfaces.OC_IF_B))
 	if err != nil {
-		return false
+		fmt.Printf("cannot check if incremental changes supported: first request failed: %v\n", err)
+		return false, false
 	}
 	if v1.ETag == nil {
-		return false
+		log.Printf("cannot check if incremental changes supported: ETag is nil\n")
+		return false, false
 	}
-	opts := make([]client.GetOption, 0, 2)
-	opts = append(opts, client.WithInterface(interfaces.OC_IF_B))
-	queries := coap.EncodeETagsForIncrementalChanges([][]byte{v1.ETag})
+	opts := make([]coap.OptionFunc, 0, 2)
+	opts = append(opts, coap.WithInterface(interfaces.OC_IF_B))
+	etags := make([][]byte, 0, v1.Body.Len())
+	for _, v := range v1.Body {
+		if len(v.ETag) != 0 {
+			etags = append(etags, v.ETag)
+		}
+	}
+	queries := coap.EncodeETagsForIncrementalChanges(etags)
 	for _, q := range queries {
-		opts = append(opts, client.WithQuery(q))
+		opts = append(opts, coap.WithQuery(q))
 	}
 	v2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-	err = c.GetResource(ctx, deviceID, resources.ResourceURI, &v2, opts...)
+	err = d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v2, opts...)
 	if err != nil {
-		return false
+		log.Fatalf("cannot check if incremental changes supported: second request failed: %v\n", err)
+		return true, false
 	}
-	return v2.Code == codes.Valid
+	return true, v2.Code == codes.Valid
 }
 
 func init() {
@@ -94,15 +106,28 @@ func init() {
 		panicIfErr(errD)
 	}()
 
+	d, links, err := c.GetDevice(ctx, deviceID, client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()))
+	panicIfErr(err)
+	link, err := core.GetResourceLink(links, resources.ResourceURI)
+	panicIfErr(err)
+	// force the use of a secure endpoint
+	secureEndpoints := link.Endpoints.FilterSecureEndpoints()
+	if (len(secureEndpoints)) != 0 {
+		link.Endpoints = secureEndpoints
+	}
+
 	v := coap.DetailedResponse[interface{}]{}
-	err = c.GetResource(ctx, deviceID, device.ResourceURI, &v)
+	err = d.GetResourceWithCodec(ctx, link, codecOcf.VNDOCFCBORCodec{}, &v)
 	panicIfErr(err)
 	if v.ETag != nil {
 		ETagSupported = true
 		fmt.Println("ETags supported")
 
-		if checkIfIncrementalChangesSupported(ctx, c, deviceID) {
-			ETagIncrementalChangesSupported = true
+		ETagBatchSupported, ETagIncrementalChangesSupported = checkIfBatchAndIncrementalChangesSupported(ctx, d, link)
+		if ETagBatchSupported {
+			fmt.Println("ETags for batch interface supported")
+		}
+		if ETagIncrementalChangesSupported {
 			fmt.Println("ETags incremental changes supported")
 		}
 	}
