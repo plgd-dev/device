@@ -58,7 +58,7 @@ jobs:
 
       - name: Extract metadata (tags, labels) for docker image
         id: meta
-        uses: docker/metadata-action@v4
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.name }}
           tags: |
