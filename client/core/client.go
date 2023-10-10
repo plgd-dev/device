@@ -80,7 +80,7 @@ func WithTLS(tlsConfig *TLSConfig) OptionFunc {
 
 // DiscoveryConfiguration setup discovery configuration
 type DiscoveryConfiguration struct {
-	MulticastHopLimit    int      // default: 2, min value: 1 - don't pass through router, max value: 255, https://tools.ietf.org/html/rfc2460#section-3
+	MulticastHopLimit    int      // default: {224.0.1.187:5683, ff02::158]:5683} = 1, {[ff03::158]:5683, [ff05::158]:5683} = 255, https://openconnectivity.org/specs/OCF_Core_Specification.pdf 12.2.9
 	MulticastAddressUDP4 []string // default: "[224.0.1.187:5683] (client.DiscoveryAddressUDP4), empty: don't use ipv4 multicast"
 	MulticastAddressUDP6 []string // default: "[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683]"] (client.DiscoveryAddressUDP6), empty: don't use ipv6 multicast"
 	MulticastOptions     []coapNet.MulticastOption
@@ -151,7 +151,7 @@ func (c *Client) getDeviceConfiguration() DeviceConfiguration {
 
 func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 	return DiscoveryConfiguration{
-		MulticastHopLimit:    2,
+		MulticastHopLimit:    0, // will be set to 1 or 255 based on address
 		MulticastAddressUDP4: DiscoveryAddressUDP4,
 		MulticastAddressUDP6: DiscoveryAddressUDP6,
 		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(iface *net.Interface, err error) {
