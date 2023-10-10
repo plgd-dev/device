@@ -36,9 +36,16 @@ import (
 // See the section 10.4 on the line 2482 of the Core specification:
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 // https://iotivity.org/documentation/linux/programmers-guide
+const (
+	DiscoveryAddressUDP4Local      = "224.0.1.187:5683"
+	DiscoveryAddressUDP6LinkLocal  = "[ff02::158]:5683"
+	DiscoveryAddressUDP6RealmLocal = "[ff03::158]:5683"
+	DiscoveryAddressUDP6SiteLocal  = "[ff05::158]:5683"
+)
+
 var (
-	DiscoveryAddressUDP4 = []string{"224.0.1.187:5683"}
-	DiscoveryAddressUDP6 = []string{"[ff02::158]:5683", "[ff03::158]:5683", "[ff05::158]:5683"}
+	DiscoveryAddressUDP4 = []string{DiscoveryAddressUDP4Local}
+	DiscoveryAddressUDP6 = []string{DiscoveryAddressUDP6LinkLocal, DiscoveryAddressUDP6RealmLocal, DiscoveryAddressUDP6SiteLocal}
 )
 
 type DiscoveryHandler = func(conn *client.Conn, req *pool.Message)
@@ -89,6 +96,24 @@ func (d *DiscoveryClient) Close() error {
 	return err
 }
 
+// See the section 12.2.9 https://openconnectivity.org/specs/OCF_Core_Specification.pdf
+var defaultHopLimit = map[string]int{
+	DiscoveryAddressUDP4Local:      1,
+	DiscoveryAddressUDP6LinkLocal:  1,
+	DiscoveryAddressUDP6RealmLocal: 255,
+	DiscoveryAddressUDP6SiteLocal:  255,
+}
+
+func getHopLimit(addr string, desiredHopLimit int) int {
+	if desiredHopLimit > 0 {
+		return desiredHopLimit
+	}
+	if v, ok := defaultHopLimit[addr]; ok {
+		return v
+	}
+	return 1
+}
+
 // DialDiscoveryAddresses connects to discovery endpoints.
 func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) ([]*DiscoveryClient, error) {
 	v, ok := ctx.Deadline()
@@ -105,7 +130,11 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 	msgIDudp6 := msgIDudp4 + ^uint16(0)/2
 
 	for _, address := range cfg.MulticastAddressUDP4 {
-		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors, cfg.MulticastOptions)
+		multicastOptions := []net.MulticastOption{
+			net.WithMulticastHoplimit(getHopLimit(address, cfg.MulticastHopLimit)),
+		}
+		multicastOptions = append(multicastOptions, cfg.MulticastOptions...)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors, multicastOptions)
 		if err != nil {
 			errors(err)
 			continue
@@ -113,7 +142,11 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		out = append(out, c)
 	}
 	for _, address := range cfg.MulticastAddressUDP6 {
-		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors, cfg.MulticastOptions)
+		multicastOptions := []net.MulticastOption{
+			net.WithMulticastHoplimit(getHopLimit(address, cfg.MulticastHopLimit)),
+		}
+		multicastOptions = append(multicastOptions, cfg.MulticastOptions...)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors, multicastOptions)
 		if err != nil {
 			errors(err)
 			continue
