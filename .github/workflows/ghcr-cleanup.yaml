@@ -1,0 +1,46 @@
+name: Delete old ghcr images
+on:
+  schedule:
+    - cron: "15 1 * * *" # every day at 1:15am
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+
+jobs:
+  pull-request-ghcr-cleanup:
+    if: ${{ github.event_name == 'pull_request' }}
+    name: Delete images related to closed PR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete images related to closed PR
+        uses: snok/container-retention-policy@v2
+        with:
+          image-names: device/*
+          cut-off: now UTC
+          account-type: org
+          org-name: plgd-dev
+          filter-tags: vnext-pr${{ github.event.pull_request.number }}*
+          token: ${{ secrets.GHCR_CLEANUP_PAT }}
+
+  nightly-ghcr-cleanup:
+    if: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
+    name: Delete old vnext images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete older than a month vnext images
+        uses: snok/container-retention-policy@v2
+        with:
+          image-names: device/*
+          cut-off: One month ago UTC
+          account-type: org
+          org-name: plgd-dev
+          filter-tags: vnext-*
+          skip-tags: vnext-pr*, main
+          token: ${{ secrets.GHCR_CLEANUP_PAT }}
+
+      - name: Delete untagged images with no dependency
+        uses: Chizkiyahu/delete-untagged-ghcr-action@v3
+        with:
+          token: ${{ secrets.GHCR_CLEANUP_PAT }}
+          owner_type: org
+          except_untagged_multiplatform: true          
