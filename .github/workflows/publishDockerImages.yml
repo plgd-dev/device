@@ -8,7 +8,7 @@ name: Create and publish a docker images to github
 on:
   workflow_run:
     workflows:
-      - "Test"
+      - "Tests"
     branches:
       - main
     types:
