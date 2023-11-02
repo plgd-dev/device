@@ -54,7 +54,10 @@ jobs:
 
       - name: Set vars.branch
         id: vars
-        run: BRANCH=${GITHUB_REF#refs/*/} && echo ${BRANCH} && echo "::set-output name=branch::${BRANCH}"
+        run: |
+          BRANCH=${GITHUB_REF#refs/*/}
+          echo ${BRANCH}
+          echo "branch=${BRANCH}" >> $GITHUB_OUTPUT
 
       - name: Extract metadata (tags, labels) for docker image
         id: meta
