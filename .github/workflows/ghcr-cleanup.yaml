@@ -2,8 +2,6 @@ name: Delete old ghcr images
 on:
   schedule:
     - cron: "15 1 * * *" # every day at 1:15am
-  pull_request:
-    types: [closed]
   workflow_dispatch:
 
 jobs:
