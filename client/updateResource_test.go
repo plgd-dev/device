@@ -200,7 +200,7 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 				deviceID: deviceID,
 				href:     configuration.ResourceURI,
 				data: map[string]interface{}{
-					"n": t.Name() + "-valid",
+					"n": t.Name() + "-forbidden",
 				},
 				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},

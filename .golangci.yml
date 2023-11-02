@@ -10,11 +10,11 @@ linters-settings:
       modules:
         - github.com/pkg/errors:
             recommendations:
-            - errors
+              - errors
   stylecheck:
     # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
-    checks: [ "all", "-ST1000", "-ST1003" ]
+    checks: ["all", "-ST1000", "-ST1003"]
 
 linters:
   enable:
@@ -116,6 +116,7 @@ issues:
     - path: cmd/ocfclient/main\.go
       linters:
         - gocognit
+        - goconst
         - gocyclo
         - gosec
 
