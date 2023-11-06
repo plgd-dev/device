@@ -18,6 +18,8 @@
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.p.swagger.json
 package platform
 
+import "fmt"
+
 const (
 	ResourceType = "oic.wk.p"
 	ResourceURI  = "/oic/p"
@@ -34,4 +36,20 @@ type Platform struct {
 	ModelNumber                     string   `json:"mnmo,omitempty"`
 	ManufacturersDefinedInformation string   `json:"vid,omitempty"`
 	PlatformVersion                 string   `json:"mnpv,omitempty"`
+
+	// custom properties
+	Version uint32 `json:"x.org.iotivity.version,omitempty"`
+}
+
+func (p Platform) GetVersion() (uint8, uint8, uint8, uint8) {
+	major := uint8((p.Version >> 24) & 0xFF)
+	minor := uint8((p.Version >> 16) & 0xFF)
+	patch := uint8((p.Version >> 8) & 0xFF)
+	bugfix := uint8(p.Version & 0xFF)
+	return major, minor, patch, bugfix
+}
+
+func (p Platform) GetVersionString() string {
+	major, minor, patch, bugfix := p.GetVersion()
+	return fmt.Sprintf("%d.%d.%d.%d", major, minor, patch, bugfix)
 }
