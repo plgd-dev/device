@@ -192,9 +192,6 @@ func isSecuredScheme(scheme string) bool {
 
 // FilterSecureEndpoints returns secure endpoints in order of priority.
 func (r Endpoints) FilterSecureEndpoints() Endpoints {
-	if len(r) == 0 {
-		return r
-	}
 	return r.getEndpointsWithFilter(isSecuredScheme)
 }
 
@@ -212,9 +209,6 @@ func isUnsecuredScheme(scheme string) bool {
 
 // FilterUnsecureEndpoints returns unsecure endpoints in order of priority.
 func (r Endpoints) FilterUnsecureEndpoints() Endpoints {
-	if len(r) == 0 {
-		return r
-	}
 	return r.getEndpointsWithFilter(isUnsecuredScheme)
 }
 
@@ -298,7 +292,7 @@ func (r ResourceLink) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints)
 
 func (r Endpoints) GetAddr(scheme Scheme) (kitNet.Addr, error) {
 	if len(r) == 0 {
-		return kitNet.Addr{}, fmt.Errorf("no %s endpoinv", scheme)
+		return kitNet.Addr{}, fmt.Errorf("no %s endpoint", scheme)
 	}
 	for _, ep := range r {
 		u, err := ep.GetAddr()
