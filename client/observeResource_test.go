@@ -235,7 +235,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		const switchID = "1"
-		createSingleSwitch(ctx, t, c, deviceID)
+		createSwitches(ctx, t, c, deviceID, 1)
 		d1 := coap.DetailedResponse[schema.ResourceLinks]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
@@ -302,7 +302,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		const switchID = "1"
-		createSingleSwitch(ctx, t, c, deviceID)
+		createSwitches(ctx, t, c, deviceID, 1)
 		d1 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
@@ -451,7 +451,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		}(id)
 		require.Equal(t, context.DeadlineExceeded, err)
 		const switchID = "1"
-		createSingleSwitch(ctx, t, c, deviceID)
+		createSwitches(ctx, t, c, deviceID, 1)
 		var d1 coap.DetailedResponse[resources.BatchResourceDiscovery]
 		res, err = h.waitForNotification(ctx)
 		require.NoError(t, err)
@@ -651,7 +651,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 		}
 
 		const switchID = "1"
-		createSingleSwitch(ctx, t, c, deviceID)
+		createSwitches(ctx, t, c, deviceID, 1)
 		defer func() {
 			errD := c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 			require.NoError(t, errD)
@@ -716,7 +716,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 	}
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		const switchID = "1"
-		createSingleSwitch(ctx, t, c, deviceID)
+		createSwitches(ctx, t, c, deviceID, 1)
 		toDelete := []string{test.TestResourceSwitchesInstanceHref(switchID)}
 		defer func() {
 			var errs *multierror.Error
