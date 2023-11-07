@@ -136,6 +136,13 @@ func (r ResourceInterfaceOption) applyOnUpdate(opts updateOptions) updateOptions
 	return opts
 }
 
+func (r ResourceInterfaceOption) applyOnDelete(opts deleteOptions) deleteOptions {
+	if r.resourceInterface != "" {
+		opts.opts = append(opts.opts, coap.WithInterface(r.resourceInterface))
+	}
+	return opts
+}
+
 type ResourceQueryOption struct {
 	resourceQuery string
 }
