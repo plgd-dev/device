@@ -122,17 +122,21 @@ type CredentialOptionalData struct {
 	IsRevoked    bool                           `json:"revstat"`
 }
 
-func (c CredentialOptionalData) Data() []byte {
-	if c.DataInternal == nil {
+func toByte(v interface{}) []byte {
+	if v == nil {
 		return nil
 	}
-	switch v := c.DataInternal.(type) {
+	switch v := v.(type) {
 	case string:
 		return []byte(v)
 	case []byte:
 		return v
 	}
 	return nil
+}
+
+func (c CredentialOptionalData) Data() []byte {
+	return toByte(c.DataInternal)
 }
 
 const (
@@ -162,16 +166,7 @@ type CredentialPrivateData struct {
 }
 
 func (c CredentialPrivateData) Data() []byte {
-	if c.DataInternal == nil {
-		return nil
-	}
-	switch v := c.DataInternal.(type) {
-	case string:
-		return []byte(v)
-	case []byte:
-		return v
-	}
-	return nil
+	return toByte(c.DataInternal)
 }
 
 type CredentialPrivateDataEncoding string
@@ -191,16 +186,7 @@ type CredentialPublicData struct {
 }
 
 func (c CredentialPublicData) Data() []byte {
-	if c.DataInternal == nil {
-		return nil
-	}
-	switch v := c.DataInternal.(type) {
-	case string:
-		return []byte(v)
-	case []byte:
-		return v
-	}
-	return nil
+	return toByte(c.DataInternal)
 }
 
 type CredentialPublicDataEncoding string

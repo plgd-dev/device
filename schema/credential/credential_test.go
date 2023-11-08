@@ -23,6 +23,71 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func testCredentialData(t *testing.T, checkData func(data interface{}, expected []byte)) {
+	type args struct {
+		data interface{}
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+	}{
+		{
+			name: "Nil",
+			args: args{data: nil},
+			want: nil,
+		},
+		{
+			name: "String",
+			args: args{data: "test"},
+			want: []byte("test"),
+		},
+		{
+			name: "Bytes",
+			args: args{data: []byte("test")},
+			want: []byte("test"),
+		},
+		{
+			name: "Invalid",
+			args: args{data: 42},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			checkData(tt.args.data, tt.want)
+		})
+	}
+}
+
+func TestCredentialOptionalData(t *testing.T) {
+	testCredentialData(t, func(data interface{}, expected []byte) {
+		c := credential.CredentialOptionalData{
+			DataInternal: data,
+		}
+		require.Equal(t, expected, c.Data())
+	})
+}
+
+func TestCredentialPrivateData(t *testing.T) {
+	testCredentialData(t, func(data interface{}, expected []byte) {
+		c := credential.CredentialPrivateData{
+			DataInternal: data,
+		}
+		require.Equal(t, expected, c.Data())
+	})
+}
+
+func TestCredentialPublicData(t *testing.T) {
+	testCredentialData(t, func(data interface{}, expected []byte) {
+		c := credential.CredentialPublicData{
+			DataInternal: data,
+		}
+		require.Equal(t, expected, c.Data())
+	})
+}
+
 func TestCredentialTypeString(t *testing.T) {
 	tests := []struct {
 		name string
