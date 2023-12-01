@@ -15,7 +15,7 @@ require (
 	github.com/plgd-dev/go-coap/v3 v3.1.6
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.4
-	github.com/ugorji/go/codec v1.2.11
+	github.com/ugorji/go/codec v1.2.12
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.4.0
 	google.golang.org/grpc v1.58.2
