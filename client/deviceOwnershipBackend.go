@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/metadata"
 	"github.com/plgd-dev/device/v2/client/core"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -108,7 +108,7 @@ var headerAuthorize = "authorization"
 // TokenFromOutgoingMD extracts token stored by CtxWithToken.
 func TokenFromOutgoingMD(ctx context.Context) (string, error) {
 	expectedScheme := "bearer"
-	val := metautils.ExtractOutgoing(ctx).Get(headerAuthorize)
+	val := metadata.ExtractOutgoing(ctx).Get(headerAuthorize)
 	if val == "" {
 		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
 	}

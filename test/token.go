@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/grpc-ecosystem/go-grpc-middleware/v2/util/metautils"
+	"github.com/grpc-ecosystem/go-grpc-middleware/v2/metadata"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +41,7 @@ func CreateJWTToken(t *testing.T, claims jwt.MapClaims) string {
 
 // CtxWithToken stores token to ctx of request.
 func CtxWithToken(ctx context.Context, token string) context.Context {
-	niceMD := metautils.ExtractOutgoing(ctx)
+	niceMD := metadata.ExtractOutgoing(ctx)
 	niceMD.Set(authorizationKey, fmt.Sprintf("%s %s", "bearer", token))
 	return niceMD.ToOutgoing(ctx)
 }
