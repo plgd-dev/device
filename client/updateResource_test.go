@@ -22,10 +22,12 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
 )
 
@@ -40,7 +42,7 @@ func TestClientUpdateResource(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    coap.DetailedResponse[interface{}]
 		wantErr bool
 	}{
 		{
@@ -53,8 +55,11 @@ func TestClientUpdateResource(t *testing.T) {
 				},
 				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
-			want: map[interface{}]interface{}{
-				"n": t.Name() + "-valid",
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Changed,
+				Body: map[interface{}]interface{}{
+					"n": t.Name() + "-valid",
+				},
 			},
 		},
 		{
@@ -67,8 +72,11 @@ func TestClientUpdateResource(t *testing.T) {
 				},
 				opts: []client.UpdateOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
 			},
-			want: map[interface{}]interface{}{
-				"n": t.Name() + "-valid with interface",
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Changed,
+				Body: map[interface{}]interface{}{
+					"n": t.Name() + "-valid with interface",
+				},
 			},
 		},
 		{
@@ -80,8 +88,11 @@ func TestClientUpdateResource(t *testing.T) {
 					"n": test.DevsimName,
 				},
 			},
-			want: map[interface{}]interface{}{
-				"n": test.DevsimName,
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Changed,
+				Body: map[interface{}]interface{}{
+					"n": test.DevsimName,
+				},
 			},
 		},
 		{
@@ -120,7 +131,7 @@ func TestClientUpdateResource(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got interface{}
+			var got coap.DetailedResponse[interface{}]
 			err = c.UpdateResource(ctx, tt.args.deviceID, tt.args.href, tt.args.data, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
@@ -143,7 +154,7 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    interface{}
+		want    coap.DetailedResponse[interface{}]
 		wantErr bool
 	}{
 		{
@@ -156,10 +167,13 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 				},
 				opts: []client.UpdateOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
-			want: map[interface{}]interface{}{
-				"name":  "Light",
-				"power": uint64(0),
-				"state": true,
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"name":  "Light",
+					"power": uint64(0),
+					"state": true,
+				},
 			},
 		},
 		{
@@ -172,10 +186,13 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 				},
 				opts: []client.UpdateOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
 			},
-			want: map[interface{}]interface{}{
-				"name":  "Light",
-				"power": uint64(1),
-				"state": true,
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"name":  "Light",
+					"power": uint64(1),
+					"state": true,
+				},
 			},
 		},
 		{
@@ -188,10 +205,13 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 					"power": uint64(0),
 				},
 			},
-			want: map[interface{}]interface{}{
-				"name":  "Light",
-				"power": uint64(0),
-				"state": false,
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"name":  "Light",
+					"power": uint64(0),
+					"state": false,
+				},
 			},
 		},
 		{
@@ -235,9 +255,10 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			var got interface{}
+			var got coap.DetailedResponse[interface{}]
 			err = c.GetResource(ctx, tt.args.deviceID, tt.args.href, &got)
 			require.NoError(t, err)
+			got.ETag = nil
 			require.Equal(t, tt.want, got)
 		})
 	}

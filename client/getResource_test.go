@@ -50,7 +50,7 @@ func TestClientGetResource(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    map[string]interface{}
+		want    coap.DetailedResponse[interface{}]
 		wantErr bool
 	}{
 		{
@@ -60,8 +60,11 @@ func TestClientGetResource(t *testing.T) {
 				href:     configuration.ResourceURI,
 				opts:     []client.GetOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
 			},
-			want: map[string]interface{}{
-				"n": test.DevsimName,
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"n": test.DevsimName,
+				},
 			},
 		},
 		{
@@ -72,10 +75,13 @@ func TestClientGetResource(t *testing.T) {
 				opts:     []client.GetOption{client.WithInterface(interfaces.OC_IF_BASELINE)},
 			},
 			wantErr: false,
-			want: map[string]interface{}{
-				"if": []interface{}{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
-				"n":  test.DevsimName,
-				"rt": []interface{}{configuration.ResourceType},
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"if": []interface{}{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
+					"n":  test.DevsimName,
+					"rt": []interface{}{configuration.ResourceType},
+				},
 			},
 		},
 		{
@@ -109,13 +115,14 @@ func TestClientGetResource(t *testing.T) {
 	defer disown(t, c, deviceID)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got map[string]interface{}
+			var got coap.DetailedResponse[interface{}]
 			err := c.GetResource(ctx, tt.args.deviceID, tt.args.href, &got, tt.args.opts...)
 			if tt.wantErr {
 				require.Error(t, err)
 				return
 			}
 			require.NoError(t, err)
+			got.ETag = nil
 			require.Equal(t, tt.want, got)
 		})
 	}
