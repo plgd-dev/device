@@ -190,7 +190,7 @@ func requestError(m *pool.Message) error {
 }
 
 func decodeError(href string, err error) error {
-	return fmt.Errorf("could not decode the query %s: %w", href, err)
+	return fmt.Errorf("could not decode the response %s: %w", href, err)
 }
 
 func (c *Client) UpdateResourceWithCodec(
@@ -203,7 +203,7 @@ func (c *Client) UpdateResourceWithCodec(
 ) error {
 	body, err := codec.Encode(request)
 	if err != nil {
-		return fmt.Errorf("could not encode the query %s: %w", href, err)
+		return fmt.Errorf("could not encode the request %s: %w", href, err)
 	}
 	opts := make(message.Options, 0, 4)
 	for _, o := range options {
@@ -214,11 +214,15 @@ func (c *Client) UpdateResourceWithCodec(
 	if err != nil {
 		return fmt.Errorf("could update request %s: %w", href, err)
 	}
+	response, err = TrySetDetailedReponse(resp, response)
 	if err != nil {
-		return fmt.Errorf("could not query %s: %w", href, err)
+		return err
 	}
 	if resp.Code() != codes.Changed && resp.Code() != codes.Valid && resp.Code() != codes.Created {
 		return status.Error(resp, requestError(resp))
+	}
+	if resp.Code() == codes.Valid {
+		return nil
 	}
 	if err := codec.Decode(resp, response); err != nil {
 		return status.Error(resp, decodeError(href, err))
