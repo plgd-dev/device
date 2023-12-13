@@ -62,6 +62,8 @@ func NewTestSecureDeviceSimulator(deviceID, deviceName string, ip string) client
 			SpecificationVersion: "ocf.2.0.5",
 			ResourceTypes:        []string{testTypes.DEVICE_CLOUD, device.ResourceType},
 			Interfaces:           []string{interfaces.OC_IF_R, interfaces.OC_IF_BASELINE},
+			ModelNumber:          "CS-0",
+			SoftwareVersion:      "1.0.1-rc1",
 		},
 		IsSecured: true,
 		Ownership: &doxm.Doxm{

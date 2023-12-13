@@ -35,6 +35,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/platform"
 	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/assert"
@@ -412,6 +413,19 @@ func verifyBatchDiscoveryResponse(t *testing.T, deviceID string, resp coap.Detai
 	}
 }
 
+var expectedFirstBatchResources = []batchResource{
+	{device.ResourceURI, false},
+	{platform.ResourceURI, false},
+	{test.TestResourceLightInstanceHref("1"), false},
+	{cloud.ResourceURI, false},
+	{maintenance.ResourceURI, false},
+	{introspection.ResourceURI, false},
+	{configuration.ResourceURI, false},
+	{test.TestResourceSwitchesHref, false},
+	{plgdtime.ResourceURI, false},
+	{softwareupdate.ResourceURI, false},
+}
+
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
 		h := makeObservationHandler()
@@ -423,17 +437,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		err = res(&d)
 		require.NoError(t, err)
 		assert.NotEmpty(t, d.Body)
-		expected := []batchResource{
-			{device.ResourceURI, false},
-			{platform.ResourceURI, false},
-			{test.TestResourceLightInstanceHref("1"), false},
-			{cloud.ResourceURI, false},
-			{maintenance.ResourceURI, false},
-			{introspection.ResourceURI, false},
-			{configuration.ResourceURI, false},
-			{test.TestResourceSwitchesHref, false},
-			{plgdtime.ResourceURI, false},
-		}
+		expected := expectedFirstBatchResources
 		verifyBatchDiscoveryResponse(t, deviceID, d, codes.Content, expected...)
 		if ETagSupported {
 			require.NotEmpty(t, d.ETag)
@@ -513,17 +517,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 		err = res(&d0)
 		require.NoError(t, err)
 		assert.NotEmpty(t, d0.Body)
-		expected := []batchResource{
-			{device.ResourceURI, false},
-			{platform.ResourceURI, false},
-			{test.TestResourceLightInstanceHref("1"), false},
-			{cloud.ResourceURI, false},
-			{maintenance.ResourceURI, false},
-			{introspection.ResourceURI, false},
-			{configuration.ResourceURI, false},
-			{test.TestResourceSwitchesHref, false},
-			{plgdtime.ResourceURI, false},
-		}
+		expected := expectedFirstBatchResources
 		require.NotEmpty(t, d0.ETag)
 		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
 		etags := make([][]byte, 0, len(d0.Body)-1)
@@ -621,17 +615,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 		err = res(&d0)
 		require.NoError(t, err)
 		assert.NotEmpty(t, d0.Body)
-		expected := []batchResource{
-			{device.ResourceURI, false},
-			{platform.ResourceURI, false},
-			{test.TestResourceLightInstanceHref("1"), false},
-			{cloud.ResourceURI, false},
-			{maintenance.ResourceURI, false},
-			{introspection.ResourceURI, false},
-			{configuration.ResourceURI, false},
-			{test.TestResourceSwitchesHref, false},
-			{plgdtime.ResourceURI, false},
-		}
+		expected := expectedFirstBatchResources
 		require.NotEmpty(t, d0.ETag)
 		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
 		etags := make([][]byte, 0, len(d0.Body)-1)
@@ -737,18 +721,8 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 		err = res(&d0)
 		require.NoError(t, err)
 		assert.NotEmpty(t, d0.Body)
-		expected := []batchResource{
-			{device.ResourceURI, false},
-			{platform.ResourceURI, false},
-			{test.TestResourceLightInstanceHref("1"), false},
-			{cloud.ResourceURI, false},
-			{maintenance.ResourceURI, false},
-			{introspection.ResourceURI, false},
-			{configuration.ResourceURI, false},
-			{test.TestResourceSwitchesHref, false},
-			{test.TestResourceSwitchesInstanceHref(switchID), false},
-			{plgdtime.ResourceURI, false},
-		}
+		expected := expectedFirstBatchResources
+		expected = append(expected, batchResource{test.TestResourceSwitchesInstanceHref(switchID), false})
 		require.NotEmpty(t, d0.ETag)
 		verifyBatchDiscoveryResponse(t, deviceID, d0, codes.Content, expected...)
 		etags := make([][]byte, 0, len(d0.Body)-1)
