@@ -47,6 +47,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/roles"
 	"github.com/plgd-dev/device/v2/schema/sdi"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/schema/sp"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/kit/v2/security"
@@ -117,6 +118,12 @@ func init() {
 			Href:          TestResourceSwitchesHref,
 			ResourceTypes: []string{collection.ResourceType},
 			Interfaces:    []string{interfaces.OC_IF_LL, interfaces.OC_IF_CREATE, interfaces.OC_IF_B, interfaces.OC_IF_BASELINE},
+		},
+
+		{
+			Href:          softwareupdate.ResourceURI,
+			ResourceTypes: []string{softwareupdate.ResourceType},
+			Interfaces:    []string{interfaces.OC_IF_RW, interfaces.OC_IF_BASELINE},
 		},
 	}
 

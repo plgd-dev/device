@@ -35,6 +35,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/platform"
 	"github.com/plgd-dev/device/v2/schema/plgdtime"
 	"github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
@@ -212,6 +213,7 @@ func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
 		case device.ResourceURI:
 		case test.TestResourceLightInstanceHref("1"):
 		case test.TestResourceSwitchesHref:
+		case softwareupdate.ResourceURI:
 		default:
 			require.NoError(t, fmt.Errorf("unknown resource href: %v", v.Body[i].Href()))
 		}
