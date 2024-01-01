@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload coverage data
         if: ${{ inputs.coverage }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.coverage.outputs.directory }}
           path: .tmp/*coverage.txt
