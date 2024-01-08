@@ -34,7 +34,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Go 1.18+
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: "^1.18"
           check-latest: true
@@ -66,7 +66,7 @@ jobs:
 
       - name: Upload coverage data
         if: ${{ inputs.coverage }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.coverage.outputs.directory }}
           path: .tmp/*coverage.txt
