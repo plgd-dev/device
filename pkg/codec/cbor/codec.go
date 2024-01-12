@@ -26,12 +26,24 @@ import (
 
 // Encode encodes v and returns bytes.
 func Encode(v interface{}) ([]byte, error) {
-	return cbor.Marshal(v)
+	buf := bytes.NewBuffer(make([]byte, 0, 1024))
+	err := WriteTo(buf, v)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
 // WriteTo writes v to writer.
 func WriteTo(w io.Writer, v interface{}) error {
-	return cbor.NewEncoder(w).Encode(v)
+	encOpts := cbor.EncOptions{
+		Sort: cbor.SortBytewiseLexical,
+	}
+	encMode, err := encOpts.EncMode()
+	if err != nil {
+		return err
+	}
+	return encMode.NewEncoder(w).Encode(v)
 }
 
 // Decode decodes bytes and stores the result in v.

@@ -12,4 +12,6 @@ vendor/
 .vscode/
 .tmp/
 debug
+ocfbridge
+ocfclient
 
