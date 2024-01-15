@@ -41,7 +41,8 @@ func main() {
 		panic(err)
 	}
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
-		s.AddDevice(uuid.New(), fmt.Sprintf("bridged-device-%d", i), service.WithDeviceTypes([]string{"oic.d.virtual"}))
+		d := s.AddDevice(uuid.New(), fmt.Sprintf("bridged-device-%d", i), service.WithDeviceTypes([]string{"oic.d.virtual"}))
+		d.Init()
 	}
 	err = s.Serve()
 	if err != nil {
