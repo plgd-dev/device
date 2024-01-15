@@ -156,6 +156,7 @@ func (c *Service) Serve() error {
 type DeviceOptions struct {
 	DeviceTypes        []string
 	EnableCloudManager bool
+	DeviceData         any
 }
 
 type DeviceOption func(*DeviceOptions)
@@ -164,6 +165,14 @@ func WithDeviceTypes(deviceTypes []string) DeviceOption {
 	return func(o *DeviceOptions) {
 		if deviceTypes != nil {
 			o.DeviceTypes = deviceTypes
+		}
+	}
+}
+
+func WithDeviceData(deviceData any) DeviceOption {
+	return func(o *DeviceOptions) {
+		if deviceData != nil {
+			o.DeviceData = deviceData
 		}
 	}
 }
@@ -186,7 +195,7 @@ func (c *Service) newDevice(deviceID uuid.UUID, name string, opt ...DeviceOption
 		ResourceTypes:         opts.DeviceTypes,
 		ID:                    deviceID.String(),
 		ProtocolIndependentID: resources.ToUUID(c.cfg.API.CoAP.ID).String(),
-	}, c.onUpdateDevice)
+	}, c.onUpdateDevice, opts.DeviceData)
 	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d).Resource)
 	if opts.EnableCloudManager {
 		d.SetCloudManager(plgdCloud.ResourceURI, c.DefaultRequestHandler, c.cfg.API.CoAP.MaxMessageSize)

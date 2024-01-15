@@ -43,6 +43,7 @@ type Device struct {
 	resources       *sync.Map[string, *resources.Resource] `yaml:"-"`
 	cloudManager    *cloud.Manager                         `yaml:"cloudManager"`
 	onDeviceUpdated func(d *Device)
+	data            any
 }
 
 func (d *Device) GetID() string {
@@ -59,6 +60,10 @@ func (d *Device) GetName() string {
 
 func (d *Device) GetResourceTypes() []string {
 	return d.cfg.ResourceTypes
+}
+
+func (d *Device) GetData() any {
+	return d.data
 }
 
 func (d *Device) GetProtocolIndependentID() string {
@@ -86,12 +91,13 @@ func (cfg *Config) Validate() error {
 	return nil
 }
 
-func New(cfg Config, onDeviceUpdated func(d *Device)) *Device {
+func New(cfg Config, onDeviceUpdated func(d *Device), data any) *Device {
 	cfg.ResourceTypes = resources.Unique(append(cfg.ResourceTypes, plgdDevice.ResourceType))
 	d := &Device{
 		cfg:             cfg,
 		resources:       sync.NewMap[string, *resources.Resource](),
 		onDeviceUpdated: onDeviceUpdated,
+		data:            data,
 	}
 	return d
 }
