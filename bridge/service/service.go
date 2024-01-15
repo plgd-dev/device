@@ -24,7 +24,7 @@ const ControllerFileName = "Service.yaml"
 type Service struct {
 	cfg                Config
 	net                *net.Net
-	devices            *coapSync.Map[uuid.UUID, *device.Device] // Plgd device ID -> Plgd device
+	devices            *coapSync.Map[uuid.UUID, *device.Device]
 	done               chan struct{}
 	onUpdateDevice     func(*device.Device)
 	onDiscoveryDevices func(req *net.Request)
@@ -203,20 +203,54 @@ func (c *Service) newDevice(deviceID uuid.UUID, name string, opt ...DeviceOption
 	return d
 }
 
-func (c *Service) AddDevice(id uuid.UUID, name string, opt ...DeviceOption) *device.Device {
-	d := c.newDevice(id, name, opt...)
-	old, ok := c.devices.Replace(id, d)
-	if ok {
-		old.Close()
+func (c *Service) CreateDevice(id uuid.UUID, name string, opt ...DeviceOption) (*device.Device, bool) {
+	var newDevice *device.Device
+	_, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue *device.Device, oldLoaded bool) (newValue *device.Device, doDelete bool) {
+		if oldLoaded {
+			return oldValue, false
+		}
+		newDevice = c.newDevice(id, name, opt...)
+		return newDevice, false
+	})
+	if oldLoaded {
+		return nil, false
 	}
-	return d
+	return newDevice, true
+}
+
+func (c *Service) GetOrCreateDevice(id uuid.UUID, name string, opt ...DeviceOption) (d *device.Device, loaded bool) {
+	return c.devices.LoadOrStoreWithFunc(id, func(value *device.Device) *device.Device {
+		return value
+	}, func() *device.Device {
+		return c.newDevice(id, name, opt...)
+	})
 }
 
 func (c *Service) GetDevice(id uuid.UUID) (*device.Device, bool) {
 	return c.devices.Load(id)
 }
 
-func (c *Service) RemoveDevice(id uuid.UUID) {
+func (c *Service) CopyDevices() map[uuid.UUID]*device.Device {
+	return c.devices.CopyData()
+}
+
+func (c *Service) Range(f func(key uuid.UUID, value *device.Device) bool) {
+	c.devices.Range(f)
+}
+
+func (c *Service) RangeWithLock(f func(key uuid.UUID, value *device.Device) bool) {
+	c.devices.Range2(f)
+}
+
+func (c *Service) Length() int {
+	return c.devices.Length()
+}
+
+func (c *Service) GetAndDeleteDevice(id uuid.UUID) (*device.Device, bool) {
+	return c.devices.LoadAndDelete(id)
+}
+
+func (c *Service) DeleteAndCloseDevice(id uuid.UUID) {
 	d, ok := c.devices.LoadAndDelete(id)
 	if ok {
 		d.Close()
