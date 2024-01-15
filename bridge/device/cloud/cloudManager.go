@@ -78,7 +78,6 @@ func New(deviceID string, save func(), handler net.RequestHandler, getLinks GetL
 		save:           save,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
-	c.Init()
 	return c
 }
 
