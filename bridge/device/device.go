@@ -96,6 +96,11 @@ func (cfg *Config) Validate() error {
 }
 
 func New(cfg Config, onDeviceUpdated func(d *Device)) *Device {
+	if onDeviceUpdated == nil {
+		onDeviceUpdated = func(d *Device) {
+			// do nothing
+		}
+	}
 	cfg.ResourceTypes = resources.Unique(append(cfg.ResourceTypes, plgdDevice.ResourceType))
 	d := &Device{
 		cfg:             cfg,
