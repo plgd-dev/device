@@ -30,20 +30,6 @@ func loadConfig(configFile string) (Config, error) {
 	return cfg, nil
 }
 
-func newDevice(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(d *device.Device)) *device.Device {
-	d := device.New(device.Config{
-		Name:                  name,
-		ResourceTypes:         []string{"oic.d.virtual"},
-		ID:                    id,
-		ProtocolIndependentID: piid,
-		MaxMessageSize:        1024 * 256,
-		Cloud: device.CloudConfig{
-			Enabled: true,
-		},
-	}, onUpdateDevice)
-	return d
-}
-
 func main() {
 	configFile := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -56,7 +42,20 @@ func main() {
 		panic(err)
 	}
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
-		d, ok := s.CreateDevice(uuid.New(), fmt.Sprintf("bridged-device-%d", i), newDevice)
+		newDevice := func(id uuid.UUID, piid uuid.UUID) *device.Device {
+			d := device.New(device.Config{
+				Name:                  fmt.Sprintf("bridged-device-%d", i),
+				ResourceTypes:         []string{"oic.d.virtual"},
+				ID:                    id,
+				ProtocolIndependentID: piid,
+				MaxMessageSize:        1024 * 256,
+				Cloud: device.CloudConfig{
+					Enabled: true,
+				},
+			}, nil)
+			return d
+		}
+		d, ok := s.CreateDevice(uuid.New(), newDevice)
 		if ok {
 			d.Init()
 		}

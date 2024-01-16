@@ -44,7 +44,6 @@ type Service[D Device] struct {
 	net                *net.Net
 	devices            *coapSync.Map[uuid.UUID, D]
 	done               chan struct{}
-	onUpdateDevice     func(D)
 	onDiscoveryDevices func(req *net.Request)
 }
 
@@ -108,16 +107,7 @@ func (c *Service[D]) DefaultRequestHandler(req *net.Request) (*pool.Message, err
 }
 
 type OptionsCfg[D Device] struct {
-	OnUpdateDevice     func(D)
 	OnDiscoveryDevices func(req *net.Request)
-}
-
-func WithOnUpdateDevice[D Device](f func(D)) Option[D] {
-	return func(o *OptionsCfg[D]) {
-		if f != nil {
-			o.OnUpdateDevice = f
-		}
-	}
 }
 
 func WithOnDiscoveryDevices[D Device](f func(req *net.Request)) Option[D] {
@@ -137,9 +127,6 @@ func New[D Device](cfg Config, opts ...Option[D]) (*Service[D], error) {
 	}
 
 	o := OptionsCfg[D]{
-		OnUpdateDevice: func(d D) {
-			// nothing to do
-		},
 		OnDiscoveryDevices: func(req *net.Request) {
 			// nothing to do
 		},
@@ -151,7 +138,6 @@ func New[D Device](cfg Config, opts ...Option[D]) (*Service[D], error) {
 	c := Service[D]{
 		cfg:                cfg,
 		devices:            coapSync.NewMap[uuid.UUID, D](),
-		onUpdateDevice:     o.OnUpdateDevice,
 		onDiscoveryDevices: o.OnDiscoveryDevices,
 	}
 	n, err := net.New(cfg.API.CoAP.Config, c.DefaultRequestHandler)
@@ -168,13 +154,15 @@ func (c *Service[D]) Serve() error {
 	return c.net.Serve()
 }
 
-func (c *Service[D]) CreateDevice(id uuid.UUID, name string, newDevice func(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(D)) D) (D, bool) {
+type NewDeviceFunc[D Device] func(id uuid.UUID, piid uuid.UUID) D
+
+func (c *Service[D]) CreateDevice(id uuid.UUID, newDevice NewDeviceFunc[D]) (D, bool) {
 	var d D
 	_, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue D, oldLoaded bool) (newValue D, doDelete bool) {
 		if oldLoaded {
 			return oldValue, false
 		}
-		d = newDevice(id, name, resources.ToUUID(c.cfg.API.CoAP.ID), c.onUpdateDevice)
+		d = newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
 		return d, false
 	})
 	if oldLoaded {
@@ -183,11 +171,11 @@ func (c *Service[D]) CreateDevice(id uuid.UUID, name string, newDevice func(id u
 	return d, true
 }
 
-func (c *Service[D]) GetOrCreateDevice(id uuid.UUID, name string, newDevice func(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(D)) D) (d D, loaded bool) {
+func (c *Service[D]) GetOrCreateDevice(id uuid.UUID, newDevice NewDeviceFunc[D]) (d D, loaded bool) {
 	return c.devices.LoadOrStoreWithFunc(id, func(value D) D {
 		return value
 	}, func() D {
-		return newDevice(id, name, resources.ToUUID(c.cfg.API.CoAP.ID), c.onUpdateDevice)
+		return newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
 	})
 }
 
