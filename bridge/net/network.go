@@ -29,6 +29,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
 	"github.com/plgd-dev/device/v2/schema"
@@ -241,17 +242,22 @@ func (r *Request) URIPath() string {
 	return p
 }
 
-func (r *Request) DeviceID() string {
+func (r *Request) DeviceID() uuid.UUID {
 	q, err := r.Queries()
 	if err != nil {
-		return ""
+		return uuid.Nil
 	}
 	for _, query := range q {
 		if strings.HasPrefix(query, "di=") {
-			return strings.TrimPrefix(query, "di=")
+			deviceID := strings.TrimPrefix(query, "di=")
+			di, err := uuid.Parse(deviceID)
+			if err != nil {
+				return uuid.Nil
+			}
+			return di
 		}
 	}
-	return ""
+	return uuid.Nil
 }
 
 func (r *Request) ResourceTypes() []string {

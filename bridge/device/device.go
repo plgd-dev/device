@@ -22,35 +22,30 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	cloudResource "github.com/plgd-dev/device/v2/bridge/resources/cloud"
+	resourcesDevice "github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/schema"
+	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
 	plgdDevice "github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/plgd-dev/go-coap/v3/pkg/sync"
-	"gopkg.in/yaml.v3"
 )
 
 type Device struct {
-	cfg             Config                                 `yaml:",inline"`
-	resources       *sync.Map[string, *resources.Resource] `yaml:"-"`
-	cloudManager    *cloud.Manager                         `yaml:"cloudManager"`
+	cfg             Config
+	resources       *sync.Map[string, *resources.Resource]
+	cloudManager    *cloud.Manager
 	onDeviceUpdated func(d *Device)
-	data            any
 }
 
-func (d *Device) GetID() string {
-	return resources.ToUUID(d.cfg.ID).String()
-}
-
-func (d *Device) GetRawID() string {
+func (d *Device) GetID() uuid.UUID {
 	return d.cfg.ID
 }
 
@@ -62,27 +57,36 @@ func (d *Device) GetResourceTypes() []string {
 	return d.cfg.ResourceTypes
 }
 
-func (d *Device) GetData() any {
-	return d.data
+func (d *Device) ExportConfig() Config {
+	cfg := d.cfg
+	cfg.Cloud.Config = d.cloudManager.ExportConfig()
+	return cfg
 }
 
-func (d *Device) GetProtocolIndependentID() string {
-	return resources.ToUUID(d.cfg.ProtocolIndependentID).String()
+func (d *Device) GetProtocolIndependentID() uuid.UUID {
+	return d.cfg.ProtocolIndependentID
+}
+
+type CloudConfig struct {
+	Enabled bool
+	cloud.Config
 }
 
 type Config struct {
-	ID                    string   `yaml:"id"`
-	Name                  string   `yaml:"name"`
-	ProtocolIndependentID string   `yaml:"protocolIndependentID"`
-	ResourceTypes         []string `yaml:"resourceTypes"`
+	ID                    uuid.UUID
+	Name                  string
+	ProtocolIndependentID uuid.UUID
+	ResourceTypes         []string
+	MaxMessageSize        uint32
+	Cloud                 CloudConfig
 }
 
 func (cfg *Config) Validate() error {
-	if cfg.ProtocolIndependentID == "" {
+	if cfg.ProtocolIndependentID == uuid.Nil {
 		return fmt.Errorf("protocolIndependentID is required")
 	}
-	if cfg.ID == "" {
-		cfg.ID = uuid.NewString()
+	if cfg.ID == uuid.Nil {
+		cfg.ID = uuid.New()
 	}
 
 	if cfg.Name == "" {
@@ -91,13 +95,21 @@ func (cfg *Config) Validate() error {
 	return nil
 }
 
-func New(cfg Config, onDeviceUpdated func(d *Device), data any) *Device {
+func New(cfg Config, onDeviceUpdated func(d *Device)) *Device {
 	cfg.ResourceTypes = resources.Unique(append(cfg.ResourceTypes, plgdDevice.ResourceType))
 	d := &Device{
 		cfg:             cfg,
 		resources:       sync.NewMap[string, *resources.Resource](),
 		onDeviceUpdated: onDeviceUpdated,
-		data:            data,
+	}
+	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d).Resource)
+
+	if cfg.Cloud.Enabled {
+		d.cloudManager = cloud.New(d.cfg.ID, func() {
+			d.onDeviceUpdated(d)
+		}, d.HandleRequest, d.GetLinksFilteredBy, cfg.MaxMessageSize)
+		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager).Resource)
+		d.cloudManager.ImportConfig(cfg.Cloud.Config)
 	}
 	return d
 }
@@ -106,38 +118,8 @@ func (d *Device) AddResource(resource *resources.Resource) {
 	d.resources.Store(resource.Href, resource)
 }
 
-type ConfigurationYaml struct {
-	Manager *cloud.Manager `yaml:"cloudManager"`
-}
-
-func (d *Device) Encode(w io.Writer) error {
-	dev := ConfigurationYaml{
-		Manager: d.cloudManager,
-	}
-	return yaml.NewEncoder(w).Encode(dev)
-}
-
-func (d *Device) Decode(r io.Reader) error {
-	dev := ConfigurationYaml{
-		Manager: d.cloudManager,
-	}
-	err := yaml.NewDecoder(r).Decode(&dev)
-	if err != nil {
-		return err
-	}
-	d.cloudManager = dev.Manager
-	return nil
-}
-
 func (d *Device) Init() {
 	d.cloudManager.Init()
-}
-
-func (d *Device) SetCloudManager(uri string, requestHandler net.RequestHandler, maxMessageSize uint32) {
-	d.cloudManager = cloud.New(d.cfg.ID, func() {
-		d.onDeviceUpdated(d)
-	}, requestHandler, d.GetLinksFilteredBy, maxMessageSize)
-	d.AddResource(cloudResource.New(uri, d.cloudManager).Resource)
 }
 
 func (d *Device) UnregisterFromCloud() {
@@ -154,9 +136,9 @@ func (d *Device) GetResource(key string) (*resources.Resource, bool) {
 	return d.resources.Load(key)
 }
 
-func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter string, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks) {
+func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks) {
 	di := deviceIDfilter
-	if di != "" && di != d.GetID() {
+	if di != uuid.Nil && di != d.GetID() {
 		return nil
 	}
 	links = make(schema.ResourceLinks, 0, d.resources.Length())
@@ -174,8 +156,8 @@ func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter s
 			Policy: &schema.Policy{
 				BitMask: resource.PolicyBitMask & (^resources.PublishToCloud),
 			},
-			Anchor:    "ocf://" + d.GetID(),
-			DeviceID:  d.GetID(),
+			Anchor:    "ocf://" + d.GetID().String(),
+			DeviceID:  d.GetID().String(),
 			Endpoints: endpoints,
 		})
 		return true
