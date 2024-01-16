@@ -27,6 +27,7 @@ import (
 	goSync "sync"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
@@ -42,16 +43,25 @@ import (
 	"github.com/plgd-dev/go-coap/v3/options"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/tcp/client"
-	"gopkg.in/yaml.v3"
 )
 
-type GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter string, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
+type GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
+
+type Config struct {
+	AccessToken           string
+	UserID                string
+	RefreshToken          string
+	ValidUntil            time.Time
+	AuthorizationProvider string
+	CloudID               string
+	CloudURL              string
+}
 
 type Manager struct {
 	handler        net.RequestHandler
 	getLinks       GetLinksFilteredBy
 	maxMessageSize uint32
-	deviceID       string
+	deviceID       uuid.UUID
 	save           func()
 
 	private struct {
@@ -67,14 +77,14 @@ type Manager struct {
 	trigger            chan bool
 }
 
-func New(deviceID string, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, maxMessageSize uint32) *Manager {
+func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, maxMessageSize uint32) *Manager {
 	c := &Manager{
 		done:           make(chan struct{}),
 		trigger:        make(chan bool, 10),
 		handler:        handler,
 		getLinks:       getLinks,
 		maxMessageSize: maxMessageSize,
-		deviceID:       resources.ToUUID(deviceID).String(),
+		deviceID:       deviceID,
 		save:           save,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
@@ -84,6 +94,34 @@ func New(deviceID string, save func(), handler net.RequestHandler, getLinks GetL
 func (c *Manager) Get(request *net.Request) (*pool.Message, error) {
 	cfg := c.getCloudConfiguration()
 	return resources.CreateResponseContent(request.Context(), cfg, codes.Content)
+}
+
+func (c *Manager) ExportConfig() Config {
+	configuration := c.getCloudConfiguration()
+	creds := c.getCreds()
+	return Config{
+		CloudID:               configuration.CloudID,
+		AuthorizationProvider: configuration.AuthorizationProvider,
+		CloudURL:              configuration.URL,
+		AccessToken:           creds.AccessToken,
+		UserID:                creds.UserID,
+		RefreshToken:          creds.RefreshToken,
+		ValidUntil:            creds.ValidUntil,
+	}
+}
+
+func (c *Manager) ImportConfig(cfg Config) {
+	c.setCloudConfiguration(cloud.ConfigurationUpdateRequest{
+		AuthorizationProvider: cfg.AuthorizationProvider,
+		URL:                   cfg.CloudURL,
+		CloudID:               cfg.CloudID,
+	})
+	c.setCreds(CoapSignUpResponse{
+		AccessToken:  cfg.AccessToken,
+		UserID:       cfg.UserID,
+		RefreshToken: cfg.RefreshToken,
+		ValidUntil:   cfg.ValidUntil,
+	})
 }
 
 func (c *Manager) Init() {
@@ -183,39 +221,10 @@ func (c *Manager) getCloudConfiguration() Configuration {
 	return c.private.cfg
 }
 
-type ConfigurationYaml struct {
-	Configuration      `yaml:",inline"`
-	CoapSignUpResponse `yaml:"credentials"`
-}
-
-func (c *Manager) MarshalYAML() (interface{}, error) {
-	var cfg ConfigurationYaml
-	cfg.Configuration = c.getCloudConfiguration()
-	cfg.CoapSignUpResponse = c.getCreds()
-	return cfg, nil
-}
-
-func (c *Manager) UnmarshalYAML(value *yaml.Node) error {
-	var cfg ConfigurationYaml
-	err := value.Decode(&cfg)
-	if err != nil {
-		return err
-	}
-	c.setCloudConfiguration(cloud.ConfigurationUpdateRequest{
-		AuthorizationProvider: cfg.AuthorizationProvider,
-		URL:                   cfg.URL,
-		CloudID:               cfg.CloudID,
-	})
-	c.setCreds(cfg.CoapSignUpResponse)
-	return nil
-}
-
 func (c *Manager) setCreds(creds CoapSignUpResponse) {
 	c.creds = creds
 	if creds.ExpiresIn != 0 {
-		c.creds.ValidUntil = ValidUntil{
-			Time: time.Now().Add(time.Duration(creds.ExpiresIn) * time.Second),
-		}
+		c.creds.ValidUntil = time.Now().Add(time.Duration(creds.ExpiresIn) * time.Second)
 	}
 	c.signedIn = false
 }
@@ -223,7 +232,7 @@ func (c *Manager) setCreds(creds CoapSignUpResponse) {
 func (c *Manager) updateCredsBySignInResponse(resp CoapSignInResponse) {
 	c.creds.ExpiresIn = resp.ExpiresIn
 	if resp.ExpiresIn != 0 {
-		c.creds.ValidUntil = ValidUntil{time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second)}
+		c.creds.ValidUntil = time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second)
 	}
 	c.signedIn = true
 }
@@ -233,7 +242,7 @@ func (c *Manager) updateCredsByRefreshTokenResponse(resp CoapRefreshTokenRespons
 	c.creds.RefreshToken = resp.RefreshToken
 	c.creds.ExpiresIn = resp.ExpiresIn
 	if resp.ExpiresIn != 0 {
-		c.creds.ValidUntil = ValidUntil{time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second)}
+		c.creds.ValidUntil = time.Now().Add(time.Duration(resp.ExpiresIn) * time.Second)
 	}
 	c.signedIn = false
 }
@@ -243,7 +252,7 @@ func (c *Manager) getCreds() CoapSignUpResponse {
 }
 
 func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
-	request.Message.AddQuery("di=" + c.deviceID)
+	request.Message.AddQuery("di=" + c.deviceID.String())
 	r := net.Request{
 		Message:   request.Message,
 		Endpoints: nil,
@@ -344,7 +353,7 @@ func (c *Manager) newSignUpReq(ctx context.Context) (*pool.Message, error) {
 	}
 
 	signUpRequest := CoapSignUpRequest{
-		DeviceID:              c.deviceID,
+		DeviceID:              c.deviceID.String(),
 		AuthorizationCode:     cfg.AuthorizationCode,
 		AuthorizationProvider: cfg.AuthorizationProvider,
 	}
@@ -404,7 +413,7 @@ func (c *Manager) newSignOffReq(ctx context.Context) (*pool.Message, error) {
 	}
 	req.SetCode(codes.DELETE)
 	req.SetToken(token)
-	req.AddQuery("di=" + c.deviceID)
+	req.AddQuery("di=" + c.deviceID.String())
 	req.AddQuery("uid=" + c.getCreds().UserID)
 	err = req.SetPath(SignUp)
 	if err != nil {
@@ -442,7 +451,7 @@ func (c *Manager) signOff(ctx context.Context) error {
 
 func (c *Manager) newRefreshTokenReq(ctx context.Context, creds CoapSignUpResponse) (*pool.Message, error) {
 	signInReq := CoapRefreshTokenRequest{
-		DeviceID:     c.deviceID,
+		DeviceID:     c.deviceID.String(),
 		UserID:       creds.UserID,
 		RefreshToken: creds.RefreshToken,
 	}
@@ -507,7 +516,7 @@ func (c *Manager) newSignInReq(ctx context.Context) (*pool.Message, error) {
 		return nil, fmt.Errorf("cannot sign in: no access token")
 	}
 	signInReq := CoapSignInRequest{
-		DeviceID:    c.deviceID,
+		DeviceID:    c.deviceID.String(),
 		UserID:      creds.UserID,
 		AccessToken: creds.AccessToken,
 		Login:       true,
@@ -570,7 +579,7 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 		if link.HasType(device.ResourceType) {
 			newLink := link
 			newLink.Href = device.ResourceURI
-			newLink.Anchor = "ocf://" + device.ResourceURI
+			newLink.Anchor = "ocf://" + link.ID
 			links[idx] = newLink
 			break
 		}
@@ -582,7 +591,7 @@ func (c *Manager) newPublishResourcesReq(ctx context.Context) (*pool.Message, er
 	links := c.getLinks(schema.Endpoints{}, c.deviceID, nil, resources.PublishToCloud)
 	links = patchDeviceLink(links)
 	wkRd := PublishResourcesRequest{
-		DeviceID:   c.deviceID,
+		DeviceID:   c.deviceID.String(),
 		Links:      links,
 		TimeToLive: 0,
 	}

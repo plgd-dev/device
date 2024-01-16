@@ -21,6 +21,7 @@ package device
 import (
 	"bytes"
 
+	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
@@ -32,10 +33,10 @@ import (
 )
 
 type Device interface {
-	GetID() string
+	GetID() uuid.UUID
 	GetName() string
 	GetResourceTypes() []string
-	GetProtocolIndependentID() string
+	GetProtocolIndependentID() uuid.UUID
 }
 
 type Resource struct {
@@ -53,9 +54,9 @@ func New(uri string, dev Device) *Resource {
 
 func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 	v := device.Device{
-		ID:                    d.device.GetID(),
+		ID:                    d.device.GetID().String(),
 		Name:                  d.device.GetName(),
-		ProtocolIndependentID: d.device.GetProtocolIndependentID(),
+		ProtocolIndependentID: d.device.GetProtocolIndependentID().String(),
 		//DataModelVersion:      "ocf.res.1.3.0",
 		//SpecificationVersion:  "ocf.2.0.5",
 	}

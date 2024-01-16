@@ -23,7 +23,6 @@ import (
 
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/cloud"
-	"gopkg.in/yaml.v3"
 )
 
 type CoapSignUpRequest struct {
@@ -32,43 +31,13 @@ type CoapSignUpRequest struct {
 	AuthorizationProvider string `json:"authprovider"`
 }
 
-type ValidUntil struct {
-	time.Time `yaml:"-"`
-}
-
-func (v *ValidUntil) MarshalYAML() (interface{}, error) {
-	if v.IsZero() {
-		return "", nil
-	}
-	return v.Format(time.RFC3339Nano), nil
-}
-
-func (v *ValidUntil) UnmarshalYAML(value *yaml.Node) error {
-	var str string
-	err := value.Decode(&str)
-	if err != nil {
-		return err
-	}
-	if str == "" {
-		return nil
-	}
-	t, err := time.Parse(time.RFC3339Nano, str)
-	if err != nil {
-		return err
-	}
-	*v = ValidUntil{
-		Time: t,
-	}
-	return nil
-}
-
 type CoapSignUpResponse struct {
-	AccessToken  string     `yaml:"accessToken" json:"accesstoken"`
-	UserID       string     `yaml:"userID" json:"uid"`
-	RefreshToken string     `yaml:"refreshToken" json:"refreshtoken"`
-	RedirectURI  string     `yaml:"-" json:"redirecturi"`
-	ExpiresIn    int64      `yaml:"-" json:"expiresin"`
-	ValidUntil   ValidUntil `yaml:"validUntil"`
+	AccessToken  string    `yaml:"accessToken" json:"accesstoken"`
+	UserID       string    `yaml:"userID" json:"uid"`
+	RefreshToken string    `yaml:"refreshToken" json:"refreshtoken"`
+	RedirectURI  string    `yaml:"-" json:"redirecturi"`
+	ExpiresIn    int64     `yaml:"-" json:"expiresin"`
+	ValidUntil   time.Time `yaml:"-" jsom:"-"`
 }
 
 type CoapSignInRequest struct {

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/google/uuid"
+	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"gopkg.in/yaml.v3"
 )
@@ -29,6 +30,20 @@ func loadConfig(configFile string) (Config, error) {
 	return cfg, nil
 }
 
+func newDevice(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(d *device.Device)) *device.Device {
+	d := device.New(device.Config{
+		Name:                  name,
+		ResourceTypes:         []string{"oic.d.virtual"},
+		ID:                    id,
+		ProtocolIndependentID: piid,
+		MaxMessageSize:        1024 * 256,
+		Cloud: device.CloudConfig{
+			Enabled: true,
+		},
+	}, onUpdateDevice)
+	return d
+}
+
 func main() {
 	configFile := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -36,12 +51,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s, err := service.New(cfg.Config)
+	s, err := service.New[*device.Device](cfg.Config)
 	if err != nil {
 		panic(err)
 	}
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
-		d, ok := s.CreateDevice(uuid.New(), fmt.Sprintf("bridged-device-%d", i), service.WithDeviceTypes([]string{"oic.d.virtual"}))
+		d, ok := s.CreateDevice(uuid.New(), fmt.Sprintf("bridged-device-%d", i), newDevice)
 		if ok {
 			d.Init()
 		}

@@ -7,11 +7,8 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
-	resourcesDevice "github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/schema"
-	plgdCloud "github.com/plgd-dev/device/v2/schema/cloud"
-	plgdDevice "github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -19,30 +16,48 @@ import (
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
 )
 
-const ControllerFileName = "Service.yaml"
+type Device interface {
+	Init()  // start all goroutines for device
+	Close() // stop all goroutines for device
 
-type Service struct {
+	ExportConfig() device.Config // export device config
+
+	GetID() uuid.UUID
+	GetLinks(request *net.Request) (links schema.ResourceLinks)
+	GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFilter []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
+	GetName() string
+	GetProtocolIndependentID() uuid.UUID
+	GetResourceTypes() []string
+
+	HandleRequest(req *net.Request) (*pool.Message, error)
+
+	Range(f func(key string, resource *resources.Resource) bool)
+	AddResource(resource *resources.Resource)
+	RemoveResource(resource *resources.Resource)
+	GetResource(key string) (*resources.Resource, bool)
+
+	UnregisterFromCloud() // unregister device from cloud
+}
+
+type Service[D Device] struct {
 	cfg                Config
 	net                *net.Net
-	devices            *coapSync.Map[uuid.UUID, *device.Device]
+	devices            *coapSync.Map[uuid.UUID, D]
 	done               chan struct{}
-	onUpdateDevice     func(*device.Device)
+	onUpdateDevice     func(D)
 	onDiscoveryDevices func(req *net.Request)
 }
 
-func (c *Service) LoadDevice(deviceID string) (*device.Device, error) {
-	di, err := uuid.Parse(deviceID)
-	if err != nil {
-		return nil, fmt.Errorf("invalid queries: di query is not a valid uuid: %v", err)
-	}
+func (c *Service[D]) LoadDevice(di uuid.UUID) (D, error) {
 	d, ok := c.devices.Load(di)
 	if !ok {
-		return nil, fmt.Errorf("invalid queries: device with di %v not found", di)
+		var d D
+		return d, fmt.Errorf("invalid queries: device with di %v not found", di)
 	}
 	return d, nil
 }
 
-func handleDiscoverAllLinks(c *Service, req *net.Request) (*pool.Message, error) {
+func (c *Service[D]) handleDiscoverAllLinks(req *net.Request) (*pool.Message, error) {
 	c.onDiscoveryDevices(req)
 	res := discovery.New(plgdResources.ResourceURI, func(request *net.Request) schema.ResourceLinks {
 		links := make(schema.ResourceLinks, 0, c.devices.Length()+1)
@@ -70,7 +85,7 @@ func handleDiscoverAllLinks(c *Service, req *net.Request) (*pool.Message, error)
 	return res.Get(req)
 }
 
-func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error) {
+func (c *Service[D]) DefaultRequestHandler(req *net.Request) (*pool.Message, error) {
 	uriPath := req.URIPath()
 	if uriPath == "" {
 		return nil, nil
@@ -80,9 +95,9 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 		return nil, nil
 	}
 	if req.Code() == codes.GET && uriPath == plgdResources.ResourceURI {
-		return handleDiscoverAllLinks(c, req)
+		return c.handleDiscoverAllLinks(req)
 	}
-	if req.DeviceID() == "" {
+	if req.DeviceID() == uuid.Nil {
 		return nil, fmt.Errorf("invalid queries: di query is not set")
 	}
 	d, err := c.LoadDevice(req.DeviceID()) // check if device exists et
@@ -92,37 +107,37 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 	return d.HandleRequest(req)
 }
 
-type OptionsCfg struct {
-	OnUpdateDevice     func(*device.Device)
+type OptionsCfg[D Device] struct {
+	OnUpdateDevice     func(D)
 	OnDiscoveryDevices func(req *net.Request)
 }
 
-func WithOnUpdateDevice(f func(*device.Device)) Option {
-	return func(o *OptionsCfg) {
+func WithOnUpdateDevice[D Device](f func(D)) Option[D] {
+	return func(o *OptionsCfg[D]) {
 		if f != nil {
 			o.OnUpdateDevice = f
 		}
 	}
 }
 
-func WithOnDiscoveryDevices(f func(req *net.Request)) Option {
-	return func(o *OptionsCfg) {
+func WithOnDiscoveryDevices[D Device](f func(req *net.Request)) Option[D] {
+	return func(o *OptionsCfg[D]) {
 		if f != nil {
 			o.OnDiscoveryDevices = f
 		}
 	}
 }
 
-type Option func(*OptionsCfg)
+type Option[D Device] func(*OptionsCfg[D])
 
-func New(cfg Config, opts ...Option) (*Service, error) {
+func New[D Device](cfg Config, opts ...Option[D]) (*Service[D], error) {
 	err := cfg.Validate()
 	if err != nil {
 		return nil, err
 	}
 
-	o := OptionsCfg{
-		OnUpdateDevice: func(d *device.Device) {
+	o := OptionsCfg[D]{
+		OnUpdateDevice: func(d D) {
 			// nothing to do
 		},
 		OnDiscoveryDevices: func(req *net.Request) {
@@ -133,9 +148,9 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 		opt(&o)
 	}
 
-	c := Service{
+	c := Service[D]{
 		cfg:                cfg,
-		devices:            coapSync.NewMap[uuid.UUID, *device.Device](),
+		devices:            coapSync.NewMap[uuid.UUID, D](),
 		onUpdateDevice:     o.OnUpdateDevice,
 		onDiscoveryDevices: o.OnDiscoveryDevices,
 	}
@@ -148,109 +163,59 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 	return &c, nil
 }
 
-func (c *Service) Serve() error {
+func (c *Service[D]) Serve() error {
 	defer close(c.done)
 	return c.net.Serve()
 }
 
-type DeviceOptions struct {
-	DeviceTypes        []string
-	EnableCloudManager bool
-	DeviceData         any
-}
-
-type DeviceOption func(*DeviceOptions)
-
-func WithDeviceTypes(deviceTypes []string) DeviceOption {
-	return func(o *DeviceOptions) {
-		if deviceTypes != nil {
-			o.DeviceTypes = deviceTypes
-		}
-	}
-}
-
-func WithDeviceData(deviceData any) DeviceOption {
-	return func(o *DeviceOptions) {
-		if deviceData != nil {
-			o.DeviceData = deviceData
-		}
-	}
-}
-
-func WithEnableCloudManager(enable bool) DeviceOption {
-	return func(o *DeviceOptions) {
-		o.EnableCloudManager = enable
-	}
-}
-
-func (c *Service) newDevice(deviceID uuid.UUID, name string, opt ...DeviceOption) *device.Device {
-	opts := DeviceOptions{
-		EnableCloudManager: true,
-	}
-	for _, o := range opt {
-		o(&opts)
-	}
-	d := device.New(device.Config{
-		Name:                  name,
-		ResourceTypes:         opts.DeviceTypes,
-		ID:                    deviceID.String(),
-		ProtocolIndependentID: resources.ToUUID(c.cfg.API.CoAP.ID).String(),
-	}, c.onUpdateDevice, opts.DeviceData)
-	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d).Resource)
-	if opts.EnableCloudManager {
-		d.SetCloudManager(plgdCloud.ResourceURI, c.DefaultRequestHandler, c.cfg.API.CoAP.MaxMessageSize)
-	}
-	return d
-}
-
-func (c *Service) CreateDevice(id uuid.UUID, name string, opt ...DeviceOption) (*device.Device, bool) {
-	var newDevice *device.Device
-	_, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue *device.Device, oldLoaded bool) (newValue *device.Device, doDelete bool) {
+func (c *Service[D]) CreateDevice(id uuid.UUID, name string, newDevice func(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(D)) D) (D, bool) {
+	var d D
+	_, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue D, oldLoaded bool) (newValue D, doDelete bool) {
 		if oldLoaded {
 			return oldValue, false
 		}
-		newDevice = c.newDevice(id, name, opt...)
-		return newDevice, false
+		d = newDevice(id, name, resources.ToUUID(c.cfg.API.CoAP.ID), c.onUpdateDevice)
+		return d, false
 	})
 	if oldLoaded {
-		return nil, false
+		return d, false
 	}
-	return newDevice, true
+	return d, true
 }
 
-func (c *Service) GetOrCreateDevice(id uuid.UUID, name string, opt ...DeviceOption) (d *device.Device, loaded bool) {
-	return c.devices.LoadOrStoreWithFunc(id, func(value *device.Device) *device.Device {
+func (c *Service[D]) GetOrCreateDevice(id uuid.UUID, name string, newDevice func(id uuid.UUID, name string, piid uuid.UUID, onUpdateDevice func(D)) D) (d D, loaded bool) {
+	return c.devices.LoadOrStoreWithFunc(id, func(value D) D {
 		return value
-	}, func() *device.Device {
-		return c.newDevice(id, name, opt...)
+	}, func() D {
+		return newDevice(id, name, resources.ToUUID(c.cfg.API.CoAP.ID), c.onUpdateDevice)
 	})
 }
 
-func (c *Service) GetDevice(id uuid.UUID) (*device.Device, bool) {
+func (c *Service[D]) GetDevice(id uuid.UUID) (D, bool) {
 	return c.devices.Load(id)
 }
 
-func (c *Service) CopyDevices() map[uuid.UUID]*device.Device {
+func (c *Service[D]) CopyDevices() map[uuid.UUID]D {
 	return c.devices.CopyData()
 }
 
-func (c *Service) Range(f func(key uuid.UUID, value *device.Device) bool) {
+func (c *Service[D]) Range(f func(key uuid.UUID, value D) bool) {
 	c.devices.Range(f)
 }
 
-func (c *Service) RangeWithLock(f func(key uuid.UUID, value *device.Device) bool) {
+func (c *Service[D]) RangeWithLock(f func(key uuid.UUID, value D) bool) {
 	c.devices.Range2(f)
 }
 
-func (c *Service) Length() int {
+func (c *Service[D]) Length() int {
 	return c.devices.Length()
 }
 
-func (c *Service) GetAndDeleteDevice(id uuid.UUID) (*device.Device, bool) {
+func (c *Service[D]) GetAndDeleteDevice(id uuid.UUID) (D, bool) {
 	return c.devices.LoadAndDelete(id)
 }
 
-func (c *Service) DeleteAndCloseDevice(id uuid.UUID) {
+func (c *Service[D]) DeleteAndCloseDevice(id uuid.UUID) {
 	d, ok := c.devices.LoadAndDelete(id)
 	if ok {
 		d.Close()
