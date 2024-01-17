@@ -73,15 +73,20 @@ type Resource struct {
 	etag                atomic.Uint64
 }
 
-func (r *Resource) HasResourceTypes(resourceTypes []string) bool {
-	for _, rt := range resourceTypes {
-		for _, rrt := range r.ResourceTypes {
-			if rt == rrt {
-				return true
-			}
-		}
-	}
-	return false
+func (r *Resource) GetPolicyBitMask() schema.BitMask {
+	return r.PolicyBitMask
+}
+
+func (r *Resource) GetHref() string {
+	return r.Href
+}
+
+func (r *Resource) GetResourceTypes() []string {
+	return r.ResourceTypes
+}
+
+func (r *Resource) GetResourceInterfaces() []string {
+	return r.ResourceInterfaces
 }
 
 func Unique(strSlice []string) []string {
@@ -165,6 +170,7 @@ func (r *Resource) wakeWatchSubscriptions() {
 	}
 }
 
+// Close closes resource and cancel all subscriptions
 func (r *Resource) Close() {
 	if !r.closed.CompareAndSwap(false, true) {
 		return
