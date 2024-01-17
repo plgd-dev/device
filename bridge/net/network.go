@@ -274,21 +274,7 @@ func (r *Request) ResourceTypes() []string {
 	return resourceTypes
 }
 
-func isValidRequest(request *mux.Message) bool {
-	// // For GET and DELETE requests in CoAP, the initial request cannot have the message type of Acknowledge (ACK) or Reset (RST)
-	if request.Code() != codes.GET && request.Code() != codes.DELETE {
-		return true
-	}
-	if request.Type() == message.Acknowledgement || request.Type() == message.Reset {
-		return false
-	}
-	return true
-}
-
 func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
-	if !isValidRequest(request) {
-		return
-	}
 	request.Hijack()
 	go func(w mux.ResponseWriter, request *mux.Message) {
 		r := Request{
