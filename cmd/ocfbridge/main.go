@@ -37,12 +37,12 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s, err := service.New[*device.Device](cfg.Config)
+	s, err := service.New(cfg.Config)
 	if err != nil {
 		panic(err)
 	}
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
-		newDevice := func(id uuid.UUID, piid uuid.UUID) *device.Device {
+		newDevice := func(id uuid.UUID, piid uuid.UUID) service.Device {
 			d := device.New(device.Config{
 				Name:                  fmt.Sprintf("bridged-device-%d", i),
 				ResourceTypes:         []string{"oic.d.virtual"},
@@ -52,7 +52,11 @@ func main() {
 				Cloud: device.CloudConfig{
 					Enabled: true,
 				},
-			}, nil)
+			}, nil, func() map[string]interface{} {
+				return map[string]interface{}{
+					"my-property": "my-value",
+				}
+			})
 			return d
 		}
 		d, ok := s.CreateDevice(uuid.New(), newDevice)

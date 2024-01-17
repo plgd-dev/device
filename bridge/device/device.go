@@ -38,9 +38,21 @@ import (
 	"github.com/plgd-dev/go-coap/v3/pkg/sync"
 )
 
+type Resource interface {
+	Close()
+	ETag() []byte
+	GetHref() string
+	GetResourceTypes() []string
+	GetResourceInterfaces() []string
+	HandleRequest(req *net.Request) (*pool.Message, error)
+	GetPolicyBitMask() schema.BitMask
+	SetObserveHandler(createSubscription resources.CreateSubscriptionFunc)
+	UpdateETag()
+}
+
 type Device struct {
 	cfg             Config
-	resources       *sync.Map[string, *resources.Resource]
+	resources       *sync.Map[string, Resource]
 	cloudManager    *cloud.Manager
 	onDeviceUpdated func(d *Device)
 }
@@ -95,7 +107,7 @@ func (cfg *Config) Validate() error {
 	return nil
 }
 
-func New(cfg Config, onDeviceUpdated func(d *Device)) *Device {
+func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc) *Device {
 	if onDeviceUpdated == nil {
 		onDeviceUpdated = func(d *Device) {
 			// do nothing
@@ -104,23 +116,23 @@ func New(cfg Config, onDeviceUpdated func(d *Device)) *Device {
 	cfg.ResourceTypes = resources.Unique(append(cfg.ResourceTypes, plgdDevice.ResourceType))
 	d := &Device{
 		cfg:             cfg,
-		resources:       sync.NewMap[string, *resources.Resource](),
+		resources:       sync.NewMap[string, Resource](),
 		onDeviceUpdated: onDeviceUpdated,
 	}
-	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d).Resource)
+	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d, additionalProperties))
 
 	if cfg.Cloud.Enabled {
 		d.cloudManager = cloud.New(d.cfg.ID, func() {
 			d.onDeviceUpdated(d)
 		}, d.HandleRequest, d.GetLinksFilteredBy, cfg.MaxMessageSize)
-		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager).Resource)
+		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
 		d.cloudManager.ImportConfig(cfg.Cloud.Config)
 	}
 	return d
 }
 
-func (d *Device) AddResource(resource *resources.Resource) {
-	d.resources.Store(resource.Href, resource)
+func (d *Device) AddResource(resource Resource) {
+	d.resources.Store(resource.GetHref(), resource)
 }
 
 func (d *Device) Init() {
@@ -133,12 +145,23 @@ func (d *Device) UnregisterFromCloud() {
 	}
 }
 
-func (d *Device) Range(f func(key string, resource *resources.Resource) bool) {
+func (d *Device) Range(f func(resourceHref string, resource Resource) bool) {
 	d.resources.Range(f)
 }
 
-func (d *Device) GetResource(key string) (*resources.Resource, bool) {
-	return d.resources.Load(key)
+func (d *Device) GetResource(resourceHref string) (Resource, bool) {
+	return d.resources.Load(resourceHref)
+}
+
+func hasResourceTypes(resourceTypes []string, oneOf []string) bool {
+	for _, rt := range oneOf {
+		for _, rrt := range resourceTypes {
+			if rt == rrt {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks) {
@@ -147,19 +170,19 @@ func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter u
 		return nil
 	}
 	links = make(schema.ResourceLinks, 0, d.resources.Length())
-	d.resources.Range(func(key string, resource *resources.Resource) bool {
-		if len(resourceTypesFitler) > 0 && !resource.HasResourceTypes(resourceTypesFitler) {
+	d.resources.Range(func(key string, resource Resource) bool {
+		if len(resourceTypesFitler) > 0 && !hasResourceTypes(resource.GetResourceTypes(), resourceTypesFitler) {
 			return true
 		}
-		if policyBitMaskFitler != 0 && resource.PolicyBitMask&policyBitMaskFitler == 0 {
+		if policyBitMaskFitler != 0 && resource.GetPolicyBitMask()&policyBitMaskFitler == 0 {
 			return true
 		}
 		links = append(links, schema.ResourceLink{
 			Href:          key,
-			ResourceTypes: resource.ResourceTypes,
-			Interfaces:    resource.ResourceInterfaces,
+			ResourceTypes: resource.GetResourceTypes(),
+			Interfaces:    resource.GetResourceInterfaces(),
 			Policy: &schema.Policy{
-				BitMask: resource.PolicyBitMask & (^resources.PublishToCloud),
+				BitMask: resource.GetPolicyBitMask() & (^resources.PublishToCloud),
 			},
 			Anchor:    "ocf://" + d.GetID().String(),
 			DeviceID:  d.GetID().String(),
@@ -174,8 +197,16 @@ func (d *Device) GetLinks(request *net.Request) (links schema.ResourceLinks) {
 	return d.GetLinksFilteredBy(request.Endpoints, request.DeviceID(), request.ResourceTypes(), 0)
 }
 
-func (d *Device) RemoveResource(resource *resources.Resource) {
-	d.resources.Delete(resource.Href)
+func (d *Device) LoadAndDeleteResource(resourceHref string) (Resource, bool) {
+	return d.resources.LoadAndDelete(resourceHref)
+}
+
+func (d *Device) CloseAndDeleteResource(resourceHref string) bool {
+	r, ok := d.resources.LoadAndDelete(resourceHref)
+	if ok {
+		r.Close()
+	}
+	return ok
 }
 
 func createResponseNotFound(ctx context.Context, uri string, token message.Token) *pool.Message {

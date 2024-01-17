@@ -39,21 +39,55 @@ type Device interface {
 	GetProtocolIndependentID() uuid.UUID
 }
 
+type GetAdditionalPropertiesForResponseFunc func() map[string]interface{}
+
 type Resource struct {
 	*resources.Resource
-	device Device
+	device                  Device
+	getAdditionalProperties GetAdditionalPropertiesForResponseFunc
 }
 
-func New(uri string, dev Device) *Resource {
+func New(uri string, dev Device, getAdditionalProperties GetAdditionalPropertiesForResponseFunc) *Resource {
+	if getAdditionalProperties == nil {
+		getAdditionalProperties = func() map[string]interface{} { return nil }
+	}
 	d := &Resource{
-		device: dev,
+		device:                  dev,
+		getAdditionalProperties: getAdditionalProperties,
 	}
 	d.Resource = resources.NewResource(uri, d.Get, nil, dev.GetResourceTypes(), []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_R})
 	return d
 }
 
+func mergeCBORStructs(a ...interface{}) interface{} {
+	var merged map[interface{}]interface{}
+	for _, v := range a {
+		if v == nil {
+			continue
+		}
+		data, err := cbor.Encode(v)
+		if err != nil {
+			continue
+		}
+		var m map[interface{}]interface{}
+		err = cbor.Decode(data, &m)
+		if err != nil {
+			continue
+		}
+		if merged == nil {
+			merged = m
+		} else {
+			for k, v := range m {
+				merged[k] = v
+			}
+		}
+	}
+	return merged
+}
+
 func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
-	v := device.Device{
+	additionalProperties := d.getAdditionalProperties()
+	deviceProperties := device.Device{
 		ID:                    d.device.GetID().String(),
 		Name:                  d.device.GetName(),
 		ProtocolIndependentID: d.device.GetProtocolIndependentID().String(),
@@ -61,14 +95,14 @@ func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 		//SpecificationVersion:  "ocf.2.0.5",
 	}
 	if request.Interface() == interfaces.OC_IF_BASELINE {
-		v.ResourceTypes = d.Resource.ResourceTypes
-		v.Interfaces = d.Resource.ResourceInterfaces
+		deviceProperties.ResourceTypes = d.Resource.ResourceTypes
+		deviceProperties.Interfaces = d.Resource.ResourceInterfaces
 	}
-
+	properties := mergeCBORStructs(additionalProperties, deviceProperties)
 	res := pool.NewMessage(request.Context())
 	res.SetCode(codes.Content)
 	res.SetContentFormat(message.AppOcfCbor)
-	data, err := cbor.Encode(v)
+	data, err := cbor.Encode(properties)
 	if err != nil {
 		return nil, err
 	}
