@@ -11,6 +11,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
@@ -50,14 +51,16 @@ type Service[D Device] struct {
 func (c *Service[D]) LoadDevice(di uuid.UUID) (D, error) {
 	d, ok := c.devices.Load(di)
 	if !ok {
-		var d D
 		return d, fmt.Errorf("invalid queries: device with di %v not found", di)
 	}
 	return d, nil
 }
 
 func (c *Service[D]) handleDiscoverAllLinks(req *net.Request) (*pool.Message, error) {
-	c.onDiscoveryDevices(req)
+	if req.Message.Type() != message.Acknowledgement && req.Message.Type() != message.Reset {
+		// discovery is only allowed for CON, NON, UNSET messages
+		c.onDiscoveryDevices(req)
+	}
 	res := discovery.New(plgdResources.ResourceURI, func(request *net.Request) schema.ResourceLinks {
 		links := make(schema.ResourceLinks, 0, c.devices.Length()+1)
 		for _, d := range c.devices.CopyData() {
