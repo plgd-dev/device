@@ -23,6 +23,7 @@ import (
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ func TestClientFactoryReset(t *testing.T) {
 		},
 	}
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())

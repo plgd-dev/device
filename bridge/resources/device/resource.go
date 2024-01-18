@@ -91,8 +91,8 @@ func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 		ID:                    d.device.GetID().String(),
 		Name:                  d.device.GetName(),
 		ProtocolIndependentID: d.device.GetProtocolIndependentID().String(),
-		//DataModelVersion:      "ocf.res.1.3.0",
-		//SpecificationVersion:  "ocf.2.0.5",
+		// DataModelVersion:      "ocf.res.1.3.0",
+		// SpecificationVersion:  "ocf.2.0.5",
 	}
 	if request.Interface() == interfaces.OC_IF_BASELINE {
 		deviceProperties.ResourceTypes = d.Resource.ResourceTypes

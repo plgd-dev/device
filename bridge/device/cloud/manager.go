@@ -142,7 +142,9 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 	c.creds = CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
-	c.close()
+	if err := c.close(); err != nil {
+		log.Printf("cannot close connection: %v\n", err)
+	}
 	c.save()
 }
 
@@ -299,19 +301,18 @@ func (c *Manager) close() error {
 	}
 	client := c.client
 	c.client = nil
-	err := client.Close()
-	return err
+	return client.Close()
 }
 
 func (c *Manager) dial(ctx context.Context) error {
 	if c.client != nil && c.client.Context().Err() == nil {
 		return nil
 	}
-	c.close()
+	_ = c.close()
 	cfg := c.getCloudConfiguration()
 	tlsConfig := &tls.Config{
 		// TODO: set RootCAs from configuration
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: true, //nolint:gosec
 	}
 	ep := schema.Endpoint{
 		URI: cfg.URL,
@@ -334,7 +335,9 @@ func (c *Manager) dial(ctx context.Context) error {
 		}),
 		options.WithKeepAlive(2, time.Second*10, func(c *client.Conn) {
 			log.Printf("keepalive timeout\n")
-			c.Close()
+			if errC := c.Close(); errC != nil {
+				log.Printf("cannot close connection: %v\n", errC)
+			}
 		}))
 	if err != nil {
 		return fmt.Errorf("cannot dial to %v: %w", addr.String(), err)
@@ -430,7 +433,7 @@ func (c *Manager) signOff(ctx context.Context) error {
 	}
 	// signIn / refresh token fails
 	if ctx.Err() != nil {
-		return nil
+		return ctx.Err()
 	}
 	req, err := c.newSignOffReq(ctx)
 	if err != nil {
@@ -678,7 +681,7 @@ func (c *Manager) connect(ctx context.Context) error {
 		}
 		err := r(ctx)
 		if err != nil {
-			c.close()
+			_ = c.close()
 			return err
 		}
 	}

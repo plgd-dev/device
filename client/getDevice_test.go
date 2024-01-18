@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
@@ -123,7 +124,7 @@ func TestClientGetDevice(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
@@ -191,7 +192,7 @@ func TestClientGetDeviceByIP(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
@@ -234,7 +235,7 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(ctx)
@@ -257,7 +258,7 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	require.NoError(t, err)
 
 	// change deviceID by another client
-	c1, err := NewTestSecureClient()
+	c1, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c1.Close(ctx)
@@ -299,14 +300,14 @@ func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c.Close(context.Background())
 		require.NoError(t, errClose)
 	}()
 
-	c1, err := NewTestSecureClientWithGeneratedCertificate()
+	c1, err := testClient.NewTestSecureClientWithGeneratedCertificate()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c1.Close(context.Background())

@@ -3,6 +3,7 @@
 		"-race",
 		"-v",
 		"-cover",
+		"-coverpkg=./...",
 	],
 	"go.testEnvVars": {
 		"ROOT_CA_CRT": "${workspaceFolder}/.tmp/pki_certs/cloudca.pem",
@@ -15,7 +16,7 @@
 		"IDENTITY_KEY": "${workspaceFolder}/.tmp/pki_certs/identitykey.pem",
 	},
 	"files.watcherExclude": {
-        "**/plgd-dev/device/v2/**": true
-    },
+		"**/plgd-dev/device/v2/**": true
+	},
 	"go.testTimeout": "600s",
 }

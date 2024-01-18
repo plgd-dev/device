@@ -37,6 +37,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -87,7 +88,7 @@ func (h *observationHandler) waitForClose(ctx context.Context) error {
 
 func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *testing.T, c *client.Client, deviceID string)) {
 	deviceID := test.MustFindDeviceByName(name)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())

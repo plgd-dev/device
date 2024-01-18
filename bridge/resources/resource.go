@@ -47,11 +47,11 @@ type CreateSubscriptionFunc func(req *net.Request, handler func(msg *pool.Messag
 const PublishToCloud schema.BitMask = 1 << 7
 
 func ToUUID(id string) uuid.UUID {
-	if v, err := uuid.Parse(id); err != nil {
+	v, err := uuid.Parse(id)
+	if err != nil {
 		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(id))
-	} else {
-		return v
 	}
+	return v
 }
 
 type subscription struct {
@@ -262,7 +262,7 @@ func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*
 			resp.SetObserve(sequence.Inc())
 		} else {
 			defer r.removeSubscription(req.Conn.RemoteAddr().String())
-			resp, err = CreateResponseBadRequest(req.Conn.Context(), fmt.Errorf("error while observing %s: %v", r.Href, err))
+			resp, err = CreateResponseBadRequest(req.Conn.Context(), fmt.Errorf("error while observing %s: %w", r.Href, err))
 			if err != nil {
 				return
 			}
