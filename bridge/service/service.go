@@ -143,6 +143,7 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 		cfg:                cfg,
 		devices:            coapSync.NewMap[uuid.UUID, Device](),
 		onDiscoveryDevices: o.OnDiscoveryDevices,
+		done:               make(chan struct{}),
 	}
 	n, err := net.New(cfg.API.CoAP.Config, c.DefaultRequestHandler)
 	if err != nil {
@@ -159,11 +160,16 @@ func (c *Service) Serve() error {
 }
 
 func (c *Service) Shutdown() error {
+	err := c.net.Close()
+	if err != nil {
+		return err
+	}
+	<-c.done
 	devices := c.devices.LoadAndDeleteAll()
 	for _, d := range devices {
 		d.Close()
 	}
-	return c.net.Close()
+	return nil
 }
 
 type NewDeviceFunc func(id uuid.UUID, piid uuid.UUID) Device
