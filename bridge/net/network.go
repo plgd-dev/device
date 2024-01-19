@@ -25,10 +25,7 @@ import (
 	"io"
 	"log"
 	gonet "net"
-	"strconv"
-	"strings"
 
-	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
 	"github.com/plgd-dev/device/v2/schema"
@@ -43,14 +40,6 @@ import (
 	"github.com/plgd-dev/go-coap/v3/udp/server"
 )
 
-type Config struct {
-	ExternalAddress     string `yaml:"externalAddress"`
-	MaxMessageSize      uint32 `yaml:"maxMessageSize"`
-	externalAddressPort string `yaml:"-"`
-}
-
-type RequestHandler func(req *Request) (*pool.Message, error)
-
 type Net struct {
 	cfg           Config
 	listener      *net.UDPConn
@@ -60,34 +49,6 @@ type Net struct {
 	handler       RequestHandler
 
 	mux *mux.Router
-}
-
-const DefaultMaxMessageSize = 2 * 1024 * 1024
-
-func (cfg *Config) Validate() error {
-	if cfg.ExternalAddress == "" {
-		return fmt.Errorf("externalAddress is required")
-	}
-	host, portStr, err := gonet.SplitHostPort(cfg.ExternalAddress)
-	if err != nil {
-		return fmt.Errorf("invalid externalAddress: %w", err)
-	}
-	if host == "" {
-		return fmt.Errorf("invalid externalAddress: host cannot be empty")
-	}
-	port, err := strconv.ParseUint(portStr, 10, 16)
-	if err != nil {
-		return fmt.Errorf("invalid externalAddress: %w", err)
-	}
-	if port == 0 {
-		return fmt.Errorf("invalid externalAddress: port cannot be 0")
-	}
-	if cfg.MaxMessageSize == 0 {
-		cfg.MaxMessageSize = DefaultMaxMessageSize
-	}
-
-	cfg.externalAddressPort = portStr
-	return nil
 }
 
 // TODO: ipv6 + ipv6 multicast addresses
@@ -211,65 +172,6 @@ func LoggingMiddleware(next mux.Handler) mux.Handler {
 		next.ServeCOAP(w, r)
 		logReqResp(w.Conn(), r, w.Message())
 	})
-}
-
-type Request struct {
-	*pool.Message
-	Conn      mux.Conn
-	Endpoints schema.Endpoints
-}
-
-func (r *Request) Interface() string {
-	q, err := r.Queries()
-	if err != nil {
-		return ""
-	}
-	for _, query := range q {
-		if strings.HasPrefix(query, "if=") {
-			return strings.TrimPrefix(query, "if=")
-		}
-	}
-	return ""
-}
-
-func (r *Request) URIPath() string {
-	p, err := r.Message.Options().Path()
-	if err != nil {
-		return ""
-	}
-	return p
-}
-
-func (r *Request) DeviceID() uuid.UUID {
-	q, err := r.Queries()
-	if err != nil {
-		return uuid.Nil
-	}
-	for _, query := range q {
-		if strings.HasPrefix(query, "di=") {
-			deviceID := strings.TrimPrefix(query, "di=")
-			di, err := uuid.Parse(deviceID)
-			if err != nil {
-				return uuid.Nil
-			}
-			return di
-		}
-	}
-	return uuid.Nil
-}
-
-func (r *Request) ResourceTypes() []string {
-	q, err := r.Queries()
-	if err != nil {
-		return nil
-	}
-	resourceTypes := make([]string, 0, len(q))
-	for _, query := range q {
-		if strings.HasPrefix(query, "rt=") {
-			resourceTypes = append(resourceTypes, strings.TrimPrefix(query, "rt="))
-		}
-	}
-	return resourceTypes
 }
 
 func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
