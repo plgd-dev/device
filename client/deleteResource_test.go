@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
@@ -88,7 +89,7 @@ func TestClientDeleteResource(t *testing.T) {
 		},
 	}
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
@@ -117,7 +118,7 @@ func TestClientDeleteResource(t *testing.T) {
 func TestClientBatchDeleteResources(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
