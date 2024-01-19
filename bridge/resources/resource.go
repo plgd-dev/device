@@ -27,7 +27,6 @@ import (
 	"io"
 	"reflect"
 
-	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/schema"
@@ -45,14 +44,6 @@ type PostHandlerFunc func(req *net.Request) (*pool.Message, error)
 type CreateSubscriptionFunc func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error)
 
 const PublishToCloud schema.BitMask = 1 << 7
-
-func ToUUID(id string) uuid.UUID {
-	v, err := uuid.Parse(id)
-	if err != nil {
-		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(id))
-	}
-	return v
-}
 
 type subscription struct {
 	done   <-chan struct{}
