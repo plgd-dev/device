@@ -16,37 +16,45 @@
  *
  ****************************************************************************/
 
-package resources
+package resources_test
 
 import (
-	"crypto/rand"
-	"encoding/binary"
-	"sync/atomic"
-	"time"
+	"sync"
+	"testing"
+
+	"github.com/plgd-dev/device/v2/bridge/resources"
+	"github.com/stretchr/testify/require"
 )
 
-var globalETag atomic.Uint64
-
-func generateNextETag(currentETag uint64) uint64 {
-	buf := make([]byte, 4)
-	_, err := rand.Read(buf)
-	if err != nil {
-		return currentETag + uint64(time.Now().UnixNano()%1000)
+func TestGetETag(t *testing.T) {
+	var last uint64
+	for i := 0; i < 1000; i++ {
+		etag := resources.GetETag()
+		require.Greater(t, etag, last)
+		last = etag
 	}
-	return currentETag + uint64(binary.BigEndian.Uint32(buf)%1000)
 }
 
-func GetETag() uint64 {
-	for {
-		now := uint64(time.Now().UnixNano())
-		oldEtag := globalETag.Load()
-		etag := oldEtag
-		if now > etag {
-			etag = now
-		}
-		newEtag := generateNextETag(etag)
-		if globalETag.CompareAndSwap(oldEtag, newEtag) {
-			return newEtag
-		}
+func TestGetETagParallel(t *testing.T) {
+	const numRoutines = 1000
+
+	etagMap := make(map[uint64]struct{})
+	var mutex sync.Mutex
+
+	var wg sync.WaitGroup
+	wg.Add(numRoutines)
+
+	for i := 0; i < numRoutines; i++ {
+		go func() {
+			defer wg.Done()
+			etag := resources.GetETag()
+			mutex.Lock()
+			etagMap[etag] = struct{}{}
+			mutex.Unlock()
+		}()
 	}
+
+	wg.Wait()
+
+	require.Len(t, etagMap, numRoutines)
 }

@@ -18,35 +18,12 @@
 
 package resources
 
-import (
-	"crypto/rand"
-	"encoding/binary"
-	"sync/atomic"
-	"time"
-)
+import "github.com/google/uuid"
 
-var globalETag atomic.Uint64
-
-func generateNextETag(currentETag uint64) uint64 {
-	buf := make([]byte, 4)
-	_, err := rand.Read(buf)
+func ToUUID(id string) uuid.UUID {
+	v, err := uuid.Parse(id)
 	if err != nil {
-		return currentETag + uint64(time.Now().UnixNano()%1000)
+		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(id))
 	}
-	return currentETag + uint64(binary.BigEndian.Uint32(buf)%1000)
-}
-
-func GetETag() uint64 {
-	for {
-		now := uint64(time.Now().UnixNano())
-		oldEtag := globalETag.Load()
-		etag := oldEtag
-		if now > etag {
-			etag = now
-		}
-		newEtag := generateNextETag(etag)
-		if globalETag.CompareAndSwap(oldEtag, newEtag) {
-			return newEtag
-		}
-	}
+	return v
 }

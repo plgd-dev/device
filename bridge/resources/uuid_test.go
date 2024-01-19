@@ -16,37 +16,44 @@
  *
  ****************************************************************************/
 
-package resources
+package resources_test
 
 import (
-	"crypto/rand"
-	"encoding/binary"
-	"sync/atomic"
-	"time"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/plgd-dev/device/v2/bridge/resources"
+	"github.com/stretchr/testify/require"
 )
 
-var globalETag atomic.Uint64
-
-func generateNextETag(currentETag uint64) uint64 {
-	buf := make([]byte, 4)
-	_, err := rand.Read(buf)
-	if err != nil {
-		return currentETag + uint64(time.Now().UnixNano()%1000)
+func TestToUUID(t *testing.T) {
+	type args struct {
+		id string
 	}
-	return currentETag + uint64(binary.BigEndian.Uint32(buf)%1000)
-}
-
-func GetETag() uint64 {
-	for {
-		now := uint64(time.Now().UnixNano())
-		oldEtag := globalETag.Load()
-		etag := oldEtag
-		if now > etag {
-			etag = now
-		}
-		newEtag := generateNextETag(etag)
-		if globalETag.CompareAndSwap(oldEtag, newEtag) {
-			return newEtag
-		}
+	tests := []struct {
+		name string
+		args args
+		want uuid.UUID
+	}{
+		{
+			name: "valid",
+			args: args{
+				id: "00000000-0000-0000-0000-000000000001",
+			},
+			want: uuid.MustParse("00000000-0000-0000-0000-000000000001"),
+		},
+		{
+			name: "invalid",
+			args: args{
+				id: "00000000-0000-0000-0000-0000000000",
+			},
+			want: uuid.NewSHA1(uuid.NameSpaceURL, []byte("00000000-0000-0000-0000-0000000000")),
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := resources.ToUUID(tt.args.id)
+			require.Equal(t, tt.want, got)
+		})
 	}
 }

@@ -59,32 +59,6 @@ func New(uri string, dev Device, getAdditionalProperties GetAdditionalProperties
 	return d
 }
 
-func mergeCBORStructs(a ...interface{}) interface{} {
-	var merged map[interface{}]interface{}
-	for _, v := range a {
-		if v == nil {
-			continue
-		}
-		data, err := cbor.Encode(v)
-		if err != nil {
-			continue
-		}
-		var m map[interface{}]interface{}
-		err = cbor.Decode(data, &m)
-		if err != nil {
-			continue
-		}
-		if merged == nil {
-			merged = m
-		} else {
-			for k, v := range m {
-				merged[k] = v
-			}
-		}
-	}
-	return merged
-}
-
 func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 	additionalProperties := d.getAdditionalProperties()
 	deviceProperties := device.Device{
@@ -98,7 +72,7 @@ func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 		deviceProperties.ResourceTypes = d.Resource.ResourceTypes
 		deviceProperties.Interfaces = d.Resource.ResourceInterfaces
 	}
-	properties := mergeCBORStructs(additionalProperties, deviceProperties)
+	properties := resources.MergeCBORStructs(additionalProperties, deviceProperties)
 	res := pool.NewMessage(request.Context())
 	res.SetCode(codes.Content)
 	res.SetContentFormat(message.AppOcfCbor)

@@ -18,35 +18,30 @@
 
 package resources
 
-import (
-	"crypto/rand"
-	"encoding/binary"
-	"sync/atomic"
-	"time"
-)
+import "github.com/plgd-dev/device/v2/pkg/codec/cbor"
 
-var globalETag atomic.Uint64
-
-func generateNextETag(currentETag uint64) uint64 {
-	buf := make([]byte, 4)
-	_, err := rand.Read(buf)
-	if err != nil {
-		return currentETag + uint64(time.Now().UnixNano()%1000)
-	}
-	return currentETag + uint64(binary.BigEndian.Uint32(buf)%1000)
-}
-
-func GetETag() uint64 {
-	for {
-		now := uint64(time.Now().UnixNano())
-		oldEtag := globalETag.Load()
-		etag := oldEtag
-		if now > etag {
-			etag = now
+func MergeCBORStructs(a ...interface{}) interface{} {
+	var merged map[interface{}]interface{}
+	for _, v := range a {
+		if v == nil {
+			continue
 		}
-		newEtag := generateNextETag(etag)
-		if globalETag.CompareAndSwap(oldEtag, newEtag) {
-			return newEtag
+		data, err := cbor.Encode(v)
+		if err != nil {
+			continue
+		}
+		var m map[interface{}]interface{}
+		err = cbor.Decode(data, &m)
+		if err != nil {
+			continue
+		}
+		if merged == nil {
+			merged = m
+		} else {
+			for k, v := range m {
+				merged[k] = v
+			}
 		}
 	}
+	return merged
 }
