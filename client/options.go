@@ -161,6 +161,13 @@ func (r ResourceQueryOption) applyOnObserve(opts observeOptions) observeOptions 
 	return opts
 }
 
+func (r ResourceQueryOption) applyOnUpdate(opts updateOptions) updateOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
 type DiscoveryConfigurationOption struct {
 	cfg core.DiscoveryConfiguration
 }

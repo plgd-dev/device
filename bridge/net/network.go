@@ -24,7 +24,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math"
 	gonet "net"
 	"strconv"
 	"strings"
@@ -63,6 +62,8 @@ type Net struct {
 	mux *mux.Router
 }
 
+const DefaultMaxMessageSize = 2 * 1024 * 1024
+
 func (cfg *Config) Validate() error {
 	if cfg.ExternalAddress == "" {
 		return fmt.Errorf("externalAddress is required")
@@ -81,11 +82,8 @@ func (cfg *Config) Validate() error {
 	if port == 0 {
 		return fmt.Errorf("invalid externalAddress: port cannot be 0")
 	}
-	if port > math.MaxUint16 {
-		return fmt.Errorf("invalid externalAddress: port cannot be greater than %v", math.MaxUint16)
-	}
 	if cfg.MaxMessageSize == 0 {
-		cfg.MaxMessageSize = 2 * 1024 * 1024
+		cfg.MaxMessageSize = DefaultMaxMessageSize
 	}
 
 	cfg.externalAddressPort = portStr
@@ -126,7 +124,7 @@ func initConnectivity(listenAddress string) (*net.UDPConn, *net.UDPConn, error) 
 	}
 	if !anySet {
 		_ = mcastListener.Close()
-		return nil, nil, fmt.Errorf("cannot JoinGroup(%v): %v", a, err)
+		return nil, nil, fmt.Errorf("cannot JoinGroup(%v): %w", a, err)
 	}
 
 	err = mcastListener.SetMulticastLoopback(true)

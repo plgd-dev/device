@@ -28,6 +28,13 @@ build-testcontainer:
 
 build: build-testcontainer
 
+ROOT_CA_CRT = $(CERT_PATH)/cloudca.pem
+ROOT_CA_KEY = $(CERT_PATH)/cloudcakey.pem
+INTERMEDIATE_CA_CRT = $(CERT_PATH)/intermediatecacrt.pem
+INTERMEDIATE_CA_KEY = $(CERT_PATH)/intermediatecakey.pem
+MFG_CRT = $(CERT_PATH)/mfgcrt.pem
+MFG_KEY = $(CERT_PATH)/mfgkey.pem
+
 certificates:
 	mkdir -p $(CERT_PATH)
 	chmod 0777 $(CERT_PATH)
@@ -64,8 +71,9 @@ env: clean certificates
 
 unit-test: certificates
 	mkdir -p $(TMP_PATH)
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" MFG_CRT="$(MFG_CRT)" MFG_KEY="$(MFG_KEY)" INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) go test -race -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.coverage.txt
 	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.coverage.txt
-	ROOT_CA_CRT="$(CERT_PATH)/cloudca.pem" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
 
 test: env build-testcontainer
 	docker run \
