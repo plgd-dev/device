@@ -71,7 +71,9 @@ func (d *Device) GetResourceTypes() []string {
 
 func (d *Device) ExportConfig() Config {
 	cfg := d.cfg
-	cfg.Cloud.Config = d.cloudManager.ExportConfig()
+	if d.cloudManager != nil {
+		cfg.Cloud.Config = d.cloudManager.ExportConfig()
+	}
 	return cfg
 }
 
@@ -136,7 +138,9 @@ func (d *Device) AddResource(resource Resource) {
 }
 
 func (d *Device) Init() {
-	d.cloudManager.Init()
+	if d.cloudManager != nil {
+		d.cloudManager.Init()
+	}
 }
 
 func (d *Device) UnregisterFromCloud() {
@@ -227,7 +231,9 @@ func (d *Device) HandleRequest(req *net.Request) (*pool.Message, error) {
 }
 
 func (d *Device) Close() {
-	d.cloudManager.Close()
+	if d.cloudManager != nil {
+		d.cloudManager.Close()
+	}
 	for _, resource := range d.resources.LoadAndDeleteAll() {
 		resource.Close()
 	}
