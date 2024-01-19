@@ -158,6 +158,14 @@ func (c *Service) Serve() error {
 	return c.net.Serve()
 }
 
+func (c *Service) Shutdown() error {
+	devices := c.devices.LoadAndDeleteAll()
+	for _, d := range devices {
+		d.Close()
+	}
+	return c.net.Close()
+}
+
 type NewDeviceFunc func(id uuid.UUID, piid uuid.UUID) Device
 
 func (c *Service) CreateDevice(id uuid.UUID, newDevice NewDeviceFunc) (Device, bool) {
