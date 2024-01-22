@@ -665,7 +665,7 @@ func (c *Manager) run() {
 func (c *Manager) connect(ctx context.Context) error {
 	funcs := []func(ctx context.Context) error{
 		c.signUp,
-		c.refreshToken,
+		// c.refreshToken,
 		c.signIn,
 		c.publishResources,
 	}
