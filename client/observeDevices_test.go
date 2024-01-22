@@ -55,7 +55,7 @@ func TestObserveDevicesAddedByIP(t *testing.T) {
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout*2)
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()
@@ -110,7 +110,7 @@ func TestObserveDevices(t *testing.T) {
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout*2)
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()

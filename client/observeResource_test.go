@@ -52,7 +52,7 @@ func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)

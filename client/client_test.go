@@ -36,8 +36,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const TestTimeout = time.Second * 8
-
 var (
 	ETagSupported                   = false
 	ETagBatchSupported              = false
@@ -91,7 +89,7 @@ func init() {
 		panicIfErr(errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)
