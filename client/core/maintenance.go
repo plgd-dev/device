@@ -33,7 +33,7 @@ func (d *Device) Reboot(
 ) error {
 	return d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
 		Reboot: true,
-	}, options)
+	}, options...)
 }
 
 func (d *Device) FactoryReset(
@@ -43,7 +43,7 @@ func (d *Device) FactoryReset(
 ) error {
 	err := d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
 		FactoryReset: true,
-	}, options)
+	}, options...)
 	if connectionWasClosed(ctx, err) {
 		// connection was closed by disown so we don't report error just log it.
 		d.cfg.Logger.Debug(err.Error())
@@ -56,7 +56,7 @@ func (d *Device) updateMaintenanceResource(
 	ctx context.Context,
 	links schema.ResourceLinks,
 	req maintenance.MaintenanceUpdateRequest,
-	options []coap.OptionFunc,
+	options ...coap.OptionFunc,
 ) (ret error) {
 	links = links.GetResourceLinks(maintenance.ResourceType)
 	if len(links) == 0 {
