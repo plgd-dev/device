@@ -279,6 +279,9 @@ func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*
 		cancel()
 		return nil, err
 	}
+	// set deduplicationNotification value to current value of body
+	d := calcCRC64(resp.Body())
+	deduplicationNotification.Store(d)
 	resp.SetToken(req.Token())
 	resp.SetObserve(sequence.Inc())
 	oldSub, oldLoaded := r.createdSubscription.Replace(req.Conn.RemoteAddr().String(), &subscription{
