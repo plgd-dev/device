@@ -116,7 +116,7 @@ func TestClientUpdateResource(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	c, err := testClient.NewTestSecureClient()
@@ -228,7 +228,7 @@ func TestClientUpdateResourceInRFOTM(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	c, err := testClient.NewTestSecureClient()

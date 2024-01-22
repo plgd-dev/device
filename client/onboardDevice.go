@@ -30,7 +30,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message"
 )
 
-func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string, opts []func(message.Options) message.Options) error {
+func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string, options ...coap.OptionFunc) error {
 	ob := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: authorizationProvider,
 		AuthorizationCode:     authorizationCode,
@@ -39,7 +39,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.D
 	}
 
 	for _, l := range links.GetResourceLinks(cloud.ResourceType) {
-		return d.UpdateResource(ctx, l, ob, nil, opts...)
+		return d.UpdateResource(ctx, l, ob, nil, options...)
 	}
 
 	return fmt.Errorf("cloud resource not found")
@@ -90,7 +90,7 @@ func (c *Client) OnboardDevice(
 	opts ...CommonCommandOption,
 ) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, cfg)
 	if err != nil {
 		return err
 	}
@@ -123,5 +123,5 @@ func (c *Client) OnboardDevice(
 			CloudID:               cloudID,
 		})
 	}
-	return setCloudResource(ctx, links, d, authorizationProvider, authCode, cloudURL, cloudID, cfg.opts)
+	return setCloudResource(ctx, links, d, authorizationProvider, authCode, cloudURL, cloudID, cfg.opts...)
 }

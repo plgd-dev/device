@@ -539,3 +539,8 @@ func applyCommonOptions(opts ...CommonCommandOption) commonCommandOptions {
 	}
 	return cfg
 }
+
+func (r commonCommandOptions) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+	opts.discoveryConfiguration = r.discoveryConfiguration
+	return opts
+}

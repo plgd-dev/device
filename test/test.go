@@ -37,6 +37,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const TestTimeout = time.Second * 8
+
 func MustGetHostname() string {
 	n, err := os.Hostname()
 	if err != nil {

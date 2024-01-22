@@ -61,7 +61,7 @@ func TestClientFactoryReset(t *testing.T) {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	_, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)

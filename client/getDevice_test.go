@@ -121,7 +121,7 @@ func TestClientGetDevice(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	c, err := testClient.NewTestSecureClient()
@@ -189,7 +189,7 @@ func TestClientGetDeviceByIP(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	c, err := testClient.NewTestSecureClient()
@@ -306,7 +306,7 @@ func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	c, err := testClient.NewTestSecureClient()

@@ -85,7 +85,7 @@ func TestClientCreateResource(t *testing.T) {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 	require.NoError(t, err)

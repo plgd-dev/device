@@ -35,5 +35,5 @@ func (c *Client) OffboardDevice(ctx context.Context, deviceID string, opts ...Co
 		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
-	return setCloudResource(ctx, links, d, "", "", "", "", cfg.opts)
+	return setCloudResource(ctx, links, d, "", "", "", "", cfg.opts...)
 }
