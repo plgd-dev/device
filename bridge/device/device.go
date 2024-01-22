@@ -30,9 +30,11 @@ import (
 	cloudResource "github.com/plgd-dev/device/v2/bridge/resources/cloud"
 	resourcesDevice "github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
+	"github.com/plgd-dev/device/v2/bridge/resources/maintenance"
 	"github.com/plgd-dev/device/v2/schema"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
 	plgdDevice "github.com/plgd-dev/device/v2/schema/device"
+	maintenanceSchema "github.com/plgd-dev/device/v2/schema/maintenance"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -128,6 +130,12 @@ func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resou
 	discoverResource := discovery.New(plgdResources.ResourceURI, d.GetLinks)
 	discoverResource.PolicyBitMask = schema.Discoverable
 	d.AddResource(discoverResource)
+
+	d.AddResource(maintenance.New(maintenanceSchema.ResourceURI, func() {
+		if d.cloudManager != nil {
+			d.cloudManager.Unregister()
+		}
+	}))
 
 	if cfg.Cloud.Enabled {
 		d.cloudManager = cloud.New(d.cfg.ID, func() {
