@@ -24,6 +24,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
@@ -92,6 +93,9 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links 
 	}
 	for deviceID, links := range deviceLinks {
 		link, err := GetResourceLink(links, device.ResourceURI)
+		if err != nil {
+			link, err = GetResourceLink(links, resources.ResourceURI)
+		}
 		if err != nil {
 			h.handler.Error(err)
 			continue
