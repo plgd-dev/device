@@ -98,11 +98,11 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links 
 		}
 		if len(link.ResourceTypes) == 0 {
 			h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
-			return
+			continue
 		}
 		_, loaded := h.filterDiscoveredDevices.LoadOrStore(deviceID, true)
 		if loaded {
-			return
+			continue
 		}
 		d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
 		h.handler.Handle(ctx, d)
