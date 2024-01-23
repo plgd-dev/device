@@ -27,7 +27,6 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/schema"
-	"github.com/plgd-dev/device/v2/schema/interfaces"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -88,18 +87,6 @@ func (c *Service) handleDiscoverAllLinks(req *net.Request) (*pool.Message, error
 				links = append(links, dlinks...)
 			}
 		}
-
-		links = append(links, schema.ResourceLink{
-			Href:          plgdResources.ResourceURI,
-			ResourceTypes: []string{plgdResources.ResourceType},
-			Interfaces:    []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_R},
-			Endpoints:     req.Endpoints,
-			Anchor:        "ocf://" + resources.ToUUID(c.cfg.API.CoAP.ID).String(),
-			DeviceID:      resources.ToUUID(c.cfg.API.CoAP.ID).String(),
-			Policy: &schema.Policy{
-				BitMask: schema.Discoverable,
-			},
-		})
 		return links
 	})
 	defer res.Close()
