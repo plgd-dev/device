@@ -125,6 +125,17 @@ func (r ResourceLinks) GetResourceLinks(resourceTypes ...string) ResourceLinks {
 	return links
 }
 
+// FilterByDeviceID filter links by device id.
+func (r ResourceLinks) FilterByDeviceID(deviceID string) ResourceLinks {
+	links := make([]ResourceLink, 0, len(r))
+	for _, r := range r {
+		if r.GetDeviceID() == deviceID {
+			links = append(links, r)
+		}
+	}
+	return links
+}
+
 // PatchEndpoint adds Endpoint information where missing.
 func (r ResourceLinks) PatchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints) ResourceLinks {
 	links := make(ResourceLinks, 0, len(r))
