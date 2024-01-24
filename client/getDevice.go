@@ -23,6 +23,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -31,9 +32,13 @@ import (
 
 func getLinksDevice(ctx context.Context, dev *core.Device, disableUDPEndpoints bool) (schema.ResourceLinks, error) {
 	endpoints := dev.GetEndpoints()
-	links, err := dev.GetResourceLinks(ctx, endpoints)
+	links, err := dev.GetResourceLinks(ctx, endpoints, coap.WithDeviceID(dev.DeviceID()))
 	if err != nil {
 		return nil, err
+	}
+	links = links.FilterByDeviceID(dev.DeviceID())
+	if len(links) == 0 {
+		return nil, fmt.Errorf("cannot get resource links for device %v: not found", dev.DeviceID())
 	}
 	return patchResourceLinksEndpoints(links, disableUDPEndpoints), nil
 }
