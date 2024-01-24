@@ -43,7 +43,14 @@ func New(uri string, getLinks GetLinksHandler) *Resource {
 	return d
 }
 
+func PatchLinks(links schema.ResourceLinks, deviceID string) schema.ResourceLinks {
+	for _, l := range links {
+		l.Anchor = "ocf://" + deviceID
+	}
+	return links
+}
+
 func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
-	links := d.getLinks(request)
+	links := PatchLinks(d.getLinks(request), request.DeviceID().String())
 	return resources.CreateResponseContent(request.Context(), links, codes.Content)
 }

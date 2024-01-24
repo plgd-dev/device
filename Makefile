@@ -87,9 +87,9 @@ test: env build-testcontainer
 test-bridge:
 	rm -rf $(TMP_PATH)/bridge || :
 	mkdir -p $(TMP_PATH)/bridge
-	go build -C ./cmd/ocfbridge -cover -o ./ocfbridge
+	go build -C ./test/ocfbridge -cover -o ./ocfbridge
 	pkill -KILL ocfbridge || :
-	GOCOVERDIR=$(TMP_PATH)/bridge ./cmd/ocfbridge/ocfbridge -config ./cmd/ocfbridge/config.yaml &
+	GOCOVERDIR=$(TMP_PATH)/bridge ./test/ocfbridge/ocfbridge -config ./test/ocfbridge/config.yaml &
 
 	docker pull $(HUB_TEST_DEVICE_IMAGE) && \
 	docker run \
@@ -99,7 +99,7 @@ test-bridge:
 		--env TEST_DEVICE_NAME="bridged-device-0" \
 		--env TEST_DEVICE_TYPE="bridged" \
 		--env GRPC_GATEWAY_TEST_DISABLED=1 \
-		--env IOTIVITY_LITE_TEST_RUN="(TestOffboard|TestOffboardWithRepeat)$$" \
+		--env IOTIVITY_LITE_TEST_RUN="(TestOffboard|TestOffboardWithoutSignIn|TestOffboardWithRepeat|TestRepublishAfterRefresh)$$" \
 		-v $(TMP_PATH):/tmp \
 		$(HUB_TEST_DEVICE_IMAGE)
 

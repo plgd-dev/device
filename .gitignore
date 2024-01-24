@@ -14,4 +14,4 @@ vendor/
 debug
 cmd/ocfbridge/ocfbridge
 cmd/ocfclient/ocfclient
-
+test/ocfbridge/ocfbridge

@@ -114,4 +114,10 @@ func TestUpdateResource(t *testing.T) {
 		"name": 1,
 	}, &got, client.WithDeviceID(d.GetID().String()))
 	require.Error(t, err)
+
+	// fail - invalid href
+	err = c.UpdateResource(ctx, d.GetID().String(), "/invalid", map[string]interface{}{
+		"name": "updated",
+	}, &got, client.WithDeviceID(d.GetID().String()))
+	require.Error(t, err)
 }
