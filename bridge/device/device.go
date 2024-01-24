@@ -73,44 +73,16 @@ func (d *Device) GetResourceTypes() []string {
 	return d.cfg.ResourceTypes
 }
 
+func (d *Device) GetProtocolIndependentID() uuid.UUID {
+	return d.cfg.ProtocolIndependentID
+}
+
 func (d *Device) ExportConfig() Config {
 	cfg := d.cfg
 	if d.cloudManager != nil {
 		cfg.Cloud.Config = d.cloudManager.ExportConfig()
 	}
 	return cfg
-}
-
-func (d *Device) GetProtocolIndependentID() uuid.UUID {
-	return d.cfg.ProtocolIndependentID
-}
-
-type CloudConfig struct {
-	Enabled bool
-	cloud.Config
-}
-
-type Config struct {
-	ID                    uuid.UUID
-	Name                  string
-	ProtocolIndependentID uuid.UUID
-	ResourceTypes         []string
-	MaxMessageSize        uint32
-	Cloud                 CloudConfig
-}
-
-func (cfg *Config) Validate() error {
-	if cfg.ProtocolIndependentID == uuid.Nil {
-		return fmt.Errorf("protocolIndependentID is required")
-	}
-	if cfg.ID == uuid.Nil {
-		cfg.ID = uuid.New()
-	}
-
-	if cfg.Name == "" {
-		cfg.Name = "Unnamed"
-	}
-	return nil
 }
 
 func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc) *Device {
@@ -132,9 +104,7 @@ func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resou
 	d.AddResource(discoverResource)
 
 	d.AddResource(maintenance.New(maintenanceSchema.ResourceURI, func() {
-		if d.cloudManager != nil {
-			d.cloudManager.Unregister()
-		}
+		d.UnregisterFromCloud()
 	}))
 
 	if cfg.Cloud.Enabled {
@@ -202,7 +172,6 @@ func (d *Device) GetLinksFilteredBy(endpoints schema.Endpoints, deviceIDfilter u
 			Policy: &schema.Policy{
 				BitMask: resource.GetPolicyBitMask() & (^resources.PublishToCloud),
 			},
-			Anchor:    "ocf://" + d.GetID().String(),
 			DeviceID:  d.GetID().String(),
 			Endpoints: endpoints,
 		})
@@ -220,7 +189,7 @@ func (d *Device) LoadAndDeleteResource(resourceHref string) (Resource, bool) {
 }
 
 func (d *Device) CloseAndDeleteResource(resourceHref string) bool {
-	r, ok := d.resources.LoadAndDelete(resourceHref)
+	r, ok := d.LoadAndDeleteResource(resourceHref)
 	if ok {
 		r.Close()
 	}
@@ -237,7 +206,7 @@ func createResponseNotFound(ctx context.Context, uri string, token message.Token
 
 func (d *Device) HandleRequest(req *net.Request) (*pool.Message, error) {
 	uri := req.URIPath()
-	res, ok := d.resources.Load(req.URIPath())
+	res, ok := d.resources.Load(uri)
 	if !ok {
 		return createResponseNotFound(req.Context(), uri, req.Token()), nil
 	}
