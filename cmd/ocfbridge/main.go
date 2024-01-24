@@ -4,10 +4,13 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,6 +176,26 @@ func main() {
 			d.Init()
 		}
 	}
+
+	// Signal handling.
+	go func() {
+		sigCh := make(chan os.Signal, 1)
+		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+		for sig := range sigCh {
+			log.Printf("Trapped \"%v\" signal\n", sig)
+			switch sig {
+			case syscall.SIGINT:
+				log.Println("Exiting...")
+				os.Exit(0)
+				return
+			case syscall.SIGTERM:
+				_ = s.Shutdown()
+				return
+			}
+		}
+	}()
+
 	err = s.Serve()
 	if err != nil {
 		panic(err)
