@@ -43,8 +43,8 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...Comm
 
 	ok := d.IsSecured()
 	if !ok {
-		return d.FactoryReset(ctx, links)
+		return d.FactoryReset(ctx, links, cfg.opts...)
 	}
 
-	return d.Disown(ctx, links)
+	return d.Disown(ctx, links, cfg.opts...)
 }

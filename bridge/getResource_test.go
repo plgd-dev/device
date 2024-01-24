@@ -20,7 +20,6 @@ package bridge_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -36,10 +35,6 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
 )
-
-func withDeviceID(deviceID string) client.ResourceQueryOption {
-	return client.WithQuery(fmt.Sprintf("di=%v", deviceID))
-}
 
 func TestGetResource(t *testing.T) {
 	s := bridgeTest.NewBridgeService(t)
@@ -81,7 +76,7 @@ func TestGetResource(t *testing.T) {
 				href:     device.ResourceURI,
 				opts: []client.GetOption{
 					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
-					withDeviceID(d1.GetID().String()),
+					client.WithDeviceID(d1.GetID().String()),
 				},
 			},
 			want: coap.DetailedResponse[interface{}]{
@@ -100,7 +95,7 @@ func TestGetResource(t *testing.T) {
 				href:     device.ResourceURI,
 				opts: []client.GetOption{
 					client.WithInterface(interfaces.OC_IF_BASELINE),
-					withDeviceID(d2.GetID().String()),
+					client.WithDeviceID(d2.GetID().String()),
 				},
 			},
 
@@ -121,7 +116,7 @@ func TestGetResource(t *testing.T) {
 				deviceID: d1.GetID().String(),
 				href:     "/invalid/href",
 				opts: []client.GetOption{
-					withDeviceID(d1.GetID().String()),
+					client.WithDeviceID(d1.GetID().String()),
 				},
 			},
 			wantErr: true,
@@ -132,7 +127,7 @@ func TestGetResource(t *testing.T) {
 				deviceID: "notfound",
 				href:     device.ResourceURI,
 				opts: []client.GetOption{
-					withDeviceID(d1.GetID().String()),
+					client.WithDeviceID(d1.GetID().String()),
 				},
 			},
 			wantErr: true,
@@ -143,7 +138,7 @@ func TestGetResource(t *testing.T) {
 				deviceID: d1.GetID().String(),
 				href:     failRes.GetHref(),
 				opts: []client.GetOption{
-					withDeviceID(d1.GetID().String()),
+					client.WithDeviceID(d1.GetID().String()),
 				},
 			},
 			wantErr: true,
