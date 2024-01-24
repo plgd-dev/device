@@ -28,6 +28,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/test"
@@ -175,6 +176,49 @@ func (h *MockDeviceResourcesObservationHandler) WaitForClose(ctx context.Context
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-h.close:
+		return nil
+	}
+}
+
+type MockResourceObservationHandler struct {
+	Res   chan coap.DecodeFunc
+	Close chan struct{}
+}
+
+func MakeMockResourceObservationHandler() *MockResourceObservationHandler {
+	return &MockResourceObservationHandler{Res: make(chan coap.DecodeFunc, 10), Close: make(chan struct{})}
+}
+
+func (h *MockResourceObservationHandler) Handle(_ context.Context, body coap.DecodeFunc) {
+	h.Res <- body
+}
+
+func (h *MockResourceObservationHandler) Error(err error) { fmt.Println(err) }
+
+func (h *MockResourceObservationHandler) OnClose() { close(h.Close) }
+
+func (h *MockResourceObservationHandler) WaitForNotification(ctx context.Context) (coap.DecodeFunc, error) {
+	select {
+	case e := <-h.Res:
+		return e, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	case <-h.Close:
+		return nil, fmt.Errorf("unexpected close")
+	}
+}
+
+func (h *MockResourceObservationHandler) WaitForClose(ctx context.Context) error {
+	select {
+	case e := <-h.Res:
+		var d interface{}
+		if err := e(d); err != nil {
+			return fmt.Errorf("unexpected notification: cannot decode: %w", err)
+		}
+		return fmt.Errorf("unexpected notification %v", d)
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-h.Close:
 		return nil
 	}
 }
