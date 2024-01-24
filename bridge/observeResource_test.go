@@ -11,6 +11,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	bridgeTest "github.com/plgd-dev/device/v2/bridge/test"
+	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -100,7 +101,7 @@ func TestObserveResource(t *testing.T) {
 	defer cancel()
 
 	h := testClient.MakeMockResourceObservationHandler()
-	obsID, err := c.ObserveResource(ctx, d.GetID().String(), "/test", h, withDeviceID(d.GetID().String()))
+	obsID, err := c.ObserveResource(ctx, d.GetID().String(), "/test", h, client.WithDeviceID(d.GetID().String()))
 	require.NoError(t, err)
 	defer func() {
 		_, errC := c.StopObservingResource(ctx, obsID)
@@ -117,7 +118,7 @@ func TestObserveResource(t *testing.T) {
 	var got coap.DetailedResponse[interface{}]
 	err = c.UpdateResource(ctx, d.GetID().String(), "/test", map[string]interface{}{
 		"name": "updated",
-	}, &got, withDeviceID(d.GetID().String()))
+	}, &got, client.WithDeviceID(d.GetID().String()))
 	require.NoError(t, err)
 	require.Equal(t, codes.Changed, got.Code)
 	require.Equal(t, "updated", rds.getName())
@@ -132,6 +133,6 @@ func TestObserveResource(t *testing.T) {
 	// fail - invalid data
 	err = c.UpdateResource(ctx, d.GetID().String(), "/test", map[string]interface{}{
 		"name": 1,
-	}, &got, withDeviceID(d.GetID().String()))
+	}, &got, client.WithDeviceID(d.GetID().String()))
 	require.Error(t, err)
 }

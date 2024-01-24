@@ -22,6 +22,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/pstat"
 )
@@ -37,6 +38,7 @@ func connectionWasClosed(ctx context.Context, err error) bool {
 func (d *Device) Disown(
 	ctx context.Context,
 	links schema.ResourceLinks,
+	options ...coap.OptionFunc,
 ) error {
 	cannotDisownErr := func(err error) error {
 		return fmt.Errorf("cannot disown: %w", err)
@@ -71,7 +73,7 @@ func (d *Device) Disown(
 	}
 	link.Endpoints = link.Endpoints.FilterSecureEndpoints()
 
-	err = d.UpdateResource(ctx, link, setResetProvisionState, nil)
+	err = d.UpdateResource(ctx, link, setResetProvisionState, nil, options...)
 	if err != nil {
 		if connectionWasClosed(ctx, err) {
 			// connection was closed by disown so we don't report error just log it.

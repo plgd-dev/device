@@ -31,6 +31,12 @@ func WithQuery(resourceQuery string) ResourceQueryOption {
 	}
 }
 
+func WithDeviceID(deviceID string) ResourceQueryOption {
+	return ResourceQueryOption{
+		resourceQuery: "di=" + deviceID,
+	}
+}
+
 // WithInterface updates/gets resource with interface directly from a device.
 func WithInterface(resourceInterface string) ResourceInterfaceOption {
 	return ResourceInterfaceOption{
@@ -162,6 +168,27 @@ func (r ResourceQueryOption) applyOnObserve(opts observeOptions) observeOptions 
 }
 
 func (r ResourceQueryOption) applyOnUpdate(opts updateOptions) updateOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnCreate(opts createOptions) createOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnDelete(opts deleteOptions) deleteOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnCommonCommand(opts commonCommandOptions) commonCommandOptions {
 	if r.resourceQuery != "" {
 		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
 	}
@@ -458,6 +485,7 @@ func (r otmOption) applyOnOwn(opts ownOptions) ownOptions {
 
 type commonCommandOptions struct {
 	discoveryConfiguration core.DiscoveryConfiguration
+	opts                   []coap.OptionFunc
 }
 
 // CommonCommandOption option definition.

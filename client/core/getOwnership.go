@@ -27,7 +27,7 @@ import (
 )
 
 // GetOwnership gets device's ownership resource.
-func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (doxm.Doxm, error) {
+func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks, options ...coap.OptionFunc) (doxm.Doxm, error) {
 	ownLink, ok := links.GetResourceLink(doxm.ResourceURI)
 	if !ok {
 		return doxm.Doxm{}, fmt.Errorf("cannot find %v in links: %+v", doxm.ResourceURI, links)
@@ -37,8 +37,11 @@ func (d *Device) GetOwnership(ctx context.Context, links schema.ResourceLinks) (
 	if len(getOwnlink.Endpoints) == 0 {
 		getOwnlink.Endpoints = ownLink.GetSecureEndpoints()
 	}
+	opts := make([]coap.OptionFunc, 0, 1+len(options))
+	opts = append(opts, coap.WithInterface(interfaces.OC_IF_BASELINE))
+	opts = append(opts, options...)
 
 	var ownership doxm.Doxm
-	err := d.GetResource(ctx, getOwnlink, &ownership, coap.WithInterface(interfaces.OC_IF_BASELINE))
+	err := d.GetResource(ctx, getOwnlink, &ownership, opts...)
 	return ownership, err
 }

@@ -29,5 +29,5 @@ func (c *Client) OffboardDevice(ctx context.Context, deviceID string, opts ...Co
 		return err
 	}
 
-	return setCloudResource(ctx, links, d, "", "", "", "")
+	return setCloudResource(ctx, links, d, "", "", "", "", cfg.opts)
 }

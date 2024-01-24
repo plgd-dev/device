@@ -22,6 +22,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -118,7 +119,7 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 	return c.AddCredentials(ctx, setCaCredential)
 }
 
-func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.ConfigurationUpdateRequest) error {
+func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.ConfigurationUpdateRequest, options ...coap.OptionFunc) error {
 	switch {
 	case r.AuthorizationProvider == "":
 		return fmt.Errorf("invalid AuthorizationProvider")
@@ -139,7 +140,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 		return fmt.Errorf("could not resolve cloud resource link of device %s", c.DeviceID())
 	}
 	link.Endpoints = link.GetSecureEndpoints()
-	err := c.UpdateResource(ctx, link, r, nil)
+	err := c.UpdateResource(ctx, link, r, nil, options...)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %w", c.DeviceID(), err)
 	}
