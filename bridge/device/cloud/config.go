@@ -19,43 +19,8 @@
 package cloud
 
 import (
-	"time"
-
-	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 )
-
-type CoapSignUpRequest struct {
-	DeviceID              string `json:"di"`
-	AuthorizationCode     string `json:"accesstoken"`
-	AuthorizationProvider string `json:"authprovider"`
-}
-
-type CoapSignUpResponse struct {
-	AccessToken  string    `yaml:"accessToken" json:"accesstoken"`
-	UserID       string    `yaml:"userID" json:"uid"`
-	RefreshToken string    `yaml:"refreshToken" json:"refreshtoken"`
-	RedirectURI  string    `yaml:"-" json:"redirecturi"`
-	ExpiresIn    int64     `yaml:"-" json:"expiresin"`
-	ValidUntil   time.Time `yaml:"-" jsom:"-"`
-}
-
-type CoapSignInRequest struct {
-	DeviceID    string `json:"di"`
-	UserID      string `json:"uid"`
-	AccessToken string `json:"accesstoken"`
-	Login       bool   `json:"login"`
-}
-
-type CoapSignInResponse struct {
-	ExpiresIn int64 `json:"expiresin"`
-}
-
-type PublishResourcesRequest struct {
-	DeviceID   string               `json:"di"`
-	Links      schema.ResourceLinks `json:"links"`
-	TimeToLive int                  `json:"ttl"`
-}
 
 type Configuration struct {
 	ResourceTypes         []string                 `yaml:"-" json:"rt"`
@@ -67,16 +32,4 @@ type Configuration struct {
 	LastErrorCode         int                      `yaml:"-" json:"clec"`
 	ProvisioningStatus    cloud.ProvisioningStatus `yaml:"-" json:"cps"`
 	AuthorizationCode     string                   `yaml:"-" json:"-"`
-}
-
-type CoapRefreshTokenRequest struct {
-	DeviceID     string `json:"di"`
-	UserID       string `json:"uid"`
-	RefreshToken string `json:"refreshtoken"`
-}
-
-type CoapRefreshTokenResponse struct {
-	AccessToken  string `json:"accesstoken"`
-	RefreshToken string `json:"refreshtoken"`
-	ExpiresIn    int64  `json:"expiresin"`
 }
