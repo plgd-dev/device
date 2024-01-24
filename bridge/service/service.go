@@ -102,14 +102,18 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 		// ignore well-known/core
 		return nil, nil //nolint:nilnil
 	}
-	if req.Code() == codes.GET && uriPath == plgdResources.ResourceURI {
+	deviceID := req.DeviceID()
+	if req.Code() == codes.GET && uriPath == plgdResources.ResourceURI && deviceID == uuid.Nil {
 		return c.handleDiscoverAllLinks(req)
 	}
-	if req.DeviceID() == uuid.Nil {
+	if deviceID == uuid.Nil {
 		return nil, fmt.Errorf("invalid queries: di query is not set")
 	}
-	d, err := c.LoadDevice(req.DeviceID()) // check if device exists et
+	d, err := c.LoadDevice(deviceID) // check if device exists et
 	if err != nil {
+		if req.ControlMessage().Dst.IsMulticast() {
+			return nil, nil //nolint:nilnil
+		}
 		return nil, err
 	}
 	return d.HandleRequest(req)
