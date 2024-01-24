@@ -11,6 +11,7 @@ CERT_TOOL_SIGN_ALG ?= ECDSA-SHA256
 # supported values: P256, P384, P521
 CERT_TOOL_ELLIPTIC_CURVE ?= P256
 DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
+HUB_TEST_DEVICE_IMAGE = ghcr.io/plgd-dev/hub/test-cloud-server:vnext-pr1202
 
 default: build
 
@@ -71,9 +72,9 @@ env: clean certificates
 
 unit-test: certificates
 	mkdir -p $(TMP_PATH)
-	ROOT_CA_CRT="$(ROOT_CA_CRT)" MFG_CRT="$(MFG_CRT)" MFG_KEY="$(MFG_KEY)" INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) go test -race -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.coverage.txt
-	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.coverage.txt
-	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.coverage.txt
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" MFG_CRT="$(MFG_CRT)" MFG_KEY="$(MFG_KEY)" INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) go test -race -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.unit.coverage.txt
+	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.unit.coverage.txt
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.unit.coverage.txt
 
 test: env build-testcontainer
 	docker run \
@@ -83,8 +84,36 @@ test: env build-testcontainer
 		-v $(TMP_PATH):/tmp \
 		$(SERVICE_NAME):$(VERSION_TAG) -test.parallel 1 -test.v -test.coverprofile=/tmp/coverage.txt
 
+test-bridge:
+	rm -rf $(TMP_PATH)/bridge || :
+	mkdir -p $(TMP_PATH)/bridge
+	go build -C ./cmd/ocfbridge -cover -o ./ocfbridge
+	pkill -KILL ocfbridge || :
+	GOCOVERDIR=$(TMP_PATH)/bridge ./cmd/ocfbridge/ocfbridge -config ./cmd/ocfbridge/config.yaml &
+
+	docker pull $(HUB_TEST_DEVICE_IMAGE) && \
+	docker run \
+		--network=host \
+		--rm \
+		--name hub-device-tests \
+		--env TEST_DEVICE_NAME="bridged-device-0" \
+		--env TEST_DEVICE_TYPE="bridged" \
+		--env GRPC_GATEWAY_TEST_DISABLED=1 \
+		--env IOTIVITY_LITE_TEST_RUN="(TestOffboard|TestOffboardWithRepeat)$$" \
+		-v $(TMP_PATH):/tmp \
+		$(HUB_TEST_DEVICE_IMAGE)
+
+	pkill -TERM ocfbridge || :
+	while pgrep -x ocfbridge > /dev/null; do \
+		echo "waiting for ocfbridge to exit"; \
+		sleep 1; \
+	done
+	go tool covdata textfmt -i=$(TMP_PATH)/bridge -o $(TMP_PATH)/bridge.coverage.txt
+
 clean:
 	docker rm -f devsim-net-host || true
+	docker rm -f hub-device-tests || true
+	pkill -KILL ocfbridge || true
 	sudo rm -rf .tmp/*
 
 .PHONY: build-testcontainer build certificates clean env test unit-test

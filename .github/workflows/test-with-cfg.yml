@@ -51,7 +51,11 @@ jobs:
         if: ${{ failure() }}
         run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
 
-      # Run after integration tests, because they first clean-up the output directory
+      # Run after integration tests, because they always clean-up the output directory
+      - name: Run bridge tests
+        run: |
+          make test-bridge
+
       - name: Run unit tests
         if: ${{ inputs.coverage }}
         run: |
