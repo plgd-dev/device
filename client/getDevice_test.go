@@ -171,14 +171,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			args: args{
 				ip: ip4,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName, ip4),
+			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName, ip4+":5683"),
 		},
 		{
 			name: "ip6",
 			args: args{
 				ip: ip6,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName, "["+ip6+"]"),
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName, "["+ip6+"]:5683"),
 		},
 		{
 			name: "not-found",

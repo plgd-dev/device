@@ -112,7 +112,7 @@ func (c *Client) GetDevicesByIP(ctx context.Context, ip string) ([]*Device, erro
 		return nil, MakeNotFound(fmt.Errorf("no response from the devices with ip %s", ip))
 	}
 	for _, d := range devices {
-		d.setFoundByIP(ip)
+		d.setFoundByIP(addr)
 	}
 	return devices, nil
 }
