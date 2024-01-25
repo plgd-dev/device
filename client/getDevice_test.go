@@ -251,10 +251,16 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	err = c.DisownDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)
 	time.Sleep(time.Second * 4)
-	// deviceID was changed after disowning - the call fails, but internally the cache is updated so dev.DeviceID() returns new deviceID
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
-	require.Error(t, err)
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	deviceNotExist := func(di string) {
+		ctx1, cancel1 := context.WithTimeout(ctx, time.Second)
+		defer cancel1()
+		_, _, err = c.GetDevice(ctx1, di)
+		require.Error(t, err)
+	}
+	// deviceID was changed after disowning - the call fails, because device not exist anymore
+	deviceNotExist(dev.DeviceID())
+
+	dev, _, err = c.GetDeviceByIP(ctx, ip)
 	require.NoError(t, err)
 
 	// change deviceID by another client
@@ -271,8 +277,11 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	time.Sleep(time.Second * 4)
 
 	// try get old device again
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
-	require.Error(t, err)
+	deviceNotExist(dev.DeviceID())
+
+	dev, _, err = c.GetDeviceByIP(ctx, ip)
+	require.NoError(t, err)
+
 	// dev has updated deviceID by previous call so we can get the device
 	_, _, err = c.GetDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)

@@ -48,7 +48,7 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 	return devices[0], nil
 }
 
-func getAddress(ip string) (addr string, isIpv4 bool, err error) {
+func getAddress(ip string) (addr string, isIpv4 bool, _ error) {
 	if strings.Contains(ip, ".") {
 		host, port, err := net.SplitHostPort(ip)
 		if err != nil {
@@ -69,7 +69,7 @@ func getAddress(ip string) (addr string, isIpv4 bool, err error) {
 	if err != nil {
 		return "", false, err
 	}
-	return "[" + host + "]:" + port, true, nil
+	return "[" + host + "]:" + port, false, nil
 }
 
 // GetDevicesByIP gets the devices directly via IP address and multicast listen port 5683.
