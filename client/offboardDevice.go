@@ -18,6 +18,8 @@ package client
 
 import (
 	"context"
+
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 // OffboardDevice disconnects from the cloud and removes cloud configuration at the device.
@@ -27,6 +29,10 @@ func (c *Client) OffboardDevice(ctx context.Context, deviceID string, opts ...Co
 	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
 	if err != nil {
 		return err
+	}
+
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
 	return setCloudResource(ctx, links, d, "", "", "", "", cfg.opts)

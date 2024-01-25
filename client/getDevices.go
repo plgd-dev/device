@@ -29,16 +29,21 @@ import (
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/go-coap/v3/message"
 	kitStrings "github.com/plgd-dev/kit/v2/strings"
 )
 
-func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+func getDetails(ctx context.Context, d *core.Device, links schema.ResourceLinks, optsArgs ...func(message.Options) message.Options) (interface{}, error) {
 	link := links.GetResourceLinks(device.ResourceType)
 	if len(link) == 0 {
 		return nil, fmt.Errorf("cannot find device resource at links %+v", links)
 	}
 	var dev device.Device
-	err := d.GetResource(ctx, link[0], &dev, coap.WithInterface(interfaces.OC_IF_BASELINE))
+	opts := []func(message.Options) message.Options{
+		coap.WithInterface(interfaces.OC_IF_BASELINE),
+	}
+	opts = append(opts, optsArgs...)
+	err := d.GetResource(ctx, link[0], &dev, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +55,7 @@ type ownership struct {
 	status OwnershipStatus
 }
 
-func (c *Client) getDevicesAppendDeviceByIP(ctx context.Context, ip string, resourceTypes []string, getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error), appendDevice func(d DeviceDetails)) {
+func (c *Client) getDevicesAppendDeviceByIP(ctx context.Context, ip string, resourceTypes []string, getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks, optsArgs ...func(message.Options) message.Options) (interface{}, error), appendDevice func(d DeviceDetails)) {
 	d, err := c.GetDeviceDetailsByIP(ctx, ip, WithGetDetails(getDetails))
 	if err != nil {
 		return
@@ -80,6 +85,7 @@ func (c *Client) GetDevicesDetails(
 	cfg := getDevicesOptions{
 		getDetails:             getDetails,
 		discoveryConfiguration: core.DefaultDiscoveryConfiguration(),
+		useDeviceID:            c.useDeviceIDInQuery,
 	}
 	for _, o := range opts {
 		cfg = o.applyOnGetDevices(cfg)
@@ -92,11 +98,11 @@ func (c *Client) GetDevicesDetails(
 		resOwnerships[deviceID] = d
 	}
 
-	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error) {
+	getDetails := func(ctx context.Context, d *core.Device, links schema.ResourceLinks, optsArgs ...func(message.Options) message.Options) (interface{}, error) {
 		links = patchResourceLinksEndpoints(links, c.disableUDPEndpoints)
-		details, err := cfg.getDetails(ctx, d, links)
+		details, err := cfg.getDetails(ctx, d, links, optsArgs...)
 		if err == nil && d.IsSecured() {
-			doxm, ownErr := d.GetOwnership(ctx, links)
+			doxm, ownErr := d.GetOwnership(ctx, links, optsArgs...)
 			if ownErr == nil {
 				ownerships(d.DeviceID(), ownership{
 					doxm:   &doxm,
@@ -128,7 +134,7 @@ func (c *Client) GetDevicesDetails(
 		}(ip)
 	}
 
-	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints)
+	handler := newDiscoveryHandler(cfg.resourceTypes, c.logger, devices, getDetails, c.deviceCache, c.disableUDPEndpoints, cfg.useDeviceID)
 	if err := c.client.GetDevicesByMulticast(ctx, cfg.discoveryConfiguration, handler); err != nil {
 		return nil, err
 	}
@@ -193,8 +199,9 @@ func newDiscoveryHandler(
 	getDetails GetDetailsFunc,
 	deviceCache *DeviceCache,
 	disableUDPEndpoints bool,
+	useDeviceID bool,
 ) *discoveryHandler {
-	return &discoveryHandler{typeFilter: typeFilter, logger: logger, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints}
+	return &discoveryHandler{typeFilter: typeFilter, logger: logger, devices: devices, getDetails: getDetails, deviceCache: deviceCache, disableUDPEndpoints: disableUDPEndpoints, useDeviceID: useDeviceID}
 }
 
 type detailsWasSet struct {
@@ -209,13 +216,14 @@ type discoveryHandler struct {
 	getDetails          GetDetailsFunc
 	deviceCache         *DeviceCache
 	disableUDPEndpoints bool
+	useDeviceID         bool
 
 	getDetailsWasCalled sync.Map
 }
 
 func (h *discoveryHandler) Error(err error) { h.logger.Debug(err.Error()) }
 
-func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (out DeviceDetails, _ error) {
+func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc, opts []func(message.Options) message.Options) (out DeviceDetails, _ error) {
 	link, ok := links.GetResourceLink(device.ResourceURI)
 	var eps []schema.Endpoint
 	if ok {
@@ -225,7 +233,7 @@ func getDeviceDetails(ctx context.Context, dev *core.Device, links schema.Resour
 	isSecured := dev.IsSecured()
 	var details interface{}
 	if getDetails != nil {
-		d, err := getDetails(ctx, dev, links)
+		d, err := getDetails(ctx, dev, links, opts...)
 		if err != nil {
 			return DeviceDetails{}, err
 		}
@@ -279,7 +287,12 @@ func (h *discoveryHandler) getDeviceDetails(ctx context.Context, d *core.Device,
 	if m.wasSet {
 		getDetails = nil
 	}
-	devDetails, err := getDeviceDetails(ctx, d, links, getDetails)
+	opts := make([]func(message.Options) message.Options, 0, 1)
+	if h.useDeviceID {
+		opts = append(opts, coap.WithDeviceID(d.DeviceID()))
+	}
+
+	devDetails, err := getDeviceDetails(ctx, d, links, getDetails, opts)
 	if err == nil {
 		m.wasSet = true
 	}

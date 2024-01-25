@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -94,9 +95,13 @@ func (c *Client) OnboardDevice(
 		return err
 	}
 
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	ok := d.IsSecured()
 	if ok {
-		p, err := d.Provision(ctx, links)
+		p, err := d.Provision(ctx, links, cfg.opts...)
 		if err != nil {
 			return err
 		}
@@ -116,7 +121,7 @@ func (c *Client) OnboardDevice(
 			AuthorizationCode:     authCode,
 			URL:                   cloudURL,
 			CloudID:               cloudID,
-		}, cfg.opts...)
+		})
 	}
 	return setCloudResource(ctx, links, d, authorizationProvider, authCode, cloudURL, cloudID, cfg.opts)
 }

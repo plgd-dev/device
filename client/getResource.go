@@ -21,6 +21,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client/core"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 // GetResource returns the device resource.
@@ -47,6 +48,10 @@ func (c *Client) GetResource(
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
 		return err
+	}
+
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
 	return d.GetResourceWithCodec(ctx, link, cfg.codec, response, cfg.opts...)
