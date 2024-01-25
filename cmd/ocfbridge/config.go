@@ -9,6 +9,7 @@ import (
 type Config struct {
 	service.Config             `yaml:",inline"`
 	NumGeneratedBridgedDevices int `yaml:"numGeneratedBridgedDevices"`
+	NumResourcesPerDevice      int `yaml:"numResourcesPerDevice"`
 }
 
 func (c *Config) Validate() error {
