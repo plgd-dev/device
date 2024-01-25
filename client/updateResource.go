@@ -21,6 +21,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client/core"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 // UpdateResource updates the device resource.
@@ -50,6 +51,9 @@ func (c *Client) UpdateResource(
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
 		return err
+	}
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
 	return d.UpdateResourceWithCodec(ctx, link, cfg.codec, request, response, cfg.opts...)

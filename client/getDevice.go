@@ -26,6 +26,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/status"
 )
@@ -85,41 +86,65 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 	return retDev, links, nil
 }
 
-func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, schema.ResourceLinks, error) {
-	dev, err := c.getDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
-	if err != nil {
-		return nil, nil, err
-	}
-	links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
-	if err != nil {
-		return nil, nil, err
-	}
-	return dev, links, nil
+type DeviceWithLinks struct {
+	Device *core.Device
+	Links  schema.ResourceLinks
 }
 
-func (c *Client) getDeviceByIPWithUpdateCache(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, error) {
-	newDev, err := c.client.GetDeviceByIP(ctx, ip)
+func (c *Client) getDevicesByIP(ctx context.Context, ip string, expectedDeviceID string) ([]DeviceWithLinks, error) {
+	devs, err := c.getDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
 	if err != nil {
 		return nil, err
 	}
-	var oldDev *core.Device
-	if expectedDeviceID != "" {
-		oldDev, _ = c.deviceCache.GetDevice(expectedDeviceID)
-	} else {
-		oldDev = c.deviceCache.GetDeviceByFoundIP(ip)
+	devsLinks := make([]DeviceWithLinks, 0, len(devs))
+	for _, dev := range devs {
+		if expectedDeviceID != "" && dev.DeviceID() != expectedDeviceID {
+			continue
+		}
+		links, err := getLinksDevice(ctx, dev, c.disableUDPEndpoints)
+		if err != nil {
+			c.deleteDeviceNotFoundByIP(ctx, dev)
+			continue
+		}
+		devsLinks = append(devsLinks, DeviceWithLinks{
+			Device: dev,
+			Links:  links,
+		})
 	}
-	if oldDev != nil && oldDev.DeviceID() != newDev.DeviceID() {
-		tmp, ok := c.deviceCache.LoadAndDeleteDevice(oldDev.DeviceID())
-		if ok && tmp == oldDev {
-			oldDev.UpdateBy(newDev)
-			if errC := newDev.Close(ctx); errC != nil {
-				c.logger.Debugf("get device by ip error: %w", errC)
-			}
-			newDev = oldDev
+	return devsLinks, nil
+}
+
+func (c *Client) getDeviceByIPWithUpdateCache(ctx context.Context, ip string, expectedDeviceID string) ([]*core.Device, error) {
+	newDevices, err := c.client.GetDevicesByIP(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	var devs []*core.Device
+	oldDevs := make(map[string]*core.Device)
+	if expectedDeviceID != "" {
+		d, ok := c.deviceCache.GetDevice(expectedDeviceID)
+		if ok {
+			oldDevs[expectedDeviceID] = d
+		}
+	} else {
+		for _, d := range c.deviceCache.GetDeviceByFoundIP(ip) {
+			oldDevs[d.DeviceID()] = d
 		}
 	}
-	dev, _ := c.deviceCache.UpdateOrStoreDevice(newDev)
-	return dev, nil
+	for _, newDev := range newDevices {
+		delete(oldDevs, newDev.DeviceID())
+		dev, _ := c.deviceCache.UpdateOrStoreDevice(newDev)
+		devs = append(devs, dev)
+	}
+	for _, oldDev := range oldDevs {
+		tmp, ok := c.deviceCache.LoadAndDeleteDevice(oldDev.DeviceID())
+		if ok {
+			if errC := tmp.Close(ctx); errC != nil {
+				c.logger.Debugf("get device by ip error: %w", errC)
+			}
+		}
+	}
+	return devs, nil
 }
 
 func (c *Client) checkAndUpdateCacheByLinks(ctx context.Context, dev *core.Device, links schema.ResourceLinks) (*core.Device, schema.ResourceLinks, error) {
@@ -155,19 +180,27 @@ func (c *Client) GetDevice(ctx context.Context, deviceID string, opts ...GetDevi
 	if err == nil {
 		return c.checkAndUpdateCacheByLinks(ctx, dev, links)
 	}
-	var newDev *core.Device
 	if dev.FoundByIP() != "" {
-		newDev, links, err = c.getDeviceByIP(ctx, dev.FoundByIP(), deviceID)
+		devLinks, err := c.getDevicesByIP(ctx, dev.FoundByIP(), deviceID)
 		if err != nil {
 			return nil, nil, err
 		}
-		if newDev.DeviceID() != deviceID {
+		if len(devLinks) == 0 {
 			return nil, nil, fmt.Errorf("cannot get device %v: not found", deviceID)
 		}
-		return dev, links, nil
+		return devLinks[0].Device, devLinks[0].Links, nil
 	}
 	c.deleteDeviceNotFoundByIP(ctx, dev)
 	return c.GetDevice(ctx, deviceID, opts...)
+}
+
+// GetDevicesByIP gets devices by IP and store it to cache without expiration.
+// To delete device, call DeleteDevices with the deviceID.
+func (c *Client) GetDevicesByIP(
+	ctx context.Context,
+	ip string,
+) ([]DeviceWithLinks, error) {
+	return c.getDevicesByIP(ctx, ip, "")
 }
 
 // GetDeviceByIP gets device by IP and store it to cache without expiration.
@@ -176,7 +209,11 @@ func (c *Client) GetDeviceByIP(
 	ctx context.Context,
 	ip string,
 ) (*core.Device, schema.ResourceLinks, error) {
-	return c.getDeviceByIP(ctx, ip, "")
+	devices, err := c.GetDevicesByIP(ctx, ip)
+	if err != nil {
+		return nil, nil, err
+	}
+	return devices[0].Device, devices[0].Links, nil
 }
 
 func isDeviceOwnedByOther(err error) bool {
@@ -187,14 +224,14 @@ func isDeviceOwnedByOther(err error) bool {
 	return errors.As(err, &unknownAuth)
 }
 
-func (c *Client) getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc) (DeviceDetails, error) {
-	devDetails, err := getDeviceDetails(ctx, dev, links, getDetails)
+func (c *Client) getDeviceDetails(ctx context.Context, dev *core.Device, links schema.ResourceLinks, getDetails GetDetailsFunc, optsArgs []func(message.Options) message.Options) (DeviceDetails, error) {
+	devDetails, err := getDeviceDetails(ctx, dev, links, getDetails, optsArgs)
 	if err != nil {
 		return DeviceDetails{}, err
 	}
 	var o ownership
 	if devDetails.IsSecured {
-		d, ownErr := dev.GetOwnership(ctx, links)
+		d, ownErr := dev.GetOwnership(ctx, links, optsArgs...)
 		if ownErr != nil {
 			if isDeviceOwnedByOther(ownErr) {
 				o.status = OwnershipStatus_OwnedByOther
@@ -225,7 +262,7 @@ func (c *Client) GetDeviceDetailsByMulticast(ctx context.Context, deviceID strin
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails)
+	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails, cfg.opts)
 }
 
 func (c *Client) GetAllDeviceIDsFoundByIP() map[string]string {
@@ -245,5 +282,5 @@ func (c *Client) GetDeviceDetailsByIP(ctx context.Context, ip string, opts ...Ge
 	if err != nil {
 		return DeviceDetails{}, err
 	}
-	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails)
+	return c.getDeviceDetails(ctx, dev, links, cfg.getDetails, cfg.opts)
 }

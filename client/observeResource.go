@@ -235,6 +235,10 @@ func (c *Client) ObserveResource(
 		return "", err
 	}
 
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	observationID, err = d.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h, cfg.opts...)
 	if err != nil {
 		return "", err

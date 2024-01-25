@@ -72,7 +72,11 @@ func NewTestSetupSecureClient(ca, mfgCA []*x509.Certificate, mfgCert tls.Certifi
 }
 
 func NewTestSecureClient() (*client.Client, error) {
-	return newTestSecureClient(test.IdentityIntermediateCA, test.IdentityIntermediateCAKey)
+	return newTestSecureClient(test.IdentityIntermediateCA, test.IdentityIntermediateCAKey, false)
+}
+
+func NewTestSecureClientWithBridgeSupport() (*client.Client, error) {
+	return newTestSecureClient(test.IdentityIntermediateCA, test.IdentityIntermediateCAKey, true)
 }
 
 func NewTestSecureClientWithGeneratedCertificate() (*client.Client, error) {
@@ -94,10 +98,10 @@ func NewTestSecureClientWithGeneratedCertificate() (*client.Client, error) {
 		return nil, fmt.Errorf("cannot marhsal private key: %w", err)
 	}
 	key := pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: derKey})
-	return newTestSecureClient(cert, key)
+	return newTestSecureClient(cert, key, false)
 }
 
-func newTestSecureClient(signerCert, signerKey []byte) (*client.Client, error) {
+func newTestSecureClient(signerCert, signerKey []byte, useDeviceIDInQuery bool) (*client.Client, error) {
 	cfg := client.Config{
 		DeviceOwnershipSDK: &client.DeviceOwnershipSDKConfig{
 			ID:               CertIdentity,
@@ -105,6 +109,7 @@ func newTestSecureClient(signerCert, signerKey []byte) (*client.Client, error) {
 			CertKey:          string(signerKey),
 			CreateSignerFunc: test.NewIdentityCertificateSigner,
 		},
+		UseDeviceIDInQuery: useDeviceIDInQuery,
 	}
 	mfgTrustedCABlock, _ := pem.Decode(test.RootCACrt)
 	if mfgTrustedCABlock == nil {

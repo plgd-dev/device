@@ -58,6 +58,8 @@ type Config struct {
 	DisablePeerTCPSignalMessageCSMs   bool
 	DefaultTransferDurationSeconds    uint64 // 0 means 15 seconds
 
+	UseDeviceIDInQuery bool // if true, deviceID is used also in query. Set this option if you use bridged devices.
+
 	// specify one of:
 	DeviceOwnershipSDK     *DeviceOwnershipSDKConfig     `yaml:",omitempty"`
 	DeviceOwnershipBackend *DeviceOwnershipBackendConfig `yaml:",omitempty"`
@@ -152,6 +154,7 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 			FailureThreshold: cfg.ObserverFailureThreshold,
 		}),
 		WithCacheExpiration(cacheExpiration),
+		WithUseDeviceIDInQuery(cfg.UseDeviceIDInQuery),
 	}
 
 	deviceOwner, err := NewDeviceOwnerFromConfig(cfg, dialTLS, dialDTLS, app)
@@ -175,6 +178,8 @@ type ClientConfig struct {
 	CacheExpiration time.Duration
 	// Observer is a configuration of the devices observation.
 	Observer ObserverConfig
+	// UseDeviceIDInQuery if true, deviceID is used also in query. Set this option if you use bridged devices.
+	UseDeviceIDInQuery bool
 }
 
 type ClientOptionFunc func(ClientConfig) ClientConfig
@@ -254,6 +259,14 @@ func WithDialUDP(dial core.DialUDP) ClientOptionFunc {
 	}
 }
 
+// WithUseDeviceIDInQuery sets the observer config.
+func WithUseDeviceIDInQuery(useDeviceIDInQuery bool) ClientOptionFunc {
+	return func(cfg ClientConfig) ClientConfig {
+		cfg.UseDeviceIDInQuery = useDeviceIDInQuery
+		return cfg
+	}
+}
+
 // NewClient constructs a new local client.
 func NewClient(
 	app ApplicationCallback,
@@ -310,6 +323,7 @@ func NewClient(
 		subscriptions:        make(map[string]subscription),
 		observerConfig:       clientCfg.Observer,
 		logger:               coreCfg.Logger,
+		useDeviceIDInQuery:   clientCfg.UseDeviceIDInQuery,
 	}
 	return &client, nil
 }
@@ -341,6 +355,8 @@ type Client struct {
 
 	disableUDPEndpoints bool
 	logger              core.Logger
+
+	useDeviceIDInQuery bool
 }
 
 func (c *Client) popSubscriptions() map[string]subscription {
