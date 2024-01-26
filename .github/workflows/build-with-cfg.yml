@@ -29,3 +29,9 @@ jobs:
       - run: |
           go version
           go vet ./...
+      
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: .
+          artifact-name: sbom.spdx
