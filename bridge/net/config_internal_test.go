@@ -27,7 +27,7 @@ import (
 func TestConfigValidate(t *testing.T) {
 	type data struct {
 		maxMsgSize            uint32
-		externalAddressesPort []externalAddressPort
+		externalAddressesPort externalAddressesPort
 	}
 	tests := []struct {
 		name    string
@@ -40,7 +40,7 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{ExternalAddresses: []string{"localhost:12345"}, MaxMessageSize: 1024},
 			want: data{
 				maxMsgSize: 1024,
-				externalAddressesPort: []externalAddressPort{{
+				externalAddressesPort: externalAddressesPort{{
 					host:    "localhost",
 					port:    "12345",
 					network: UDP4,
@@ -52,7 +52,7 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{ExternalAddresses: []string{"[::1]:12345"}, MaxMessageSize: 1024},
 			want: data{
 				maxMsgSize: 1024,
-				externalAddressesPort: []externalAddressPort{{
+				externalAddressesPort: externalAddressesPort{{
 					host:    "::1",
 					port:    "12345",
 					network: UDP6,
@@ -64,7 +64,7 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{ExternalAddresses: []string{"localhost:12345", "[::1]:12345"}, MaxMessageSize: 1024},
 			want: data{
 				maxMsgSize: 1024,
-				externalAddressesPort: []externalAddressPort{
+				externalAddressesPort: externalAddressesPort{
 					{
 						host:    "localhost",
 						port:    "12345",
@@ -83,7 +83,7 @@ func TestConfigValidate(t *testing.T) {
 			config: &Config{ExternalAddresses: []string{"localhost:12345"}},
 			want: data{
 				maxMsgSize: DefaultMaxMessageSize,
-				externalAddressesPort: []externalAddressPort{{
+				externalAddressesPort: externalAddressesPort{{
 					host:    "localhost",
 					port:    "12345",
 					network: UDP4,
