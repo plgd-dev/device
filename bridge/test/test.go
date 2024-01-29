@@ -28,14 +28,15 @@ import (
 )
 
 const (
-	BRIDGE_SERVICE_PIID = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-	BRIDGE_DEVICE_HOST  = "127.0.0.1:15000"
+	BRIDGE_SERVICE_PIID     = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+	BRIDGE_DEVICE_HOST      = "127.0.0.1:15000"
+	BRIDGE_DEVICE_HOST_IPv6 = "[::1]:15001"
 )
 
 func MakeConfig(t *testing.T) service.Config {
 	var cfg service.Config
 	cfg.API.CoAP.ID = BRIDGE_SERVICE_PIID
-	cfg.API.CoAP.Config.ExternalAddress = BRIDGE_DEVICE_HOST
+	cfg.API.CoAP.Config.ExternalAddresses = []string{BRIDGE_DEVICE_HOST, BRIDGE_DEVICE_HOST_IPv6}
 	require.NoError(t, cfg.API.Validate())
 	return cfg
 }

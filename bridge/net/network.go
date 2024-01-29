@@ -25,7 +25,12 @@ import (
 	"io"
 	"log"
 	gonet "net"
+	"sync"
+	"sync/atomic"
+	"time"
 
+	"github.com/hashicorp/go-multierror"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
 	"github.com/plgd-dev/device/v2/schema"
@@ -36,40 +41,46 @@ import (
 	"github.com/plgd-dev/go-coap/v3/mux"
 	"github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/options"
+	coapCache "github.com/plgd-dev/go-coap/v3/pkg/cache"
 	"github.com/plgd-dev/go-coap/v3/udp"
 	"github.com/plgd-dev/go-coap/v3/udp/server"
 )
 
 type Net struct {
-	cfg           Config
-	listener      *net.UDPConn
-	server        *server.Server
-	mcastListener *net.UDPConn
-	mcastServer   *server.Server
-	handler       RequestHandler
+	cfg     Config
+	mux     *mux.Router
+	handler RequestHandler
 
-	mux *mux.Router
+	servers coAPServers
+	serving atomic.Bool
+	done    chan struct{}
+	cache   *coapCache.Cache[int32, bool]
 }
 
-// TODO: ipv6 + ipv6 multicast addresses
-func initConnectivity(listenAddress string) (*net.UDPConn, *net.UDPConn, error) {
-	multicastAddr := "224.0.1.187:5683"
-
-	mcastListener, err := net.NewListenUDP("udp4", multicastAddr)
+func newMCastConn(multicastAddr string) (*net.UDPConn, error) {
+	networks := []string{UDP4, UDP6}
+	var a *gonet.UDPAddr
+	var err error
+	var network string
+	for _, net := range networks {
+		a, err = gonet.ResolveUDPAddr(net, multicastAddr)
+		if err == nil {
+			network = net
+			break
+		}
+	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	ifaces, err := gonet.Interfaces()
 	if err != nil {
-		_ = mcastListener.Close()
-		return nil, nil, err
+		return nil, err
 	}
 
-	a, err := gonet.ResolveUDPAddr("udp4", multicastAddr)
+	mcastListener, err := net.NewListenUDP(network, multicastAddr)
 	if err != nil {
-		_ = mcastListener.Close()
-		return nil, nil, err
+		return nil, err
 	}
 
 	var anySet bool
@@ -85,21 +96,20 @@ func initConnectivity(listenAddress string) (*net.UDPConn, *net.UDPConn, error) 
 	}
 	if !anySet {
 		_ = mcastListener.Close()
-		return nil, nil, fmt.Errorf("cannot JoinGroup(%v): %w", a, err)
+		return nil, fmt.Errorf("cannot JoinGroup(%v): %w", a, err)
 	}
 
 	err = mcastListener.SetMulticastLoopback(true)
 	if err != nil {
 		_ = mcastListener.Close()
-		return nil, nil, err
+		return nil, err
 	}
 
-	l, err := net.NewListenUDP("udp4", listenAddress)
-	if err != nil {
-		_ = mcastListener.Close()
-		return nil, nil, err
-	}
-	return mcastListener, l, nil
+	return mcastListener, nil
+}
+
+func newConn(network, port string) (*net.UDPConn, error) {
+	return net.NewListenUDP(network, ":"+port)
 }
 
 func getLogContent(r *pool.Message) string {
@@ -175,13 +185,24 @@ func LoggingMiddleware(next mux.Handler) mux.Handler {
 }
 
 func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
+	now := time.Now()
+	messageID := request.MessageID()
+	if messageID >= 0 && request.Type() != message.Confirmable {
+		v, loaded := n.cache.LoadOrStore(messageID, coapCache.NewElement(true, now.Add(n.cfg.DeduplicationLifetime), func(bool) {
+		}))
+		if loaded && !v.IsExpired(now) {
+			log.Printf("duplicate message %v according messageID: %v", request, messageID)
+			return
+		}
+	}
 	request.Hijack()
 	go func(w mux.ResponseWriter, request *mux.Message) {
 		r := Request{
 			Message:   request.Message,
-			Endpoints: n.GetEndpoints(),
+			Endpoints: n.GetEndpoints(request.ControlMessage(), w.Conn().NetConn().LocalAddr().String()),
 			Conn:      w.Conn(),
 		}
+
 		resp, err := n.handler(&r)
 		if err != nil {
 			resp = CreateResponseError(request.Context(), err, request.Token())
@@ -197,56 +218,196 @@ func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
 	}(w, request)
 }
 
+type coAPServer struct {
+	s *server.Server
+	l *net.UDPConn
+}
+
+type coAPServers []coAPServer
+
+func (s coAPServers) Stop() {
+	for _, cs := range s {
+		cs.s.Stop()
+	}
+}
+
+func (s coAPServers) Close() error {
+	var errors *multierror.Error
+	for _, cs := range s {
+		err := cs.l.Close()
+		if err != nil {
+			errors = multierror.Append(errors, err)
+		}
+	}
+	return errors.ErrorOrNil()
+}
+
+func newServers(cfg Config, m *mux.Router) (coAPServers, bool, bool, error) {
+	servers := make(coAPServers, 0, len(cfg.externalAddressesPort))
+	hasIPv4 := false
+	hasIPv6 := false
+	for _, addr := range cfg.externalAddressesPort {
+		var conn *net.UDPConn
+		var err error
+		if addr.network == UDP4 {
+			hasIPv4 = true
+			conn, err = newConn(addr.network, addr.port)
+		}
+		if addr.network == UDP6 {
+			hasIPv6 = true
+			conn, err = newConn(addr.network, addr.port)
+		}
+		if err != nil {
+			_ = servers.Close() //nolint:errcheck
+			return nil, false, false, err
+		}
+		if conn != nil {
+			servers = append(servers, coAPServer{
+				s: udp.NewServer(
+					options.WithMux(m),
+					options.WithErrors(func(err error) { log.Printf("server: %v", err) }),
+					options.WithMaxMessageSize(cfg.MaxMessageSize),
+				),
+				l: conn,
+			})
+		}
+	}
+	if len(servers) == 0 {
+		return nil, false, false, fmt.Errorf("cannot create any server")
+	}
+	return servers, hasIPv4, hasIPv6, nil
+}
+
+func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config, m *mux.Router) (coAPServers, error) {
+	for _, addr := range mcastAddresses {
+		if addr == "" {
+			continue
+		}
+		conn, err := newMCastConn(addr)
+		if err != nil {
+			_ = servers.Close() //nolint:errcheck
+			return nil, err
+		}
+		servers = append(servers, coAPServer{
+			s: udp.NewServer(options.WithMux(m),
+				options.WithMaxMessageSize(cfg.MaxMessageSize),
+			),
+			l: conn,
+		})
+	}
+	return servers, nil
+}
+
 func New(cfg Config, handler RequestHandler) (*Net, error) {
 	err := cfg.Validate()
 	if err != nil {
 		return nil, err
 	}
 	m := mux.NewRouter()
-	mcastListener, listener, err := initConnectivity(fmt.Sprintf("0.0.0.0:%v", cfg.externalAddressPort))
+	servers, hasIPv4, hasIPv6, err := newServers(cfg, m)
 	if err != nil {
 		return nil, err
 	}
+	if hasIPv4 {
+		servers, err = appendMCastServers(servers, core.DefaultDiscoveryConfiguration().MulticastAddressUDP4, cfg, m)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if hasIPv6 {
+		servers, err = appendMCastServers(servers, core.DefaultDiscoveryConfiguration().MulticastAddressUDP6, cfg, m)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	n := &Net{
-		cfg:           cfg,
-		listener:      listener,
-		mcastListener: mcastListener,
-		server: udp.NewServer(
-			options.WithMux(m),
-			options.WithErrors(func(err error) { log.Printf("server: %v", err) }),
-			options.WithMaxMessageSize(cfg.MaxMessageSize),
-		),
-		mcastServer: udp.NewServer(options.WithMux(m),
-			options.WithMaxMessageSize(cfg.MaxMessageSize),
-		),
+		cfg:     cfg,
+		servers: servers,
 		mux:     m,
 		handler: handler,
+		done:    make(chan struct{}),
+		cache:   coapCache.NewCache[int32, bool](),
 	}
 	m.DefaultHandle(mux.HandlerFunc(n.ServeCOAP))
+	go func() {
+		for {
+			select {
+			case <-n.done:
+				return
+			case <-time.After(n.cfg.DeduplicationLifetime / 2):
+				now := time.Now()
+				n.cache.CheckExpirations(now)
+			}
+		}
+	}()
 	return n, nil
 }
 
-func (n *Net) GetEndpoints() schema.Endpoints {
+func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endpoints {
+	localAddr, localPort, err := gonet.SplitHostPort(localAddr)
+	if err != nil {
+		log.Printf("cannot get local address: %v", err)
+		return nil
+	}
+	network := UDP4
+	if cm.Dst.To4() == nil {
+		network = UDP6
+	}
+	ep := ""
+	externalAddressesPort := n.cfg.externalAddressesPort.filterByNetwork(network)
+	filteredData := externalAddressesPort.filterByPort(localPort)
+	if len(filteredData) == 0 {
+		filteredData = externalAddressesPort
+	}
+	if len(filteredData) > 0 {
+		ep = filteredData[0].host
+		if filteredData[0].network == UDP6 {
+			ep = "[" + ep + "]"
+		}
+		ep = ep + ":" + filteredData[0].port
+	}
 	return schema.Endpoints{
 		{
-			URI: fmt.Sprintf("coap://%v", n.cfg.ExternalAddress),
+			URI: fmt.Sprintf("coap://%v", ep),
 		},
 	}
 }
 
 func (n *Net) Serve() error {
-	go func() {
-		err := n.mcastServer.Serve(n.mcastListener)
-		if err != nil {
-			log.Printf("mcastServer.Serve: %v", err)
+	if !n.serving.CompareAndSwap(false, true) {
+		return fmt.Errorf("already serving")
+	}
+	defer close(n.done)
+	var wg sync.WaitGroup
+	errCh := make(chan error, len(n.servers))
+	wg.Add(len(n.servers))
+	for _, cs := range n.servers {
+		go func(cs coAPServer) {
+			defer wg.Done()
+			err := cs.s.Serve(cs.l)
+			errCh <- err
+		}(cs)
+	}
+	wg.Wait()
+	var errors *multierror.Error
+	for {
+		select {
+		case err := <-errCh:
+			if err != nil {
+				errors = multierror.Append(errors, err)
+			}
+		default:
+			return errors.ErrorOrNil()
 		}
-	}()
-	return n.server.Serve(n.listener)
+	}
 }
 
 func (n *Net) Close() error {
-	n.server.Stop()
-	n.mcastServer.Stop()
-	_ = n.mcastListener.Close()
-	return n.listener.Close()
+	if !n.serving.Load() {
+		return nil
+	}
+	n.servers.Stop()
+	<-n.done
+	return nil
 }
