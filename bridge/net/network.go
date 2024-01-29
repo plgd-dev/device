@@ -258,7 +258,7 @@ func newServers(cfg Config, m *mux.Router) (coAPServers, bool, bool, error) {
 			conn, err = newConn(addr.network, addr.port)
 		}
 		if err != nil {
-			_ = servers.Close() //nolint:errcheck
+			_ = servers.Close()
 			return nil, false, false, err
 		}
 		if conn != nil {
@@ -285,7 +285,7 @@ func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config
 		}
 		conn, err := newMCastConn(addr)
 		if err != nil {
-			_ = servers.Close() //nolint:errcheck
+			_ = servers.Close()
 			return nil, err
 		}
 		servers = append(servers, coAPServer{
@@ -345,7 +345,7 @@ func New(cfg Config, handler RequestHandler) (*Net, error) {
 }
 
 func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endpoints {
-	localAddr, localPort, err := gonet.SplitHostPort(localAddr)
+	_, localPort, err := gonet.SplitHostPort(localAddr)
 	if err != nil {
 		log.Printf("cannot get local address: %v", err)
 		return nil

@@ -58,12 +58,6 @@ func (r *resourceDataSync) setName(name string) {
 	r.Name = name
 }
 
-func (r *resourceDataSync) getName() string {
-	r.lock.Lock()
-	defer r.lock.Unlock()
-	return r.Name
-}
-
 func (r *resourceDataSync) copy() resourceData {
 	r.lock.Lock()
 	defer r.lock.Unlock()
