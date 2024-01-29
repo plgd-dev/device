@@ -22,27 +22,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"time"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 )
-
-type CoapSignUpRequest struct {
-	DeviceID              string `json:"di"`
-	AuthorizationCode     string `json:"accesstoken"`
-	AuthorizationProvider string `json:"authprovider"`
-}
-
-type CoapSignUpResponse struct {
-	AccessToken  string    `yaml:"accessToken" json:"accesstoken"`
-	UserID       string    `yaml:"userID" json:"uid"`
-	RefreshToken string    `yaml:"refreshToken" json:"refreshtoken"`
-	RedirectURI  string    `yaml:"-" json:"redirecturi"`
-	ExpiresIn    int64     `yaml:"-" json:"expiresin"`
-	ValidUntil   time.Time `yaml:"-" jsom:"-"`
-}
 
 var (
 	ErrMissingAuthorizationCode     = fmt.Errorf("authorization code missing")
@@ -50,15 +35,15 @@ var (
 	ErrCannotSignUp                 = fmt.Errorf("cannot sign up")
 )
 
-func MakeSignUpRequest(deviceID, code, provider string) (CoapSignUpRequest, error) {
+func MakeSignUpRequest(deviceID, code, provider string) (ocfCloud.CoapSignUpRequest, error) {
 	if code == "" {
-		return CoapSignUpRequest{}, ErrMissingAuthorizationCode
+		return ocfCloud.CoapSignUpRequest{}, ErrMissingAuthorizationCode
 	}
 	if provider == "" {
-		return CoapSignUpRequest{}, ErrMissingAuthorizationProvider
+		return ocfCloud.CoapSignUpRequest{}, ErrMissingAuthorizationProvider
 	}
 
-	return CoapSignUpRequest{
+	return ocfCloud.CoapSignUpRequest{
 		DeviceID:              deviceID,
 		AuthorizationCode:     code,
 		AuthorizationProvider: provider,
@@ -79,7 +64,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 	if err != nil {
 		return errCannotSignUp(err)
 	}
-	req, err := newPostRequest(ctx, c.client, SignUp, signUpRequest)
+	req, err := newPostRequest(ctx, c.client, ocfCloud.SignUp, signUpRequest)
 	if err != nil {
 		return errCannotSignUp(err)
 	}
@@ -91,7 +76,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 	if resp.Code() != codes.Changed {
 		return errCannotSignUp(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
-	var signUpResp CoapSignUpResponse
+	var signUpResp ocfCloud.CoapSignUpResponse
 	err = cbor.ReadFrom(resp.Body(), &signUpResp)
 	if err != nil {
 		return errCannotSignUp(err)

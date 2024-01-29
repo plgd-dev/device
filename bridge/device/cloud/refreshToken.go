@@ -24,21 +24,10 @@ import (
 	"log"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 )
-
-type CoapRefreshTokenRequest struct {
-	DeviceID     string `json:"di"`
-	UserID       string `json:"uid"`
-	RefreshToken string `json:"refreshtoken"`
-}
-
-type CoapRefreshTokenResponse struct {
-	AccessToken  string `json:"accesstoken"`
-	RefreshToken string `json:"refreshtoken"`
-	ExpiresIn    int64  `json:"expiresin"`
-}
 
 var ErrCannotRefreshToken = fmt.Errorf("cannot refresh token")
 
@@ -51,7 +40,7 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 	if creds.RefreshToken == "" {
 		return nil
 	}
-	req, err := newPostRequest(ctx, c.client, RefreshToken, CoapRefreshTokenRequest{
+	req, err := newPostRequest(ctx, c.client, ocfCloud.RefreshToken, ocfCloud.CoapRefreshTokenRequest{
 		DeviceID:     c.deviceID.String(),
 		UserID:       creds.UserID,
 		RefreshToken: creds.RefreshToken,
@@ -70,17 +59,17 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 		}
 		return errCannotRefreshToken(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
-	var refreshResp CoapRefreshTokenResponse
+	var refreshResp ocfCloud.CoapRefreshTokenResponse
 	if err = cbor.ReadFrom(resp.Body(), &refreshResp); err != nil {
 		return errCannotRefreshToken(err)
 	}
 	c.updateCredsByRefreshTokenResponse(refreshResp)
-	log.Printf("refresh token\n")
+	log.Printf("refreshed token\n")
 	c.save()
 	return nil
 }
 
-func (c *Manager) updateCredsByRefreshTokenResponse(resp CoapRefreshTokenResponse) {
+func (c *Manager) updateCredsByRefreshTokenResponse(resp ocfCloud.CoapRefreshTokenResponse) {
 	c.creds.AccessToken = resp.AccessToken
 	c.creds.RefreshToken = resp.RefreshToken
 	c.creds.ValidUntil = validUntil(resp.ExpiresIn)

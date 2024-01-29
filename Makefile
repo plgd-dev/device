@@ -2,8 +2,11 @@ SHELL = /bin/bash
 SERVICE_NAME = cloud-server-test
 VERSION_TAG = vnext-$(shell git rev-parse --short=7 --verify HEAD)
 SIMULATOR_NAME_SUFFIX ?= $(shell hostname)
+USER_ID := $(shell id -u)
+GROUP_ID := $(shell id -g)
 TMP_PATH = $(shell pwd)/.tmp
 CERT_PATH = $(TMP_PATH)/pki_certs
+CLOUD_SID ?= adebc667-1f2b-41e3-bf5c-6d6eabc68cc6
 DEVSIM_NET_HOST_PATH = $(shell pwd)/.tmp/devsim-net-host
 CERT_TOOL_IMAGE ?= ghcr.io/plgd-dev/hub/cert-tool:vnext
 # supported values: ECDSA-SHA256, ECDSA-SHA384, ECDSA-SHA512
@@ -35,22 +38,52 @@ INTERMEDIATE_CA_CRT = $(CERT_PATH)/intermediatecacrt.pem
 INTERMEDIATE_CA_KEY = $(CERT_PATH)/intermediatecakey.pem
 MFG_CRT = $(CERT_PATH)/mfgcrt.pem
 MFG_KEY = $(CERT_PATH)/mfgkey.pem
+COAP_CRT = $(CERT_PATH)/coapcrt.pem
+COAP_KEY = $(CERT_PATH)/coapkey.pem
 
 certificates:
 	mkdir -p $(CERT_PATH)
 	chmod 0777 $(CERT_PATH)
 	docker pull $(CERT_TOOL_IMAGE)
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --outCert=/out/cloudca.pem --outKey=/out/cloudcakey.pem \
-		--cert.subject.cn="ca" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
-		--cmd.generateRootCA
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem  \
-		--outCert=/out/intermediatecacrt.pem --outKey=/out/intermediatecakey.pem --cert.basicConstraints.maxPathLen=0 \
-		--cert.subject.cn="intermediateCA" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
-		--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cmd.generateIntermediateCA
-	docker run --rm -v $(CERT_PATH):/out $(CERT_TOOL_IMAGE) --signerCert=/out/intermediatecacrt.pem \
-		--signerKey=/out/intermediatecakey.pem --outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost \
-		--cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
-		--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cmd.generateCertificate
+
+	docker run \
+		--rm -v $(CERT_PATH):/out \
+		--user $(USER_ID):$(GROUP_ID) \
+		$(CERT_TOOL_IMAGE) \
+			--outCert=/out/cloudca.pem --outKey=/out/cloudcakey.pem \
+			--cert.subject.cn="ca" --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
+			--cmd.generateRootCA
+
+	docker run \
+		--rm -v $(CERT_PATH):/out \
+		--user $(USER_ID):$(GROUP_ID) \
+		$(CERT_TOOL_IMAGE) \
+			--signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem \
+			--outCert=/out/intermediatecacrt.pem --outKey=/out/intermediatecakey.pem \
+			--cert.basicConstraints.maxPathLen=0 --cert.subject.cn="intermediateCA" \
+			--cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) --cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) \
+			--cmd.generateIntermediateCA
+
+	docker run \
+		--rm -v $(CERT_PATH):/out \
+		--user $(USER_ID):$(GROUP_ID) \
+		$(CERT_TOOL_IMAGE) \
+			--signerCert=/out/intermediatecacrt.pem --signerKey=/out/intermediatecakey.pem \
+			--outCert=/out/mfgcrt.pem --outKey=/out/mfgkey.pem --cert.san.domain=localhost \
+			--cert.san.ip=127.0.0.1 --cert.subject.cn="mfg" \
+			--cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
+			--cmd.generateCertificate
+
+	docker run \
+		--rm -v $(CERT_PATH):/out \
+		--user $(USER_ID):$(GROUP_ID) \
+		${CERT_TOOL_IMAGE} \
+			--signerCert=/out/cloudca.pem --signerKey=/out/cloudcakey.pem \
+			--outCert=/out/coapcrt.pem --outKey=/out/coapkey.pem \
+			--cert.san.ip=127.0.0.1 --cert.san.domain=localhost \
+			--cert.signatureAlgorithm=$(CERT_TOOL_SIGN_ALG) --cert.ellipticCurve=$(CERT_TOOL_ELLIPTIC_CURVE) \
+			--cmd.generateCertificate --cert.subject.cn=uuid:$(CLOUD_SID)
+
 	sudo chown -R $(shell whoami) $(CERT_PATH)
 	chmod -R 0777 $(CERT_PATH)
 
@@ -72,9 +105,15 @@ env: clean certificates
 
 unit-test: certificates
 	mkdir -p $(TMP_PATH)
-	ROOT_CA_CRT="$(ROOT_CA_CRT)" MFG_CRT="$(MFG_CRT)" MFG_KEY="$(MFG_KEY)" INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) go test -race -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.unit.coverage.txt
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(ROOT_CA_KEY)" \
+	MFG_CRT="$(MFG_CRT)" MFG_KEY="$(MFG_KEY)" \
+	INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) \
+	COAP_CRT="$(COAP_CRT)" COAP_KEY="$(COAP_KEY)" \
+	CLOUD_SID=$(CLOUD_SID) \
+		go test -race -parallel 1 -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.unit.coverage.txt
 	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.unit.coverage.txt
-	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(CERT_PATH)/cloudcakey.pem" go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.unit.coverage.txt
+	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(ROOT_CA_KEY)" \
+		go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.unit.coverage.txt
 
 test: env build-testcontainer
 	docker run \

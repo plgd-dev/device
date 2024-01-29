@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2023 plgd.dev s.r.o.
+ * Copyright (c) 2024 plgd.dev s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"),
  * you may not use this file except in compliance with the License.
@@ -16,14 +16,16 @@
  *
  ****************************************************************************/
 
-package cloud
+package service
 
-const (
-	Base              = "/oic"
-	Secure            = Base + "/sec"
-	SignUp            = Secure + "/account"
-	RefreshToken      = Secure + "/tokenrefresh"
-	SignIn            = Secure + "/session"
-	ResourceDirectory = Base + "/rd"
-	ResourceDiscovery = Base + "/res"
-)
+import "crypto/tls"
+
+type TLSConfig struct {
+	Enabled bool
+	*tls.Config
+}
+
+type Config struct {
+	Addr string
+	TLS  TLSConfig
+}

@@ -24,15 +24,10 @@ import (
 	"log"
 
 	"github.com/plgd-dev/device/v2/bridge/resources"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 )
-
-type PublishResourcesRequest struct {
-	DeviceID   string               `json:"di"`
-	Links      schema.ResourceLinks `json:"links"`
-	TimeToLive int                  `json:"ttl"`
-}
 
 var ErrCannotPublishResources = fmt.Errorf("cannot publish resources")
 
@@ -47,12 +42,12 @@ func (c *Manager) publishResources(ctx context.Context) error {
 
 	links := c.getLinks(schema.Endpoints{}, c.deviceID, nil, resources.PublishToCloud)
 	links = patchDeviceLink(links)
-	wkRd := PublishResourcesRequest{
+	wkRd := ocfCloud.PublishResourcesRequest{
 		DeviceID:   c.deviceID.String(),
 		Links:      links,
 		TimeToLive: 0,
 	}
-	req, err := newPostRequest(ctx, c.client, ResourceDirectory, wkRd)
+	req, err := newPostRequest(ctx, c.client, ocfCloud.ResourceDirectory, wkRd)
 	if err != nil {
 		return errCannotPublishResources(err)
 	}
@@ -64,6 +59,6 @@ func (c *Manager) publishResources(ctx context.Context) error {
 		return errCannotPublishResources(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
 	c.resourcesPublished = true
-	log.Printf("resourcesPublished\n")
+	log.Printf("resources published\n")
 	return nil
 }

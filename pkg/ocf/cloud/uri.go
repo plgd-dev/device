@@ -16,40 +16,14 @@
  *
  ****************************************************************************/
 
-package device
+package cloud
 
-import (
-	"fmt"
-
-	"github.com/google/uuid"
-	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+const (
+	Base              = "/oic"
+	Secure            = Base + "/sec"
+	SignUp            = Secure + "/account"
+	RefreshToken      = Secure + "/tokenrefresh"
+	SignIn            = Secure + "/session"
+	ResourceDirectory = Base + "/rd"
+	ResourceDiscovery = Base + "/res"
 )
-
-type CloudConfig struct {
-	Enabled bool
-	cloud.Config
-}
-
-type Config struct {
-	ID                    uuid.UUID
-	Name                  string
-	ProtocolIndependentID uuid.UUID
-	ResourceTypes         []string
-	MaxMessageSize        uint32
-	Cloud                 CloudConfig
-}
-
-func (cfg *Config) Validate() error {
-	if cfg.ProtocolIndependentID == uuid.Nil {
-		return fmt.Errorf("protocolIndependentID is required")
-	}
-	if cfg.ID == uuid.Nil {
-		cfg.ID = uuid.New()
-	}
-
-	if cfg.Name == "" {
-		cfg.Name = "Unnamed"
-	}
-
-	return nil
-}
