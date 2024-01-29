@@ -34,4 +34,5 @@ jobs:
         uses: anchore/sbom-action@v0
         with:
           path: .
-          artifact-name: sbom.spdx
+          artifact-name: sbom.spdx.json
+          upload-artifact-retention: 14
