@@ -34,11 +34,11 @@ func TestCoAPConfigValidate(t *testing.T) {
 	}{
 		{
 			name:       "ValidCoAPConfig",
-			coapConfig: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddress: "localhost:12345"}},
+			coapConfig: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}},
 		},
 		{
 			name:       "MissingID",
-			coapConfig: service.CoAPConfig{Config: net.Config{ExternalAddress: "localhost:12345"}},
+			coapConfig: service.CoAPConfig{Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}},
 			wantErr:    true,
 		},
 		{
@@ -68,11 +68,11 @@ func TestAPIConfigValidate(t *testing.T) {
 	}{
 		{
 			name:      "ValidAPIConfig",
-			apiConfig: service.APIConfig{CoAP: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddress: "localhost:12345"}}},
+			apiConfig: service.APIConfig{CoAP: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}}},
 		},
 		{
 			name:      "InvalidCoAPConfig",
-			apiConfig: service.APIConfig{CoAP: service.CoAPConfig{Config: net.Config{ExternalAddress: "localhost:12345"}}},
+			apiConfig: service.APIConfig{CoAP: service.CoAPConfig{Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}}},
 			wantErr:   true,
 		},
 	}
@@ -97,11 +97,11 @@ func TestConfigValidate(t *testing.T) {
 	}{
 		{
 			name:   "ValidConfig",
-			config: service.Config{API: service.APIConfig{CoAP: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddress: "localhost:12345"}}}},
+			config: service.Config{API: service.APIConfig{CoAP: service.CoAPConfig{ID: "test", Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}}}},
 		},
 		{
 			name:    "InvalidAPIConfig",
-			config:  service.Config{API: service.APIConfig{CoAP: service.CoAPConfig{Config: net.Config{ExternalAddress: "localhost:12345"}}}},
+			config:  service.Config{API: service.APIConfig{CoAP: service.CoAPConfig{Config: net.Config{ExternalAddresses: []string{"localhost:12345"}}}}},
 			wantErr: true,
 		},
 	}

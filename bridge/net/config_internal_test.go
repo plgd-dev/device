@@ -16,73 +16,108 @@
  *
  ****************************************************************************/
 
-package net_test
+package net
 
 import (
 	"testing"
 
-	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/stretchr/testify/require"
 )
 
 func TestConfigValidate(t *testing.T) {
 	type data struct {
-		maxMsgSize          uint32
-		externalAddress     string
-		externalAddressPort string
+		maxMsgSize            uint32
+		externalAddressesPort []externalAddressPort
 	}
 	tests := []struct {
 		name    string
-		config  *net.Config
+		config  *Config
 		wantErr bool
 		want    data
 	}{
 		{
 			name:   "ValidConfig",
-			config: &net.Config{ExternalAddress: "localhost:12345", MaxMessageSize: 1024},
+			config: &Config{ExternalAddresses: []string{"localhost:12345"}, MaxMessageSize: 1024},
 			want: data{
-				maxMsgSize:          1024,
-				externalAddress:     "localhost:12345",
-				externalAddressPort: "12345",
+				maxMsgSize: 1024,
+				externalAddressesPort: []externalAddressPort{{
+					host:    "localhost",
+					port:    "12345",
+					network: UDP4,
+				}},
+			},
+		},
+		{
+			name:   "ValidConfigUDP6",
+			config: &Config{ExternalAddresses: []string{"[::1]:12345"}, MaxMessageSize: 1024},
+			want: data{
+				maxMsgSize: 1024,
+				externalAddressesPort: []externalAddressPort{{
+					host:    "::1",
+					port:    "12345",
+					network: UDP6,
+				}},
+			},
+		},
+		{
+			name:   "ValidConfigUDP4andUDP6",
+			config: &Config{ExternalAddresses: []string{"localhost:12345", "[::1]:12345"}, MaxMessageSize: 1024},
+			want: data{
+				maxMsgSize: 1024,
+				externalAddressesPort: []externalAddressPort{
+					{
+						host:    "localhost",
+						port:    "12345",
+						network: UDP4,
+					},
+					{
+						host:    "::1",
+						port:    "12345",
+						network: UDP6,
+					},
+				},
 			},
 		},
 		{
 			name:   "ValidConfigWithDefaultMaxMessageSize",
-			config: &net.Config{ExternalAddress: "localhost:12345"},
+			config: &Config{ExternalAddresses: []string{"localhost:12345"}},
 			want: data{
-				maxMsgSize:          net.DefaultMaxMessageSize,
-				externalAddress:     "localhost:12345",
-				externalAddressPort: "12345",
+				maxMsgSize: DefaultMaxMessageSize,
+				externalAddressesPort: []externalAddressPort{{
+					host:    "localhost",
+					port:    "12345",
+					network: UDP4,
+				}},
 			},
 		},
 		{
 			name:    "MissingExternalAddress",
-			config:  &net.Config{},
+			config:  &Config{},
 			wantErr: true,
 		},
 		{
 			name:    "InvalidExternalAddress",
-			config:  &net.Config{ExternalAddress: "invalid-address"},
+			config:  &Config{ExternalAddresses: []string{"invalid-address"}},
 			wantErr: true,
 		},
 		{
 			name:    "EmptyHostInExternalAddress",
-			config:  &net.Config{ExternalAddress: ":12345"},
+			config:  &Config{ExternalAddresses: []string{":12345"}},
 			wantErr: true,
 		},
 		{
 			name:    "ZeroPortInExternalAddress",
-			config:  &net.Config{ExternalAddress: "localhost:0"},
+			config:  &Config{ExternalAddresses: []string{"localhost:0"}},
 			wantErr: true,
 		},
 		{
 			name:    "InvalidPortInExternalAddress",
-			config:  &net.Config{ExternalAddress: "localhost:invalid"},
+			config:  &Config{ExternalAddresses: []string{"localhost:invalid"}},
 			wantErr: true,
 		},
 		{
 			name:    "PortGreaterThanMaxUint16",
-			config:  &net.Config{ExternalAddress: "localhost:65536"},
+			config:  &Config{ExternalAddresses: []string{"localhost:65536"}},
 			wantErr: true,
 		},
 	}
@@ -96,8 +131,7 @@ func TestConfigValidate(t *testing.T) {
 			}
 			require.NoError(t, err)
 			require.Equal(t, tt.want.maxMsgSize, tt.config.MaxMessageSize)
-			require.Equal(t, tt.want.externalAddress, tt.config.ExternalAddress)
-			require.Equal(t, tt.want.externalAddressPort, tt.config.ExternalAddressPort())
+			require.Equal(t, tt.want.externalAddressesPort, tt.config.externalAddressesPort)
 		})
 	}
 }
