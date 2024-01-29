@@ -354,18 +354,18 @@ func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endp
 	if cm.Dst.To4() == nil {
 		network = UDP6
 	}
-	ep := ""
-	externalAddressesPort := n.cfg.externalAddressesPort.filterByNetwork(network)
-	filteredData := externalAddressesPort.filterByPort(localPort)
-	if len(filteredData) == 0 {
-		filteredData = externalAddressesPort
+	filteredByNetwork := n.cfg.externalAddressesPort.filterByNetwork(network)
+	filtered := filteredByNetwork.filterByPort(localPort)
+	if len(filtered) == 0 {
+		filtered = filteredByNetwork
 	}
-	if len(filteredData) > 0 {
-		ep = filteredData[0].host
-		if filteredData[0].network == UDP6 {
+	ep := localAddr
+	if len(filtered) > 0 {
+		ep = filtered[0].host
+		if filtered[0].network == UDP6 {
 			ep = "[" + ep + "]"
 		}
-		ep = ep + ":" + filteredData[0].port
+		ep = ep + ":" + filtered[0].port
 	}
 	return schema.Endpoints{
 		{
