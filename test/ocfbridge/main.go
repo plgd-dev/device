@@ -23,8 +23,8 @@ func testConfig() service.Config {
 			CoAP: service.CoAPConfig{
 				ID: uuid.New().String(),
 				Config: net.Config{
-					ExternalAddress: "127.0.0.1:15683",
-					MaxMessageSize:  2097152,
+					ExternalAddresses: []string{"127.0.0.1:15683", "[::1]:15683"},
+					MaxMessageSize:    2097152,
 				},
 			},
 		},

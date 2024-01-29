@@ -33,13 +33,19 @@ import (
 
 func TestOnboardDevice(t *testing.T) {
 	s := bridgeTest.NewBridgeService(t)
+	t.Cleanup(func() {
+		_ = s.Shutdown()
+	})
 	deviceID := uuid.New().String()
 	d := bridgeTest.NewBridgedDevice(t, s, true, deviceID)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()
 	cleanup := bridgeTest.RunBridgeService(s)
-	defer cleanup()
+	defer func() {
+		errC := cleanup()
+		require.NoError(t, errC)
+	}()
 
 	type args struct {
 		deviceID              string

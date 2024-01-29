@@ -38,6 +38,9 @@ import (
 
 func TestGetResource(t *testing.T) {
 	s := bridgeTest.NewBridgeService(t)
+	t.Cleanup(func() {
+		_ = s.Shutdown()
+	})
 	deviceID1 := uuid.New().String()
 	d1 := bridgeTest.NewBridgedDevice(t, s, false, deviceID1)
 	deviceID2 := uuid.New().String()
@@ -56,7 +59,10 @@ func TestGetResource(t *testing.T) {
 	d1.AddResource(failRes)
 
 	cleanup := bridgeTest.RunBridgeService(s)
-	defer cleanup()
+	defer func() {
+		errC := cleanup()
+		require.NoError(t, errC)
+	}()
 
 	type args struct {
 		deviceID string

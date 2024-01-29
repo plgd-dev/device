@@ -24,6 +24,9 @@ import (
 
 func TestObserveResource(t *testing.T) {
 	s := bridgeTest.NewBridgeService(t)
+	t.Cleanup(func() {
+		_ = s.Shutdown()
+	})
 	d := bridgeTest.NewBridgedDevice(t, s, false, uuid.New().String())
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
@@ -87,7 +90,10 @@ func TestObserveResource(t *testing.T) {
 	d.AddResource(res)
 
 	cleanup := bridgeTest.RunBridgeService(s)
-	defer cleanup()
+	defer func() {
+		errC := cleanup()
+		require.NoError(t, errC)
+	}()
 
 	c, err := testClient.NewTestSecureClientWithBridgeSupport()
 	require.NoError(t, err)

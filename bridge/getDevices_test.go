@@ -31,6 +31,9 @@ import (
 
 func TestGetDevices(t *testing.T) {
 	s := bridgeTest.NewBridgeService(t)
+	t.Cleanup(func() {
+		_ = s.Shutdown()
+	})
 	deviceID1 := uuid.New().String()
 	d1 := bridgeTest.NewBridgedDevice(t, s, false, deviceID1)
 	deviceID2 := uuid.New().String()
@@ -44,7 +47,10 @@ func TestGetDevices(t *testing.T) {
 	}()
 
 	cleanup := bridgeTest.RunBridgeService(s)
-	defer cleanup()
+	defer func() {
+		errC := cleanup()
+		require.NoError(t, errC)
+	}()
 
 	c, err := testClient.NewTestSecureClientWithBridgeSupport()
 	require.NoError(t, err)
