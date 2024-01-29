@@ -47,9 +47,9 @@ func NewBridgeService(t *testing.T) *service.Service {
 	return s
 }
 
-func RunBridgeService(s *service.Service) func() {
-	cleanup := func() {
-		_ = s.Shutdown()
+func RunBridgeService(s *service.Service) func() error {
+	cleanup := func() error {
+		return s.Shutdown()
 	}
 	go func() {
 		_ = s.Serve()
@@ -57,18 +57,36 @@ func RunBridgeService(s *service.Service) func() {
 	return cleanup
 }
 
+func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Config) service.Device {
+	newDevice := func(di uuid.UUID, piid uuid.UUID) service.Device {
+		cfg.ID = di
+		cfg.ProtocolIndependentID = piid
+		require.NoError(t, cfg.Validate())
+		return device.New(cfg, nil, nil)
+	}
+	d, ok := s.CreateDevice(cfg.ID, newDevice)
+	require.True(t, ok)
+	d.Init()
+	return d
+}
+
+func makeDeviceConfig(id uuid.UUID, cloudEnabled bool) device.Config {
+	cfg := device.Config{
+		ID:             id,
+		Name:           "bridged-device",
+		ResourceTypes:  []string{"oic.d.virtual"},
+		MaxMessageSize: 1024 * 256,
+	}
+	if cloudEnabled {
+		cfg.Cloud.Enabled = true
+	}
+	return cfg
+}
+
 func NewBridgedDevice(t *testing.T, s *service.Service, cloudEnabled bool, id string) service.Device {
-	newDevice := func(id uuid.UUID, piid uuid.UUID) service.Device {
-		cfg := device.Config{
-			Name:                  "bridged-device",
-			ResourceTypes:         []string{"oic.d.virtual"},
-			ID:                    id,
-			ProtocolIndependentID: piid,
-			MaxMessageSize:        1024 * 256,
-		}
-		if cloudEnabled {
-			cfg.Cloud.Enabled = true
-		}
+	newDevice := func(di uuid.UUID, piid uuid.UUID) service.Device {
+		cfg := makeDeviceConfig(di, cloudEnabled)
+		cfg.ProtocolIndependentID = piid
 		require.NoError(t, cfg.Validate())
 		return device.New(cfg, nil, nil)
 	}

@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"log"
 
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
@@ -34,7 +35,7 @@ const ProvisioningStatusDEREGISTERING cloud.ProvisioningStatus = "deregistering"
 var ErrCannotSignOff = fmt.Errorf("cannot sign off")
 
 func newSignOffReq(ctx context.Context, c *client.Conn, deviceID, userID string) (*pool.Message, error) {
-	req, err := newRequestWithToken(ctx, c, SignUp)
+	req, err := newRequestWithToken(ctx, c, ocfCloud.SignUp)
 	if err != nil {
 		return nil, err
 	}

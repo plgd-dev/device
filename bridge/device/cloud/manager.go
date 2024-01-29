@@ -31,6 +31,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/device/v2/schema/device"
@@ -68,7 +69,7 @@ type Manager struct {
 		cfg   Configuration
 	}
 
-	creds              CoapSignUpResponse
+	creds              ocfCloud.CoapSignUpResponse
 	client             *client.Conn
 	signedIn           bool
 	resourcesPublished bool
@@ -115,7 +116,7 @@ func (c *Manager) ImportConfig(cfg Config) {
 		URL:                   cfg.CloudURL,
 		CloudID:               cfg.CloudID,
 	})
-	c.setCreds(CoapSignUpResponse{
+	c.setCreds(ocfCloud.CoapSignUpResponse{
 		AccessToken:  cfg.AccessToken,
 		UserID:       cfg.UserID,
 		RefreshToken: cfg.RefreshToken,
@@ -138,7 +139,7 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 			log.Printf("%v\n", err)
 		}
 	}
-	c.creds = CoapSignUpResponse{}
+	c.creds = ocfCloud.CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
 	if err := c.close(); err != nil {
@@ -226,12 +227,12 @@ func validUntil(expiresIn int64) time.Time {
 	return time.Now().Add(time.Duration(expiresIn) * time.Second)
 }
 
-func (c *Manager) setCreds(creds CoapSignUpResponse) {
+func (c *Manager) setCreds(creds ocfCloud.CoapSignUpResponse) {
 	c.creds = creds
 	c.signedIn = false
 }
 
-func (c *Manager) getCreds() CoapSignUpResponse {
+func (c *Manager) getCreds() ocfCloud.CoapSignUpResponse {
 	return c.creds
 }
 

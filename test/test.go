@@ -19,6 +19,7 @@ package test
 import (
 	"context"
 	"crypto"
+	"crypto/tls"
 	"crypto/x509"
 	"fmt"
 	"os"
@@ -95,7 +96,7 @@ func (h *findDeviceIDByNameHandler) Handle(ctx context.Context, dev *core.Device
 }
 
 func (h *findDeviceIDByNameHandler) Error(err error) {
-	log.Debug(err)
+	fmt.Printf("%v\n", err)
 }
 
 func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ error) {
@@ -286,4 +287,28 @@ func CheckResourceLinks(t *testing.T, expected, actual schema.ResourceLinks) {
 		}
 	}
 	require.Empty(t, expLinks)
+}
+
+func CloudID() string {
+	return os.Getenv("CLOUD_SID")
+}
+
+func GetRootCertificate(t *testing.T) tls.Certificate {
+	certPath := os.Getenv("ROOT_CA_CRT")
+	require.NotEmpty(t, certPath)
+	keyPath := os.Getenv("ROOT_CA_KEY")
+	require.NotEmpty(t, keyPath)
+	ca, err := tls.LoadX509KeyPair(certPath, keyPath)
+	require.NoError(t, err)
+	return ca
+}
+
+func GetCoapCertificate(t *testing.T) tls.Certificate {
+	certPath := os.Getenv("COAP_CRT")
+	require.NotEmpty(t, certPath)
+	keyPath := os.Getenv("COAP_KEY")
+	require.NotEmpty(t, keyPath)
+	ca, err := tls.LoadX509KeyPair(certPath, keyPath)
+	require.NoError(t, err)
+	return ca
 }

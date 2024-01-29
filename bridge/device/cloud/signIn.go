@@ -24,31 +24,21 @@ import (
 	"log"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 )
-
-type CoapSignInRequest struct {
-	DeviceID    string `json:"di"`
-	UserID      string `json:"uid"`
-	AccessToken string `json:"accesstoken"`
-	Login       bool   `json:"login"`
-}
-
-type CoapSignInResponse struct {
-	ExpiresIn int64 `json:"expiresin"`
-}
 
 var (
 	ErrMissingAccessToken = fmt.Errorf("access token missing")
 	ErrCannotSignIn       = fmt.Errorf("cannot sign in")
 )
 
-func MakeSignInRequest(deviceID, userID, accessToken string) (CoapSignInRequest, error) {
+func MakeSignInRequest(deviceID, userID, accessToken string) (ocfCloud.CoapSignInRequest, error) {
 	if accessToken == "" {
-		return CoapSignInRequest{}, ErrMissingAccessToken
+		return ocfCloud.CoapSignInRequest{}, ErrMissingAccessToken
 	}
-	return CoapSignInRequest{
+	return ocfCloud.CoapSignInRequest{
 		DeviceID:    deviceID,
 		UserID:      userID,
 		AccessToken: accessToken,
@@ -72,7 +62,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 	if err != nil {
 		return errCannotSignIn(err)
 	}
-	req, err := newPostRequest(ctx, c.client, SignIn, signInReq)
+	req, err := newPostRequest(ctx, c.client, ocfCloud.SignIn, signInReq)
 	if err != nil {
 		return errCannotSignIn(err)
 	}
@@ -87,7 +77,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 		}
 		return errCannotSignIn(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
-	var signInResp CoapSignInResponse
+	var signInResp ocfCloud.CoapSignInResponse
 	err = cbor.ReadFrom(resp.Body(), &signInResp)
 	if err != nil {
 		return err
@@ -98,7 +88,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 	return nil
 }
 
-func (c *Manager) updateCredsBySignInResponse(resp CoapSignInResponse) {
+func (c *Manager) updateCredsBySignInResponse(resp ocfCloud.CoapSignInResponse) {
 	c.creds.ExpiresIn = resp.ExpiresIn
 	c.creds.ValidUntil = validUntil(resp.ExpiresIn)
 	c.signedIn = true
