@@ -29,8 +29,8 @@ import (
 
 const (
 	BRIDGE_SERVICE_PIID     = "f47ac10b-58cc-4372-a567-0e02b2c3d479"
-	BRIDGE_DEVICE_HOST      = "127.0.0.1:15000"
-	BRIDGE_DEVICE_HOST_IPv6 = "[::1]:15001"
+	BRIDGE_DEVICE_HOST      = "127.0.0.1:0" // 0 means random port
+	BRIDGE_DEVICE_HOST_IPv6 = "[::1]:0"     // 0 means random port
 )
 
 func MakeConfig(t *testing.T) service.Config {
