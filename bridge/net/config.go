@@ -75,12 +75,9 @@ func validateExternalAddress(addr string) (externalAddressPort, error) {
 	if host == "" {
 		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: host cannot be empty")
 	}
-	port, err := strconv.ParseUint(portStr, 10, 16)
+	_, err = strconv.ParseUint(portStr, 10, 16)
 	if err != nil {
 		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: %w", err)
-	}
-	if port == 0 {
-		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: port cannot be 0")
 	}
 
 	_, errIpv4 := gonet.ResolveUDPAddr(UDP4, addr)
