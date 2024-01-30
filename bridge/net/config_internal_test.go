@@ -106,11 +106,6 @@ func TestConfigValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "ZeroPortInExternalAddress",
-			config:  &Config{ExternalAddresses: []string{"localhost:0"}},
-			wantErr: true,
-		},
-		{
 			name:    "InvalidPortInExternalAddress",
 			config:  &Config{ExternalAddresses: []string{"localhost:invalid"}},
 			wantErr: true,

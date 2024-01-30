@@ -242,11 +242,24 @@ func (s coAPServers) Close() error {
 	return errors.ErrorOrNil()
 }
 
-func newServers(cfg Config, m *mux.Router) (coAPServers, bool, bool, error) {
+func getPortFromAddress(addr gonet.Addr) (string, error) {
+	udpAddr, ok := addr.(*gonet.UDPAddr)
+	if ok {
+		return fmt.Sprintf("%d", udpAddr.Port), nil
+	}
+	addrStr := addr.String()
+	_, port, err := gonet.SplitHostPort(addrStr)
+	if err != nil {
+		return "", err
+	}
+	return port, nil
+}
+
+func newServers(cfg *Config, m *mux.Router) (coAPServers, bool, bool, error) {
 	servers := make(coAPServers, 0, len(cfg.externalAddressesPort))
 	hasIPv4 := false
 	hasIPv6 := false
-	for _, addr := range cfg.externalAddressesPort {
+	for i, addr := range cfg.externalAddressesPort {
 		var conn *net.UDPConn
 		var err error
 		if addr.network == UDP4 {
@@ -261,6 +274,15 @@ func newServers(cfg Config, m *mux.Router) (coAPServers, bool, bool, error) {
 			_ = servers.Close()
 			return nil, false, false, err
 		}
+		if addr.port == "0" {
+			port, err := getPortFromAddress(conn.LocalAddr())
+			if err != nil {
+				_ = servers.Close()
+				return nil, false, false, err
+			}
+			cfg.externalAddressesPort[i].port = port
+		}
+
 		if conn != nil {
 			servers = append(servers, coAPServer{
 				s: udp.NewServer(
@@ -304,7 +326,7 @@ func New(cfg Config, handler RequestHandler) (*Net, error) {
 		return nil, err
 	}
 	m := mux.NewRouter()
-	servers, hasIPv4, hasIPv6, err := newServers(cfg, m)
+	servers, hasIPv4, hasIPv6, err := newServers(&cfg, m)
 	if err != nil {
 		return nil, err
 	}
