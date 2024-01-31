@@ -28,6 +28,10 @@ type CloudConfig struct {
 	TLS     TLSConfig `yaml:"tls" json:"tls"`
 }
 
+type CredentialConfig struct {
+	Enabled bool `yaml:"enabled" json:"enabled" description:"enable credential manager"`
+}
+
 func (c *CloudConfig) Validate() error {
 	if c.Enabled {
 		return c.TLS.Validate()
@@ -37,9 +41,10 @@ func (c *CloudConfig) Validate() error {
 
 type Config struct {
 	service.Config             `yaml:",inline"`
-	Cloud                      CloudConfig `yaml:"cloud" json:"cloud"`
-	NumGeneratedBridgedDevices int         `yaml:"numGeneratedBridgedDevices"`
-	NumResourcesPerDevice      int         `yaml:"numResourcesPerDevice"`
+	Cloud                      CloudConfig      `yaml:"cloud" json:"cloud"`
+	Credential                 CredentialConfig `yaml:"credential" json:"credential"`
+	NumGeneratedBridgedDevices int              `yaml:"numGeneratedBridgedDevices"`
+	NumResourcesPerDevice      int              `yaml:"numResourcesPerDevice"`
 }
 
 func (c *Config) Validate() error {

@@ -42,9 +42,9 @@ func TestGetResource(t *testing.T) {
 		_ = s.Shutdown()
 	})
 	deviceID1 := uuid.New().String()
-	d1 := bridgeTest.NewBridgedDevice(t, s, false, deviceID1)
+	d1 := bridgeTest.NewBridgedDevice(t, s, deviceID1, false, false)
 	deviceID2 := uuid.New().String()
-	d2 := bridgeTest.NewBridgedDevice(t, s, false, deviceID2)
+	d2 := bridgeTest.NewBridgedDevice(t, s, deviceID2, false, false)
 	defer func() {
 		s.DeleteAndCloseDevice(d2.GetID())
 		s.DeleteAndCloseDevice(d1.GetID())

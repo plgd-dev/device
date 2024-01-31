@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/v2/client/core"
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 func NewTestSigner() (core.CertificateSigner, error) {
-	identityIntermediateCA, err := security.ParseX509FromPEM(IdentityIntermediateCA)
+	identityIntermediateCA, err := pkgX509.ParsePemCertificates(IdentityIntermediateCA)
 	if err != nil {
 		return nil, err
 	}

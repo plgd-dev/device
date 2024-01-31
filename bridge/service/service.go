@@ -23,6 +23,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
+	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
@@ -55,7 +56,7 @@ type Device interface {
 	CloseAndDeleteResource(resourceHref string) bool
 	GetResource(resourceHref string) (device.Resource, bool)
 
-	UnregisterFromCloud() // unregister device from cloud
+	GetCloudManager() *cloud.Manager
 }
 
 type Service struct {

@@ -24,7 +24,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"log"
-	goSync "sync"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -50,6 +50,7 @@ import (
 type (
 	GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
 	GetCertificates    func(deviceID string) []tls.Certificate
+	RemoveCloudCAs     func(cloudID ...string)
 )
 
 type Config struct {
@@ -62,18 +63,25 @@ type Config struct {
 	CloudURL              string
 }
 
+type CAPoolGetter = interface {
+	IsValid() bool
+	GetPool() (*x509.CertPool, error)
+}
+
 type Manager struct {
 	handler         net.RequestHandler
 	getLinks        GetLinksFilteredBy
 	maxMessageSize  uint32
 	deviceID        uuid.UUID
 	save            func()
-	caPool          CAPool
-	getCertificates func(deviceID string) []tls.Certificate
+	caPool          CAPoolGetter
+	getCertificates GetCertificates
+	removeCloudCAs  RemoveCloudCAs
 
 	private struct {
-		mutex goSync.Mutex
-		cfg   Configuration
+		mutex            sync.Mutex
+		cfg              Configuration
+		previousCloudIDs []string
 	}
 
 	creds              ocfCloud.CoapSignUpResponse
@@ -84,7 +92,7 @@ type Manager struct {
 	trigger            chan bool
 }
 
-func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPool, opts ...Option) (*Manager, error) {
+func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, opts ...Option) (*Manager, error) {
 	if !caPool.IsValid() {
 		return nil, fmt.Errorf("invalid ca pool")
 	}
@@ -92,6 +100,9 @@ func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks G
 		maxMessageSize: net.DefaultMaxMessageSize,
 		getCertificates: func(string) []tls.Certificate {
 			return nil
+		},
+		removeCloudCAs: func(...string) {
+			// do nothing
 		},
 	}
 	for _, opt := range opts {
@@ -108,6 +119,7 @@ func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks G
 		save:            save,
 		caPool:          caPool,
 		getCertificates: o.getCertificates,
+		removeCloudCAs:  o.removeCloudCAs,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
 	return c, nil
@@ -168,6 +180,7 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 		log.Printf("cannot close connection: %v\n", err)
 	}
 	c.save()
+	c.removePreviousCloudIDs()
 }
 
 func (c *Manager) cleanup() {
@@ -216,9 +229,22 @@ func (c *Manager) Post(request *net.Request) (*pool.Message, error) {
 	return resources.CreateResponseContent(request.Context(), currentCfg, codes.Changed)
 }
 
+func (c *Manager) popPreviousCloudIDs() []string {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	previousCloudIDs := c.private.previousCloudIDs
+	c.private.previousCloudIDs = nil
+	return previousCloudIDs
+}
+
+func (c *Manager) removePreviousCloudIDs() {
+	c.removeCloudCAs(c.popPreviousCloudIDs()...)
+}
+
 func (c *Manager) setCloudConfiguration(cfg cloud.ConfigurationUpdateRequest) {
 	c.private.mutex.Lock()
 	defer c.private.mutex.Unlock()
+	c.private.previousCloudIDs = append(c.private.previousCloudIDs, c.private.cfg.CloudID)
 	c.private.cfg.AuthorizationProvider = cfg.AuthorizationProvider
 	c.private.cfg.CloudID = cfg.CloudID
 	c.private.cfg.URL = cfg.URL

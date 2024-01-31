@@ -366,16 +366,31 @@ func New(cfg Config, handler RequestHandler) (*Net, error) {
 	return n, nil
 }
 
+func (n *Net) getNetwork(cm *net.ControlMessage, localHost, localPort string) string {
+	if cm != nil {
+		if cm.Dst.To4() == nil {
+			return UDP6
+		}
+		return UDP4
+	}
+	p := n.cfg.externalAddressesPort.filterByPort(localPort)
+	if len(p) == 1 {
+		return p[0].network
+	}
+	ip := gonet.ParseIP(localHost)
+	if ip.To4() == nil {
+		return UDP6
+	}
+	return UDP4
+}
+
 func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endpoints {
-	_, localPort, err := gonet.SplitHostPort(localAddr)
+	localHost, localPort, err := gonet.SplitHostPort(localAddr)
 	if err != nil {
 		log.Printf("cannot get local address: %v", err)
 		return nil
 	}
-	network := UDP4
-	if cm.Dst.To4() == nil {
-		network = UDP6
-	}
+	network := n.getNetwork(cm, localHost, localPort)
 	filteredByNetwork := n.cfg.externalAddressesPort.filterByNetwork(network)
 	filtered := filteredByNetwork.filterByPort(localPort)
 	if len(filtered) == 0 {

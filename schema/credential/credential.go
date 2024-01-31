@@ -31,17 +31,17 @@ const (
 )
 
 type Credential struct {
-	ID                      int                       `json:"credid,omitempty"`
-	Type                    CredentialType            `json:"credtype"`
-	Subject                 string                    `json:"subjectuuid"`
-	Usage                   CredentialUsage           `json:"credusage,omitempty"`
-	SupportedRefreshMethods []CredentialRefreshMethod `json:"crms,omitempty"`
-	OptionalData            *CredentialOptionalData   `json:"optionaldata,omitempty"`
-	Period                  string                    `json:"period,omitempty"`
-	PrivateData             *CredentialPrivateData    `json:"privatedata,omitempty"`
-	PublicData              *CredentialPublicData     `json:"publicdata,omitempty"`
-	RoleID                  *CredentialRoleID         `json:"roleid,omitempty"`
-	Tag                     string                    `json:"tag,omitempty"`
+	ID                      int                       `json:"credid,omitempty" yaml:"id,omitempty"`
+	Type                    CredentialType            `json:"credtype" yaml:"type"`
+	Subject                 string                    `json:"subjectuuid" yaml:"subject"`
+	Usage                   CredentialUsage           `json:"credusage,omitempty" yaml:"usage,omitempty"`
+	SupportedRefreshMethods []CredentialRefreshMethod `json:"crms,omitempty" yaml:"supportedRefreshMethods,omitempty"`
+	OptionalData            *CredentialOptionalData   `json:"optionaldata,omitempty" yaml:"optionalData,omitempty"`
+	Period                  string                    `json:"period,omitempty" yaml:"period,omitempty"`
+	PrivateData             *CredentialPrivateData    `json:"privatedata,omitempty" yaml:"privateData,omitempty"`
+	PublicData              *CredentialPublicData     `json:"publicdata,omitempty" yaml:"publicData,omitempty"`
+	RoleID                  *CredentialRoleID         `json:"roleid,omitempty" yaml:"roleID,omitempty"`
+	Tag                     string                    `json:"tag,omitempty" yaml:"tag,omitempty"`
 }
 
 type CredentialType uint8
@@ -117,9 +117,9 @@ const (
 )
 
 type CredentialOptionalData struct {
-	DataInternal interface{}                    `json:"data"`
-	Encoding     CredentialOptionalDataEncoding `json:"encoding"`
-	IsRevoked    bool                           `json:"revstat"`
+	DataInternal interface{}                    `json:"data" yaml:"data"`
+	Encoding     CredentialOptionalDataEncoding `json:"encoding" yaml:"encoding"`
+	IsRevoked    bool                           `json:"revstat" yaml:"isRevoked,omitempty"`
 }
 
 func toByte(v interface{}) []byte {
@@ -181,8 +181,8 @@ const (
 )
 
 type CredentialPublicData struct {
-	DataInternal interface{}                  `json:"data"`
-	Encoding     CredentialPublicDataEncoding `json:"encoding"`
+	DataInternal interface{}                  `json:"data" yaml:"data"`
+	Encoding     CredentialPublicDataEncoding `json:"encoding" yaml:"encoding"`
 }
 
 func (c CredentialPublicData) Data() []byte {
@@ -202,16 +202,16 @@ const (
 )
 
 type CredentialRoleID struct {
-	Authority string `json:"authority,omitempty"`
-	Role      string `json:"role,omitempty"`
+	Authority string `json:"authority,omitempty" yaml:"authority,omitempty"`
+	Role      string `json:"role,omitempty" yaml:"role,omitempty"`
 }
 
 type CredentialResponse struct {
-	ResourceOwner string       `json:"rowneruuid"`
-	Interfaces    []string     `json:"if"`
-	ResourceTypes []string     `json:"rt"`
-	Name          string       `json:"n"`
-	Credentials   []Credential `json:"creds"`
+	ResourceOwner string       `json:"rowneruuid" yaml:"resourceOwner,omitempty"`
+	Interfaces    []string     `json:"if,omitempty" yaml:"-"`
+	ResourceTypes []string     `json:"rt,omitempty" yaml:"-"`
+	Name          string       `json:"n,omitempty" yaml:"name,omitempty"`
+	Credentials   []Credential `json:"creds" yaml:"creds"`
 }
 
 type CredentialUpdateRequest struct {

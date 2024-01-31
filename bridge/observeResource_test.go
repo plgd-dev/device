@@ -27,7 +27,7 @@ func TestObserveResource(t *testing.T) {
 	t.Cleanup(func() {
 		_ = s.Shutdown()
 	})
-	d := bridgeTest.NewBridgedDevice(t, s, false, uuid.New().String())
+	d := bridgeTest.NewBridgedDevice(t, s, uuid.New().String(), false, false)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()

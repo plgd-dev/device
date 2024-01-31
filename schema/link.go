@@ -50,12 +50,12 @@ type ResourceLinks []ResourceLink
 // https://openconnectivity.org/specs/OCF_Core_Specification_v2.0.0.pdf
 type Policy struct {
 	BitMask    BitMask `json:"bm"`
-	UDPPort    uint16  `json:"port"`
-	TCPPort    uint16  `json:"x.org.iotivity.tcp"`
-	TCPTLSPort uint16  `json:"x.org.iotivity.tls"`
+	UDPPort    uint16  `json:"port,omitempty"`
+	TCPPort    uint16  `json:"x.org.iotivity.tcp,omitempty"`
+	TCPTLSPort uint16  `json:"x.org.iotivity.tls,omitempty"`
 
 	// Secured is true if the resource is only available via an encrypted connection.
-	Secured bool `json:"sec"`
+	Secured *bool `json:"sec,omitempty"`
 }
 
 // Endpoint is defined on the line 2439 and 1892, Priority on 2434 of the Core specification:
@@ -243,7 +243,7 @@ func (r ResourceLink) patchEndpoint(addr kitNet.Addr, deviceEndpoints Endpoints)
 	}
 	r.Endpoints = make([]Endpoint, 0, 4)
 	if r.Policy.UDPPort != 0 {
-		if r.Policy.Secured {
+		if r.Policy.Secured != nil && *r.Policy.Secured {
 			r.Endpoints = append(r.Endpoints, udpTlsEndpoint(addr.SetPort(r.Policy.UDPPort)))
 		} else {
 			r.Endpoints = append(r.Endpoints, udpEndpoint(addr.SetPort(r.Policy.UDPPort)))

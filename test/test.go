@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -293,10 +294,17 @@ func CloudSID() string {
 	return os.Getenv("CLOUD_SID")
 }
 
-func GetRootCA(t *testing.T) []*x509.Certificate {
+func GetRootCApem(t *testing.T) []byte {
 	certPath := os.Getenv("ROOT_CA_CRT")
 	require.NotEmpty(t, certPath)
-	cas, err := pkgX509.ReadPemCertificates(certPath)
+	data, err := os.ReadFile(filepath.Clean(certPath))
+	require.NoError(t, err)
+	return data
+}
+
+func GetRootCA(t *testing.T) []*x509.Certificate {
+	certPem := GetRootCApem(t)
+	cas, err := pkgX509.ParsePemCertificates(certPem)
 	require.NoError(t, err)
 	return cas
 }
