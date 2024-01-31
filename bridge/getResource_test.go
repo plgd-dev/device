@@ -82,7 +82,6 @@ func TestGetResource(t *testing.T) {
 				href:     device.ResourceURI,
 				opts: []client.GetOption{
 					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
-					client.WithDeviceID(d1.GetID().String()),
 				},
 			},
 			want: coap.DetailedResponse[interface{}]{
@@ -101,7 +100,6 @@ func TestGetResource(t *testing.T) {
 				href:     device.ResourceURI,
 				opts: []client.GetOption{
 					client.WithInterface(interfaces.OC_IF_BASELINE),
-					client.WithDeviceID(d2.GetID().String()),
 				},
 			},
 
@@ -121,9 +119,6 @@ func TestGetResource(t *testing.T) {
 			args: args{
 				deviceID: d1.GetID().String(),
 				href:     "/invalid/href",
-				opts: []client.GetOption{
-					client.WithDeviceID(d1.GetID().String()),
-				},
 			},
 			wantErr: true,
 		},
@@ -132,9 +127,6 @@ func TestGetResource(t *testing.T) {
 			args: args{
 				deviceID: "notfound",
 				href:     device.ResourceURI,
-				opts: []client.GetOption{
-					client.WithDeviceID(d1.GetID().String()),
-				},
 			},
 			wantErr: true,
 		},
@@ -143,15 +135,12 @@ func TestGetResource(t *testing.T) {
 			args: args{
 				deviceID: d1.GetID().String(),
 				href:     failRes.GetHref(),
-				opts: []client.GetOption{
-					client.WithDeviceID(d1.GetID().String()),
-				},
 			},
 			wantErr: true,
 		},
 	}
 
-	c, err := testClient.NewTestSecureClient()
+	c, err := testClient.NewTestSecureClientWithBridgeSupport()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())

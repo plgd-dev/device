@@ -21,7 +21,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 type AppConfig struct {
@@ -46,13 +46,13 @@ func NewApp(cfg *AppConfig) (*App, error) {
 	var manufacturerCert tls.Certificate
 	var err error
 	if len(cfg.RootCA) != 0 {
-		rootCA, err = security.ParseX509FromPEM([]byte(cfg.RootCA))
+		rootCA, err = pkgX509.ParsePemCertificates([]byte(cfg.RootCA))
 		if err != nil {
 			return nil, fmt.Errorf("invalid Root CA: %w", err)
 		}
 	}
 	if cfg.Manufacturer != nil && len(cfg.Manufacturer.CA) != 0 {
-		manufacturerCA, err = security.ParseX509FromPEM([]byte(cfg.Manufacturer.CA))
+		manufacturerCA, err = pkgX509.ParsePemCertificates([]byte(cfg.Manufacturer.CA))
 		if err != nil {
 			return nil, fmt.Errorf("invalid Manufacturer's CA: %w", err)
 		}

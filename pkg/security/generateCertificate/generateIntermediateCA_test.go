@@ -5,7 +5,7 @@ import (
 	"crypto/x509"
 	"testing"
 
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/stretchr/testify/require"
 )
 
@@ -14,7 +14,7 @@ func generateRootCA(t *testing.T, cfg Configuration) ([]*x509.Certificate, *ecds
 	require.NoError(t, err)
 	cert, err := GenerateRootCA(cfg, privateKey)
 	require.NoError(t, err)
-	crt, err := security.ParseX509FromPEM(cert)
+	crt, err := pkgX509.ParsePemCertificates(cert)
 	require.NoError(t, err)
 	return crt, privateKey
 }

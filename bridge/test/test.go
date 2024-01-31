@@ -19,11 +19,15 @@
 package test
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
+	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/service"
+	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
 
@@ -62,7 +66,14 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 		cfg.ID = di
 		cfg.ProtocolIndependentID = piid
 		require.NoError(t, cfg.Validate())
-		return device.New(cfg, nil, nil)
+		caPool := cloud.MakeCAPool(func() []*x509.Certificate {
+			return test.GetRootCA(t)
+		}, false)
+		dev, err := device.New(cfg, device.WithCAPool(caPool), device.WithGetCertificates(func(deviceID string) []tls.Certificate {
+			return []tls.Certificate{test.GetMfgCertificate(t)}
+		}))
+		require.NoError(t, err)
+		return dev
 	}
 	d, ok := s.CreateDevice(cfg.ID, newDevice)
 	require.True(t, ok)
@@ -79,21 +90,14 @@ func makeDeviceConfig(id uuid.UUID, cloudEnabled bool) device.Config {
 	}
 	if cloudEnabled {
 		cfg.Cloud.Enabled = true
+		cfg.Cloud.CloudID = test.CloudSID()
 	}
 	return cfg
 }
 
 func NewBridgedDevice(t *testing.T, s *service.Service, cloudEnabled bool, id string) service.Device {
-	newDevice := func(di uuid.UUID, piid uuid.UUID) service.Device {
-		cfg := makeDeviceConfig(di, cloudEnabled)
-		cfg.ProtocolIndependentID = piid
-		require.NoError(t, cfg.Validate())
-		return device.New(cfg, nil, nil)
-	}
 	u, err := uuid.Parse(id)
 	require.NoError(t, err)
-	d, ok := s.CreateDevice(u, newDevice)
-	require.True(t, ok)
-	d.Init()
-	return d
+	cfg := makeDeviceConfig(u, cloudEnabled)
+	return NewBridgedDeviceWithConfig(t, s, cfg)
 }

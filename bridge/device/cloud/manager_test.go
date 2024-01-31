@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	bridgeTest "github.com/plgd-dev/device/v2/bridge/test"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/test"
 	testClient "github.com/plgd-dev/device/v2/test/client"
 	mockCoapGW "github.com/plgd-dev/device/v2/test/coap-gateway"
 	mockCoapGWService "github.com/plgd-dev/device/v2/test/coap-gateway/service"
@@ -72,7 +73,7 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-	err = c.OnboardDevice(ctx, deviceID, "authorizationProvider", "coaps+tcp://"+mockCoapGW.COAP_GW_HOST, "authorizationCode", "cloudID")
+	err = c.OnboardDevice(ctx, deviceID, "authorizationProvider", "coaps+tcp://"+mockCoapGW.COAP_GW_HOST, "authorizationCode", test.CloudSID())
 	require.NoError(t, err)
 
 	// wait for sign in

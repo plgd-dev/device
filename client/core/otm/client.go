@@ -22,11 +22,11 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema/credential"
 	"github.com/plgd-dev/device/v2/schema/csr"
 	"github.com/plgd-dev/device/v2/schema/doxm"
 	kitNet "github.com/plgd-dev/kit/v2/net"
-	kitSecurity "github.com/plgd-dev/kit/v2/security"
 )
 
 // SignFunc handles a certifice signing request (csr), the csr and returned certificate chain are encoded in PEM format
@@ -127,7 +127,7 @@ func ProvisionOwnerCredentials(ctx context.Context, tlsClient *coap.ClientCloseH
 			return fmt.Errorf("cannot sign csr for setup device owner credentials: %w", err)
 		}
 
-		certsFromChain, err := kitSecurity.ParseX509FromPEM(signedCsr)
+		certsFromChain, err := pkgX509.ParsePemCertificates(signedCsr)
 		if err != nil {
 			return fmt.Errorf("failed to parse chain of X509 certs: %w", err)
 		}
