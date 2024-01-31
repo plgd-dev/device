@@ -124,24 +124,50 @@ test: env build-testcontainer
 		$(SERVICE_NAME):$(VERSION_TAG) -test.parallel 1 -test.v -test.coverprofile=/tmp/coverage.txt
 
 test-bridge:
+	sudo rm -rf $(TMP_PATH)/data || :
+	mkdir -p $(TMP_PATH)/data
+	# pull image
+	docker pull $(HUB_TEST_DEVICE_IMAGE)
+	# prepare environment
+	docker run \
+		--rm \
+		--network=host \
+		--name hub-device-tests-environment \
+		--env PREPARE_ENV=true \
+		--env RUN=false \
+		--env COAP_GATEWAY_CLOUD_ID="$(CLOUD_SID)" \
+		-v $(TMP_PATH):/tmp \
+		-v $(TMP_PATH)/data:/data \
+		$(HUB_TEST_DEVICE_IMAGE)
+
+	# start device
 	rm -rf $(TMP_PATH)/bridge || :
 	mkdir -p $(TMP_PATH)/bridge
 	go build -C ./test/ocfbridge -cover -o ./ocfbridge
 	pkill -KILL ocfbridge || :
-	GOCOVERDIR=$(TMP_PATH)/bridge ./test/ocfbridge/ocfbridge -config ./test/ocfbridge/config.yaml &
+	CLOUD_SID=$(CLOUD_SID) CA_POOL=$(TMP_PATH)/data/certs/root_ca.crt \
+	CERT_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.crt \
+	KEY_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.key \
+	GOCOVERDIR=$(TMP_PATH)/bridge \
+		./test/ocfbridge/ocfbridge &
 
-	docker pull $(HUB_TEST_DEVICE_IMAGE) && \
+	# run tests
 	docker run \
-		--network=host \
 		--rm \
+		--network=host \
 		--name hub-device-tests \
+		--env PREPARE_ENV=false \
+		--env RUN=true \
+		--env COAP_GATEWAY_CLOUD_ID="$(CLOUD_SID)" \
 		--env TEST_DEVICE_NAME="bridged-device-0" \
 		--env TEST_DEVICE_TYPE="bridged" \
 		--env GRPC_GATEWAY_TEST_DISABLED=1 \
 		--env IOTIVITY_LITE_TEST_RUN="(TestOffboard|TestOffboardWithoutSignIn|TestOffboardWithRepeat|TestRepublishAfterRefresh)$$" \
 		-v $(TMP_PATH):/tmp \
+		-v $(TMP_PATH)/data:/data \
 		$(HUB_TEST_DEVICE_IMAGE)
 
+	# stop device
 	pkill -TERM ocfbridge || :
 	while pgrep -x ocfbridge > /dev/null; do \
 		echo "waiting for ocfbridge to exit"; \
@@ -150,9 +176,10 @@ test-bridge:
 	go tool covdata textfmt -i=$(TMP_PATH)/bridge -o $(TMP_PATH)/bridge.coverage.txt
 
 clean:
-	docker rm -f devsim-net-host || true
-	docker rm -f hub-device-tests || true
-	pkill -KILL ocfbridge || true
+	docker rm -f devsim-net-host || :
+	docker rm -f hub-device-tests-environment || :
+	docker rm -f hub-device-tests || :
+	pkill -KILL ocfbridge || :
 	sudo rm -rf .tmp/*
 
 .PHONY: build-testcontainer build certificates clean env test unit-test

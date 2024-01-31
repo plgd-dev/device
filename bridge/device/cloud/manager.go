@@ -21,6 +21,7 @@ package cloud
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log"
 	goSync "sync"
@@ -31,6 +32,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -45,7 +47,10 @@ import (
 	"github.com/plgd-dev/go-coap/v3/tcp/client"
 )
 
-type GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
+type (
+	GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
+	GetCertificates    func(deviceID string) []tls.Certificate
+)
 
 type Config struct {
 	AccessToken           string
@@ -58,11 +63,13 @@ type Config struct {
 }
 
 type Manager struct {
-	handler        net.RequestHandler
-	getLinks       GetLinksFilteredBy
-	maxMessageSize uint32
-	deviceID       uuid.UUID
-	save           func()
+	handler         net.RequestHandler
+	getLinks        GetLinksFilteredBy
+	maxMessageSize  uint32
+	deviceID        uuid.UUID
+	save            func()
+	caPool          CAPool
+	getCertificates func(deviceID string) []tls.Certificate
 
 	private struct {
 		mutex goSync.Mutex
@@ -77,18 +84,33 @@ type Manager struct {
 	trigger            chan bool
 }
 
-func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, maxMessageSize uint32) *Manager {
+func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPool, opts ...Option) (*Manager, error) {
+	if !caPool.IsValid() {
+		return nil, fmt.Errorf("invalid ca pool")
+	}
+	o := OptionsCfg{
+		maxMessageSize: net.DefaultMaxMessageSize,
+		getCertificates: func(string) []tls.Certificate {
+			return nil
+		},
+	}
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	c := &Manager{
-		done:           make(chan struct{}),
-		trigger:        make(chan bool, 10),
-		handler:        handler,
-		getLinks:       getLinks,
-		maxMessageSize: maxMessageSize,
-		deviceID:       deviceID,
-		save:           save,
+		done:            make(chan struct{}),
+		trigger:         make(chan bool, 10),
+		handler:         handler,
+		getLinks:        getLinks,
+		deviceID:        deviceID,
+		maxMessageSize:  o.maxMessageSize,
+		save:            save,
+		caPool:          caPool,
+		getCertificates: o.getCertificates,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
-	return c
+	return c, nil
 }
 
 func (c *Manager) Get(request *net.Request) (*pool.Message, error) {
@@ -301,10 +323,23 @@ func (c *Manager) dial(ctx context.Context) error {
 	}
 	_ = c.close()
 	cfg := c.getCloudConfiguration()
-	tlsConfig := &tls.Config{
-		// TODO: set RootCAs from configuration
-		InsecureSkipVerify: true, //nolint:gosec
+
+	caPool, err := c.caPool.GetPool()
+	if err != nil {
+		return fmt.Errorf("cannot get ca pool: %w", err)
 	}
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: true, //nolint:gosec
+		Certificates:       c.getCertificates(c.deviceID.String()),
+		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(caPool, func(cert *x509.Certificate) error {
+			cloudID, errP := uuid.Parse(c.getCloudConfiguration().CloudID)
+			if errP != nil {
+				return fmt.Errorf("cannot parse cloudID: %w", errP)
+			}
+			return coap.VerifyCloudCertificate(cert, cloudID)
+		}),
+	}
+
 	ep := schema.Endpoint{
 		URI: cfg.URL,
 	}

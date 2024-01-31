@@ -30,11 +30,11 @@ import (
 	"github.com/plgd-dev/device/v2/client/core/otm/manufacturer"
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/udp"
-	"github.com/plgd-dev/kit/v2/security"
 	"github.com/stretchr/testify/require"
 )
 
@@ -64,12 +64,12 @@ func NewTestSecureClientWithCert(cert tls.Certificate, disableDTLS, disableTCPTL
 		return nil, err
 	}
 
-	mfgCa, err := security.ParseX509FromPEM(test.RootCACrt)
+	mfgCa, err := pkgX509.ParsePemCertificates(test.RootCACrt)
 	if err != nil {
 		return nil, err
 	}
 
-	identityIntermediateCA, err := security.ParseX509FromPEM(test.IdentityIntermediateCA)
+	identityIntermediateCA, err := pkgX509.ParsePemCertificates(test.IdentityIntermediateCA)
 	if err != nil {
 		return nil, err
 	}

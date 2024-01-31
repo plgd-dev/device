@@ -59,7 +59,8 @@ var (
 
 func TestNewDevice(t *testing.T) {
 	cfg := deviceCfg
-	dev := device.New(cfg, nil, nil)
+	dev, err := device.New(cfg)
+	require.NoError(t, err)
 	require.Equal(t, cfg.ID, dev.GetID())
 	require.Equal(t, cfg.Name, dev.GetName())
 	require.Equal(t, cfg.ProtocolIndependentID, dev.GetProtocolIndependentID())
@@ -75,13 +76,15 @@ func TestNewDeviceWithCloud(t *testing.T) {
 	cfg := deviceCfg
 	cfg.Cloud = cloudCfg
 
-	dev := device.New(cfg, nil, nil)
+	dev, err := device.New(cfg, device.WithCAPool(cloud.MakeCAPool(nil, true)))
+	require.NoError(t, err)
 	cfg.ResourceTypes = append(cfg.ResourceTypes, "oic.wk.d")
 	require.Equal(t, cfg, dev.ExportConfig())
 }
 
 func TestGetResource(t *testing.T) {
-	dev := device.New(deviceCfg, nil, nil)
+	dev, err := device.New(deviceCfg)
+	require.NoError(t, err)
 	_, ok := dev.GetResource(plgdDevice.ResourceURI)
 	require.True(t, ok)
 
@@ -96,7 +99,8 @@ func TestGetResource(t *testing.T) {
 
 func TestRangeResources(t *testing.T) {
 	cfg := deviceCfg
-	dev := device.New(cfg, nil, nil)
+	dev, err := device.New(cfg)
+	require.NoError(t, err)
 	resourceHrefs := []string{}
 	dev.Range(func(href string, _ device.Resource) bool {
 		resourceHrefs = append(resourceHrefs, href)
@@ -109,7 +113,8 @@ func TestRangeResources(t *testing.T) {
 	require.Contains(t, resourceHrefs, maintenanceSchema.ResourceURI)
 
 	cfg.Cloud = cloudCfg
-	devWithCloud := device.New(cfg, nil, nil)
+	devWithCloud, err := device.New(cfg, device.WithCAPool(cloud.MakeCAPool(nil, true)))
+	require.NoError(t, err)
 	resourceHrefs = []string{}
 	devWithCloud.Range(func(href string, _ device.Resource) bool {
 		resourceHrefs = append(resourceHrefs, href)
@@ -124,7 +129,8 @@ func TestRangeResources(t *testing.T) {
 }
 
 func TestLoadAndDeleteResource(t *testing.T) {
-	dev := device.New(deviceCfg, nil, nil)
+	dev, err := device.New(deviceCfg)
+	require.NoError(t, err)
 
 	_, ok := dev.LoadAndDeleteResource("/fail")
 	require.False(t, ok)
@@ -141,7 +147,8 @@ func TestLoadAndDeleteResource(t *testing.T) {
 }
 
 func TestCloseAndDeleteResource(t *testing.T) {
-	dev := device.New(deviceCfg, nil, nil)
+	dev, err := device.New(deviceCfg)
+	require.NoError(t, err)
 
 	ok := dev.CloseAndDeleteResource("/fail")
 	require.False(t, ok)

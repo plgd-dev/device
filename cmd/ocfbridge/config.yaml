@@ -6,5 +6,7 @@ apis:
       - "127.0.0.1:15683"
       - "[::1]:15683"
     maxMessageSize: 2097152
+cloud:
+  enabled: false
 numGeneratedBridgedDevices: 100
 numResourcesPerDevice: 256

@@ -242,7 +242,7 @@ func (s coAPServers) Close() error {
 	return errors.ErrorOrNil()
 }
 
-func getPortFromAddress(addr gonet.Addr) (string, error) {
+func GetPortFromAddress(addr gonet.Addr) (string, error) {
 	udpAddr, ok := addr.(*gonet.UDPAddr)
 	if ok {
 		return fmt.Sprintf("%d", udpAddr.Port), nil
@@ -275,7 +275,7 @@ func newServers(cfg *Config, m *mux.Router) (coAPServers, bool, bool, error) {
 			return nil, false, false, err
 		}
 		if addr.port == "0" {
-			port, err := getPortFromAddress(conn.LocalAddr())
+			port, err := GetPortFromAddress(conn.LocalAddr())
 			if err != nil {
 				_ = servers.Close()
 				return nil, false, false, err
@@ -427,7 +427,7 @@ func (n *Net) Serve() error {
 
 func (n *Net) Close() error {
 	if !n.serving.Load() {
-		return nil
+		return n.servers.Close()
 	}
 	n.servers.Stop()
 	<-n.done
