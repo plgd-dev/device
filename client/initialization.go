@@ -27,7 +27,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
-	kitSecurity "github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 func generateSDKCertificate(ctx context.Context, csr []byte, sign SignFunc, priv *ecdsa.PrivateKey) (tls.Certificate, []*x509.Certificate, error) {
@@ -46,7 +46,7 @@ func generateSDKCertificate(ctx context.Context, csr []byte, sign SignFunc, priv
 		return tls.Certificate{}, nil, fmt.Errorf("cannot create tls certificate: %w", err)
 	}
 
-	certsFromChain, err := kitSecurity.ParseX509FromPEM(cert)
+	certsFromChain, err := pkgX509.ParsePemCertificates(cert)
 	if err != nil {
 		return tls.Certificate{}, nil, fmt.Errorf("cannot parse cert chain: %w", err)
 	}

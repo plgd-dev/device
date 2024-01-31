@@ -85,19 +85,77 @@ func (d *Device) ExportConfig() Config {
 	return cfg
 }
 
-func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc) *Device {
-	if onDeviceUpdated == nil {
-		onDeviceUpdated = func(d *Device) {
-			// do nothing
-		}
+type OnDeviceUpdated func(d *Device)
+
+type OptionsCfg struct {
+	onDeviceUpdated         OnDeviceUpdated
+	getAdditionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc
+	getCertificates         cloud.GetCertificates
+	caPool                  cloud.CAPool
+}
+
+type Option func(*OptionsCfg)
+
+func WithOnDeviceUpdated(onDeviceUpdated OnDeviceUpdated) Option {
+	return func(o *OptionsCfg) {
+		o.onDeviceUpdated = onDeviceUpdated
 	}
+}
+
+func WithGetAdditionalPropertiesForResponse(getAdditionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc) Option {
+	return func(o *OptionsCfg) {
+		o.getAdditionalProperties = getAdditionalProperties
+	}
+}
+
+func WithGetCertificates(getCertificates cloud.GetCertificates) Option {
+	return func(o *OptionsCfg) {
+		o.getCertificates = getCertificates
+	}
+}
+
+func WithCAPool(caPool cloud.CAPool) Option {
+	return func(o *OptionsCfg) {
+		o.caPool = caPool
+	}
+}
+
+func New(cfg Config, opts ...Option) (*Device, error) {
+	o := OptionsCfg{
+		onDeviceUpdated: func(d *Device) {
+			// do nothing
+		},
+		getAdditionalProperties: func() map[string]interface{} { return nil },
+		caPool:                  cloud.MakeCAPool(nil, false),
+	}
+	for _, opt := range opts {
+		opt(&o)
+	}
+
 	cfg.ResourceTypes = resources.Unique(append(cfg.ResourceTypes, plgdDevice.ResourceType))
 	d := &Device{
 		cfg:             cfg,
 		resources:       sync.NewMap[string, Resource](),
-		onDeviceUpdated: onDeviceUpdated,
+		onDeviceUpdated: o.onDeviceUpdated,
 	}
-	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d, additionalProperties))
+
+	if cfg.Cloud.Enabled {
+		opts := []cloud.Option{cloud.WithMaxMessageSize(cfg.MaxMessageSize)}
+		if o.getCertificates != nil {
+			opts = append(opts, cloud.WithGetCertificates(o.getCertificates))
+		}
+		cm, err := cloud.New(d.cfg.ID, func() {
+			d.onDeviceUpdated(d)
+		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, opts...)
+		if err != nil {
+			return nil, fmt.Errorf("cannot create cloud manager: %w", err)
+		}
+		d.cloudManager = cm
+		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
+		d.cloudManager.ImportConfig(cfg.Cloud.Config)
+	}
+
+	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d, o.getAdditionalProperties))
 	// oic/res is not discoverable
 	discoverResource := discovery.New(plgdResources.ResourceURI, d.GetLinks)
 	discoverResource.PolicyBitMask = schema.Discoverable
@@ -107,14 +165,7 @@ func New(cfg Config, onDeviceUpdated func(d *Device), additionalProperties resou
 		d.UnregisterFromCloud()
 	}))
 
-	if cfg.Cloud.Enabled {
-		d.cloudManager = cloud.New(d.cfg.ID, func() {
-			d.onDeviceUpdated(d)
-		}, d.HandleRequest, d.GetLinksFilteredBy, cfg.MaxMessageSize)
-		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
-		d.cloudManager.ImportConfig(cfg.Cloud.Config)
-	}
-	return d
+	return d, nil
 }
 
 func (d *Device) AddResource(resource Resource) {

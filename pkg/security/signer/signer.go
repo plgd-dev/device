@@ -28,7 +28,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 type OCFIdentityCertificate struct {
@@ -105,5 +105,5 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr 
 	if err != nil {
 		return
 	}
-	return security.CreatePemChain(s.caCert, signedCsr)
+	return pkgX509.CreatePemChain(s.caCert, signedCsr)
 }

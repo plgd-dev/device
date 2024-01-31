@@ -25,10 +25,10 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	coapCodes "github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/mux"
-	"github.com/plgd-dev/kit/v2/codec/cbor"
 )
 
 // fixHref ensures that href starts with "/" and does not end with "/".

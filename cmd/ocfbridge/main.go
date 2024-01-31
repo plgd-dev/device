@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -15,11 +16,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
+	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -41,6 +44,9 @@ func loadConfig(configFile string) (Config, error) {
 	var cfg Config
 	err = yaml.NewDecoder(f).Decode(&cfg)
 	if err != nil {
+		return Config{}, err
+	}
+	if err = cfg.Validate(); err != nil {
 		return Config{}, err
 	}
 	return cfg, nil
@@ -141,6 +147,42 @@ func addResource(d service.Device, idx int, obsWatcher *coapSync.Map[uint64, fun
 	d.AddResource(res)
 }
 
+func getCloudTLS(cfg CloudConfig) (cloud.CAPool, *tls.Certificate, error) {
+	ca, err := pkgX509.ReadPemCertificates(cfg.TLS.CAPoolPath)
+	if err != nil {
+		return cloud.CAPool{}, nil, fmt.Errorf("cannot load ca: %w", err)
+	}
+	caPool := cloud.MakeCAPool(func() []*x509.Certificate {
+		return ca
+	}, cfg.TLS.UseSystemCAPool)
+
+	if cfg.TLS.KeyPath == "" {
+		return caPool, nil, nil
+	}
+
+	cert, err := tls.LoadX509KeyPair(cfg.TLS.CertPath, cfg.TLS.KeyPath)
+	if err != nil {
+		return cloud.CAPool{}, nil, fmt.Errorf("cannot load cert: %w", err)
+	}
+	return caPool, &cert, nil
+}
+
+func handleSignals(s *service.Service) {
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	for sig := range sigCh {
+		switch sig {
+		case syscall.SIGINT:
+			os.Exit(0)
+			return
+		case syscall.SIGTERM:
+			_ = s.Shutdown()
+			return
+		}
+	}
+}
+
 func main() {
 	configFile := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -152,22 +194,42 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	opts := []device.Option{
+		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
+			return map[string]interface{}{
+				"my-property": "my-value",
+			}
+		}),
+	}
+	if cfg.Cloud.Enabled {
+		caPool, cert, errC := getCloudTLS(cfg.Cloud)
+		if errC != nil {
+			panic(errC)
+		}
+		opts = append(opts, device.WithCAPool(caPool))
+		if cert != nil {
+			opts = append(opts, device.WithGetCertificates(func(string) []tls.Certificate {
+				return []tls.Certificate{*cert}
+			}))
+		}
+	}
+
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
 		newDevice := func(id uuid.UUID, piid uuid.UUID) service.Device {
-			d := device.New(device.Config{
+			d, errD := device.New(device.Config{
 				Name:                  fmt.Sprintf("bridged-device-%d", i),
 				ResourceTypes:         []string{"oic.d.virtual"},
 				ID:                    id,
 				ProtocolIndependentID: piid,
 				MaxMessageSize:        cfg.Config.API.CoAP.MaxMessageSize,
 				Cloud: device.CloudConfig{
-					Enabled: true,
+					Enabled: cfg.Cloud.Enabled,
 				},
-			}, nil, func() map[string]interface{} {
-				return map[string]interface{}{
-					"my-property": "my-value",
-				}
-			})
+			}, opts...)
+			if errD != nil {
+				panic(errD)
+			}
 			return d
 		}
 		d, ok := s.CreateDevice(uuid.New(), newDevice)
@@ -177,27 +239,11 @@ func main() {
 		}
 	}
 
-	// Signal handling.
 	go func() {
-		sigCh := make(chan os.Signal, 1)
-		signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-
-		for sig := range sigCh {
-			log.Printf("Trapped \"%v\" signal\n", sig)
-			switch sig {
-			case syscall.SIGINT:
-				log.Println("Exiting...")
-				os.Exit(0)
-				return
-			case syscall.SIGTERM:
-				_ = s.Shutdown()
-				return
-			}
-		}
+		handleSignals(s)
 	}()
 
-	err = s.Serve()
-	if err != nil {
+	if err = s.Serve(); err != nil {
 		panic(err)
 	}
 }

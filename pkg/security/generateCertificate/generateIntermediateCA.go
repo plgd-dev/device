@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 func newCert(cfg Configuration) (*x509.Certificate, error) {
@@ -57,5 +57,5 @@ func GenerateIntermediateCA(cfg Configuration, privateKey *ecdsa.PrivateKey, sig
 	if err != nil {
 		return nil, err
 	}
-	return security.CreatePemChain(signerCA, der)
+	return pkgX509.CreatePemChain(signerCA, der)
 }

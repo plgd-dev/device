@@ -30,11 +30,11 @@ import (
 
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/security/signer"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test/resource/types"
-	"github.com/plgd-dev/kit/v2/log"
 	"github.com/stretchr/testify/require"
 )
 
@@ -196,7 +196,7 @@ func FindDeviceIP(ctx context.Context, deviceName string, ipType IPType) (string
 	}
 	defer func() {
 		if errC := device.Close(ctx); errC != nil {
-			log.Errorf("FindDeviceIP: %w", errC)
+			fmt.Printf("cannot close device: %v\n", errC)
 		}
 	}()
 	return getDeviceIP(device, ipType)
@@ -219,7 +219,7 @@ func FindDeviceEndpoints(ctx context.Context, deviceName string, ipType IPType) 
 	}
 	defer func() {
 		if errC := device.Close(ctx); errC != nil {
-			log.Errorf("FindDeviceEndpoints: %w", errC)
+			fmt.Printf("cannot close device: %v\n", errC)
 		}
 	}()
 	return device.GetEndpoints(), nil
@@ -289,16 +289,20 @@ func CheckResourceLinks(t *testing.T, expected, actual schema.ResourceLinks) {
 	require.Empty(t, expLinks)
 }
 
-func CloudID() string {
+func CloudSID() string {
 	return os.Getenv("CLOUD_SID")
 }
 
-func GetRootCertificate(t *testing.T) tls.Certificate {
+func GetRootCA(t *testing.T) []*x509.Certificate {
 	certPath := os.Getenv("ROOT_CA_CRT")
 	require.NotEmpty(t, certPath)
-	keyPath := os.Getenv("ROOT_CA_KEY")
-	require.NotEmpty(t, keyPath)
-	ca, err := tls.LoadX509KeyPair(certPath, keyPath)
+	cas, err := pkgX509.ReadPemCertificates(certPath)
+	require.NoError(t, err)
+	return cas
+}
+
+func GetMfgCertificate(t *testing.T) tls.Certificate {
+	ca, err := tls.X509KeyPair(MfgCert, MfgKey)
 	require.NoError(t, err)
 	return ca
 }

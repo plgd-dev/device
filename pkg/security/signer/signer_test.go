@@ -14,7 +14,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/pkg/security/signer"
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,9 +28,9 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 	type args struct {
 		csr []byte
 	}
-	caCert, err := security.LoadX509(os.Getenv("ROOT_CA_CRT"))
+	caCert, err := pkgX509.ReadPemCertificates(os.Getenv("ROOT_CA_CRT"))
 	require.NoError(t, err)
-	caKey, err := security.LoadX509PrivateKey(os.Getenv("ROOT_CA_KEY"))
+	caKey, err := pkgX509.ReadPemEcdsaPrivateKey(os.Getenv("ROOT_CA_KEY"))
 	require.NoError(t, err)
 	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
 	require.NoError(t, err)

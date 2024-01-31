@@ -37,7 +37,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/plgd-dev/device/v2/pkg/security/signer"
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 type Options struct {
@@ -387,11 +387,11 @@ func generateIntermediateCertificate(certConfig generateCertificate.Configuratio
 	if err != nil {
 		return err
 	}
-	signerCert, err := security.LoadX509(signCert)
+	signerCert, err := pkgX509.ReadPemCertificates(signCert)
 	if err != nil {
 		return err
 	}
-	signerKey, err := security.LoadX509PrivateKey(signKey)
+	signerKey, err := pkgX509.ReadPemEcdsaPrivateKey(signKey)
 	if err != nil {
 		return err
 	}
@@ -415,11 +415,11 @@ func generateIdentityCertificate(certConfig generateCertificate.Configuration, i
 	if err != nil {
 		return err
 	}
-	signerCert, err := security.LoadX509(signCert)
+	signerCert, err := pkgX509.ReadPemCertificates(signCert)
 	if err != nil {
 		return err
 	}
-	signerKey, err := security.LoadX509PrivateKey(signKey)
+	signerKey, err := pkgX509.ReadPemEcdsaPrivateKey(signKey)
 	if err != nil {
 		return err
 	}
