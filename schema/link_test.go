@@ -267,12 +267,13 @@ func TestResourceLinkPatchEndpoint(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			secured := tt.args.secured
 			r := schema.ResourceLink{
 				Policy: &schema.Policy{
 					UDPPort:    5683,
 					TCPPort:    5683,
 					TCPTLSPort: 5684,
-					Secured:    tt.args.secured,
+					Secured:    &secured,
 				},
 			}
 			got := r.PatchEndpoint(tt.args.addr, nil)

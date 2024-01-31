@@ -61,7 +61,7 @@ func RunBridgeService(s *service.Service) func() error {
 	return cleanup
 }
 
-func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Config) service.Device {
+func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Config, opts ...device.Option) service.Device {
 	newDevice := func(di uuid.UUID, piid uuid.UUID) service.Device {
 		cfg.ID = di
 		cfg.ProtocolIndependentID = piid
@@ -69,9 +69,12 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 		caPool := cloud.MakeCAPool(func() []*x509.Certificate {
 			return test.GetRootCA(t)
 		}, false)
-		dev, err := device.New(cfg, device.WithCAPool(caPool), device.WithGetCertificates(func(deviceID string) []tls.Certificate {
+		deviceOpts := []device.Option{device.WithCAPool(caPool), device.WithGetCertificates(func(deviceID string) []tls.Certificate {
 			return []tls.Certificate{test.GetMfgCertificate(t)}
-		}))
+		})}
+		// allow to override default options
+		deviceOpts = append(deviceOpts, opts...)
+		dev, err := device.New(cfg, deviceOpts...)
 		require.NoError(t, err)
 		return dev
 	}
@@ -81,23 +84,24 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 	return d
 }
 
-func makeDeviceConfig(id uuid.UUID, cloudEnabled bool) device.Config {
+func makeDeviceConfig(id uuid.UUID, cloudEnabled bool, credentialEnabled bool) device.Config {
 	cfg := device.Config{
 		ID:             id,
 		Name:           "bridged-device",
 		ResourceTypes:  []string{"oic.d.virtual"},
 		MaxMessageSize: 1024 * 256,
 	}
+	cfg.Cloud.Enabled = cloudEnabled
 	if cloudEnabled {
-		cfg.Cloud.Enabled = true
 		cfg.Cloud.CloudID = test.CloudSID()
 	}
+	cfg.Credential.Enabled = credentialEnabled
 	return cfg
 }
 
-func NewBridgedDevice(t *testing.T, s *service.Service, cloudEnabled bool, id string) service.Device {
+func NewBridgedDevice(t *testing.T, s *service.Service, id string, cloudEnabled bool, credentialEnabled bool, opts ...device.Option) service.Device {
 	u, err := uuid.Parse(id)
 	require.NoError(t, err)
-	cfg := makeDeviceConfig(u, cloudEnabled)
-	return NewBridgedDeviceWithConfig(t, s, cfg)
+	cfg := makeDeviceConfig(u, cloudEnabled, credentialEnabled)
+	return NewBridgedDeviceWithConfig(t, s, cfg, opts...)
 }

@@ -16,41 +16,52 @@
  *
  ****************************************************************************/
 
-package cloud
+package credential
 
 import (
 	"crypto/x509"
-	"fmt"
 )
 
 type GetCAPool func() []*x509.Certificate
 
-type CAPool struct {
-	getCAPool       GetCAPool
-	useSystemCAPool bool
+type CAPoolGetter = interface {
+	IsValid() bool
+	GetPool() (*x509.CertPool, error)
 }
 
-func MakeCAPool(getCAPool GetCAPool, useSystemCAPool bool) CAPool {
+type CAPool struct {
+	origCAPool CAPoolGetter
+	getCAPool  GetCAPool
+}
+
+func MakeCAPool(caPool CAPoolGetter, getCAPool GetCAPool) CAPool {
 	return CAPool{
-		getCAPool:       getCAPool,
-		useSystemCAPool: useSystemCAPool,
+		getCAPool:  getCAPool,
+		origCAPool: caPool,
 	}
 }
 
 func (c CAPool) IsValid() bool {
-	return c.useSystemCAPool || (c.getCAPool != nil && c.getCAPool() != nil)
+	if c.getCAPool != nil {
+		return true
+	}
+	if c.origCAPool == nil {
+		return false
+	}
+	return c.origCAPool.IsValid()
 }
 
 func (c CAPool) GetPool() (*x509.CertPool, error) {
-	var pool *x509.CertPool
-	if c.useSystemCAPool {
-		systemPool, err := x509.SystemCertPool()
+	pool := x509.NewCertPool()
+	if c.origCAPool != nil && c.origCAPool.IsValid() {
+		p, err := c.origCAPool.GetPool()
 		if err != nil {
-			return nil, fmt.Errorf("cannot get system pool: %w", err)
+			return nil, err
 		}
-		pool = systemPool
-	} else {
-		pool = x509.NewCertPool()
+		pool = p
+	}
+	if c.getCAPool == nil {
+		return pool, nil
 	}
 	for _, ca := range c.getCAPool() {
 		pool.AddCert(ca)

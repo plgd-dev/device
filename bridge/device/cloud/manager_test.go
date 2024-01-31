@@ -58,7 +58,7 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 		_ = s1.Shutdown()
 	})
 	deviceID := uuid.New().String()
-	d1 := bridgeTest.NewBridgedDevice(t, s1, true, deviceID)
+	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false)
 	s1Shutdown := bridgeTest.RunBridgeService(s1)
 	t.Cleanup(func() {
 		_ = s1Shutdown()
@@ -106,6 +106,9 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 	require.Equal(t, cloudCfg.ProvisioningStatus, cloudSchema.ProvisioningStatus_REGISTERED)
 
 	// sign off
-	d2.UnregisterFromCloud()
+	cloudManager := d2.GetCloudManager()
+	if cloudManager != nil {
+		cloudManager.Unregister()
+	}
 	require.Equal(t, 1, ch.WaitForSignOff(time.Second*20))
 }

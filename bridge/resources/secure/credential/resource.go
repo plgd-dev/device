@@ -16,32 +16,29 @@
  *
  ****************************************************************************/
 
-package cloud
+package credential
 
-type OptionsCfg struct {
-	maxMessageSize  uint32
-	getCertificates GetCertificates
-	removeCloudCAs  RemoveCloudCAs
+import (
+	"github.com/plgd-dev/device/v2/bridge/net"
+	"github.com/plgd-dev/device/v2/bridge/resources"
+	"github.com/plgd-dev/device/v2/schema/credential"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
+)
+
+type Resource struct {
+	*resources.Resource
 }
 
-type Option func(*OptionsCfg)
-
-func WithMaxMessageSize(maxMessageSize uint32) Option {
-	return func(o *OptionsCfg) {
-		if maxMessageSize > 0 {
-			o.maxMessageSize = maxMessageSize
-		}
-	}
+type Manager interface {
+	Get(req *net.Request) (*pool.Message, error)
+	Post(req *net.Request) (*pool.Message, error)
 }
 
-func WithGetCertificates(getCertificates GetCertificates) Option {
-	return func(o *OptionsCfg) {
-		o.getCertificates = getCertificates
-	}
-}
-
-func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
-	return func(o *OptionsCfg) {
-		o.removeCloudCAs = removeCloudCA
-	}
+func New(uri string, m Manager) *Resource {
+	d := &Resource{}
+	d.Resource = resources.NewResource(uri, m.Get, m.Post, []string{credential.ResourceType}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
+	// don't publish credential resource to cloud
+	d.PolicyBitMask &= ^resources.PublishToCloud
+	return d
 }

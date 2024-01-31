@@ -37,7 +37,7 @@ type Manager interface {
 
 func New(uri string, m Manager) *Resource {
 	d := &Resource{}
-	d.Resource = resources.NewResource(uri, m.Get, m.Post, []string{plgdCloud.ResourceType}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_R})
+	d.Resource = resources.NewResource(uri, m.Get, m.Post, []string{plgdCloud.ResourceType}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
 	// don't publish cloud resource to cloud
 	d.PolicyBitMask &= ^resources.PublishToCloud
 	return d

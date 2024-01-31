@@ -21,18 +21,22 @@ package device
 import (
 	"bytes"
 	"context"
+	"crypto/x509"
 	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/device/credential"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	cloudResource "github.com/plgd-dev/device/v2/bridge/resources/cloud"
 	resourcesDevice "github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/bridge/resources/maintenance"
+	credentialResource "github.com/plgd-dev/device/v2/bridge/resources/secure/credential"
 	"github.com/plgd-dev/device/v2/schema"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
+	credentialSchema "github.com/plgd-dev/device/v2/schema/credential"
 	plgdDevice "github.com/plgd-dev/device/v2/schema/device"
 	maintenanceSchema "github.com/plgd-dev/device/v2/schema/maintenance"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
@@ -55,10 +59,11 @@ type Resource interface {
 }
 
 type Device struct {
-	cfg             Config
-	resources       *sync.Map[string, Resource]
-	cloudManager    *cloud.Manager
-	onDeviceUpdated func(d *Device)
+	cfg               Config
+	resources         *sync.Map[string, Resource]
+	cloudManager      *cloud.Manager
+	credentialManager *credential.Manager
+	onDeviceUpdated   func(d *Device)
 }
 
 func (d *Device) GetID() uuid.UUID {
@@ -81,17 +86,29 @@ func (d *Device) ExportConfig() Config {
 	cfg := d.cfg
 	if d.cloudManager != nil {
 		cfg.Cloud.Config = d.cloudManager.ExportConfig()
+	} else {
+		cfg.Cloud.Enabled = false
+	}
+	if d.credentialManager != nil {
+		cfg.Credential.Config = d.credentialManager.ExportConfig()
+	} else {
+		cfg.Credential.Enabled = false
 	}
 	return cfg
 }
 
 type OnDeviceUpdated func(d *Device)
 
+type CAPoolGetter interface {
+	IsValid() bool
+	GetPool() (*x509.CertPool, error)
+}
+
 type OptionsCfg struct {
 	onDeviceUpdated         OnDeviceUpdated
 	getAdditionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc
 	getCertificates         cloud.GetCertificates
-	caPool                  cloud.CAPool
+	caPool                  CAPoolGetter
 }
 
 type Option func(*OptionsCfg)
@@ -114,7 +131,7 @@ func WithGetCertificates(getCertificates cloud.GetCertificates) Option {
 	}
 }
 
-func WithCAPool(caPool cloud.CAPool) Option {
+func WithCAPool(caPool CAPoolGetter) Option {
 	return func(o *OptionsCfg) {
 		o.caPool = caPool
 	}
@@ -139,14 +156,22 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		onDeviceUpdated: o.onDeviceUpdated,
 	}
 
+	cloudOpts := []cloud.Option{cloud.WithMaxMessageSize(cfg.MaxMessageSize)}
+	if cfg.Credential.Enabled {
+		d.credentialManager = credential.New(func() {
+			d.onDeviceUpdated(d)
+		})
+		d.AddResource(credentialResource.New(credentialSchema.ResourceURI, d.credentialManager))
+		o.caPool = credential.MakeCAPool(o.caPool, d.credentialManager.GetCAPool)
+		cloudOpts = append(cloudOpts, cloud.WithRemoveCloudCAs(d.credentialManager.RemoveCredentialsBySubjects))
+	}
 	if cfg.Cloud.Enabled {
-		opts := []cloud.Option{cloud.WithMaxMessageSize(cfg.MaxMessageSize)}
 		if o.getCertificates != nil {
-			opts = append(opts, cloud.WithGetCertificates(o.getCertificates))
+			cloudOpts = append(cloudOpts, cloud.WithGetCertificates(o.getCertificates))
 		}
 		cm, err := cloud.New(d.cfg.ID, func() {
 			d.onDeviceUpdated(d)
-		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, opts...)
+		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, cloudOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create cloud manager: %w", err)
 		}
@@ -162,7 +187,9 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 	d.AddResource(discoverResource)
 
 	d.AddResource(maintenance.New(maintenanceSchema.ResourceURI, func() {
-		d.UnregisterFromCloud()
+		if d.cloudManager != nil {
+			d.cloudManager.Unregister()
+		}
 	}))
 
 	return d, nil
@@ -178,10 +205,8 @@ func (d *Device) Init() {
 	}
 }
 
-func (d *Device) UnregisterFromCloud() {
-	if d.cloudManager != nil {
-		d.cloudManager.Unregister()
-	}
+func (d *Device) GetCloudManager() *cloud.Manager {
+	return d.cloudManager
 }
 
 func (d *Device) Range(f func(resourceHref string, resource Resource) bool) {
@@ -267,6 +292,9 @@ func (d *Device) HandleRequest(req *net.Request) (*pool.Message, error) {
 func (d *Device) Close() {
 	if d.cloudManager != nil {
 		d.cloudManager.Close()
+	}
+	if d.credentialManager != nil {
+		d.credentialManager.Close()
 	}
 	for _, resource := range d.resources.LoadAndDeleteAll() {
 		resource.Close()

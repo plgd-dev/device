@@ -16,47 +16,39 @@
  *
  ****************************************************************************/
 
-package device
+package credential_test
 
 import (
-	"fmt"
+	"crypto/x509"
+	"testing"
 
-	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/device/credential"
+	"github.com/stretchr/testify/require"
 )
 
-type CloudConfig struct {
-	Enabled bool
-	cloud.Config
-}
-
-type CredentialConfig struct {
-	Enabled bool
-	credential.Config
-}
-
-type Config struct {
-	ID                    uuid.UUID
-	Name                  string
-	ProtocolIndependentID uuid.UUID
-	ResourceTypes         []string
-	MaxMessageSize        uint32
-	Cloud                 CloudConfig
-	Credential            CredentialConfig
-}
-
-func (cfg *Config) Validate() error {
-	if cfg.ProtocolIndependentID == uuid.Nil {
-		return fmt.Errorf("protocolIndependentID is required")
-	}
-	if cfg.ID == uuid.Nil {
-		cfg.ID = uuid.New()
+func TestGetPool(t *testing.T) {
+	getCAPool := func() []*x509.Certificate {
+		return []*x509.Certificate{{}}
 	}
 
-	if cfg.Name == "" {
-		cfg.Name = "Unnamed"
-	}
+	credPool1 := credential.MakeCAPool(nil, getCAPool)
+	require.True(t, credPool1.IsValid())
+	_, err := credPool1.GetPool()
+	require.NoError(t, err)
 
-	return nil
+	cloudCAPool1 := cloud.MakeCAPool(getCAPool, true)
+	require.True(t, cloudCAPool1.IsValid())
+	credPool2 := credential.MakeCAPool(cloudCAPool1, nil)
+	require.True(t, credPool2.IsValid())
+	_, err = credPool2.GetPool()
+	require.NoError(t, err)
+
+	credPool3 := credential.MakeCAPool(cloudCAPool1, getCAPool)
+	require.True(t, credPool3.IsValid())
+	_, err = credPool3.GetPool()
+	require.NoError(t, err)
+
+	credPool4 := credential.MakeCAPool(nil, nil)
+	require.False(t, credPool4.IsValid())
 }

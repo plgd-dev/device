@@ -147,10 +147,17 @@ func addResource(d service.Device, idx int, obsWatcher *coapSync.Map[uint64, fun
 	d.AddResource(res)
 }
 
-func getCloudTLS(cfg CloudConfig) (cloud.CAPool, *tls.Certificate, error) {
-	ca, err := pkgX509.ReadPemCertificates(cfg.TLS.CAPoolPath)
-	if err != nil {
-		return cloud.CAPool{}, nil, fmt.Errorf("cannot load ca: %w", err)
+func getCloudTLS(cfg CloudConfig, credentialEnabled bool) (cloud.CAPool, *tls.Certificate, error) {
+	var ca []*x509.Certificate
+	var err error
+	if cfg.TLS.CAPoolPath == "" && !credentialEnabled {
+		return cloud.CAPool{}, nil, fmt.Errorf("cannot load ca: caPoolPath is empty")
+	}
+	if cfg.TLS.CAPoolPath != "" {
+		ca, err = pkgX509.ReadPemCertificates(cfg.TLS.CAPoolPath)
+		if err != nil {
+			return cloud.CAPool{}, nil, fmt.Errorf("cannot load ca('%v'): %w", cfg.TLS.CAPoolPath, err)
+		}
 	}
 	caPool := cloud.MakeCAPool(func() []*x509.Certificate {
 		return ca
@@ -162,7 +169,7 @@ func getCloudTLS(cfg CloudConfig) (cloud.CAPool, *tls.Certificate, error) {
 
 	cert, err := tls.LoadX509KeyPair(cfg.TLS.CertPath, cfg.TLS.KeyPath)
 	if err != nil {
-		return cloud.CAPool{}, nil, fmt.Errorf("cannot load cert: %w", err)
+		return cloud.CAPool{}, nil, fmt.Errorf("cannot load cert(%v, %v): %w", cfg.TLS.CertPath, cfg.TLS.KeyPath, err)
 	}
 	return caPool, &cert, nil
 }
@@ -203,7 +210,7 @@ func main() {
 		}),
 	}
 	if cfg.Cloud.Enabled {
-		caPool, cert, errC := getCloudTLS(cfg.Cloud)
+		caPool, cert, errC := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
 		if errC != nil {
 			panic(errC)
 		}
@@ -225,6 +232,9 @@ func main() {
 				MaxMessageSize:        cfg.Config.API.CoAP.MaxMessageSize,
 				Cloud: device.CloudConfig{
 					Enabled: cfg.Cloud.Enabled,
+				},
+				Credential: device.CredentialConfig{
+					Enabled: cfg.Credential.Enabled,
 				},
 			}, opts...)
 			if errD != nil {
