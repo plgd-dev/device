@@ -62,7 +62,7 @@ func RunBridgeService(s *service.Service) func() error {
 }
 
 func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Config, opts ...device.Option) service.Device {
-	newDevice := func(di uuid.UUID, piid uuid.UUID) service.Device {
+	newDevice := func(di uuid.UUID, piid uuid.UUID) (service.Device, error) {
 		cfg.ID = di
 		cfg.ProtocolIndependentID = piid
 		require.NoError(t, cfg.Validate())
@@ -74,12 +74,10 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 		})}
 		// allow to override default options
 		deviceOpts = append(deviceOpts, opts...)
-		dev, err := device.New(cfg, deviceOpts...)
-		require.NoError(t, err)
-		return dev
+		return device.New(cfg, deviceOpts...)
 	}
-	d, ok := s.CreateDevice(cfg.ID, newDevice)
-	require.True(t, ok)
+	d, err := s.CreateDevice(cfg.ID, newDevice)
+	require.NoError(t, err)
 	d.Init()
 	return d
 }

@@ -97,8 +97,8 @@ func main() {
 	}
 
 	for i := 0; i < numGeneratedBridgedDevices; i++ {
-		newDevice := func(id uuid.UUID, piid uuid.UUID) service.Device {
-			d, errD := device.New(device.Config{
+		newDevice := func(id uuid.UUID, piid uuid.UUID) (service.Device, error) {
+			return device.New(device.Config{
 				Name:                  fmt.Sprintf("bridged-device-%d", i),
 				ResourceTypes:         []string{"oic.d.virtual"},
 				ID:                    id,
@@ -111,13 +111,9 @@ func main() {
 					},
 				},
 			}, opts...)
-			if errD != nil {
-				panic(errD)
-			}
-			return d
 		}
-		d, ok := s.CreateDevice(uuid.New(), newDevice)
-		if ok {
+		d, errC := s.CreateDevice(uuid.New(), newDevice)
+		if errC == nil {
 			d.Init()
 		}
 	}

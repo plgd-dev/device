@@ -182,29 +182,54 @@ func (c *Service) Shutdown() error {
 	return nil
 }
 
-type NewDeviceFunc func(id uuid.UUID, piid uuid.UUID) Device
+type NewDeviceFunc func(id uuid.UUID, piid uuid.UUID) (Device, error)
 
-func (c *Service) CreateDevice(id uuid.UUID, newDevice NewDeviceFunc) (Device, bool) {
+func (c *Service) CreateDevice(id uuid.UUID, newDevice NewDeviceFunc) (Device, error) {
 	var d Device
+	var err error
 	_, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue Device, oldLoaded bool) (newValue Device, doDelete bool) {
 		if oldLoaded {
 			return oldValue, false
 		}
-		d = newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
+		d, err = newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
+		if err != nil {
+			if oldLoaded {
+				return oldValue, false
+			}
+			return nil, true
+		}
 		return d, false
 	})
-	if oldLoaded {
-		return d, false
+	if err != nil {
+		return nil, err
 	}
-	return d, true
+	if oldLoaded {
+		return nil, fmt.Errorf("device with id %v already exists", id)
+	}
+	return d, nil
 }
 
-func (c *Service) GetOrCreateDevice(id uuid.UUID, newDevice NewDeviceFunc) (d Device, loaded bool) {
-	return c.devices.LoadOrStoreWithFunc(id, func(value Device) Device {
-		return value
-	}, func() Device {
-		return newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
+func (c *Service) GetOrCreateDevice(id uuid.UUID, newDevice NewDeviceFunc) (d Device, loaded bool, err error) {
+	oldDevice, oldLoaded := c.devices.ReplaceWithFunc(id, func(oldValue Device, oldLoaded bool) (newValue Device, doDelete bool) {
+		if oldLoaded {
+			return oldValue, false
+		}
+		d, err = newDevice(id, resources.ToUUID(c.cfg.API.CoAP.ID))
+		if err != nil {
+			if oldLoaded {
+				return oldValue, false
+			}
+			return nil, true
+		}
+		return d, false
 	})
+	if err != nil {
+		return nil, false, err
+	}
+	if oldLoaded {
+		return oldDevice, true, nil
+	}
+	return d, false, nil
 }
 
 func (c *Service) GetDevice(id uuid.UUID) (Device, bool) {
