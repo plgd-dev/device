@@ -92,7 +92,7 @@ type Manager struct {
 	trigger            chan bool
 }
 
-func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, opts ...Option) (*Manager, error) {
+func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, opts ...Option) (*Manager, error) {
 	if !caPool.IsValid() {
 		return nil, fmt.Errorf("invalid ca pool")
 	}
@@ -122,6 +122,7 @@ func New(deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks G
 		removeCloudCAs:  o.removeCloudCAs,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
+	c.importConfig(cfg)
 	return c, nil
 }
 
@@ -144,7 +145,7 @@ func (c *Manager) ExportConfig() Config {
 	}
 }
 
-func (c *Manager) ImportConfig(cfg Config) {
+func (c *Manager) importConfig(cfg Config) {
 	c.setCloudConfiguration(cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: cfg.AuthorizationProvider,
 		URL:                   cfg.CloudURL,

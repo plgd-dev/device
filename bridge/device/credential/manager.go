@@ -37,16 +37,22 @@ type Manager struct {
 	save        func()
 }
 
-func New(save func()) *Manager {
+func New(cfg Config, save func()) *Manager {
 	if save == nil {
 		save = func() {
 			// do nothing
 		}
 	}
-	return &Manager{
+	m := Manager{
 		save:        save,
 		credentials: sync.NewMap[int, credential.Credential](),
 	}
+	m.importConfig(cfg)
+	return &m
+}
+
+func (m *Manager) importConfig(cfg Config) {
+	m.AddOrReplaceCredentials(cfg.Credentials...)
 }
 
 func (m *Manager) GetCAPool() []*x509.Certificate {

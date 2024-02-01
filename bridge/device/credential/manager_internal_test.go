@@ -33,7 +33,7 @@ import (
 )
 
 func TestGetCAPool(t *testing.T) {
-	m := New(func() {})
+	m := New(Config{}, func() {})
 
 	// Add some credentials to the manager
 	cred1 := credential.Credential{
@@ -69,7 +69,7 @@ func TestGetCAPool(t *testing.T) {
 }
 
 func TestAddOrReplaceCredential(t *testing.T) {
-	m := New(func() {})
+	m := New(Config{}, func() {})
 
 	// Test adding a new credential
 	cred1 := credential.Credential{
@@ -103,7 +103,7 @@ func TestAddOrReplaceCredential(t *testing.T) {
 }
 
 func TestAddOrReplaceCredentials(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	// Create some test credentials
 	cred1 := credential.Credential{
@@ -127,7 +127,7 @@ func TestAddOrReplaceCredentials(t *testing.T) {
 }
 
 func TestRemoveCredentials(t *testing.T) {
-	m := New(func() {})
+	m := New(Config{}, func() {})
 
 	// Add some credentials to the Manager
 	m.credentials.Store(1, credential.Credential{
@@ -159,7 +159,7 @@ func TestRemoveCredentials(t *testing.T) {
 
 func TestRemoveCredentialsBySubjects(t *testing.T) {
 	// Create a new instance of the Manager
-	m := New(func() {})
+	m := New(Config{}, func() {})
 
 	// Add some credentials to the Manager
 	cred1 := credential.Credential{Subject: "subject1", Type: credential.CredentialType_PIN_OR_PASSWORD}
@@ -182,7 +182,7 @@ func TestRemoveCredentialsBySubjects(t *testing.T) {
 }
 
 func TestClearCredentials(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	// Add some credentials to the Manager
 	cred1 := credential.Credential{Subject: "subject1", Type: credential.CredentialType_PIN_OR_PASSWORD}
@@ -199,7 +199,7 @@ func TestClearCredentials(t *testing.T) {
 }
 
 func TestGetCredential(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	// Add some credentials to the Manager
 	cred1 := credential.Credential{Subject: "subject1", Type: credential.CredentialType_PIN_OR_PASSWORD, PrivateData: &credential.CredentialPrivateData{DataInternal: []byte("private data")}}
@@ -239,7 +239,7 @@ func TestGetCredential(t *testing.T) {
 }
 
 func TestPostCredential(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	msg := pool.NewMessage(context.Background())
 	msg.SetCode(codes.POST)
@@ -284,7 +284,7 @@ func TestPostCredential(t *testing.T) {
 }
 
 func TestExportConfig(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	// Add some credentials to the Manager
 	cred1 := credential.Credential{Subject: "subject1", Type: credential.CredentialType_PIN_OR_PASSWORD, PrivateData: &credential.CredentialPrivateData{DataInternal: []byte("private data")}}
@@ -301,7 +301,7 @@ func TestExportConfig(t *testing.T) {
 }
 
 func TestClose(t *testing.T) {
-	m := New(func() {}) // Create an instance of the Manager struct
+	m := New(Config{}, func() {}) // Create an instance of the Manager struct
 
 	// Add some credentials to the Manager
 	cred1 := credential.Credential{Subject: "subject1", Type: credential.CredentialType_PIN_OR_PASSWORD, PrivateData: &credential.CredentialPrivateData{DataInternal: []byte("private data")}}

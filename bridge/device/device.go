@@ -158,7 +158,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 
 	cloudOpts := []cloud.Option{cloud.WithMaxMessageSize(cfg.MaxMessageSize)}
 	if cfg.Credential.Enabled {
-		d.credentialManager = credential.New(func() {
+		d.credentialManager = credential.New(cfg.Credential.Config, func() {
 			d.onDeviceUpdated(d)
 		})
 		d.AddResource(credentialResource.New(credentialSchema.ResourceURI, d.credentialManager))
@@ -169,7 +169,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		if o.getCertificates != nil {
 			cloudOpts = append(cloudOpts, cloud.WithGetCertificates(o.getCertificates))
 		}
-		cm, err := cloud.New(d.cfg.ID, func() {
+		cm, err := cloud.New(cfg.Cloud.Config, d.cfg.ID, func() {
 			d.onDeviceUpdated(d)
 		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, cloudOpts...)
 		if err != nil {
@@ -177,7 +177,6 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		}
 		d.cloudManager = cm
 		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
-		d.cloudManager.ImportConfig(cfg.Cloud.Config)
 	}
 
 	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d, o.getAdditionalProperties))
