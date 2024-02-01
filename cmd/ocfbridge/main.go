@@ -238,8 +238,8 @@ func main() {
 				},
 			}, opts...)
 		}
-		d, err := s.CreateDevice(uuid.New(), newDevice)
-		if err == nil {
+		d, errC := s.CreateDevice(uuid.New(), newDevice)
+		if errC == nil {
 			addResources(d, cfg.NumResourcesPerDevice)
 			d.Init()
 		}
