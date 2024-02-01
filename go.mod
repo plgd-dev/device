@@ -10,7 +10,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.5.0
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v2 v2.2.8-0.20240201071732-2597464081c8
+	github.com/pion/dtls/v2 v2.2.9
 	github.com/pion/logging v0.2.2
 	github.com/plgd-dev/go-coap/v3 v3.3.2-0.20240201091741-b2ed13f74e12
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
