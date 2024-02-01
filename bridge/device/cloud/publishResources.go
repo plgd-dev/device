@@ -21,7 +21,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -59,6 +58,6 @@ func (c *Manager) publishResources(ctx context.Context) error {
 		return errCannotPublishResources(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
 	c.resourcesPublished = true
-	log.Printf("resources published\n")
+	c.logger.Infof("resources published\n")
 	return nil
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/schema"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -120,20 +121,6 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 	return d.HandleRequest(req)
 }
 
-type OptionsCfg struct {
-	OnDiscoveryDevices func(req *net.Request)
-}
-
-func WithOnDiscoveryDevices(f func(req *net.Request)) Option {
-	return func(o *OptionsCfg) {
-		if f != nil {
-			o.OnDiscoveryDevices = f
-		}
-	}
-}
-
-type Option func(*OptionsCfg)
-
 func New(cfg Config, opts ...Option) (*Service, error) {
 	err := cfg.Validate()
 	if err != nil {
@@ -141,9 +128,10 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 	}
 
 	o := OptionsCfg{
-		OnDiscoveryDevices: func(req *net.Request) {
+		onDiscoveryDevices: func(req *net.Request) {
 			// nothing to do
 		},
+		logger: core.NewNilLogger(),
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -152,10 +140,10 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 	c := Service{
 		cfg:                cfg,
 		devices:            coapSync.NewMap[uuid.UUID, Device](),
-		onDiscoveryDevices: o.OnDiscoveryDevices,
+		onDiscoveryDevices: o.onDiscoveryDevices,
 		done:               make(chan struct{}),
 	}
-	n, err := net.New(cfg.API.CoAP.Config, c.DefaultRequestHandler)
+	n, err := net.New(cfg.API.CoAP.Config, c.DefaultRequestHandler, o.logger)
 	if err != nil {
 		return nil, err
 	}

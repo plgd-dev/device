@@ -16,6 +16,8 @@
 
 package core
 
+import "log"
+
 type Logger interface {
 	Debug(string)
 	Info(string)
@@ -65,4 +67,78 @@ func (*NilLogger) Warnf(string, ...interface{}) {
 
 func (*NilLogger) Errorf(string, ...interface{}) {
 	// no-op
+}
+
+type LogLevel int
+
+const (
+	LogLevelNone LogLevel = iota
+	LogLevelDebug
+	LogLevelInfo
+	LogLevelWarn
+	LogLevelError
+)
+
+type StdLogger struct {
+	*log.Logger
+	level LogLevel
+}
+
+func NewStdLogger(logLevel LogLevel) *StdLogger {
+	return &StdLogger{
+		Logger: log.Default(),
+		level:  logLevel,
+	}
+}
+
+func (l *StdLogger) checkLevel(level LogLevel) bool {
+	return l.level != LogLevelNone && l.level <= level
+}
+
+func (l *StdLogger) Debug(msg string) {
+	if l.checkLevel(LogLevelDebug) {
+		l.Print(msg)
+	}
+}
+
+func (l *StdLogger) Info(msg string) {
+	if l.checkLevel(LogLevelInfo) {
+		l.Print(msg)
+	}
+}
+
+func (l *StdLogger) Warn(msg string) {
+	if l.checkLevel(LogLevelWarn) {
+		l.Print(msg)
+	}
+}
+
+func (l *StdLogger) Error(msg string) {
+	if l.checkLevel(LogLevelError) {
+		l.Print(msg)
+	}
+}
+
+func (l *StdLogger) Debugf(format string, args ...interface{}) {
+	if l.checkLevel(LogLevelDebug) {
+		l.Printf(format, args...)
+	}
+}
+
+func (l *StdLogger) Infof(format string, args ...interface{}) {
+	if l.checkLevel(LogLevelInfo) {
+		l.Printf(format, args...)
+	}
+}
+
+func (l *StdLogger) Warnf(format string, args ...interface{}) {
+	if l.checkLevel(LogLevelWarn) {
+		l.Printf(format, args...)
+	}
+}
+
+func (l *StdLogger) Errorf(format string, args ...interface{}) {
+	if l.checkLevel(LogLevelError) {
+		l.Printf(format, args...)
+	}
 }

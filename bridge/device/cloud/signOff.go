@@ -21,7 +21,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -71,6 +70,6 @@ func (c *Manager) signOff(ctx context.Context) error {
 	if resp.Code() != codes.Deleted {
 		return errCannotSignOff(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
-	log.Printf("signed off\n")
+	c.logger.Infof("signed off\n")
 	return nil
 }

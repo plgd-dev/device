@@ -20,6 +20,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/service"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
@@ -197,7 +198,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s, err := service.New(cfg.Config)
+	s, err := service.New(cfg.Config, service.WithLogger(core.NewStdLogger(core.LogLevelInfo)))
 	if err != nil {
 		panic(err)
 	}

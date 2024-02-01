@@ -21,7 +21,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -64,7 +63,7 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 		return errCannotRefreshToken(err)
 	}
 	c.updateCredsByRefreshTokenResponse(refreshResp)
-	log.Printf("refreshed token\n")
+	c.logger.Infof("refreshed token\n")
 	c.save()
 	return nil
 }

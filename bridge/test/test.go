@@ -27,6 +27,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/service"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
 )
@@ -46,7 +47,7 @@ func MakeConfig(t *testing.T) service.Config {
 }
 
 func NewBridgeService(t *testing.T) *service.Service {
-	s, err := service.New(MakeConfig(t))
+	s, err := service.New(MakeConfig(t), service.WithLogger(core.NewStdLogger(core.LogLevelDebug)))
 	require.NoError(t, err)
 	return s
 }

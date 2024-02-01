@@ -23,7 +23,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log"
 	"sync"
 	"time"
 
@@ -31,6 +30,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
+	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -84,6 +84,7 @@ type Manager struct {
 		previousCloudIDs []string
 	}
 
+	logger             core.Logger
 	creds              ocfCloud.CoapSignUpResponse
 	client             *client.Conn
 	signedIn           bool
@@ -104,6 +105,7 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		removeCloudCAs: func(...string) {
 			// do nothing
 		},
+		logger: core.NewNilLogger(),
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -120,6 +122,7 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		caPool:          caPool,
 		getCertificates: o.getCertificates,
 		removeCloudCAs:  o.removeCloudCAs,
+		logger:          o.logger,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
 	c.importConfig(cfg)
@@ -171,14 +174,14 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 		resetCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 		if err := c.signOff(resetCtx); err != nil {
-			log.Printf("%v\n", err)
+			c.logger.Debugf("%v\n", err)
 		}
 	}
 	c.creds = ocfCloud.CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
 	if err := c.close(); err != nil {
-		log.Printf("cannot close connection: %v\n", err)
+		c.logger.Warnf("cannot close connection: %v\n", err)
 	}
 	c.save()
 	c.removePreviousCloudIDs()
@@ -375,7 +378,7 @@ func (c *Manager) dial(ctx context.Context) error {
 		return fmt.Errorf("cannot get address from %v: %w", ep, err)
 	}
 	m := mux.NewRouter()
-	m.Use(net.LoggingMiddleware)
+	m.Use(net.CreateLoggingMiddleware(c.logger))
 	m.DefaultHandle(mux.HandlerFunc(c.serveCOAP))
 	conn, err := tcp.Dial(addr.String(),
 		options.WithTLS(tlsConfig),
@@ -384,12 +387,12 @@ func (c *Manager) dial(ctx context.Context) error {
 		options.WithMaxMessageSize(c.maxMessageSize),
 		options.WithBlockwise(false, blockwise.SZX1024, time.Second*4),
 		options.WithErrors(func(err error) {
-			log.Printf("error: %v\n", err)
+			c.logger.Errorf("error: %v\n", err)
 		}),
-		options.WithKeepAlive(2, time.Second*10, func(c *client.Conn) {
-			log.Printf("keepalive timeout\n")
-			if errC := c.Close(); errC != nil {
-				log.Printf("cannot close connection: %v\n", errC)
+		options.WithKeepAlive(2, time.Second*10, func(conn *client.Conn) {
+			c.logger.Infof("keepalive timeout\n")
+			if errC := conn.Close(); errC != nil {
+				c.logger.Warnf("cannot close connection: %v\n", errC)
 			}
 		}))
 	if err != nil {
@@ -427,7 +430,7 @@ func (c *Manager) run() {
 		}
 		if c.getCloudConfiguration().URL != "" {
 			if err := c.connect(ctx); err != nil {
-				log.Printf("cannot connect to cloud: %v\n", err)
+				c.logger.Errorf("cannot connect to cloud: %v\n", err)
 			} else {
 				c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERED)
 			}
