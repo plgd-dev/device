@@ -58,6 +58,6 @@ func (c *Manager) publishResources(ctx context.Context) error {
 		return errCannotPublishResources(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
 	c.resourcesPublished = true
-	c.logger.Infof("resources published\n")
+	c.logger.Infof("resources published")
 	return nil
 }

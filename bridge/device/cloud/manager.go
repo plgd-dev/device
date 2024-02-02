@@ -174,14 +174,14 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 		resetCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 		if err := c.signOff(resetCtx); err != nil {
-			c.logger.Debugf("%v\n", err)
+			c.logger.Debugf("%v", err)
 		}
 	}
 	c.creds = ocfCloud.CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
 	if err := c.close(); err != nil {
-		c.logger.Warnf("cannot close connection: %v\n", err)
+		c.logger.Warnf("cannot close connection: %v", err)
 	}
 	c.save()
 	c.removePreviousCloudIDs()
@@ -387,12 +387,12 @@ func (c *Manager) dial(ctx context.Context) error {
 		options.WithMaxMessageSize(c.maxMessageSize),
 		options.WithBlockwise(false, blockwise.SZX1024, time.Second*4),
 		options.WithErrors(func(err error) {
-			c.logger.Errorf("error: %v\n", err)
+			c.logger.Errorf("cloud connection error: %w", err)
 		}),
 		options.WithKeepAlive(2, time.Second*10, func(conn *client.Conn) {
-			c.logger.Infof("keepalive timeout\n")
+			c.logger.Infof("cloud connection: keepalive timeout")
 			if errC := conn.Close(); errC != nil {
-				c.logger.Warnf("cannot close connection: %v\n", errC)
+				c.logger.Warnf("cannot close cloud connection: %v", errC)
 			}
 		}))
 	if err != nil {
@@ -430,7 +430,7 @@ func (c *Manager) run() {
 		}
 		if c.getCloudConfiguration().URL != "" {
 			if err := c.connect(ctx); err != nil {
-				c.logger.Errorf("cannot connect to cloud: %v\n", err)
+				c.logger.Errorf("cannot connect to cloud: %w", err)
 			} else {
 				c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERED)
 			}

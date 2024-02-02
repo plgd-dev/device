@@ -16,7 +16,10 @@
 
 package core
 
-import "log"
+import (
+	"fmt"
+	"log"
+)
 
 type Logger interface {
 	Debug(string)
@@ -97,48 +100,52 @@ func (l *StdLogger) checkLevel(level LogLevel) bool {
 
 func (l *StdLogger) Debug(msg string) {
 	if l.checkLevel(LogLevelDebug) {
-		l.Print(msg)
+		l.Println(msg)
 	}
 }
 
 func (l *StdLogger) Info(msg string) {
 	if l.checkLevel(LogLevelInfo) {
-		l.Print(msg)
+		l.Println(msg)
 	}
 }
 
 func (l *StdLogger) Warn(msg string) {
 	if l.checkLevel(LogLevelWarn) {
-		l.Print(msg)
+		l.Println(msg)
 	}
 }
 
 func (l *StdLogger) Error(msg string) {
 	if l.checkLevel(LogLevelError) {
-		l.Print(msg)
+		l.Println(msg)
 	}
 }
 
+// Debugf uses fmt.Sprintf to construct and log.Printf to log a message.
 func (l *StdLogger) Debugf(format string, args ...interface{}) {
 	if l.checkLevel(LogLevelDebug) {
-		l.Printf(format, args...)
+		l.Printf("%s\n", fmt.Sprintf(format, args...))
 	}
 }
 
+// Infof uses fmt.Sprintf to construct and log.Printf to log a message.
 func (l *StdLogger) Infof(format string, args ...interface{}) {
 	if l.checkLevel(LogLevelInfo) {
-		l.Printf(format, args...)
+		l.Printf("%s\n", fmt.Sprintf(format, args...))
 	}
 }
 
+// Warnf uses fmt.Sprintf to construct and log.Printf to log a message.
 func (l *StdLogger) Warnf(format string, args ...interface{}) {
 	if l.checkLevel(LogLevelWarn) {
-		l.Printf(format, args...)
+		l.Printf("%s\n", fmt.Sprintf(format, args...))
 	}
 }
 
+// Errorf uses fmt.Errorf to construct and log.Printf to log a message.
 func (l *StdLogger) Errorf(format string, args ...interface{}) {
 	if l.checkLevel(LogLevelError) {
-		l.Printf(format, args...)
+		l.Printf("%s\n", fmt.Errorf(format, args...))
 	}
 }

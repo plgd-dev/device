@@ -84,7 +84,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 		c.creds.ValidUntil = validUntil(signUpResp.ExpiresIn)
 	}
 	c.setCreds(signUpResp)
-	c.logger.Infof("signed up\n")
+	c.logger.Infof("signed up")
 	c.save()
 	return nil
 }

@@ -82,7 +82,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 		return err
 	}
 	c.updateCredsBySignInResponse(signInResp)
-	c.logger.Infof("signed in\n")
+	c.logger.Infof("signed in")
 	c.save()
 	return nil
 }

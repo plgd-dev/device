@@ -157,7 +157,7 @@ func logReqResp(logger core.Logger, c mux.Conn, r *mux.Message, resp *pool.Messa
 	if resp != nil {
 		respStr = resp.String()
 	}
-	logger.Debugf("%v, req=%v resp=%v, content=%v\n", c.RemoteAddr(), r.String(), respStr, content)
+	logger.Debugf("%v, req=%v resp=%v, content=%v", c.RemoteAddr(), r.String(), respStr, content)
 }
 
 func CreateResponseError(ctx context.Context, err error, token message.Token) *pool.Message {
@@ -213,7 +213,7 @@ func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
 			resp.SetToken(request.Token())
 			logReqResp(n.logger, w.Conn(), request, resp)
 			if err = w.Conn().WriteMessage(resp); err != nil {
-				n.logger.Errorf("cannot write response: %v", err)
+				n.logger.Errorf("cannot write response: %w", err)
 			}
 		}
 	}(w, request)
@@ -288,7 +288,7 @@ func newServers(cfg *Config, m *mux.Router, logger core.Logger) (coAPServers, bo
 			servers = append(servers, coAPServer{
 				s: udp.NewServer(
 					options.WithMux(m),
-					options.WithErrors(func(err error) { logger.Errorf("server: %v", err) }),
+					options.WithErrors(func(err error) { logger.Errorf("server: %w", err) }),
 					options.WithMaxMessageSize(cfg.MaxMessageSize),
 				),
 				l: conn,
@@ -314,7 +314,7 @@ func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config
 		servers = append(servers, coAPServer{
 			s: udp.NewServer(options.WithMux(m),
 				options.WithMaxMessageSize(cfg.MaxMessageSize),
-				options.WithErrors(func(err error) { logger.Errorf("mcast server: %v", err) }),
+				options.WithErrors(func(err error) { logger.Errorf("mcast server: %w", err) }),
 			),
 			l: conn,
 		})

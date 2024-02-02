@@ -63,7 +63,7 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 		return errCannotRefreshToken(err)
 	}
 	c.updateCredsByRefreshTokenResponse(refreshResp)
-	c.logger.Infof("refreshed token\n")
+	c.logger.Infof("refreshed token")
 	c.save()
 	return nil
 }
