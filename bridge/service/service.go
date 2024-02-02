@@ -27,7 +27,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
-	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -131,7 +131,7 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 		onDiscoveryDevices: func(req *net.Request) {
 			// nothing to do
 		},
-		logger: core.NewNilLogger(),
+		logger: log.NewNilLogger(),
 	}
 	for _, opt := range opts {
 		opt(&o)

@@ -13,7 +13,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/service"
-	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
@@ -80,7 +80,7 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		panic(err)
 	}
-	s, err := service.New(cfg, service.WithLogger(core.NewStdLogger(core.LogLevelDebug)))
+	s, err := service.New(cfg, service.WithLogger(log.NewStdLogger(log.LevelDebug)))
 	if err != nil {
 		panic(err)
 	}

@@ -18,13 +18,15 @@
 
 package cloud
 
-import "github.com/plgd-dev/device/v2/client/core"
+import (
+	"github.com/plgd-dev/device/v2/pkg/log"
+)
 
 type OptionsCfg struct {
 	maxMessageSize  uint32
 	getCertificates GetCertificates
 	removeCloudCAs  RemoveCloudCAs
-	logger          core.Logger
+	logger          log.Logger
 }
 
 type Option func(*OptionsCfg)
@@ -49,7 +51,7 @@ func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
 	}
 }
 
-func WithLogger(logger core.Logger) Option {
+func WithLogger(logger log.Logger) Option {
 	return func(o *OptionsCfg) {
 		o.logger = logger
 	}

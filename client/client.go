@@ -27,6 +27,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	"github.com/plgd-dev/go-coap/v3/options"
@@ -66,7 +67,7 @@ type Config struct {
 }
 
 // NewClientFromConfig constructs a new local client from the proto configuration.
-func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logger) (*Client, error) {
+func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger log.Logger) (*Client, error) {
 	var cacheExpiration time.Duration
 	if cfg.DeviceCacheExpirationSeconds > 0 {
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
@@ -81,7 +82,7 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 	udpDialOpts := make([]udp.Option, 0, 5)
 
 	if logger == nil {
-		logger = core.NewNilLogger()
+		logger = log.NewNilLogger()
 	}
 
 	errFn := func(err error) {
@@ -214,7 +215,7 @@ func WithTLS(tlsConfig *core.TLSConfig) ClientOptionFunc {
 	}
 }
 
-func WithLogger(logger core.Logger) ClientOptionFunc {
+func WithLogger(logger log.Logger) ClientOptionFunc {
 	return func(cfg ClientConfig) ClientConfig {
 		if logger != nil {
 			cfg.CoreOptions = append(cfg.CoreOptions, core.WithLogger(logger))
@@ -296,7 +297,7 @@ func NewClient(
 	}
 
 	if coreCfg.Logger == nil {
-		coreCfg.Logger = core.NewNilLogger()
+		coreCfg.Logger = log.NewNilLogger()
 	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,
@@ -354,7 +355,7 @@ type Client struct {
 	subscriptions     map[string]subscription
 
 	disableUDPEndpoints bool
-	logger              core.Logger
+	logger              log.Logger
 
 	useDeviceIDInQuery bool
 }

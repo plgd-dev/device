@@ -20,9 +20,9 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/service"
-	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -198,7 +198,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s, err := service.New(cfg.Config, service.WithLogger(core.NewStdLogger(core.LogLevelInfo)))
+	s, err := service.New(cfg.Config, service.WithLogger(log.NewStdLogger(cfg.Log.Level)))
 	if err != nil {
 		panic(err)
 	}

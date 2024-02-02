@@ -32,6 +32,7 @@ import (
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/codec/json"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -49,7 +50,7 @@ type Net struct {
 	cfg     Config
 	mux     *mux.Router
 	handler RequestHandler
-	logger  core.Logger
+	logger  log.Logger
 
 	servers coAPServers
 	serving atomic.Bool
@@ -57,7 +58,7 @@ type Net struct {
 	cache   *coapCache.Cache[int32, bool]
 }
 
-func newMCastConn(multicastAddr string, logger core.Logger) (*net.UDPConn, error) {
+func newMCastConn(multicastAddr string, logger log.Logger) (*net.UDPConn, error) {
 	networks := []string{UDP4, UDP6}
 	var a *gonet.UDPAddr
 	var err error
@@ -146,7 +147,7 @@ func getLogContent(r *pool.Message) string {
 	return content
 }
 
-func logReqResp(logger core.Logger, c mux.Conn, r *mux.Message, resp *pool.Message) {
+func logReqResp(logger log.Logger, c mux.Conn, r *mux.Message, resp *pool.Message) {
 	content := getLogContent(resp)
 	p, err := r.Path()
 	if err == nil && p == "/.well-known/core" {
@@ -177,7 +178,7 @@ func CreateResponseError(ctx context.Context, err error, token message.Token) *p
 	return msg
 }
 
-func CreateLoggingMiddleware(logger core.Logger) func(next mux.Handler) mux.Handler {
+func CreateLoggingMiddleware(logger log.Logger) func(next mux.Handler) mux.Handler {
 	return func(next mux.Handler) mux.Handler {
 		return mux.HandlerFunc(func(w mux.ResponseWriter, r *mux.Message) {
 			next.ServeCOAP(w, r)
@@ -243,7 +244,7 @@ func (s coAPServers) Close() error {
 	return errors.ErrorOrNil()
 }
 
-func GetPortFromAddress(addr gonet.Addr) (string, error) {
+func getPortFromAddress(addr gonet.Addr) (string, error) {
 	udpAddr, ok := addr.(*gonet.UDPAddr)
 	if ok {
 		return fmt.Sprintf("%d", udpAddr.Port), nil
@@ -256,7 +257,7 @@ func GetPortFromAddress(addr gonet.Addr) (string, error) {
 	return port, nil
 }
 
-func newServers(cfg *Config, m *mux.Router, logger core.Logger) (coAPServers, bool, bool, error) {
+func newServers(cfg *Config, m *mux.Router, logger log.Logger) (coAPServers, bool, bool, error) {
 	servers := make(coAPServers, 0, len(cfg.externalAddressesPort))
 	hasIPv4 := false
 	hasIPv6 := false
@@ -276,7 +277,7 @@ func newServers(cfg *Config, m *mux.Router, logger core.Logger) (coAPServers, bo
 			return nil, false, false, err
 		}
 		if addr.port == "0" {
-			port, err := GetPortFromAddress(conn.LocalAddr())
+			port, err := getPortFromAddress(conn.LocalAddr())
 			if err != nil {
 				_ = servers.Close()
 				return nil, false, false, err
@@ -301,7 +302,7 @@ func newServers(cfg *Config, m *mux.Router, logger core.Logger) (coAPServers, bo
 	return servers, hasIPv4, hasIPv6, nil
 }
 
-func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config, m *mux.Router, logger core.Logger) (coAPServers, error) {
+func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config, m *mux.Router, logger log.Logger) (coAPServers, error) {
 	for _, addr := range mcastAddresses {
 		if addr == "" {
 			continue
@@ -322,7 +323,7 @@ func appendMCastServers(servers coAPServers, mcastAddresses []string, cfg Config
 	return servers, nil
 }
 
-func New(cfg Config, handler RequestHandler, logger core.Logger) (*Net, error) {
+func New(cfg Config, handler RequestHandler, logger log.Logger) (*Net, error) {
 	err := cfg.Validate()
 	if err != nil {
 		return nil, err

@@ -30,8 +30,8 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
-	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	"github.com/plgd-dev/device/v2/schema"
@@ -84,7 +84,7 @@ type Manager struct {
 		previousCloudIDs []string
 	}
 
-	logger             core.Logger
+	logger             log.Logger
 	creds              ocfCloud.CoapSignUpResponse
 	client             *client.Conn
 	signedIn           bool
@@ -105,7 +105,7 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		removeCloudCAs: func(...string) {
 			// do nothing
 		},
-		logger: core.NewNilLogger(),
+		logger: log.NewNilLogger(),
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -174,14 +174,14 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 		resetCtx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 		if err := c.signOff(resetCtx); err != nil {
-			c.logger.Debugf("%v", err)
+			c.logger.Debugf("%w", err)
 		}
 	}
 	c.creds = ocfCloud.CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
 	if err := c.close(); err != nil {
-		c.logger.Warnf("cannot close connection: %v", err)
+		c.logger.Warnf("cannot close connection: %w", err)
 	}
 	c.save()
 	c.removePreviousCloudIDs()
@@ -392,7 +392,7 @@ func (c *Manager) dial(ctx context.Context) error {
 		options.WithKeepAlive(2, time.Second*10, func(conn *client.Conn) {
 			c.logger.Infof("cloud connection: keepalive timeout")
 			if errC := conn.Close(); errC != nil {
-				c.logger.Warnf("cannot close cloud connection: %v", errC)
+				c.logger.Warnf("cannot close cloud connection: %w", errC)
 			}
 		}))
 	if err != nil {

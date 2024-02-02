@@ -28,6 +28,7 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/pion/dtls/v2"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
@@ -41,7 +42,7 @@ type DeviceConfiguration struct {
 	DialTLS    DialTLS
 	DialUDP    DialUDP
 	DialTCP    DialTCP
-	Logger     Logger
+	Logger     log.Logger
 	TLSConfig  *TLSConfig
 	GetOwnerID func() (string, error)
 }

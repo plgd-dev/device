@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/bridge/service"
+	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
 type TLSConfig struct {
@@ -21,6 +22,10 @@ func (c *TLSConfig) Validate() error {
 		return fmt.Errorf("keyFile and certFile must be set together")
 	}
 	return nil
+}
+
+type LogConfig struct {
+	Level log.Level `yaml:"level" json:"level" description:"log level"`
 }
 
 type CloudConfig struct {
@@ -41,6 +46,7 @@ func (c *CloudConfig) Validate() error {
 
 type Config struct {
 	service.Config             `yaml:",inline"`
+	Log                        LogConfig        `yaml:"log" json:"log"`
 	Cloud                      CloudConfig      `yaml:"cloud" json:"cloud"`
 	Credential                 CredentialConfig `yaml:"credential" json:"credential"`
 	NumGeneratedBridgedDevices int              `yaml:"numGeneratedBridgedDevices"`

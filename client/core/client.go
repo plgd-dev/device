@@ -25,6 +25,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/pion/logging"
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	coapNet "github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/tcp"
@@ -34,7 +35,7 @@ import (
 // Client an OCF local client.
 type Client struct {
 	tlsConfig *TLSConfig
-	logger    Logger
+	logger    log.Logger
 	dialDTLS  DialDTLS
 	dialTLS   DialTLS
 	dialTCP   DialTCP
@@ -60,7 +61,7 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 
 type Config struct {
 	TLSConfig *TLSConfig
-	Logger    Logger
+	Logger    log.Logger
 	DialDTLS  DialDTLS
 	DialTLS   DialTLS
 	DialTCP   DialTCP
@@ -86,7 +87,7 @@ type DiscoveryConfiguration struct {
 	MulticastOptions     []coapNet.MulticastOption
 }
 
-func WithLogger(logger Logger) OptionFunc {
+func WithLogger(logger log.Logger) OptionFunc {
 	return func(cfg Config) Config {
 		if logger != nil {
 			cfg.Logger = logger
@@ -172,7 +173,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		cfg = o(cfg)
 	}
 	if cfg.Logger == nil {
-		cfg.Logger = NewNilLogger()
+		cfg.Logger = log.NewNilLogger()
 	}
 
 	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)

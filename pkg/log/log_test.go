@@ -16,30 +16,22 @@
  *
  ****************************************************************************/
 
-package service
+package log_test
 
 import (
-	"github.com/plgd-dev/device/v2/bridge/net"
+	"testing"
+
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
-type OptionsCfg struct {
-	onDiscoveryDevices func(req *net.Request)
-	logger             log.Logger
+func TestNilLogger(*testing.T) {
+	l := log.NewNilLogger()
+	l.Debug("debug")
+	l.Info("info")
+	l.Warn("warn")
+	l.Error("error")
+	l.Debugf("debugf")
+	l.Infof("infof")
+	l.Warnf("warnf")
+	l.Errorf("errorf")
 }
-
-func WithOnDiscoveryDevices(f func(req *net.Request)) Option {
-	return func(o *OptionsCfg) {
-		if f != nil {
-			o.onDiscoveryDevices = f
-		}
-	}
-}
-
-func WithLogger(logger log.Logger) Option {
-	return func(o *OptionsCfg) {
-		o.logger = logger
-	}
-}
-
-type Option func(*OptionsCfg)
