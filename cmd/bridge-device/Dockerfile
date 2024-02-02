@@ -19,4 +19,5 @@ COPY --from=security-provider /etc/passwd /etc/passwd
 COPY --from=security-provider /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /go/bin/bridge-device /usr/local/bin/bridge-device
 USER nonroot
+COPY ./cmd/bridge-device/config.yaml /config.yaml
 ENTRYPOINT [ "/usr/local/bin/bridge-device" ]

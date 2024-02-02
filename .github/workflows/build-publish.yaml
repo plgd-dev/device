@@ -29,7 +29,7 @@ jobs:
           - name: test-cloud-server
             file: test/cloud-server/Dockerfile
           - name: bridge-device
-            file: bridge/Dockerfile
+            file: cmd/bridge-device/Dockerfile
     uses: ./.github/workflows/build-publish-cfg.yaml
     with:
       name: ${{ matrix.name }}
