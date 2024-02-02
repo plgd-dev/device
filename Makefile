@@ -143,13 +143,13 @@ test-bridge:
 	# start device
 	rm -rf $(TMP_PATH)/bridge || :
 	mkdir -p $(TMP_PATH)/bridge
-	go build -C ./test/ocfbridge -cover -o ./ocfbridge
-	pkill -KILL ocfbridge || :
+	go build -C ./test/bridge-device -cover -o ./bridge-device
+	pkill -KILL bridge-device || :
 	CLOUD_SID=$(CLOUD_SID) CA_POOL=$(TMP_PATH)/data/certs/root_ca.crt \
 	CERT_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.crt \
 	KEY_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.key \
 	GOCOVERDIR=$(TMP_PATH)/bridge \
-		./test/ocfbridge/ocfbridge &
+		./test/bridge-device/bridge-device &
 
 	# run tests
 	docker run \
@@ -168,9 +168,9 @@ test-bridge:
 		$(HUB_TEST_DEVICE_IMAGE)
 
 	# stop device
-	pkill -TERM ocfbridge || :
-	while pgrep -x ocfbridge > /dev/null; do \
-		echo "waiting for ocfbridge to exit"; \
+	pkill -TERM bridge-device || :
+	while pgrep -x bridge-device > /dev/null; do \
+		echo "waiting for bridge-device to exit"; \
 		sleep 1; \
 	done
 	go tool covdata textfmt -i=$(TMP_PATH)/bridge -o $(TMP_PATH)/bridge.coverage.txt
@@ -179,7 +179,7 @@ clean:
 	docker rm -f devsim-net-host || :
 	docker rm -f hub-device-tests-environment || :
 	docker rm -f hub-device-tests || :
-	pkill -KILL ocfbridge || :
+	pkill -KILL bridge-device || :
 	sudo rm -rf .tmp/*
 
 .PHONY: build-testcontainer build certificates clean env test unit-test

@@ -12,6 +12,6 @@ vendor/
 .vscode/
 .tmp/
 debug
-cmd/ocfbridge/ocfbridge
+cmd/bridge-device/bridge-device
 cmd/ocfclient/ocfclient
-test/ocfbridge/ocfbridge
+test/bridge-device/bridge-device
