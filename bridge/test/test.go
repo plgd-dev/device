@@ -46,8 +46,9 @@ func MakeConfig(t *testing.T) service.Config {
 	return cfg
 }
 
-func NewBridgeService(t *testing.T) *service.Service {
-	s, err := service.New(MakeConfig(t), service.WithLogger(log.NewStdLogger(log.LevelDebug)))
+func NewBridgeService(t *testing.T, opts ...service.Option) *service.Service {
+	opts = append([]service.Option{service.WithLogger(log.NewStdLogger(log.LevelDebug))}, opts...)
+	s, err := service.New(MakeConfig(t), opts...)
 	require.NoError(t, err)
 	return s
 }
@@ -70,9 +71,13 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 		caPool := cloud.MakeCAPool(func() []*x509.Certificate {
 			return test.GetRootCA(t)
 		}, false)
-		deviceOpts := []device.Option{device.WithCAPool(caPool), device.WithGetCertificates(func(deviceID string) []tls.Certificate {
-			return []tls.Certificate{test.GetMfgCertificate(t)}
-		})}
+		deviceOpts := []device.Option{
+			device.WithCAPool(caPool),
+			device.WithGetCertificates(func(deviceID string) []tls.Certificate {
+				return []tls.Certificate{test.GetMfgCertificate(t)}
+			}),
+			device.WithLogger(device.NewLogger(di, log.LevelDebug)),
+		}
 		// allow to override default options
 		deviceOpts = append(deviceOpts, opts...)
 		return device.New(cfg, deviceOpts...)

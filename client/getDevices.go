@@ -24,7 +24,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/client/core"
-	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
@@ -195,7 +194,7 @@ type DeviceDetails struct {
 
 func newDiscoveryHandler(
 	typeFilter []string,
-	logger log.Logger,
+	logger core.Logger,
 	devices func(DeviceDetails),
 	getDetails GetDetailsFunc,
 	deviceCache *DeviceCache,
@@ -212,7 +211,7 @@ type detailsWasSet struct {
 
 type discoveryHandler struct {
 	typeFilter          []string
-	logger              log.Logger
+	logger              core.Logger
 	devices             func(DeviceDetails)
 	getDetails          GetDetailsFunc
 	deviceCache         *DeviceCache

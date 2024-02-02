@@ -35,7 +35,7 @@ import (
 // Client an OCF local client.
 type Client struct {
 	tlsConfig *TLSConfig
-	logger    log.Logger
+	logger    Logger
 	dialDTLS  DialDTLS
 	dialTLS   DialTLS
 	dialTCP   DialTCP
@@ -61,7 +61,7 @@ func checkTLSConfig(cfg *TLSConfig) *TLSConfig {
 
 type Config struct {
 	TLSConfig *TLSConfig
-	Logger    log.Logger
+	Logger    Logger
 	DialDTLS  DialDTLS
 	DialTLS   DialTLS
 	DialTCP   DialTCP
@@ -87,7 +87,7 @@ type DiscoveryConfiguration struct {
 	MulticastOptions     []coapNet.MulticastOption
 }
 
-func WithLogger(logger log.Logger) OptionFunc {
+func WithLogger(logger Logger) OptionFunc {
 	return func(cfg Config) Config {
 		if logger != nil {
 			cfg.Logger = logger

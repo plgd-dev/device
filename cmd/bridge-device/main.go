@@ -237,7 +237,7 @@ func main() {
 				Credential: device.CredentialConfig{
 					Enabled: cfg.Credential.Enabled,
 				},
-			}, opts...)
+			}, append(opts, device.WithLogger(device.NewLogger(id, cfg.Log.Level)))...)
 		}
 		d, errC := s.CreateDevice(uuid.New(), newDevice)
 		if errC == nil {

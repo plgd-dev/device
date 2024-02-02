@@ -21,7 +21,6 @@ package log
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 )
 
@@ -89,19 +88,15 @@ func (l *Level) unmarshalText(text []byte) bool {
 }
 
 type StdLogger struct {
-	std   *log.Logger
+	*log.Logger
 	level Level
 }
 
 func NewStdLogger(logLevel Level) *StdLogger {
 	return &StdLogger{
-		std:   log.Default(),
-		level: logLevel,
+		Logger: log.Default(),
+		level:  logLevel,
 	}
-}
-
-func (l *StdLogger) SetOutput(w io.Writer) {
-	l.std.SetOutput(w)
 }
 
 func (l *StdLogger) checkLevel(level Level) bool {
@@ -110,7 +105,7 @@ func (l *StdLogger) checkLevel(level Level) bool {
 
 func (l *StdLogger) LogWithLevel(level Level, msg string) {
 	if l.checkLevel(level) {
-		l.std.Println(msg)
+		l.Println(msg)
 	}
 }
 
@@ -133,7 +128,7 @@ func (l *StdLogger) Error(msg string) {
 // LogfWithLevel uses fmt.Errorf to construct and log.Printf to log a message.
 func (l *StdLogger) LogfWithLevel(level Level, format string, args ...interface{}) {
 	if l.checkLevel(level) {
-		l.std.Printf("%s\n", fmt.Errorf(format, args...))
+		l.Printf("%s\n", fmt.Errorf(format, args...))
 	}
 }
 

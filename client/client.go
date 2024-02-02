@@ -67,7 +67,7 @@ type Config struct {
 }
 
 // NewClientFromConfig constructs a new local client from the proto configuration.
-func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger log.Logger) (*Client, error) {
+func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logger) (*Client, error) {
 	var cacheExpiration time.Duration
 	if cfg.DeviceCacheExpirationSeconds > 0 {
 		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
@@ -215,7 +215,7 @@ func WithTLS(tlsConfig *core.TLSConfig) ClientOptionFunc {
 	}
 }
 
-func WithLogger(logger log.Logger) ClientOptionFunc {
+func WithLogger(logger core.Logger) ClientOptionFunc {
 	return func(cfg ClientConfig) ClientConfig {
 		if logger != nil {
 			cfg.CoreOptions = append(cfg.CoreOptions, core.WithLogger(logger))
@@ -355,7 +355,7 @@ type Client struct {
 	subscriptions     map[string]subscription
 
 	disableUDPEndpoints bool
-	logger              log.Logger
+	logger              core.Logger
 
 	useDeviceIDInQuery bool
 }

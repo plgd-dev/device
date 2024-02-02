@@ -21,8 +21,8 @@ package device
 import (
 	"bytes"
 	"context"
-	"crypto/x509"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
@@ -34,6 +34,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/bridge/resources/maintenance"
 	credentialResource "github.com/plgd-dev/device/v2/bridge/resources/secure/credential"
+	pkgLog "github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
 	credentialSchema "github.com/plgd-dev/device/v2/schema/credential"
@@ -64,6 +65,15 @@ type Device struct {
 	cloudManager      *cloud.Manager
 	credentialManager *credential.Manager
 	onDeviceUpdated   func(d *Device)
+}
+
+func NewLogger(id uuid.UUID, level pkgLog.Level) pkgLog.Logger {
+	l := pkgLog.NewStdLogger(level)
+	if id != uuid.Nil {
+		l.SetPrefix(fmt.Sprintf("[%v] ", id.String()))
+		l.SetFlags(l.Flags() | log.Lmsgprefix)
+	}
+	return l
 }
 
 func (d *Device) GetID() uuid.UUID {
@@ -97,46 +107,6 @@ func (d *Device) ExportConfig() Config {
 	return cfg
 }
 
-type OnDeviceUpdated func(d *Device)
-
-type CAPoolGetter interface {
-	IsValid() bool
-	GetPool() (*x509.CertPool, error)
-}
-
-type OptionsCfg struct {
-	onDeviceUpdated         OnDeviceUpdated
-	getAdditionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc
-	getCertificates         cloud.GetCertificates
-	caPool                  CAPoolGetter
-}
-
-type Option func(*OptionsCfg)
-
-func WithOnDeviceUpdated(onDeviceUpdated OnDeviceUpdated) Option {
-	return func(o *OptionsCfg) {
-		o.onDeviceUpdated = onDeviceUpdated
-	}
-}
-
-func WithGetAdditionalPropertiesForResponse(getAdditionalProperties resourcesDevice.GetAdditionalPropertiesForResponseFunc) Option {
-	return func(o *OptionsCfg) {
-		o.getAdditionalProperties = getAdditionalProperties
-	}
-}
-
-func WithGetCertificates(getCertificates cloud.GetCertificates) Option {
-	return func(o *OptionsCfg) {
-		o.getCertificates = getCertificates
-	}
-}
-
-func WithCAPool(caPool CAPoolGetter) Option {
-	return func(o *OptionsCfg) {
-		o.caPool = caPool
-	}
-}
-
 func New(cfg Config, opts ...Option) (*Device, error) {
 	o := OptionsCfg{
 		onDeviceUpdated: func(d *Device) {
@@ -144,6 +114,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		},
 		getAdditionalProperties: func() map[string]interface{} { return nil },
 		caPool:                  cloud.MakeCAPool(nil, false),
+		logger:                  NewLogger(cfg.ID, pkgLog.LevelInfo),
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -156,7 +127,10 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		onDeviceUpdated: o.onDeviceUpdated,
 	}
 
-	cloudOpts := []cloud.Option{cloud.WithMaxMessageSize(cfg.MaxMessageSize)}
+	cloudOpts := []cloud.Option{
+		cloud.WithMaxMessageSize(cfg.MaxMessageSize),
+		cloud.WithLogger(o.logger),
+	}
 	if cfg.Credential.Enabled {
 		d.credentialManager = credential.New(cfg.Credential.Config, func() {
 			d.onDeviceUpdated(d)

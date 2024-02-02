@@ -111,7 +111,7 @@ func main() {
 						CloudID: os.Getenv("CLOUD_SID"),
 					},
 				},
-			}, opts...)
+			}, append(opts, device.WithLogger(device.NewLogger(id, log.LevelDebug)))...)
 		}
 		d, errC := s.CreateDevice(uuid.New(), newDevice)
 		if errC == nil {

@@ -194,7 +194,7 @@ func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
 		v, loaded := n.cache.LoadOrStore(messageID, coapCache.NewElement(true, now.Add(n.cfg.DeduplicationLifetime), func(bool) {
 		}))
 		if loaded && !v.IsExpired(now) {
-			n.logger.Warnf("duplicate message %v according messageID: %v", request, messageID)
+			n.logger.Debugf("duplicate message %v according messageID: %v", request, messageID)
 			return
 		}
 	}

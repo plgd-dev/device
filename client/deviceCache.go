@@ -23,7 +23,6 @@ import (
 
 	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/v2/client/core"
-	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/go-coap/v3/pkg/cache"
 	"go.uber.org/atomic"
 )
@@ -31,7 +30,7 @@ import (
 type DeviceCache struct {
 	deviceExpiration time.Duration
 	devicesCache     *cache.Cache[string, *core.Device]
-	logger           log.Logger
+	logger           core.Logger
 
 	closed atomic.Bool
 	done   chan struct{}
@@ -41,7 +40,7 @@ type DeviceCache struct {
 // - deviceExpiration: default expiration time for the device in the cache, 0 means infinite. The device expiration is refreshed by getting or updating the device.
 // - pollInterval: pool interval for cleaning expired devices from the cache
 // - logger: logger for logging
-func NewDeviceCache(deviceExpiration, pollInterval time.Duration, logger log.Logger) *DeviceCache {
+func NewDeviceCache(deviceExpiration, pollInterval time.Duration, logger core.Logger) *DeviceCache {
 	done := make(chan struct{})
 	cache := cache.NewCache[string, *core.Device]()
 	if deviceExpiration > 0 {
