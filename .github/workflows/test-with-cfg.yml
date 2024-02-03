@@ -11,6 +11,10 @@ on:
       name:
         type: string
         required: true
+      bridgetest-enabled:
+        type: boolean
+        required: false
+        default: false
       coverage:
         type: boolean
         required: false
@@ -22,10 +26,10 @@ on:
         type: string
         required: false
         default: ""
-      unittest-args:
-        type: string
+      unittest-enabled:
+        type: boolean
         required: false
-        default: ""
+        default: false
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -51,11 +55,16 @@ jobs:
         if: ${{ failure() }}
         run: docker logs -t devsim-net-host && cat .tmp/devsim-net-host/0.log
 
-      # Run after integration tests, because they first clean-up the output directory
-      - name: Run unit tests
-        if: ${{ inputs.coverage }}
+      # Run after integration tests, because they always clean-up the output directory
+      - name: Run bridge tests
+        if: ${{ inputs.bridgetest-enabled }}
         run: |
-          make unit-test ${{ inputs.unittest-args }}
+          make test-bridge
+
+      - name: Run unit tests
+        if: ${{ inputs.unittest-enabled }}
+        run: |
+          make unit-test
 
       - name: Get output file name
         if: ${{ inputs.coverage }}

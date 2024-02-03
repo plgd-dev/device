@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/ael"
@@ -50,7 +51,6 @@ import (
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/schema/sp"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
-	"github.com/plgd-dev/kit/v2/security"
 )
 
 var (
@@ -224,11 +224,11 @@ func GenerateIdentityCert(deviceID string) tls.Certificate {
 	if err != nil {
 		log.Fatal(err)
 	}
-	signerCA, err := security.ParseX509FromPEM(RootCACrt)
+	signerCA, err := pkgX509.ParsePemCertificates(RootCACrt)
 	if err != nil {
 		log.Fatal(err)
 	}
-	signerCAKey, err := security.LoadX509PrivateKey(os.Getenv("ROOT_CA_KEY"))
+	signerCAKey, err := pkgX509.ReadPemEcdsaPrivateKey(os.Getenv("ROOT_CA_KEY"))
 	if err != nil {
 		log.Fatal(err)
 	}

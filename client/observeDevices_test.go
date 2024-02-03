@@ -25,6 +25,7 @@ import (
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,14 +48,14 @@ LOOP:
 func TestObserveDevicesAddedByIP(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout*2)
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()
@@ -102,14 +103,14 @@ LOOP:
 
 func TestObserveDevices(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*2)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout*2)
 	defer cancel()
 
 	h := makeTestDevicesObservationHandler()

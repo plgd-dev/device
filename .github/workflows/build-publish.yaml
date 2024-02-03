@@ -27,11 +27,11 @@ jobs:
       matrix:
         include:
           - name: test-cloud-server
-            directory: test/cloud-server
             file: test/cloud-server/Dockerfile
+          - name: bridge-device
+            file: cmd/bridge-device/Dockerfile
     uses: ./.github/workflows/build-publish-cfg.yaml
     with:
       name: ${{ matrix.name }}
-      directory: ${{ matrix.directory }}
       file: ${{ matrix.file }}
 

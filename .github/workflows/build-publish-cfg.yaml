@@ -12,10 +12,6 @@ on:
         description: Name of the container
         type: string
         required: true
-      directory:
-        description: Directory of service
-        type: string
-        required: true
       file:
         description: Dockerfile to build
         type: string
@@ -102,7 +98,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
-            DIRECTORY=${{ inputs.directory }}
             NAME=${{ inputs.name }}
             COMMIT_DATE=${{ steps.build-args.outputs.commit_date }}
             SHORT_COMMIT=${{ steps.build-args.outputs.short_commit }}
@@ -123,7 +118,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           builder: ${{ steps.buildx.outputs.name }}
           build-args: |
-            DIRECTORY=${{ inputs.directory }}
             NAME=${{ inputs.name }}
             COMMIT_DATE=${{ steps.build-args.outputs.commit_date }}
             SHORT_COMMIT=${{ steps.build-args.outputs.short_commit }}

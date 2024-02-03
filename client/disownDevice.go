@@ -20,6 +20,7 @@ import (
 	"context"
 
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 func (c *Client) removeTemporaryDeviceFromCache(ctx context.Context, d *core.Device) {
@@ -43,8 +44,12 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...Comm
 
 	ok := d.IsSecured()
 	if !ok {
-		return d.FactoryReset(ctx, links)
+		return d.FactoryReset(ctx, links, cfg.opts...)
 	}
 
-	return d.Disown(ctx, links)
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
+	return d.Disown(ctx, links, cfg.opts...)
 }

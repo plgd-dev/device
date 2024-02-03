@@ -1,7 +1,9 @@
 ignore:
   - "client/app/app.go"
-  - "cmd/ocfclient/ocfclient.go"
+  - "cmd/bridge-device/*.go"
+  - "cmd/ocfclient/*.go"
   - "**/main.go"
+  - "**/test/**/*.go"
   - "**/*.pb.go"
   - "**/*.pb.gw.go"
   - "**/*_test.go"

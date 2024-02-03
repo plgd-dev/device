@@ -1,0 +1,16 @@
+apis:
+  coap:
+    id: 8f596b43-29c0-4147-8b40-e99268ab30f7
+    name: "my-bridge-example"
+    externalAddresses:
+      - "127.0.0.1:15683"
+      - "[::1]:15683"
+    maxMessageSize: 2097152
+log:
+  level: "info"
+cloud:
+  enabled: true
+credential:
+  enabled: true
+numGeneratedBridgedDevices: 3
+numResourcesPerDevice: 16

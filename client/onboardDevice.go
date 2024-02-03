@@ -21,14 +21,16 @@ import (
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/device/v2/schema/maintenance"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
+	"github.com/plgd-dev/go-coap/v3/message"
 )
 
-func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string) error {
+func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.Device, authorizationProvider, authorizationCode, cloudURL, cloudID string, options ...coap.OptionFunc) error {
 	ob := cloud.ConfigurationUpdateRequest{
 		AuthorizationProvider: authorizationProvider,
 		AuthorizationCode:     authorizationCode,
@@ -37,13 +39,13 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.D
 	}
 
 	for _, l := range links.GetResourceLinks(cloud.ResourceType) {
-		return d.UpdateResource(ctx, l, ob, nil)
+		return d.UpdateResource(ctx, l, ob, nil, options...)
 	}
 
 	return fmt.Errorf("cloud resource not found")
 }
 
-func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID string, links schema.ResourceLinks) error {
+func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID string, links schema.ResourceLinks, opts []func(message.Options) message.Options) error {
 	link, err := core.GetResourceLink(links, acl.ResourceURI)
 	if err != nil {
 		return err
@@ -77,7 +79,7 @@ func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID str
 		},
 	}
 
-	return p.UpdateResource(ctx, link, cloudACL, nil)
+	return p.UpdateResource(ctx, link, cloudACL, nil, opts...)
 }
 
 // OnboardDevice connects device to the cloud.
@@ -88,14 +90,18 @@ func (c *Client) OnboardDevice(
 	opts ...CommonCommandOption,
 ) error {
 	cfg := applyCommonOptions(opts...)
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	d, links, err := c.GetDevice(ctx, deviceID, cfg)
 	if err != nil {
 		return err
 	}
 
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	ok := d.IsSecured()
 	if ok {
-		p, err := d.Provision(ctx, links)
+		p, err := d.Provision(ctx, links, cfg.opts...)
 		if err != nil {
 			return err
 		}
@@ -105,7 +111,7 @@ func (c *Client) OnboardDevice(
 			}
 		}()
 
-		err = setACLForCloud(ctx, p, cloudID, links)
+		err = setACLForCloud(ctx, p, cloudID, links, cfg.opts)
 		if err != nil {
 			return err
 		}
@@ -117,5 +123,5 @@ func (c *Client) OnboardDevice(
 			CloudID:               cloudID,
 		})
 	}
-	return setCloudResource(ctx, links, d, authorizationProvider, authCode, cloudURL, cloudID)
+	return setCloudResource(ctx, links, d, authorizationProvider, authCode, cloudURL, cloudID, cfg.opts...)
 }

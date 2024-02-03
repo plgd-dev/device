@@ -86,8 +86,8 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 	return d.Data(), true
 }
 
-func (c *DeviceCache) GetDeviceByFoundIP(ip string) *core.Device {
-	var d *core.Device
+func (c *DeviceCache) GetDeviceByFoundIP(ip string) []*core.Device {
+	var d []*core.Device
 	now := time.Now()
 	c.devicesCache.Range(func(deviceID string, item *cache.Element[*core.Device]) bool {
 		if item.IsExpired(now) {
@@ -95,7 +95,7 @@ func (c *DeviceCache) GetDeviceByFoundIP(ip string) *core.Device {
 		}
 		dev := item.Data()
 		if dev.FoundByIP() == ip {
-			d = dev
+			d = append(d, dev)
 			return false
 		}
 		return true

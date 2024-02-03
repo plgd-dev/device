@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
@@ -182,8 +183,7 @@ func NewTestSecureClient() (*Client, error) {
 	client, err := NewClientFromConfig(&cfg, &testSetupSecureClient{
 		mfgCA:   mfgCA,
 		mfgCert: mfgCert,
-	}, core.NewNilLogger(),
-	)
+	}, log.NewStdLogger(log.LevelDebug))
 	if err != nil {
 		return nil, err
 	}

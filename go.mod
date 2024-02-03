@@ -19,6 +19,7 @@ require (
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.6.0
 	google.golang.org/grpc v1.61.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -26,18 +27,16 @@ require (
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
+	github.com/kr/text v0.2.0 // indirect
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	go.uber.org/multierr v1.11.0 // indirect
-	go.uber.org/zap v1.26.0 // indirect
 	golang.org/x/crypto v0.18.0 // indirect
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/sys v0.16.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240125205218-1f4bbc51befe // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 // note: github.com/pion/dtls/v2/pkg/net package is not yet available in release branches

@@ -19,9 +19,11 @@ package core
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
@@ -30,12 +32,58 @@ import (
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) {
+	devices, err := c.GetDevicesByIP(ctx, ip)
+	if err != nil {
+		return nil, err
+	}
+	if len(devices) == 0 {
+		return nil, MakeNotFound(fmt.Errorf("no response from the device with ip %s", ip))
+	}
+	for _, d := range devices {
+		err = d.Close(ctx)
+		if err != nil {
+			c.logger.Debugf("get device by ip error: %s", err.Error())
+		}
+	}
+	return devices[0], nil
+}
+
+func getAddress(ip string) (addr string, isIpv4 bool, _ error) {
+	if strings.Contains(ip, ".") {
+		host, port, err := net.SplitHostPort(ip)
+		if err != nil {
+			host, port, err = net.SplitHostPort(ip + ":5683")
+		}
+		if err != nil {
+			return "", false, err
+		}
+		return host + ":" + port, true, nil
+	}
+	if !strings.Contains(ip, "[") {
+		ip = "[" + ip + "]:5683"
+	}
+	host, port, err := net.SplitHostPort(ip)
+	if err != nil {
+		host, port, err = net.SplitHostPort(ip + ":5683")
+	}
+	if err != nil {
+		return "", false, err
+	}
+	return "[" + host + "]:" + port, false, nil
+}
+
+// GetDevicesByIP gets the devices directly via IP address and multicast listen port 5683.
+func (c *Client) GetDevicesByIP(ctx context.Context, ip string) ([]*Device, error) {
 	var discoveryConfiguration DiscoveryConfiguration
-	if strings.Contains(ip, ":") && !strings.Contains(ip, "[") {
-		ip = "[" + ip + "]"
-		discoveryConfiguration.MulticastAddressUDP6 = []string{ip + ":5683"}
+
+	addr, isIPv4, err := getAddress(ip)
+	if err != nil {
+		return nil, MakeInvalidArgument(fmt.Errorf("could not get the device via ip %s: %w", ip, err))
+	}
+	if isIPv4 {
+		discoveryConfiguration.MulticastAddressUDP4 = []string{addr}
 	} else {
-		discoveryConfiguration.MulticastAddressUDP4 = []string{ip + ":5683"}
+		discoveryConfiguration.MulticastAddressUDP6 = []string{addr}
 	}
 
 	findCtx, cancel := context.WithCancel(ctx)
@@ -53,18 +101,20 @@ func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) 
 		}
 	}()
 
-	h := newDeviceHandler(c.getDeviceConfiguration(), ANY_DEVICE, cancel)
+	h := newDevicesHandler(c.getDeviceConfiguration(), ANY_DEVICE, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
 	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType))
 	if err != nil {
-		return nil, MakeDataLoss(fmt.Errorf("could not get the device from ip %s: %w", ip, err))
+		return nil, MakeDataLoss(fmt.Errorf("could not get the devices from ip %s: %w", ip, err))
 	}
-	d := h.Device()
-	if d == nil {
-		return nil, MakeNotFound(fmt.Errorf("no response from the device with ip %s", ip))
+	devices := h.Devices()
+	if len(devices) == 0 {
+		return nil, MakeNotFound(fmt.Errorf("no response from the devices with ip %s", ip))
 	}
-	d.setFoundByIP(ip)
-	return d, nil
+	for _, d := range devices {
+		d.setFoundByIP(addr)
+	}
+	return devices, nil
 }
 
 // GetDeviceByMulticast performs a multicast and returns a device object if the device responds.
@@ -84,14 +134,14 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 		}
 	}()
 
-	h := newDeviceHandler(c.getDeviceConfiguration(), deviceID, cancel)
+	h := newDevicesHandler(c.getDeviceConfiguration(), deviceID, cancel)
 	// we want to just get "oic.wk.d" resource, because links will be get via unicast to /oic/res
 	err = DiscoverDevices(findCtx, multicastConn, h, coap.WithResourceType(device.ResourceType), coap.WithDeviceID(deviceID))
 	if err != nil {
 		return nil, MakeDataLoss(fmt.Errorf("could not get the device %s: %w", deviceID, err))
 	}
-	d := h.Device()
-	if d == nil {
+	d := h.Devices()
+	if len(d) == 0 {
 		err = h.Err()
 		if err != nil {
 			return nil, MakeInternal(fmt.Errorf("no response from the device %s: %w", deviceID, err))
@@ -99,12 +149,12 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, disc
 		return nil, MakeInternal(fmt.Errorf("no response from the device %s", deviceID))
 	}
 
-	return d, nil
+	return d[0], nil
 }
 
 const ANY_DEVICE = "anydevice"
 
-func newDeviceHandler(
+func newDevicesHandler(
 	deviceCfg DeviceConfiguration,
 	deviceID string,
 	cancel context.CancelFunc,
@@ -121,15 +171,17 @@ type deviceHandler struct {
 	deviceID  string
 	cancel    context.CancelFunc
 
-	lock   sync.Mutex
-	device *Device
-	err    error
+	lock    sync.Mutex
+	devices []*Device
+	err     error
 }
 
-func (h *deviceHandler) Device() *Device {
+func (h *deviceHandler) Devices() []*Device {
 	h.lock.Lock()
 	defer h.lock.Unlock()
-	return h.device
+	devices := h.devices
+	h.devices = nil
+	return devices
 }
 
 func (h *deviceHandler) Handle(_ context.Context, conn *client.Conn, links schema.ResourceLinks) {
@@ -138,29 +190,34 @@ func (h *deviceHandler) Handle(_ context.Context, conn *client.Conn, links schem
 	}
 	h.lock.Lock()
 	defer h.lock.Unlock()
-
-	link, err := GetResourceLink(links, device.ResourceURI)
-	if err != nil {
-		h.err = err
+	links = links.GetResourceLinks(device.ResourceType)
+	if len(links) == 0 {
+		h.err = MakeUnavailable(fmt.Errorf("cannot get %v resourceType for device: not found", device.ResourceType))
 		return
 	}
-	deviceID := link.GetDeviceID()
-	if deviceID == "" {
-		h.err = MakeInternal(fmt.Errorf("cannot determine deviceID"))
+	if len(h.devices) > 0 {
 		return
 	}
-
-	if h.device != nil || (deviceID != h.deviceID && h.deviceID != ANY_DEVICE) {
-		return
+	var errs *multierror.Error
+	for _, link := range links {
+		deviceID := link.GetDeviceID()
+		if deviceID == "" {
+			errs = multierror.Append(errs, MakeUnavailable(fmt.Errorf("cannot determine deviceID")))
+			continue
+		}
+		if deviceID != h.deviceID && h.deviceID != ANY_DEVICE {
+			continue
+		}
+		if len(link.ResourceTypes) == 0 {
+			errs = multierror.Append(errs, MakeUnavailable(fmt.Errorf("cannot get resource types for %v: is empty", deviceID)))
+			continue
+		}
+		h.devices = append(h.devices, NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints))
 	}
-	if len(link.ResourceTypes) == 0 {
-		h.err = MakeDataLoss(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
-		return
+	h.err = errs.ErrorOrNil()
+	if len(h.devices) > 0 {
+		h.cancel()
 	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
-
-	h.device = d
-	h.cancel()
 }
 
 func (h *deviceHandler) Error(err error) {

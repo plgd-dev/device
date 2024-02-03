@@ -30,7 +30,7 @@ import (
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"
 	"github.com/plgd-dev/device/v2/client/core/otm/manufacturer"
-	"github.com/plgd-dev/kit/v2/security"
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 type Signer = interface {
@@ -91,7 +91,7 @@ func newDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 		return nil, fmt.Errorf("invalid validFrom(%v) for device ownership SDK: %w", validFrom, err)
 	}
 
-	signerCAs, err := security.ParseX509Certificates(signerCert)
+	signerCAs, err := pkgX509.ParseCertificates(signerCert)
 	if err != nil {
 		return nil, fmt.Errorf("could not parse signer certificates")
 	}

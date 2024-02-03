@@ -21,15 +21,12 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/asn1"
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	piondtls "github.com/pion/dtls/v2"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/go-coap/v3/dtls"
@@ -67,70 +64,6 @@ type Codec interface {
 	ContentFormat() message.MediaType
 	Encode(v interface{}) ([]byte, error)
 	Decode(m *pool.Message, v interface{}) error
-}
-
-var ExtendedKeyUsage_IDENTITY_CERTIFICATE = asn1.ObjectIdentifier{1, 3, 6, 1, 4, 1, 44924, 1, 6}
-
-func GetDeviceIDFromIdentityCertificate(cert *x509.Certificate) (string, error) {
-	// verify EKU manually
-	ekuHasClient := false
-	for _, eku := range cert.ExtKeyUsage {
-		if eku == x509.ExtKeyUsageClientAuth {
-			ekuHasClient = true
-			break
-		}
-	}
-	if !ekuHasClient {
-		return "", fmt.Errorf("not contains ExtKeyUsageClientAuth")
-	}
-	ekuHasOcfID := false
-	for _, eku := range cert.UnknownExtKeyUsage {
-		if eku.Equal(ExtendedKeyUsage_IDENTITY_CERTIFICATE) {
-			ekuHasOcfID = true
-			break
-		}
-	}
-	if !ekuHasOcfID {
-		return "", fmt.Errorf("not contains ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
-	}
-	cn := strings.Split(cert.Subject.CommonName, ":")
-	if len(cn) != 2 {
-		return "", fmt.Errorf("invalid subject common name: %v", cert.Subject.CommonName)
-	}
-	if strings.ToLower(cn[0]) != "uuid" {
-		return "", fmt.Errorf("invalid subject common name %v: 'uuid' - not found", cert.Subject.CommonName)
-	}
-	deviceID, err := uuid.Parse(cn[1])
-	if err != nil {
-		return "", fmt.Errorf("invalid subject common name %v: %w", cert.Subject.CommonName, err)
-	}
-	return deviceID.String(), nil
-}
-
-func VerifyIdentityCertificate(cert *x509.Certificate) error {
-	// verify EKU manually
-	ekuHasClient := false
-	ekuHasServer := false
-	for _, eku := range cert.ExtKeyUsage {
-		if eku == x509.ExtKeyUsageClientAuth {
-			ekuHasClient = true
-		}
-		if eku == x509.ExtKeyUsageServerAuth {
-			ekuHasServer = true
-		}
-	}
-	if !ekuHasClient {
-		return fmt.Errorf("not contains ExtKeyUsageClientAuth")
-	}
-	if !ekuHasServer {
-		return fmt.Errorf("not contains ExtKeyUsageServerAuth")
-	}
-	_, err := GetDeviceIDFromIdentityCertificate(cert)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func NewClient(conn ClientConn) *Client {

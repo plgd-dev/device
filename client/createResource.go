@@ -55,5 +55,9 @@ func (c *Client) CreateResource(
 		return err
 	}
 
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	return d.UpdateResourceWithCodec(ctx, link, cfg.codec, request, response, cfg.opts...)
 }

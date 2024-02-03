@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/doxm"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	testTypes "github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
@@ -120,10 +121,10 @@ func TestClientGetDevice(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
@@ -170,14 +171,14 @@ func TestClientGetDeviceByIP(t *testing.T) {
 			args: args{
 				ip: ip4,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName, ip4),
+			want: NewTestSecureDeviceSimulator(deviceIDip4, test.DevsimName, ip4+":5683"),
 		},
 		{
 			name: "ip6",
 			args: args{
 				ip: ip6,
 			},
-			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName, "["+ip6+"]"),
+			want: NewTestSecureDeviceSimulator(deviceIDip6, test.DevsimName, "["+ip6+"]:5683"),
 		},
 		{
 			name: "not-found",
@@ -188,10 +189,10 @@ func TestClientGetDeviceByIP(t *testing.T) {
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
@@ -234,7 +235,7 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	ip := test.MustFindDeviceIP(test.DevsimName, test.IP4)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*30)
 	defer cancel()
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(ctx)
@@ -250,14 +251,20 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	err = c.DisownDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)
 	time.Sleep(time.Second * 4)
-	// deviceID was changed after disowning - the call fails, but internally the cache is updated so dev.DeviceID() returns new deviceID
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
-	require.Error(t, err)
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
+	deviceNotExist := func(di string) {
+		ctx1, cancel1 := context.WithTimeout(ctx, time.Second)
+		defer cancel1()
+		_, _, err = c.GetDevice(ctx1, di)
+		require.Error(t, err)
+	}
+	// deviceID was changed after disowning - the call fails, because device not exist anymore
+	deviceNotExist(dev.DeviceID())
+
+	dev, _, err = c.GetDeviceByIP(ctx, ip)
 	require.NoError(t, err)
 
 	// change deviceID by another client
-	c1, err := NewTestSecureClient()
+	c1, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c1.Close(ctx)
@@ -270,8 +277,11 @@ func TestClientCheckForDuplicityDeviceInCache(t *testing.T) {
 	time.Sleep(time.Second * 4)
 
 	// try get old device again
-	_, _, err = c.GetDevice(ctx, dev.DeviceID())
-	require.Error(t, err)
+	deviceNotExist(dev.DeviceID())
+
+	dev, _, err = c.GetDeviceByIP(ctx, ip)
+	require.NoError(t, err)
+
 	// dev has updated deviceID by previous call so we can get the device
 	_, _, err = c.GetDevice(ctx, dev.DeviceID())
 	require.NoError(t, err)
@@ -296,17 +306,17 @@ func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 	ip4 := test.MustFindDeviceIP(test.DevsimName, test.IP4)
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c.Close(context.Background())
 		require.NoError(t, errClose)
 	}()
 
-	c1, err := NewTestSecureClientWithGeneratedCertificate()
+	c1, err := testClient.NewTestSecureClientWithGeneratedCertificate()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c1.Close(context.Background())

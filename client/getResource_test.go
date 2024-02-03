@@ -37,6 +37,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/require"
 )
@@ -103,13 +104,13 @@ func TestClientGetResource(t *testing.T) {
 		},
 	}
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
@@ -131,13 +132,13 @@ func TestClientGetResource(t *testing.T) {
 
 func TestClientGetDiscoveryResourceWithResourceTypeFilter(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*8)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout*8)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
@@ -169,13 +170,13 @@ func updateConfigurationResource(ctx context.Context, c *client.Client, deviceID
 
 func TestClientGetDiscoveryResourceWithBatchInterface(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
@@ -247,13 +248,13 @@ func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *
 	}
 
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)
@@ -298,13 +299,13 @@ func TestClientGetDiscoveryResourceWithBatchInterfaceCreateAndDeleteResource(t *
 
 func TestClientGetConResourceByETag(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID)
 	require.NoError(t, err)

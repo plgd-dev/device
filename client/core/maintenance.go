@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/maintenance"
 )
@@ -28,19 +29,21 @@ import (
 func (d *Device) Reboot(
 	ctx context.Context,
 	links schema.ResourceLinks,
+	options ...coap.OptionFunc,
 ) error {
 	return d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
 		Reboot: true,
-	})
+	}, options...)
 }
 
 func (d *Device) FactoryReset(
 	ctx context.Context,
 	links schema.ResourceLinks,
+	options ...coap.OptionFunc,
 ) error {
 	err := d.updateMaintenanceResource(ctx, links, maintenance.MaintenanceUpdateRequest{
 		FactoryReset: true,
-	})
+	}, options...)
 	if connectionWasClosed(ctx, err) {
 		// connection was closed by disown so we don't report error just log it.
 		d.cfg.Logger.Debug(err.Error())
@@ -53,13 +56,14 @@ func (d *Device) updateMaintenanceResource(
 	ctx context.Context,
 	links schema.ResourceLinks,
 	req maintenance.MaintenanceUpdateRequest,
+	options ...coap.OptionFunc,
 ) (ret error) {
 	links = links.GetResourceLinks(maintenance.ResourceType)
 	if len(links) == 0 {
 		return MakeUnavailable(fmt.Errorf("cannot find '%v' in %+v", maintenance.ResourceType, links))
 	}
 	var resp maintenance.Maintenance
-	err := d.UpdateResource(ctx, links[0], req, &resp)
+	err := d.UpdateResource(ctx, links[0], req, &resp, options...)
 	if err != nil {
 		return err
 	}

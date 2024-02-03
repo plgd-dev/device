@@ -21,8 +21,10 @@ jobs:
       matrix:
         include:
           - name: cloud-server-debug
+            bridgetest-enabled: true
             coverage: true
             tag: ghcr.io/iotivity/iotivity-lite/cloud-server-debug:vnext
+            unittest-enabled: true
           - name: cloud-server-debug-sha384
             test-args: CERT_TOOL_SIGN_ALG=ECDSA-SHA384 CERT_TOOL_ELLIPTIC_CURVE=P384
             coverage: true
@@ -37,9 +39,11 @@ jobs:
     uses: ./.github/workflows/test-with-cfg.yml
     with:
       name: ${{ matrix.name }}
+      bridgetest-enabled: ${{ matrix.bridgetest-enabled || false }}
       coverage: ${{ matrix.coverage }}
       tag: ${{ matrix.tag }}
       test-args: ${{ matrix.test-args }}
+      unittest-enabled: ${{ matrix.unittest-enabled || false }}
 
   analysis:
     name: SonarCloud and codecov analysis

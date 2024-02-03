@@ -22,12 +22,21 @@ import (
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/go-coap/v3/message"
 )
 
 // WithQuery updates/gets resource with a query directly from a device.
 func WithQuery(resourceQuery string) ResourceQueryOption {
 	return ResourceQueryOption{
 		resourceQuery: resourceQuery,
+	}
+}
+
+// WithDeviceID updates/gets resource with deviceID also in a query parameter for the bridged devices.
+// Note: it is not needed when client has been created with UseDeviceIDInQuery.
+func WithDeviceID(deviceID string) ResourceQueryOption {
+	return ResourceQueryOption{
+		resourceQuery: "di=" + deviceID,
 	}
 }
 
@@ -38,9 +47,17 @@ func WithInterface(resourceInterface string) ResourceInterfaceOption {
 	}
 }
 
-func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks) (interface{}, error)) GetDetailsOption {
+func WithGetDetails(getDetails func(ctx context.Context, d *core.Device, links schema.ResourceLinks, optsArgs ...func(message.Options) message.Options) (interface{}, error)) GetDetailsOption {
 	return GetDetailsOption{
 		getDetails: getDetails,
+	}
+}
+
+// WithUseDeviceID appends deviceID to all get requests during discovery.
+// Note: it is not needed when client has been created with UseDeviceIDInQuery.
+func WithUseDeviceID(useDeviceID bool) UseDeviceIDInQueryOption {
+	return UseDeviceIDInQueryOption{
+		UseDeviceID: useDeviceID,
 	}
 }
 
@@ -99,6 +116,15 @@ func WithOTM(otmType OTMType) OwnOption {
 	}
 }
 
+type UseDeviceIDInQueryOption struct {
+	UseDeviceID bool
+}
+
+func (r UseDeviceIDInQueryOption) applyOnGetDevices(opts getDevicesOptions) getDevicesOptions {
+	opts.useDeviceID = r.UseDeviceID
+	return opts
+}
+
 type ResourceETagOption struct {
 	etag []byte
 }
@@ -155,6 +181,48 @@ func (r ResourceQueryOption) applyOnGet(opts getOptions) getOptions {
 }
 
 func (r ResourceQueryOption) applyOnObserve(opts observeOptions) observeOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnUpdate(opts updateOptions) updateOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnCreate(opts createOptions) createOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnDelete(opts deleteOptions) deleteOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnCommonCommand(opts commonCommandOptions) commonCommandOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+	if r.resourceQuery != "" {
+		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
+	}
+	return opts
+}
+
+func (r ResourceQueryOption) applyOnGetDeviceByIP(opts getDeviceByIPOptions) getDeviceByIPOptions {
 	if r.resourceQuery != "" {
 		opts.opts = append(opts.opts, coap.WithQuery(r.resourceQuery))
 	}
@@ -294,7 +362,7 @@ type ObserveDevicesOption = interface {
 	applyOnObserveDevices(opts observeDevicesOptions) observeDevicesOptions
 }
 
-type GetDetailsFunc = func(context.Context, *core.Device, schema.ResourceLinks) (interface{}, error)
+type GetDetailsFunc = func(context.Context, *core.Device, schema.ResourceLinks, ...func(message.Options) message.Options) (interface{}, error)
 
 type GetDetailsOption struct {
 	getDetails GetDetailsFunc
@@ -319,15 +387,18 @@ type getDevicesOptions struct {
 	resourceTypes          []string
 	getDetails             GetDetailsFunc
 	discoveryConfiguration core.DiscoveryConfiguration
+	useDeviceID            bool
 }
 
 type getDeviceOptions struct {
 	getDetails             GetDetailsFunc
 	discoveryConfiguration core.DiscoveryConfiguration
+	opts                   []coap.OptionFunc
 }
 
 type getDeviceByIPOptions struct {
 	getDetails GetDetailsFunc
+	opts       []coap.OptionFunc
 }
 
 type getDevicesWithHandlerOptions struct {
@@ -451,6 +522,7 @@ func (r otmOption) applyOnOwn(opts ownOptions) ownOptions {
 
 type commonCommandOptions struct {
 	discoveryConfiguration core.DiscoveryConfiguration
+	opts                   []coap.OptionFunc
 }
 
 // CommonCommandOption option definition.
@@ -466,4 +538,9 @@ func applyCommonOptions(opts ...CommonCommandOption) commonCommandOptions {
 		cfg = o.applyOnCommonCommand(cfg)
 	}
 	return cfg
+}
+
+func (r commonCommandOptions) applyOnGetDevice(opts getDeviceOptions) getDeviceOptions {
+	opts.discoveryConfiguration = r.discoveryConfiguration
+	return opts
 }

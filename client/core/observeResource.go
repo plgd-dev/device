@@ -26,6 +26,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"go.uber.org/atomic"
 )
 
@@ -104,6 +105,7 @@ func (d *Device) closeObservations(ctx context.Context) error {
 
 type observation struct {
 	id      string
+	options []func(message.Options) message.Options
 	handler *observationHandler
 	client  *coap.ClientCloseHandler
 
@@ -139,7 +141,11 @@ func (o *observation) stop(ctx context.Context, byClose bool) error {
 			// stop was called by user so we don't want to call OnClose handler
 			o.handler.disableHandlers()
 		}
-		err := obs.Cancel(ctx)
+		opts := make(message.Options, 0, 4)
+		for _, o := range o.options {
+			opts = o(opts)
+		}
+		err := obs.Cancel(ctx, opts...)
 		if err != nil {
 			return MakeCanceled(fmt.Errorf("cannot cancel observation %s: %w", o.id, err))
 		}
@@ -183,6 +189,7 @@ func (d *Device) observeResource(
 		id:      id.String(),
 		handler: &h,
 		client:  client,
+		options: options,
 	}
 	onCloseID := client.RegisterCloseHandler(func(error) {
 		o.handler.OnClose()

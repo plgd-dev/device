@@ -16,53 +16,8 @@
 
 package core
 
-type Logger interface {
-	Debug(string)
-	Info(string)
-	Warn(string)
-	Error(string)
-	Debugf(template string, args ...interface{})
-	Infof(template string, args ...interface{})
-	Warnf(template string, args ...interface{})
-	Errorf(template string, args ...interface{})
-}
+import "github.com/plgd-dev/device/v2/pkg/log"
 
-type NilLogger struct{}
-
-var nilLogger = &NilLogger{}
-
-func NewNilLogger() *NilLogger {
-	return nilLogger
-}
-
-func (*NilLogger) Debug(string) {
-	// no-op
-}
-
-func (*NilLogger) Info(string) {
-	// no-op
-}
-
-func (*NilLogger) Warn(string) {
-	// no-op
-}
-
-func (*NilLogger) Error(string) {
-	// no-op
-}
-
-func (*NilLogger) Debugf(string, ...interface{}) {
-	// no-op
-}
-
-func (*NilLogger) Infof(string, ...interface{}) {
-	// no-op
-}
-
-func (*NilLogger) Warnf(string, ...interface{}) {
-	// no-op
-}
-
-func (*NilLogger) Errorf(string, ...interface{}) {
-	// no-op
-}
+type (
+	Logger = log.Logger
+)

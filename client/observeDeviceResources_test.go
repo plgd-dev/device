@@ -18,13 +18,14 @@ package client_test
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"testing"
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,7 +42,7 @@ func isDeviceResourcesObservable(ctx context.Context, t *testing.T, c *client.Cl
 }
 
 func runObserveDeviceResourcesTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-	h := makeMockDeviceResourcesObservationHandler()
+	h := testClient.MakeMockDeviceResourcesObservationHandler()
 	if !isDeviceResourcesObservable(ctx, t, c, deviceID) {
 		t.Skip("resource is not observable")
 		return
@@ -50,7 +51,7 @@ func runObserveDeviceResourcesTest(ctx context.Context, t *testing.T, c *client.
 	ID, err := c.ObserveDeviceResources(ctx, deviceID, h)
 	require.NoError(t, err)
 
-	e, err := h.waitForNotification(ctx)
+	e, err := h.WaitForNotification(ctx)
 	require.NoError(t, err)
 
 	test.CheckResourceLinks(t, test.DefaultDevsimResourceLinks(), e)
@@ -58,58 +59,21 @@ func runObserveDeviceResourcesTest(ctx context.Context, t *testing.T, c *client.
 	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeSwitchResourceDefaultData(), nil)
 	require.NoError(t, err)
 
-	e, err = h.waitForNotification(ctx)
+	e, err = h.WaitForNotification(ctx)
 	require.NoError(t, err)
 	test.CheckResourceLinks(t, append(test.DefaultDevsimResourceLinks(), test.DefaultSwitchResourceLink("1")), e)
 
 	err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil)
 	require.NoError(t, err)
 
-	e, err = h.waitForNotification(ctx)
+	e, err = h.WaitForNotification(ctx)
 	require.NoError(t, err)
 	test.CheckResourceLinks(t, test.DefaultDevsimResourceLinks(), e)
 
 	ok, err := c.StopObservingDeviceResources(ctx, ID)
 	require.NoError(t, err)
 	require.True(t, ok)
-	select {
-	case <-h.res:
-		require.NoError(t, fmt.Errorf("unexpected event"))
-	default:
-	}
-}
 
-func makeMockDeviceResourcesObservationHandler() *mockDeviceResourcesObservationHandler {
-	return &mockDeviceResourcesObservationHandler{
-		res:   make(chan schema.ResourceLinks, 100),
-		close: make(chan struct{}),
-	}
-}
-
-type mockDeviceResourcesObservationHandler struct {
-	res   chan schema.ResourceLinks
-	close chan struct{}
-}
-
-func (h *mockDeviceResourcesObservationHandler) Handle(_ context.Context, body schema.ResourceLinks) {
-	h.res <- body
-}
-
-func (h *mockDeviceResourcesObservationHandler) Error(err error) {
-	fmt.Println(err)
-}
-
-func (h *mockDeviceResourcesObservationHandler) OnClose() {
-	close(h.close)
-}
-
-func (h *mockDeviceResourcesObservationHandler) waitForNotification(ctx context.Context) (schema.ResourceLinks, error) {
-	select {
-	case e := <-h.res:
-		return e, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-h.close:
-		return nil, fmt.Errorf("unexpected close")
-	}
+	err = h.WaitForClose(ctx)
+	require.True(t, err == nil || errors.Is(err, context.DeadlineExceeded))
 }

@@ -24,6 +24,7 @@ import (
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
+	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
 
@@ -81,26 +82,35 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links 
 	if errC := conn.Close(); errC != nil {
 		h.handler.Error(fmt.Errorf("discovery handler cannot close connection: %w", errC))
 	}
-	link, err := GetResourceLink(links, device.ResourceURI)
-	if err != nil {
-		h.handler.Error(err)
-		return
+	deviceLinks := make(map[string]schema.ResourceLinks)
+	for _, link := range links {
+		deviceID := link.GetDeviceID()
+		if deviceID == "" {
+			h.handler.Error(fmt.Errorf("cannot determine deviceID"))
+			continue
+		}
+		deviceLinks[deviceID] = append(deviceLinks[deviceID], link)
 	}
-	deviceID := link.GetDeviceID()
-	if deviceID == "" {
-		h.handler.Error(fmt.Errorf("cannot determine deviceID"))
-		return
+	for deviceID, links := range deviceLinks {
+		link, err := GetResourceLink(links, device.ResourceURI)
+		if err != nil {
+			link, err = GetResourceLink(links, resources.ResourceURI)
+		}
+		if err != nil {
+			h.handler.Error(err)
+			continue
+		}
+		if len(link.ResourceTypes) == 0 {
+			h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
+			continue
+		}
+		_, loaded := h.filterDiscoveredDevices.LoadOrStore(deviceID, true)
+		if loaded {
+			continue
+		}
+		d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
+		h.handler.Handle(ctx, d)
 	}
-	if len(link.ResourceTypes) == 0 {
-		h.handler.Error(fmt.Errorf("cannot get resource types for %v: is empty", deviceID))
-		return
-	}
-	_, loaded := h.filterDiscoveredDevices.LoadOrStore(deviceID, true)
-	if loaded {
-		return
-	}
-	d := NewDevice(h.deviceCfg, deviceID, link.ResourceTypes, link.GetEndpoints)
-	h.handler.Handle(ctx, d)
 }
 
 func (h *discoveryHandler) Error(err error) {

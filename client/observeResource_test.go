@@ -37,64 +37,22 @@ import (
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func makeObservationHandler() *observationHandler {
-	return &observationHandler{res: make(chan coap.DecodeFunc, 1), close: make(chan struct{})}
-}
-
-type observationHandler struct {
-	res   chan coap.DecodeFunc
-	close chan struct{}
-}
-
-func (h *observationHandler) Handle(_ context.Context, body coap.DecodeFunc) {
-	h.res <- body
-}
-
-func (h *observationHandler) Error(err error) { fmt.Println(err) }
-
-func (h *observationHandler) OnClose() { close(h.close) }
-
-func (h *observationHandler) waitForNotification(ctx context.Context) (coap.DecodeFunc, error) {
-	select {
-	case e := <-h.res:
-		return e, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	case <-h.close:
-		return nil, fmt.Errorf("unexpected close")
-	}
-}
-
-func (h *observationHandler) waitForClose(ctx context.Context) error {
-	select {
-	case e := <-h.res:
-		var d interface{}
-		if err := e(d); err != nil {
-			return fmt.Errorf("unexpected notification: cannot decode: %w", err)
-		}
-		return fmt.Errorf("unexpected notification %v", d)
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-h.close:
-		return nil
-	}
-}
-
 func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *testing.T, c *client.Client, deviceID string)) {
 	deviceID := test.MustFindDeviceByName(name)
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 
 	deviceID, err = c.OwnDevice(ctx, deviceID)
@@ -105,7 +63,7 @@ func testDevice(t *testing.T, name string, runTest func(ctx context.Context, t *
 }
 
 func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-	h := makeObservationHandler()
+	h := testClient.MakeMockResourceObservationHandler()
 	id, err := c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h)
 	require.NoError(t, err)
 	defer func(observationID string) {
@@ -113,7 +71,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 		require.NoError(t, errC)
 	}(id)
 
-	res, err := h.waitForNotification(ctx)
+	res, err := h.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d := coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d)
@@ -124,7 +82,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 		assert.NotEmpty(t, d.ETag)
 	}
 
-	h2 := makeObservationHandler()
+	h2 := testClient.MakeMockResourceObservationHandler()
 	id, err = c.ObserveResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), h2)
 	require.NoError(t, err)
 	defer func(observationID string) {
@@ -132,7 +90,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 		require.NoError(t, errC)
 	}(id)
 
-	res, err = h2.waitForNotification(ctx)
+	res, err = h2.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d2 := coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d2)
@@ -149,7 +107,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 	}, nil)
 	require.NoError(t, err)
 
-	res, err = h.waitForNotification(ctx)
+	res, err = h.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d = coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d)
@@ -161,7 +119,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 		etag1 = d.ETag
 	}
 
-	res, err = h2.waitForNotification(ctx)
+	res, err = h2.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d2 = coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d2)
@@ -179,7 +137,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 	}, nil)
 	assert.NoError(t, err)
 
-	res, err = h.waitForNotification(ctx)
+	res, err = h.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d = coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d)
@@ -190,7 +148,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 		require.NotEqual(t, etag1, d.ETag)
 	}
 
-	res, err = h2.waitForNotification(ctx)
+	res, err = h2.WaitForNotification(ctx)
 	require.NoError(t, err)
 	d2 = coap.DetailedResponse[map[string]interface{}]{}
 	err = res(&d2)
@@ -209,11 +167,11 @@ func TestObservingResource(t *testing.T) {
 
 func TestObservingDiscoveryResource(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h)
 		require.NoError(t, err)
 		d := coap.DetailedResponse[schema.ResourceLinks]{}
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
@@ -225,7 +183,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		d.Body.Sort()
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			// oic/res doesn't support observation
 			return
@@ -238,7 +196,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		const switchID = "1"
 		createSwitches(ctx, t, c, deviceID, 1)
 		d1 := coap.DetailedResponse[schema.ResourceLinks]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
@@ -260,7 +218,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[schema.ResourceLinks]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -276,11 +234,11 @@ func TestObservingDiscoveryResource(t *testing.T) {
 
 func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_BASELINE))
 		require.NoError(t, err)
 		d := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
@@ -292,7 +250,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		d.Body[0].Links.Sort()
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			// oic/res doesn't support observation
 			return
@@ -305,7 +263,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		const switchID = "1"
 		createSwitches(ctx, t, c, deviceID, 1)
 		d1 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
@@ -328,7 +286,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BaselineResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -345,21 +303,21 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 
 func TestObservingNonObservableResource(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		_, err := c.ObserveResource(ctx, deviceID, maintenance.ResourceURI, h)
 		require.NoError(t, err)
 		d := coap.DetailedResponse[maintenance.Maintenance]{}
 		// resource is not observable so action (close/event) depends on goroutine scheduler which is not deterministic
 		select {
-		case e := <-h.res:
+		case e := <-h.Res:
 			err = e(&d)
 			require.NoError(t, err)
 			if ETagSupported {
 				require.NotEmpty(t, d.ETag)
 			}
-			err = h.waitForClose(ctx)
+			err = h.WaitForClose(ctx)
 			require.NoError(t, err)
-		case <-h.close:
+		case <-h.Close:
 			// if close comes first, then event is not received
 		case <-ctx.Done():
 			require.NoError(t, ctx.Err())
@@ -428,11 +386,11 @@ var expectedFirstBatchResources = []batchResource{
 
 func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		id, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		var d coap.DetailedResponse[resources.BatchResourceDiscovery]
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d)
 		require.NoError(t, err)
@@ -444,7 +402,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		}
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			// oic/res doesn't support observation
 			return
@@ -457,7 +415,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		const switchID = "1"
 		createSwitches(ctx, t, c, deviceID, 1)
 		var d1 coap.DetailedResponse[resources.BatchResourceDiscovery]
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d1)
 		require.NoError(t, err)
@@ -473,7 +431,7 @@ func TestObservingDiscoveryResourceWithBatchInterface(t *testing.T) {
 		err = c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref(switchID), nil)
 		require.NoError(t, err)
 		var d2 coap.DetailedResponse[resources.BatchResourceDiscovery]
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -508,11 +466,11 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 	}
 
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d0)
 		require.NoError(t, err)
@@ -530,7 +488,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			t.Skip("oic/res doesn't support observation")
 			return
@@ -548,7 +506,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 			require.NoError(t, errU)
 		}()
 
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
 		err = res(&d1)
@@ -568,7 +526,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -588,7 +546,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 			require.NoError(t, errC)
 		}(obsID)
 		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d3)
 		require.NoError(t, err)
@@ -606,11 +564,11 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 	}
 
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d0)
 		require.NoError(t, err)
@@ -628,7 +586,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			t.Skip("oic/res doesn't support observation")
 			return
@@ -641,7 +599,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 			require.NoError(t, errD)
 		}()
 
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
 		err = res(&d1)
@@ -661,7 +619,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -681,7 +639,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 			require.NoError(t, errC)
 		}(obsID)
 		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d3)
 		require.NoError(t, err)
@@ -712,11 +670,11 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 			require.NoError(t, errs.ErrorOrNil())
 		}()
 
-		h := makeObservationHandler()
+		h := testClient.MakeMockResourceObservationHandler()
 		obsID, err := c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B))
 		require.NoError(t, err)
 		d0 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err := h.waitForNotification(ctx)
+		res, err := h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d0)
 		require.NoError(t, err)
@@ -735,7 +693,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 
 		checkForNonObservationCtx, cancel := context.WithTimeout(ctx, time.Second)
 		defer cancel()
-		err = h.waitForClose(checkForNonObservationCtx)
+		err = h.WaitForClose(checkForNonObservationCtx)
 		if err == nil {
 			t.Skip("oic/res doesn't support observation")
 			return
@@ -745,7 +703,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 		require.NoError(t, errD)
 		toDelete = nil
 
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		d1 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
 		err = res(&d1)
@@ -765,7 +723,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d2)
 		require.NoError(t, err)
@@ -785,7 +743,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 			require.NoError(t, errC)
 		}(obsID)
 		d3 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
-		res, err = h.waitForNotification(ctx)
+		res, err = h.WaitForNotification(ctx)
 		require.NoError(t, err)
 		err = res(&d3)
 		require.NoError(t, err)

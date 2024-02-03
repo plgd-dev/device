@@ -22,6 +22,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/acl"
 	"github.com/plgd-dev/device/v2/schema/cloud"
@@ -30,10 +31,11 @@ import (
 	"github.com/plgd-dev/kit/v2/strings"
 )
 
-func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks) (*ProvisioningClient, error) {
+func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks, options ...coap.OptionFunc) (*ProvisioningClient, error) {
 	p := ProvisioningClient{
-		Device: d,
-		links:  links,
+		Device:  d,
+		links:   links,
+		options: options,
 	}
 	err := p.start(ctx)
 	if err != nil {
@@ -44,7 +46,8 @@ func (d *Device) Provision(ctx context.Context, links schema.ResourceLinks) (*Pr
 
 type ProvisioningClient struct {
 	*Device
-	links schema.ResourceLinks
+	links   schema.ResourceLinks
+	options []coap.OptionFunc
 }
 
 func (c *ProvisioningClient) start(ctx context.Context) error {
@@ -60,7 +63,7 @@ func (c *ProvisioningClient) start(ctx context.Context) error {
 	}
 	link.Endpoints = link.GetSecureEndpoints()
 
-	err = c.UpdateResource(ctx, link, provisioningState, nil)
+	err = c.UpdateResource(ctx, link, provisioningState, nil, c.options...)
 	if err != nil {
 		return fmt.Errorf(errMsg, fmt.Errorf("cannot update to provisioning state %+v: %w", link, err))
 	}
@@ -80,7 +83,7 @@ func (c *ProvisioningClient) Close(ctx context.Context) error {
 	}
 	link.Endpoints = link.GetSecureEndpoints()
 
-	err = c.UpdateResource(ctx, link, normalOperationState, nil)
+	err = c.UpdateResource(ctx, link, normalOperationState, nil, c.options...)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -94,7 +97,7 @@ func (c *ProvisioningClient) AddCredentials(ctx context.Context, cr credential.C
 		return fmt.Errorf(errMsg, err)
 	}
 	link.Endpoints = link.GetSecureEndpoints()
-	err = c.UpdateResource(ctx, link, cr, nil)
+	err = c.UpdateResource(ctx, link, cr, nil, c.options...)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}
@@ -139,7 +142,7 @@ func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.Confi
 		return fmt.Errorf("could not resolve cloud resource link of device %s", c.DeviceID())
 	}
 	link.Endpoints = link.GetSecureEndpoints()
-	err := c.UpdateResource(ctx, link, r, nil)
+	err := c.UpdateResource(ctx, link, r, nil, c.options...)
 	if err != nil {
 		return fmt.Errorf("could not set cloud resource of device %s: %w", c.DeviceID(), err)
 	}
@@ -169,7 +172,7 @@ func (c *ProvisioningClient) SetAccessControl(
 		return fmt.Errorf(errMsg, err)
 	}
 	link.Endpoints = link.GetSecureEndpoints()
-	err = c.UpdateResource(ctx, link, setACL, nil)
+	err = c.UpdateResource(ctx, link, setACL, nil, c.options...)
 	if err != nil {
 		return fmt.Errorf(errMsg, err)
 	}

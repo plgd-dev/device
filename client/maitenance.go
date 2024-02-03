@@ -18,6 +18,8 @@ package client
 
 import (
 	"context"
+
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 )
 
 // FactoryReset factory resets the device.
@@ -27,8 +29,12 @@ func (c *Client) FactoryReset(ctx context.Context, deviceID string, opts ...Comm
 	if err != nil {
 		return err
 	}
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	defer c.removeTemporaryDeviceFromCache(ctx, d)
-	return d.FactoryReset(ctx, links)
+	return d.FactoryReset(ctx, links, cfg.opts...)
 }
 
 // Reboot reboots the device.
@@ -38,6 +44,10 @@ func (c *Client) Reboot(ctx context.Context, deviceID string, opts ...CommonComm
 	if err != nil {
 		return err
 	}
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	defer c.removeTemporaryDeviceFromCache(ctx, d)
-	return d.Reboot(ctx, links)
+	return d.Reboot(ctx, links, cfg.opts...)
 }

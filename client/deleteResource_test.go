@@ -28,6 +28,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/test"
+	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/stretchr/testify/require"
 )
@@ -88,13 +89,13 @@ func TestClientDeleteResource(t *testing.T) {
 		},
 	}
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 	require.NoError(t, err)
@@ -117,13 +118,13 @@ func TestClientDeleteResource(t *testing.T) {
 func TestClientBatchDeleteResources(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
 
-	c, err := NewTestSecureClient()
+	c, err := testClient.NewTestSecureClient()
 	require.NoError(t, err)
 	defer func() {
 		errC := c.Close(context.Background())
 		require.NoError(t, errC)
 	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout*50)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
 	defer cancel()
 	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
 	require.NoError(t, err)
