@@ -42,13 +42,13 @@ func (c *Client) DisownDevice(ctx context.Context, deviceID string, opts ...Comm
 	}
 	defer c.removeTemporaryDeviceFromCache(ctx, d)
 
+	if c.useDeviceIDInQuery {
+		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
+	}
+
 	ok := d.IsSecured()
 	if !ok {
 		return d.FactoryReset(ctx, links, cfg.opts...)
-	}
-
-	if c.useDeviceIDInQuery {
-		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
 	return d.Disown(ctx, links, cfg.opts...)
