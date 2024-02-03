@@ -5,7 +5,8 @@ WORKDIR $GOPATH/src/github.com/plgd-dev/device
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN ( cd /usr/local/go && patch -p1 < $GOPATH/src/github.com/plgd-dev/device/tools/docker/patches/shrink_tls_conn.patch )
+WORKDIR /usr/local/go
+RUN patch -p1 < "${GOPATH}/src/github.com/plgd-dev/device/tools/docker/patches/shrink_tls_conn.patch"
 WORKDIR $GOPATH/src/github.com/plgd-dev/device
 RUN CGO_ENABLED=0 go build -o /go/bin/bridge-device ./cmd/bridge-device
 
