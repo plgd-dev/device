@@ -30,6 +30,8 @@ const (
 	UDP6 = "udp6"
 )
 
+var ErrInvalidExternalAddress = fmt.Errorf("invalid externalAddress")
+
 type externalAddressPort struct {
 	host    string
 	port    string
@@ -67,17 +69,21 @@ type Config struct {
 
 const DefaultMaxMessageSize = 2 * 1024 * 1024
 
+func errInvalidExternalAddress(err error) error {
+	return fmt.Errorf("%w: %w", ErrInvalidExternalAddress, err)
+}
+
 func validateExternalAddress(addr string) (externalAddressPort, error) {
 	host, portStr, err := gonet.SplitHostPort(addr)
 	if err != nil {
-		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: %w", err)
+		return externalAddressPort{}, errInvalidExternalAddress(err)
 	}
 	if host == "" {
-		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: host cannot be empty")
+		return externalAddressPort{}, errInvalidExternalAddress(fmt.Errorf("host cannot be empty"))
 	}
 	_, err = strconv.ParseUint(portStr, 10, 16)
 	if err != nil {
-		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: %w", err)
+		return externalAddressPort{}, errInvalidExternalAddress(err)
 	}
 
 	_, errIpv4 := gonet.ResolveUDPAddr(UDP4, addr)
@@ -87,7 +93,7 @@ func validateExternalAddress(addr string) (externalAddressPort, error) {
 		if errIpv6 != nil {
 			err = errIpv6
 		}
-		return externalAddressPort{}, fmt.Errorf("invalid externalAddress: %w", err)
+		return externalAddressPort{}, fmt.Errorf("%w: %w", ErrInvalidExternalAddress, err)
 	}
 	network := UDP6
 	if errIpv4 == nil {
@@ -103,7 +109,7 @@ func validateExternalAddress(addr string) (externalAddressPort, error) {
 
 func (cfg *Config) Validate() error {
 	if len(cfg.ExternalAddresses) == 0 {
-		return fmt.Errorf("invalid externalAddress: cannot be empty")
+		return fmt.Errorf("%w: cannot be empty", ErrInvalidExternalAddress)
 	}
 	if cfg.MaxMessageSize == 0 {
 		cfg.MaxMessageSize = DefaultMaxMessageSize
@@ -115,7 +121,7 @@ func (cfg *Config) Validate() error {
 	for i, e := range cfg.ExternalAddresses {
 		extAddress, err := validateExternalAddress(e)
 		if err != nil {
-			return fmt.Errorf("invalid externalAddress[%v]: %w", i, err)
+			return fmt.Errorf("invalid configuration [%v:%v]: %w", i, e, err)
 		}
 		externalAddressesPort = append(externalAddressesPort, extAddress)
 	}

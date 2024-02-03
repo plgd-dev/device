@@ -192,6 +192,7 @@ func (n *Net) ServeCOAP(w mux.ResponseWriter, request *mux.Message) {
 	messageID := request.MessageID()
 	if messageID >= 0 && request.Type() != message.Confirmable {
 		v, loaded := n.cache.LoadOrStore(messageID, coapCache.NewElement(true, now.Add(n.cfg.DeduplicationLifetime), func(bool) {
+			// no-op
 		}))
 		if loaded && !v.IsExpired(now) {
 			n.logger.Debugf("duplicate message %v according messageID: %v", request, messageID)
