@@ -6,6 +6,8 @@ apis:
       - "127.0.0.1:15683"
       - "[::1]:15683"
     maxMessageSize: 2097152
+log:
+  level: "info"
 cloud:
   enabled: true
 credential:

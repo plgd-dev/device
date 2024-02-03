@@ -22,6 +22,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -197,7 +198,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	s, err := service.New(cfg.Config)
+	s, err := service.New(cfg.Config, service.WithLogger(log.NewStdLogger(cfg.Log.Level)))
 	if err != nil {
 		panic(err)
 	}
@@ -236,7 +237,7 @@ func main() {
 				Credential: device.CredentialConfig{
 					Enabled: cfg.Credential.Enabled,
 				},
-			}, opts...)
+			}, append(opts, device.WithLogger(device.NewLogger(id, cfg.Log.Level)))...)
 		}
 		d, errC := s.CreateDevice(uuid.New(), newDevice)
 		if errC == nil {

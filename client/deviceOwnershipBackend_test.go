@@ -10,7 +10,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/plgd-dev/device/v2/client"
-	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/test"
 	testClient "github.com/plgd-dev/device/v2/test/client"
 	"github.com/stretchr/testify/require"
@@ -41,7 +41,9 @@ func TestBackendOwnershipClient(t *testing.T) {
 	mfgCert, err := tls.X509KeyPair(test.MfgCert, test.MfgKey)
 	require.NoError(t, err)
 
-	client, err := client.NewClientFromConfig(&cfg, testClient.NewTestSetupSecureClient(nil, mfgCA, mfgCert), core.NewNilLogger())
+	client, err := client.NewClientFromConfig(&cfg,
+		testClient.NewTestSetupSecureClient(nil, mfgCA, mfgCert),
+		log.NewStdLogger(log.LevelDebug))
 	require.NoError(t, err)
 
 	ctxWithToken := test.CtxWithToken(context.Background(), jwtWithSubUserID)

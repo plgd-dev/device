@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2023 plgd.dev s.r.o.
+ * Copyright (c) 2024 plgd.dev s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"),
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,54 @@
  *
  ****************************************************************************/
 
-package cloud
+package device
 
 import (
+	"crypto/x509"
+
+	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
+type OnDeviceUpdated func(d *Device)
+
+type CAPoolGetter interface {
+	IsValid() bool
+	GetPool() (*x509.CertPool, error)
+}
+
 type OptionsCfg struct {
-	maxMessageSize  uint32
-	getCertificates GetCertificates
-	removeCloudCAs  RemoveCloudCAs
-	logger          log.Logger
+	onDeviceUpdated         OnDeviceUpdated
+	getAdditionalProperties device.GetAdditionalPropertiesForResponseFunc
+	getCertificates         cloud.GetCertificates
+	caPool                  CAPoolGetter
+	logger                  log.Logger
 }
 
 type Option func(*OptionsCfg)
 
-func WithMaxMessageSize(maxMessageSize uint32) Option {
+func WithOnDeviceUpdated(onDeviceUpdated OnDeviceUpdated) Option {
 	return func(o *OptionsCfg) {
-		if maxMessageSize > 0 {
-			o.maxMessageSize = maxMessageSize
-		}
+		o.onDeviceUpdated = onDeviceUpdated
 	}
 }
 
-func WithGetCertificates(getCertificates GetCertificates) Option {
+func WithGetAdditionalPropertiesForResponse(getAdditionalProperties device.GetAdditionalPropertiesForResponseFunc) Option {
+	return func(o *OptionsCfg) {
+		o.getAdditionalProperties = getAdditionalProperties
+	}
+}
+
+func WithGetCertificates(getCertificates cloud.GetCertificates) Option {
 	return func(o *OptionsCfg) {
 		o.getCertificates = getCertificates
 	}
 }
 
-func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
+func WithCAPool(caPool CAPoolGetter) Option {
 	return func(o *OptionsCfg) {
-		o.removeCloudCAs = removeCloudCA
+		o.caPool = caPool
 	}
 }
 

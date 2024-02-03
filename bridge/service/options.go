@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2023 plgd.dev s.r.o.
+ * Copyright (c) 2024 plgd.dev s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"),
  * you may not use this file except in compliance with the License.
@@ -16,38 +16,23 @@
  *
  ****************************************************************************/
 
-package cloud
+package service
 
 import (
+	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
 type OptionsCfg struct {
-	maxMessageSize  uint32
-	getCertificates GetCertificates
-	removeCloudCAs  RemoveCloudCAs
-	logger          log.Logger
+	onDiscoveryDevices func(req *net.Request)
+	logger             log.Logger
 }
 
-type Option func(*OptionsCfg)
-
-func WithMaxMessageSize(maxMessageSize uint32) Option {
+func WithOnDiscoveryDevices(f func(req *net.Request)) Option {
 	return func(o *OptionsCfg) {
-		if maxMessageSize > 0 {
-			o.maxMessageSize = maxMessageSize
+		if f != nil {
+			o.onDiscoveryDevices = f
 		}
-	}
-}
-
-func WithGetCertificates(getCertificates GetCertificates) Option {
-	return func(o *OptionsCfg) {
-		o.getCertificates = getCertificates
-	}
-}
-
-func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
-	return func(o *OptionsCfg) {
-		o.removeCloudCAs = removeCloudCA
 	}
 }
 
@@ -56,3 +41,5 @@ func WithLogger(logger log.Logger) Option {
 		o.logger = logger
 	}
 }
+
+type Option func(*OptionsCfg)

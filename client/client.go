@@ -27,6 +27,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	"github.com/plgd-dev/go-coap/v3/options"
@@ -81,7 +82,7 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 	udpDialOpts := make([]udp.Option, 0, 5)
 
 	if logger == nil {
-		logger = core.NewNilLogger()
+		logger = log.NewNilLogger()
 	}
 
 	errFn := func(err error) {
@@ -296,7 +297,7 @@ func NewClient(
 	}
 
 	if coreCfg.Logger == nil {
-		coreCfg.Logger = core.NewNilLogger()
+		coreCfg.Logger = log.NewNilLogger()
 	}
 	tls := core.TLSConfig{
 		GetCertificate:            deviceOwner.GetIdentityCertificate,

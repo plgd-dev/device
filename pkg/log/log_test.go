@@ -1,6 +1,6 @@
 /****************************************************************************
  *
- * Copyright (c) 2023 plgd.dev s.r.o.
+ * Copyright (c) 2024 plgd.dev s.r.o.
  *
  * Licensed under the Apache License, Version 2.0 (the "License"),
  * you may not use this file except in compliance with the License.
@@ -16,43 +16,22 @@
  *
  ****************************************************************************/
 
-package cloud
+package log_test
 
 import (
+	"testing"
+
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
-type OptionsCfg struct {
-	maxMessageSize  uint32
-	getCertificates GetCertificates
-	removeCloudCAs  RemoveCloudCAs
-	logger          log.Logger
-}
-
-type Option func(*OptionsCfg)
-
-func WithMaxMessageSize(maxMessageSize uint32) Option {
-	return func(o *OptionsCfg) {
-		if maxMessageSize > 0 {
-			o.maxMessageSize = maxMessageSize
-		}
-	}
-}
-
-func WithGetCertificates(getCertificates GetCertificates) Option {
-	return func(o *OptionsCfg) {
-		o.getCertificates = getCertificates
-	}
-}
-
-func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
-	return func(o *OptionsCfg) {
-		o.removeCloudCAs = removeCloudCA
-	}
-}
-
-func WithLogger(logger log.Logger) Option {
-	return func(o *OptionsCfg) {
-		o.logger = logger
-	}
+func TestNilLogger(*testing.T) {
+	l := log.NewNilLogger()
+	l.Debug("debug")
+	l.Info("info")
+	l.Warn("warn")
+	l.Error("error")
+	l.Debugf("debugf")
+	l.Infof("infof")
+	l.Warnf("warnf")
+	l.Errorf("errorf")
 }

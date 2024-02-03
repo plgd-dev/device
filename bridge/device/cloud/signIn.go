@@ -21,7 +21,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -83,7 +82,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 		return err
 	}
 	c.updateCredsBySignInResponse(signInResp)
-	log.Printf("signed in\n")
+	c.logger.Infof("signed in")
 	c.save()
 	return nil
 }

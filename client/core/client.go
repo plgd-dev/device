@@ -25,6 +25,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/pion/logging"
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
+	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	coapNet "github.com/plgd-dev/go-coap/v3/net"
 	"github.com/plgd-dev/go-coap/v3/tcp"
@@ -172,7 +173,7 @@ func NewClient(opts ...OptionFunc) *Client {
 		cfg = o(cfg)
 	}
 	if cfg.Logger == nil {
-		cfg.Logger = NewNilLogger()
+		cfg.Logger = log.NewNilLogger()
 	}
 
 	cfg.TLSConfig = checkTLSConfig(cfg.TLSConfig)

@@ -21,7 +21,6 @@ package cloud
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -85,7 +84,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 		c.creds.ValidUntil = validUntil(signUpResp.ExpiresIn)
 	}
 	c.setCreds(signUpResp)
-	log.Printf("signed up\n")
+	c.logger.Infof("signed up")
 	c.save()
 	return nil
 }
