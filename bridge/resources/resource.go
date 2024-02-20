@@ -37,11 +37,11 @@ import (
 	"go.uber.org/atomic"
 )
 
-type GetHandlerFunc func(req *net.Request) (*pool.Message, error)
+type GetHandlerFunc func(*net.Request) (*pool.Message, error)
 
-type PostHandlerFunc func(req *net.Request) (*pool.Message, error)
+type PostHandlerFunc func(*net.Request) (*pool.Message, error)
 
-type CreateSubscriptionFunc func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error)
+type CreateSubscriptionFunc func(*net.Request, func(*pool.Message, error)) (func(), error)
 
 const PublishToCloud schema.BitMask = 1 << 7
 
@@ -166,7 +166,7 @@ func (r *Resource) Close() {
 	if !r.closed.CompareAndSwap(false, true) {
 		return
 	}
-	r.createdSubscription.Range(func(key string, value *subscription) bool {
+	r.createdSubscription.Range(func(_ string, value *subscription) bool {
 		value.cancel()
 		return true
 	})
@@ -192,7 +192,7 @@ func (r *Resource) watchSubscriptions() {
 			}
 			// resource closed
 			// cancel all subscriptions
-			r.createdSubscription.Range(func(key string, value *subscription) bool {
+			r.createdSubscription.Range(func(_ string, value *subscription) bool {
 				value.cancel()
 				return true
 			})

@@ -47,7 +47,7 @@ func TestClientOnboardDevice(t *testing.T) {
 				authorizationProvider: "authorizationProvider",
 				authorizationCode:     "authorizationCode",
 				cloudURL:              "coaps+tcp://test:5684",
-				cloudID:               "cloudID",
+				cloudID:               "12e02711-b12e-42c9-b83f-784932ad066e",
 			},
 		},
 		{
@@ -57,7 +57,7 @@ func TestClientOnboardDevice(t *testing.T) {
 				authorizationProvider: "authorizationProvider",
 				authorizationCode:     "authorizationCode",
 				cloudURL:              "coaps+tcp://test:5684",
-				cloudID:               "cloudID",
+				cloudID:               "12e02711-b12e-42c9-b83f-784932ad066e",
 			},
 			wantErr: true,
 		},

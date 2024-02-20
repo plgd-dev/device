@@ -314,7 +314,7 @@ func (o *observationsHandler) Handle(ctx context.Context, body coap.DecodeFunc) 
 	}
 	decode := createDecodeFunc(message)
 	o.lastMessage.Store(decode)
-	o.observations.Range(func(key string, h *observationHandler) bool {
+	o.observations.Range(func(_ string, h *observationHandler) bool {
 		h.HandleMessage(ctx, decode)
 		return true
 	})

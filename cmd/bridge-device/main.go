@@ -86,7 +86,7 @@ func addResources(d service.Device, numResources int) {
 	}
 	go func() {
 		for range time.After(time.Millisecond * 500) {
-			obsWatcher.Range(func(key uint64, h func()) bool {
+			obsWatcher.Range(func(_ uint64, h func()) bool {
 				h()
 				return true
 			})

@@ -24,11 +24,11 @@ import (
 )
 
 type OptionsCfg struct {
-	onDiscoveryDevices func(req *net.Request)
+	onDiscoveryDevices func(*net.Request)
 	logger             log.Logger
 }
 
-func WithOnDiscoveryDevices(f func(req *net.Request)) Option {
+func WithOnDiscoveryDevices(f func(*net.Request)) Option {
 	return func(o *OptionsCfg) {
 		if f != nil {
 			o.onDiscoveryDevices = f

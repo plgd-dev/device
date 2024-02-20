@@ -155,7 +155,7 @@ func DefaultDiscoveryConfiguration() DiscoveryConfiguration {
 		MulticastHopLimit:    0, // will be set to 1 or 255 based on address
 		MulticastAddressUDP4: DiscoveryAddressUDP4,
 		MulticastAddressUDP6: DiscoveryAddressUDP6,
-		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(iface *net.Interface, err error) {
+		MulticastOptions: []coapNet.MulticastOption{coapNet.WithMulticastInterfaceError(func(*net.Interface, error) {
 			// ignore error
 		})},
 	}

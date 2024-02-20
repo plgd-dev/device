@@ -401,7 +401,7 @@ func DialTCP(ctx context.Context, addr string, opts ...tcp.Option) (*ClientClose
 }
 
 func NewVerifyPeerCertificate(rootCAs *x509.CertPool, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
-	return func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
+	return func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 		if len(rawCerts) == 0 {
 			return fmt.Errorf("empty certificates chain")
 		}
@@ -438,7 +438,7 @@ func NewVerifyPeerCertificate(rootCAs *x509.CertPool, verifyPeerCertificate func
 
 func getDefaultTCPOptions(ctx context.Context, tlsCfg *tls.Config) []tcp.Option {
 	dopts := make([]tcp.Option, 0, 4)
-	dopts = append(dopts, options.WithErrors(func(err error) {
+	dopts = append(dopts, options.WithErrors(func(error) {
 		// ignore by default
 	}), options.WithMessagePool(pool.New(0, 0)))
 	if tlsCfg != nil {
@@ -470,7 +470,7 @@ func DialTCPSecure(ctx context.Context, addr string, tlsCfg *tls.Config, opts ..
 
 func getDefaultUDPOptions(ctx context.Context) []udp.Option {
 	dopts := make([]udp.Option, 0, 4)
-	dopts = append(dopts, options.WithErrors(func(err error) {
+	dopts = append(dopts, options.WithErrors(func(error) {
 		// ignore by default
 	}), options.WithMessagePool(pool.New(0, 0)))
 	deadline, ok := ctx.Deadline()

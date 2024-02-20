@@ -57,7 +57,7 @@ func (m *Manager) importConfig(cfg Config) {
 
 func (m *Manager) GetCAPool() []*x509.Certificate {
 	certs := make([]*x509.Certificate, 0, m.credentials.Length())
-	m.credentials.Range(func(key int, value credential.Credential) bool {
+	m.credentials.Range(func(_ int, value credential.Credential) bool {
 		if value.Type != credential.CredentialType_ASYMMETRIC_SIGNING_WITH_CERTIFICATE {
 			return true
 		}
@@ -76,7 +76,7 @@ func (m *Manager) GetCAPool() []*x509.Certificate {
 
 func (m *Manager) getNextID() int {
 	var id int
-	m.credentials.Range(func(key int, value credential.Credential) bool {
+	m.credentials.Range(func(key int, _ credential.Credential) bool {
 		if key > id {
 			id = key
 		}

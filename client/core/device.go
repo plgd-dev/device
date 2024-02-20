@@ -321,7 +321,7 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 		return net.Addr{}, nil, MakeInternal(fmt.Errorf(errMsg, addr.URL(), err))
 	}
 	if !loaded {
-		cc.RegisterCloseHandler(func(err error) {
+		cc.RegisterCloseHandler(func(error) {
 			d.removeConn(addr.URL(), conn)
 		})
 	}

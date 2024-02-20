@@ -126,6 +126,7 @@ func TestSettingCloudResource(t *testing.T) {
 		AuthorizationProvider: "testAuthorizationProvider",
 		URL:                   "testURL",
 		AuthorizationCode:     "testAuthorizationCode",
+		CloudID:               "00000000-0000-0000-0000-000000000000",
 	}
 	err = pc.SetCloudResource(context.Background(), r)
 	require.NoError(t, err)

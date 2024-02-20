@@ -28,7 +28,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 )
 
-type GetLinksHandler func(request *net.Request) schema.ResourceLinks
+type GetLinksHandler func(*net.Request) schema.ResourceLinks
 
 type Resource struct {
 	*resources.Resource

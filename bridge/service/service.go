@@ -81,7 +81,7 @@ func (c *Service) handleDiscoverAllLinks(req *net.Request) (*pool.Message, error
 		// discovery is only allowed for CON, NON, UNSET messages
 		c.onDiscoveryDevices(req)
 	}
-	res := discovery.New(plgdResources.ResourceURI, func(request *net.Request) schema.ResourceLinks {
+	res := discovery.New(plgdResources.ResourceURI, func(*net.Request) schema.ResourceLinks {
 		links := make(schema.ResourceLinks, 0, c.devices.Length()+1)
 		for _, d := range c.devices.CopyData() {
 			dlinks := d.GetLinks(req)
@@ -128,7 +128,7 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 	}
 
 	o := OptionsCfg{
-		onDiscoveryDevices: func(req *net.Request) {
+		onDiscoveryDevices: func(*net.Request) {
 			// nothing to do
 		},
 		logger: log.NewNilLogger(),

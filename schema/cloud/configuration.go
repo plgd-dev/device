@@ -50,8 +50,8 @@ type Configuration struct {
 
 // ConfigurationUpdateRequest is used to update the Cloud Configuration Resource.
 type ConfigurationUpdateRequest struct {
-	AuthorizationProvider string `json:"apn"`
+	AuthorizationProvider string `json:"apn,omitempty"`
 	URL                   string `json:"cis"`
-	AuthorizationCode     string `json:"at"`
-	CloudID               string `json:"sid"`
+	AuthorizationCode     string `json:"at,omitempty"`
+	CloudID               string `json:"sid,omitempty"`
 }

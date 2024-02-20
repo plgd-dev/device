@@ -88,7 +88,7 @@ func (d *Device) StopObservingResource(
 
 func (d *Device) closeObservations(ctx context.Context) error {
 	obs := make([]string, 0, 12)
-	d.observations.Range(func(key string, value *observation) bool {
+	d.observations.Range(func(key string, _ *observation) bool {
 		observationID := key
 		obs = append(obs, observationID)
 		return false
