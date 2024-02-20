@@ -38,7 +38,7 @@ import (
 // device is restarted with an imported configuration with valid cloud credentials
 func TestProvisioningOnDeviceRestart(t *testing.T) {
 	ch := mockCoapGW.NewCoapHandlerWithCounter(-1)
-	makeHandler := func(s *mockCoapGWService.Service, opts ...mockCoapGWService.Option) mockCoapGWService.ServiceHandler {
+	makeHandler := func(*mockCoapGWService.Service, ...mockCoapGWService.Option) mockCoapGWService.ServiceHandler {
 		return ch
 	}
 	coapShutdown := mockCoapGW.New(t, makeHandler, func(handler mockCoapGWService.ServiceHandler) {

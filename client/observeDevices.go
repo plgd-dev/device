@@ -105,7 +105,7 @@ func (o *devicesObserver) poll(ctx context.Context) bool {
 
 func (o *devicesObserver) processDevices(devices *coapSync.Map[string, struct{}]) (added map[string]struct{}, removed []string, current map[string]uint8) {
 	current = make(map[string]uint8)
-	devices.Range(func(key string, value struct{}) bool {
+	devices.Range(func(key string, _ struct{}) bool {
 		current[key] = 0
 		return true
 	})

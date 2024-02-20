@@ -73,7 +73,7 @@ func NewBridgedDeviceWithConfig(t *testing.T, s *service.Service, cfg device.Con
 		}, false)
 		deviceOpts := []device.Option{
 			device.WithCAPool(caPool),
-			device.WithGetCertificates(func(deviceID string) []tls.Certificate {
+			device.WithGetCertificates(func(string) []tls.Certificate {
 				return []tls.Certificate{test.GetMfgCertificate(t)}
 			}),
 			device.WithLogger(device.NewLogger(di, log.LevelDebug)),

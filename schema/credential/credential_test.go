@@ -55,7 +55,7 @@ func testCredentialData(t *testing.T, checkData func(data interface{}, expected 
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(*testing.T) {
 			checkData(tt.args.data, tt.want)
 		})
 	}

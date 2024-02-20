@@ -89,7 +89,7 @@ func (c *DeviceCache) GetDevice(deviceID string) (*core.Device, bool) {
 func (c *DeviceCache) GetDeviceByFoundIP(ip string) []*core.Device {
 	var d []*core.Device
 	now := time.Now()
-	c.devicesCache.Range(func(deviceID string, item *cache.Element[*core.Device]) bool {
+	c.devicesCache.Range(func(_ string, item *cache.Element[*core.Device]) bool {
 		if item.IsExpired(now) {
 			return true
 		}
@@ -178,7 +178,7 @@ func (c *DeviceCache) updateOrStoreDevice(device *core.Device, expiration time.T
 func (c *DeviceCache) GetDevicesFoundByIP() map[string]string {
 	devices := make(map[string]string)
 	now := time.Now()
-	c.devicesCache.Range(func(deviceID string, item *cache.Element[*core.Device]) bool {
+	c.devicesCache.Range(func(_ string, item *cache.Element[*core.Device]) bool {
 		if item.IsExpired(now) {
 			return true
 		}

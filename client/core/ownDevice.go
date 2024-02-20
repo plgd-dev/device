@@ -479,7 +479,7 @@ func getDTLSClient(ctx context.Context, psk []byte, sdkID, addr string, oc otm.C
 	idBin, _ := id.MarshalBinary()
 	dtlsConfig := dtls.Config{
 		PSKIdentityHint: idBin,
-		PSK: func(b []byte) ([]byte, error) {
+		PSK: func([]byte) ([]byte, error) {
 			return psk, nil
 		},
 		CipherSuites: []dtls.CipherSuiteID{dtls.TLS_ECDHE_PSK_WITH_AES_128_CBC_SHA256},

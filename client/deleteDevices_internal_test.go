@@ -246,7 +246,7 @@ func TestClientDeleteDevice(t *testing.T) {
 					require.NoError(t, err)
 					return context.WithValue(ctx, &ctxValueKeyMockHandler, h)
 				},
-				cleanUp: func(ctx context.Context, t *testing.T, c *Client, deviceID string) {
+				cleanUp: func(ctx context.Context, t *testing.T, _ *Client, _ string) {
 					h := ctx.Value(&ctxValueKeyMockHandler).(*mockObservationHandler)
 					err := h.waitForClose(ctx)
 					require.NoError(t, err)
@@ -281,7 +281,7 @@ func TestClientDeleteDevice(t *testing.T) {
 					test.CheckResourceLinks(t, test.DefaultDevsimResourceLinks(), e)
 					return context.WithValue(ctx, &ctxValueKeyMockHandler, h)
 				},
-				cleanUp: func(ctx context.Context, t *testing.T, c *Client, deviceID string) {
+				cleanUp: func(ctx context.Context, t *testing.T, _ *Client, _ string) {
 					h := ctx.Value(&ctxValueKeyMockHandler).(*mockDeviceResourcesObservationHandler)
 					err := h.waitForClose(ctx)
 					require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestClientDeleteDevice(t *testing.T) {
 		{
 			name: "delete device added by ip",
 			args: args{
-				addDevice: func(ctx context.Context, t *testing.T, c *Client, deviceID string) context.Context {
+				addDevice: func(ctx context.Context, t *testing.T, c *Client, _ string) context.Context {
 					_, _, err := c.GetDeviceByIP(ctx, ip)
 					require.NoError(t, err)
 					return ctx

@@ -109,7 +109,7 @@ func (d *Device) ExportConfig() Config {
 
 func New(cfg Config, opts ...Option) (*Device, error) {
 	o := OptionsCfg{
-		onDeviceUpdated: func(d *Device) {
+		onDeviceUpdated: func(*Device) {
 			// do nothing
 		},
 		getAdditionalProperties: func() map[string]interface{} { return nil },

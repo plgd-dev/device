@@ -195,7 +195,7 @@ func TestClientOwnDeviceWithFailSetupCertificates(t *testing.T) {
 	require.NoError(t, err)
 	links, err := dev.GetResourceLinks(ctx, dev.GetEndpoints())
 	require.NoError(t, err)
-	err = dev.Own(ctx, links, []otm.Client{justworks.NewClient()}, core.WithSetupCertificates(func(ctx context.Context, csr []byte) ([]byte, error) {
+	err = dev.Own(ctx, links, []otm.Client{justworks.NewClient()}, core.WithSetupCertificates(func(context.Context, []byte) ([]byte, error) {
 		return nil, fmt.Errorf("invalid")
 	}))
 	require.Error(t, err)
