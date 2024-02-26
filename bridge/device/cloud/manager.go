@@ -417,6 +417,11 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 
 func (c *Manager) run() {
 	ctx := context.Background()
+	defer func() {
+		if err := c.close(); err != nil {
+			c.logger.Warnf("cannot close connection: %w", err)
+		}
+	}()
 	t := time.NewTicker(time.Second * 10)
 	for {
 		select {
