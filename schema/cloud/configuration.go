@@ -36,6 +36,11 @@ const (
 	ProvisioningStatus_FAILED            ProvisioningStatus = "failed"
 )
 
+type Endpoint struct {
+	ID  string `json:"id"`
+	URI string `json:"uri"`
+}
+
 // Configuration contains the supported fields of the Cloud Configuration Resource.
 type Configuration struct {
 	ResourceTypes         []string           `json:"rt"`
@@ -46,12 +51,14 @@ type Configuration struct {
 	URL                   string             `json:"cis"`
 	LastErrorCode         int                `json:"clec"`
 	ProvisioningStatus    ProvisioningStatus `json:"cps"`
+	Endpoints             []Endpoint         `json:"x.org.iotivity.servers"`
 }
 
 // ConfigurationUpdateRequest is used to update the Cloud Configuration Resource.
 type ConfigurationUpdateRequest struct {
-	AuthorizationProvider string `json:"apn,omitempty"`
-	URL                   string `json:"cis"`
-	AuthorizationCode     string `json:"at,omitempty"`
-	CloudID               string `json:"sid,omitempty"`
+	AuthorizationProvider string     `json:"apn,omitempty"`
+	URL                   string     `json:"cis"`
+	AuthorizationCode     string     `json:"at,omitempty"`
+	CloudID               string     `json:"sid,omitempty"`
+	Endpoints             []Endpoint `json:"x.org.iotivity.servers,omitempty"`
 }
