@@ -14,7 +14,7 @@ require (
 	github.com/pion/logging v0.2.2
 	github.com/plgd-dev/go-coap/v3 v3.3.2-0.20240201130556-f8d6fade418f
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.9.0
 	github.com/ugorji/go/codec v1.2.12
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.6.0
