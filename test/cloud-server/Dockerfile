@@ -8,7 +8,7 @@ RUN go test -c -coverpkg=./... -covermode=atomic ./client -o /go/bin/device.clie
 RUN go test -c -coverpkg=./... -covermode=atomic ./client/core -o /go/bin/device.client.core.test
 
 FROM alpine:3.19 AS service
-RUN apk add bash
+RUN apk add --no-cache bash
 COPY --from=build /go/bin/device.client.test /usr/local/bin/device.client.test
 COPY --from=build /go/bin/device.client.core.test /usr/local/bin/device.client.core.test
 COPY ./test/cloud-server/run.sh /usr/local/bin/run.sh
