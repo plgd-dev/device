@@ -12,7 +12,7 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.2.8-0.20240201071732-2597464081c8
 	github.com/pion/logging v0.2.2
-	github.com/plgd-dev/go-coap/v3 v3.3.2-0.20240201130556-f8d6fade418f
+	github.com/plgd-dev/go-coap/v3 v3.3.3
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.8.4
 	github.com/ugorji/go/codec v1.2.12
@@ -31,10 +31,10 @@ require (
 	github.com/pion/transport/v3 v3.0.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.18.0 // indirect
-	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
-	golang.org/x/net v0.20.0 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/crypto v0.19.0 // indirect
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a // indirect
+	golang.org/x/net v0.21.0 // indirect
+	golang.org/x/sys v0.17.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240125205218-1f4bbc51befe // indirect
 	google.golang.org/protobuf v1.32.0 // indirect
 )
