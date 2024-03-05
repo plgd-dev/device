@@ -1,16 +1,19 @@
 linters-settings:
-  gocyclo:
-    min-complexity: 15
-  govet:
-    check-shadowing: true
   exhaustive:
     default-signifies-exhaustive: true
+  gocyclo:
+    min-complexity: 15
   gomodguard:
     blocked:
       modules:
         - github.com/pkg/errors:
             recommendations:
               - errors
+  gomoddirectives:
+    replace-allow-list:
+      - github.com/pion/dtls/v2
+  govet:
+    check-shadowing: true
   stylecheck:
     # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]

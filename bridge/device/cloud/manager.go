@@ -295,6 +295,17 @@ func (c *Manager) isCredsExpiring() bool {
 	return !time.Now().Before(c.creds.ValidUntil.Add(-time.Second * 10))
 }
 
+func getResourceTypesFilter(request *mux.Message) []string {
+	queries, _ := request.Options().Queries()
+	resourceTypesFitler := []string{}
+	for _, q := range queries {
+		if len(q) > 3 && q[:3] == "rt=" {
+			resourceTypesFitler = append(resourceTypesFitler, q[3:])
+		}
+	}
+	return resourceTypesFitler
+}
+
 func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
 	request.Message.AddQuery("di=" + c.deviceID.String())
 	r := net.Request{
@@ -316,7 +327,7 @@ func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
 			}
 			resp, err = c.handler(&r)
 		case plgdResources.ResourceURI:
-			links := c.getLinks(schema.Endpoints{}, c.deviceID, nil, resources.PublishToCloud)
+			links := c.getLinks(schema.Endpoints{}, c.deviceID, getResourceTypesFilter(request), resources.PublishToCloud)
 			links = patchDeviceLink(links)
 			links = discovery.PatchLinks(links, c.deviceID.String())
 			resp, err = resources.CreateResponseContent(request.Context(), links, codes.Content)
