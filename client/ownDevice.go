@@ -38,9 +38,6 @@ func (c *Client) OwnDevice(ctx context.Context, deviceID string, opts ...OwnOpti
 		return "", err
 	}
 	ok := d.IsSecured()
-	if err != nil {
-		return "", err
-	}
 	if !ok {
 		// don't own insecure device
 		return deviceID, nil
