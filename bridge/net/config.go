@@ -23,6 +23,8 @@ import (
 	gonet "net"
 	"strconv"
 	"time"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 const (
@@ -89,11 +91,10 @@ func validateExternalAddress(addr string) (externalAddressPort, error) {
 	_, errIpv4 := gonet.ResolveUDPAddr(UDP4, addr)
 	_, errIpv6 := gonet.ResolveUDPAddr(UDP6, addr)
 	if errIpv4 != nil && errIpv6 != nil {
-		err = errIpv4
-		if errIpv6 != nil {
-			err = errIpv6
-		}
-		return externalAddressPort{}, fmt.Errorf("%w: %w", ErrInvalidExternalAddress, err)
+		var errs *multierror.Error
+		errs = multierror.Append(errs, errIpv4)
+		errs = multierror.Append(errs, errIpv6)
+		return externalAddressPort{}, fmt.Errorf("%w: %w", ErrInvalidExternalAddress, errs)
 	}
 	network := UDP6
 	if errIpv4 == nil {
