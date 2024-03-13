@@ -40,6 +40,7 @@ func MakeConfig(t *testing.T) service.Config {
 			Enabled: true,
 			Config: &tls.Config{
 				InsecureSkipVerify: true, //nolint:gosec
+				MinVersion:         tls.VersionTLS12,
 				Certificates:       []tls.Certificate{test.GetCoapCertificate(t)},
 			},
 		},

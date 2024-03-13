@@ -34,6 +34,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/bridge/resources/maintenance"
 	credentialResource "github.com/plgd-dev/device/v2/bridge/resources/secure/credential"
+	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	pkgLog "github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
@@ -55,7 +56,7 @@ type Resource interface {
 	GetResourceInterfaces() []string
 	HandleRequest(req *net.Request) (*pool.Message, error)
 	GetPolicyBitMask() schema.BitMask
-	SetObserveHandler(createSubscription resources.CreateSubscriptionFunc)
+	SetObserveHandler(loop *eventloop.Loop, createSubscription resources.CreateSubscriptionFunc)
 	UpdateETag()
 }
 
@@ -65,6 +66,9 @@ type Device struct {
 	cloudManager      *cloud.Manager
 	credentialManager *credential.Manager
 	onDeviceUpdated   func(d *Device)
+	loop              *eventloop.Loop
+	runLoop           bool
+	done              chan struct{}
 }
 
 func NewLogger(id uuid.UUID, level pkgLog.Level) pkgLog.Logger {
@@ -86,6 +90,10 @@ func (d *Device) GetName() string {
 
 func (d *Device) GetResourceTypes() []string {
 	return d.cfg.ResourceTypes
+}
+
+func (d *Device) GetLoop() *eventloop.Loop {
+	return d.loop
 }
 
 func (d *Device) GetProtocolIndependentID() uuid.UUID {
@@ -115,6 +123,8 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		getAdditionalProperties: func() map[string]interface{} { return nil },
 		caPool:                  cloud.MakeCAPool(nil, false),
 		logger:                  NewLogger(cfg.ID, pkgLog.LevelInfo),
+		loop:                    eventloop.New(),
+		runLoop:                 true,
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -125,6 +135,11 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		cfg:             cfg,
 		resources:       sync.NewMap[string, Resource](),
 		onDeviceUpdated: o.onDeviceUpdated,
+		loop:            o.loop,
+		runLoop:         o.runLoop,
+	}
+	if o.runLoop {
+		d.done = make(chan struct{})
 	}
 
 	cloudOpts := []cloud.Option{
@@ -145,7 +160,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		}
 		cm, err := cloud.New(cfg.Cloud.Config, d.cfg.ID, func() {
 			d.onDeviceUpdated(d)
-		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, cloudOpts...)
+		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, o.loop, cloudOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("cannot create cloud manager: %w", err)
 		}
@@ -175,6 +190,9 @@ func (d *Device) AddResource(resource Resource) {
 func (d *Device) Init() {
 	if d.cloudManager != nil {
 		d.cloudManager.Init()
+	}
+	if d.runLoop {
+		go d.loop.Run(d.done)
 	}
 }
 
@@ -271,5 +289,11 @@ func (d *Device) Close() {
 	}
 	for _, resource := range d.resources.LoadAndDeleteAll() {
 		resource.Close()
+	}
+	if d.runLoop {
+		select {
+		case d.done <- struct{}{}:
+		default:
+		}
 	}
 }

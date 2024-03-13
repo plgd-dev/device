@@ -23,6 +23,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/resources/device"
+	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
@@ -39,6 +40,8 @@ type OptionsCfg struct {
 	getCertificates         cloud.GetCertificates
 	caPool                  CAPoolGetter
 	logger                  log.Logger
+	loop                    *eventloop.Loop
+	runLoop                 bool
 }
 
 type Option func(*OptionsCfg)
@@ -70,5 +73,12 @@ func WithCAPool(caPool CAPoolGetter) Option {
 func WithLogger(logger log.Logger) Option {
 	return func(o *OptionsCfg) {
 		o.logger = logger
+	}
+}
+
+func WithEventLoop(loop *eventloop.Loop) Option {
+	return func(o *OptionsCfg) {
+		o.loop = loop
+		o.runLoop = false
 	}
 }
