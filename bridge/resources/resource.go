@@ -29,6 +29,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -59,9 +60,9 @@ type Resource struct {
 	postHandler         PostHandlerFunc
 	createSubscription  CreateSubscriptionFunc
 	closed              atomic.Bool
-	wakeUpSubscription  chan bool
 	createdSubscription *sync.Map[string, *subscription]
 	etag                atomic.Uint64
+	loop                *eventloop.Loop
 }
 
 func (r *Resource) GetPolicyBitMask() schema.BitMask {
@@ -100,11 +101,9 @@ func NewResource(href string, getHandler GetHandlerFunc, postHandler PostHandler
 		PolicyBitMask:       schema.Discoverable | PublishToCloud,
 		getHandler:          getHandler,
 		postHandler:         postHandler,
-		wakeUpSubscription:  make(chan bool, 1),
 		createdSubscription: sync.NewMap[string, *subscription](),
 	}
 	r.etag.Store(GetETag())
-	go r.watchSubscriptions()
 	return r
 }
 
@@ -136,29 +135,28 @@ func CreateResponseContent(ctx context.Context, data interface{}, code codes.Cod
 	return res, nil
 }
 
-func CreateResponseBadRequest(ctx context.Context, err error) (*pool.Message, error) {
+func CreateErrorResponse(ctx context.Context, code codes.Code, err error) (*pool.Message, error) {
 	res := pool.NewMessage(ctx)
-	res.SetCode(codes.BadRequest)
+	res.SetCode(code)
 	res.SetContentFormat(message.TextPlain)
 	res.SetBody(bytes.NewReader([]byte(err.Error())))
 	return res, nil
 }
 
-func (r *Resource) SetObserveHandler(createSubscription CreateSubscriptionFunc) {
+func CreateResponseBadRequest(ctx context.Context, err error) (*pool.Message, error) {
+	return CreateErrorResponse(ctx, codes.BadRequest, err)
+}
+
+func (r *Resource) SetObserveHandler(loop *eventloop.Loop, createSubscription CreateSubscriptionFunc) {
 	if createSubscription == nil {
 		r.createSubscription = nil
 		r.PolicyBitMask &^= schema.Observable
+		r.loop = nil
 		return
 	}
+	r.loop = loop
 	r.createSubscription = createSubscription
 	r.PolicyBitMask |= schema.Observable
-}
-
-func (r *Resource) wakeWatchSubscriptions() {
-	select {
-	case r.wakeUpSubscription <- true:
-	default:
-	}
 }
 
 // Close closes resource and cancel all subscriptions
@@ -170,43 +168,12 @@ func (r *Resource) Close() {
 		value.cancel()
 		return true
 	})
-	r.wakeUpSubscription <- false
-}
-
-func (r *Resource) watchSubscriptions() {
-	for {
-		keys := make([]string, 0, r.createdSubscription.Length())
-		cases := make([]reflect.SelectCase, 0, r.createdSubscription.Length()+1)
-		// wake up subscription
-		cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(r.wakeUpSubscription)})
-		r.createdSubscription.Range(func(key string, value *subscription) bool {
-			cases = append(cases, reflect.SelectCase{Dir: reflect.SelectRecv, Chan: reflect.ValueOf(value.done)})
-			keys = append(keys, key)
-			return true
-		})
-		idx, recv, ok := reflect.Select(cases)
-		if idx == 0 {
-			if ok && recv.Bool() {
-				// wake up subscription - added/
-				continue
-			}
-			// resource closed
-			// cancel all subscriptions
-			r.createdSubscription.Range(func(_ string, value *subscription) bool {
-				value.cancel()
-				return true
-			})
-			return
-		}
-		r.removeSubscription(keys[idx-1])
-	}
 }
 
 func (r *Resource) removeSubscription(key string) {
 	sub, ok := r.createdSubscription.LoadAndDelete(key)
 	if ok {
 		sub.cancel()
-		r.wakeWatchSubscriptions()
 	}
 }
 
@@ -235,6 +202,9 @@ func calcCRC64(body io.ReadSeeker) uint64 {
 }
 
 func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*pool.Message, error) {
+	if r.loop == nil {
+		return CreateErrorResponse(req.Context(), codes.InternalServerError, fmt.Errorf("event loop is not initialized"))
+	}
 	if !createSubscription {
 		r.removeSubscription(req.Conn.RemoteAddr().String())
 		return r.getHandler(req)
@@ -291,7 +261,12 @@ func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*
 	if oldLoaded {
 		oldSub.cancel()
 	}
-	r.wakeWatchSubscriptions()
+	r.loop.Add(eventloop.NewReadHandler(reflect.ValueOf(req.Context().Done()), func(_ reflect.Value, closed bool) {
+		if closed {
+			r.removeSubscription(req.Conn.RemoteAddr().String())
+			return
+		}
+	}))
 	return resp, nil
 }
 

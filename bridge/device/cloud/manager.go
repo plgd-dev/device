@@ -23,6 +23,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"reflect"
 	"sync"
 	"time"
 
@@ -31,6 +32,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -91,9 +93,10 @@ type Manager struct {
 	resourcesPublished bool
 	done               chan struct{}
 	trigger            chan bool
+	loop               *eventloop.Loop
 }
 
-func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, opts ...Option) (*Manager, error) {
+func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, loop *eventloop.Loop, opts ...Option) (*Manager, error) {
 	if !caPool.IsValid() {
 		return nil, fmt.Errorf("invalid ca pool")
 	}
@@ -123,6 +126,7 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		getCertificates: o.getCertificates,
 		removeCloudCAs:  o.removeCloudCAs,
 		logger:          o.logger,
+		loop:            loop,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
 	c.importConfig(cfg)
@@ -162,11 +166,55 @@ func (c *Manager) importConfig(cfg Config) {
 	})
 }
 
+func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
+	if closed {
+		return
+	}
+	ctx := context.Background()
+	wantToReset := value.Bool()
+	if wantToReset {
+		c.resetCredentials(ctx, true)
+	}
+	if c.getCloudConfiguration().URL == "" {
+		return
+	}
+	if err := c.connect(ctx); err != nil {
+		c.logger.Errorf("cannot connect to cloud: %w", err)
+	} else {
+		c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERED)
+	}
+}
+
+func (c *Manager) handleTimer(_ reflect.Value, closed bool) {
+	if closed {
+		return
+	}
+	if c.getCloudConfiguration().URL == "" {
+		return
+	}
+	if err := c.connect(context.Background()); err != nil {
+		c.logger.Errorf("cannot connect to cloud: %w", err)
+	} else {
+		c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERED)
+	}
+}
+
 func (c *Manager) Init() {
 	if c.private.cfg.URL != "" {
 		c.triggerRunner(false)
 	}
-	go c.run()
+	t := time.NewTicker(time.Second * 10)
+	handlers := []eventloop.Handler{
+		eventloop.NewReadHandler(reflect.ValueOf(c.trigger), c.handleTrigger),
+		eventloop.NewReadHandler(reflect.ValueOf(t.C), c.handleTimer),
+		eventloop.NewReadHandler(reflect.ValueOf(c.done), func(_ reflect.Value, _ bool) {
+			_ = c.close()
+			// cleanup resources
+			c.loop.RemoveByChannels(reflect.ValueOf(c.done), reflect.ValueOf(t.C), reflect.ValueOf(c.trigger))
+			t.Stop()
+		}),
+	}
+	c.loop.Add(handlers...)
 }
 
 func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
@@ -371,6 +419,7 @@ func (c *Manager) dial(ctx context.Context) error {
 	}
 	tlsConfig := &tls.Config{
 		InsecureSkipVerify: true, //nolint:gosec
+		MinVersion:         tls.VersionTLS12,
 		Certificates:       c.getCertificates(c.deviceID.String()),
 		VerifyPeerCertificate: coap.NewVerifyPeerCertificate(caPool, func(cert *x509.Certificate) error {
 			cloudID, errP := uuid.Parse(c.getCloudConfiguration().CloudID)
@@ -424,34 +473,6 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 		break
 	}
 	return links
-}
-
-func (c *Manager) run() {
-	ctx := context.Background()
-	defer func() {
-		if err := c.close(); err != nil {
-			c.logger.Warnf("cannot close connection: %w", err)
-		}
-	}()
-	t := time.NewTicker(time.Second * 10)
-	for {
-		select {
-		case <-c.done:
-			return
-		case wantToReset := <-c.trigger:
-			if wantToReset {
-				c.resetCredentials(ctx, true)
-			}
-		case <-t.C:
-		}
-		if c.getCloudConfiguration().URL != "" {
-			if err := c.connect(ctx); err != nil {
-				c.logger.Errorf("cannot connect to cloud: %w", err)
-			} else {
-				c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERED)
-			}
-		}
-	}
 }
 
 func (c *Manager) connect(ctx context.Context) error {

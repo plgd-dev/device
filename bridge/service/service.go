@@ -27,6 +27,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
+	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
@@ -58,6 +59,7 @@ type Device interface {
 	GetResource(resourceHref string) (device.Resource, bool)
 
 	GetCloudManager() *cloud.Manager
+	GetLoop() *eventloop.Loop
 }
 
 type Service struct {

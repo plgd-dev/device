@@ -67,7 +67,7 @@ func TestObserveResource(t *testing.T) {
 		rds.setName(newData.Name)
 		return resHandler(req)
 	}, []string{"oic.d.virtual", "oic.d.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
-	res.SetObserveHandler(func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error) {
+	res.SetObserveHandler(d.GetLoop(), func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error) {
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
 			defer cancel()

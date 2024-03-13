@@ -85,7 +85,9 @@ func addResources(d service.Device, numResources int) {
 		addResource(d, i, obsWatcher)
 	}
 	go func() {
-		for range time.After(time.Millisecond * 500) {
+		// notify observers every 500ms
+		for {
+			time.Sleep(time.Millisecond * 500)
 			obsWatcher.Range(func(_ uint64, h func()) bool {
 				h()
 				return true
@@ -131,7 +133,7 @@ func addResource(d service.Device, idx int, obsWatcher *coapSync.Map[uint64, fun
 		rds.setName(newData.Name)
 		return resHandler(req)
 	}, []string{"x.plgd.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
-	res.SetObserveHandler(func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error) {
+	res.SetObserveHandler(d.GetLoop(), func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error) {
 		sub := subID.Add(1)
 		obsWatcher.Store(sub, func() {
 			resp, err := resHandler(req)
