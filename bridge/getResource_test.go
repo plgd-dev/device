@@ -56,7 +56,7 @@ func TestGetResource(t *testing.T) {
 		[]string{"oic.d.virtual", "oic.d.test"},
 		[]string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_R},
 	)
-	d1.AddResource(failRes)
+	d1.AddResources(failRes)
 
 	cleanup := bridgeTest.RunBridgeService(s)
 	defer func() {

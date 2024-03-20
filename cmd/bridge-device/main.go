@@ -147,7 +147,7 @@ func addResource(d service.Device, idx int, obsWatcher *coapSync.Map[uint64, fun
 			obsWatcher.Delete(sub)
 		}, nil
 	})
-	d.AddResource(res)
+	d.AddResources(res)
 }
 
 func getCloudTLS(cfg CloudConfig, credentialEnabled bool) (cloud.CAPool, *tls.Certificate, error) {

@@ -87,7 +87,7 @@ func TestObserveResource(t *testing.T) {
 		}()
 		return cancel, nil
 	})
-	d.AddResource(res)
+	d.AddResources(res)
 
 	cleanup := bridgeTest.RunBridgeService(s)
 	defer func() {

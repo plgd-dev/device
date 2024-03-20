@@ -136,7 +136,7 @@ func TestLoadAndDeleteResource(t *testing.T) {
 	require.False(t, ok)
 
 	res := resources.NewResource("/test", nil, nil, []string{"oic.d.virtual", "oic.d.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
-	dev.AddResource(res)
+	dev.AddResources(res)
 	_, ok = dev.GetResource(res.GetHref())
 	require.True(t, ok)
 
@@ -154,7 +154,7 @@ func TestCloseAndDeleteResource(t *testing.T) {
 	require.False(t, ok)
 
 	res := resources.NewResource("/test", nil, nil, []string{"oic.d.virtual", "oic.d.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
-	dev.AddResource(res)
+	dev.AddResources(res)
 	_, ok = dev.GetResource(res.GetHref())
 	require.True(t, ok)
 

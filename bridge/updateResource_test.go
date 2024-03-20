@@ -89,7 +89,7 @@ func TestUpdateResource(t *testing.T) {
 		rds.setName(newData.Name)
 		return resHandler(req)
 	}, []string{"oic.d.virtual", "oic.d.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
-	d.AddResource(res)
+	d.AddResources(res)
 
 	cleanup := bridgeTest.RunBridgeService(s)
 	defer func() {

@@ -81,9 +81,11 @@ type Manager struct {
 	removeCloudCAs  RemoveCloudCAs
 
 	private struct {
-		mutex            sync.Mutex
-		cfg              Configuration
-		previousCloudIDs []string
+		mutex                     sync.Mutex
+		cfg                       Configuration
+		previousCloudIDs          []string
+		readyToPublishResources   map[string]struct{}
+		readyToUnpublishResources map[string]struct{}
 	}
 
 	logger             log.Logger
@@ -166,6 +168,11 @@ func (c *Manager) importConfig(cfg Config) {
 	})
 }
 
+func (c *Manager) isInitialized() bool {
+	cfg := c.getCloudConfiguration()
+	return cfg.URL != ""
+}
+
 func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
 	if closed {
 		return
@@ -175,8 +182,14 @@ func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
 	if wantToReset {
 		c.resetCredentials(ctx, true)
 	}
-	if c.getCloudConfiguration().URL == "" {
+	if !c.isInitialized() {
+		// resources will be published after sign in
+		c.resetPublishing()
 		return
+	}
+	if !c.signedIn {
+		// resources will be published after sign in
+		c.resetPublishing()
 	}
 	if err := c.connect(ctx); err != nil {
 		c.logger.Errorf("cannot connect to cloud: %w", err)
@@ -303,6 +316,8 @@ func (c *Manager) setCloudConfiguration(cfg cloud.ConfigurationUpdateRequest) {
 	c.private.cfg.AuthorizationCode = cfg.AuthorizationCode
 	if cfg.URL == "" {
 		c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
+		c.private.readyToPublishResources = nil
+		c.private.readyToUnpublishResources = nil
 	} else {
 		c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_READY_TO_REGISTER
 	}
@@ -476,7 +491,7 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 }
 
 func (c *Manager) connect(ctx context.Context) error {
-	var funcs []func(ctx context.Context) error
+	funcs := make([]func(ctx context.Context) error, 0, 5)
 	if c.isCredsExpiring() {
 		funcs = append(funcs, c.refreshToken)
 	}
@@ -484,6 +499,7 @@ func (c *Manager) connect(ctx context.Context) error {
 		c.signUp,
 		c.signIn,
 		c.publishResources,
+		c.unpublishResources,
 	}...)
 	err := c.dial(ctx)
 	if err != nil {
@@ -511,4 +527,64 @@ func (c *Manager) Close() {
 func (c *Manager) Unregister() {
 	c.setCloudConfiguration(cloud.ConfigurationUpdateRequest{})
 	c.triggerRunner(true)
+}
+
+func (c *Manager) resetPublishing() {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	c.private.readyToPublishResources = nil
+	c.private.readyToUnpublishResources = nil
+}
+
+func (c *Manager) PublishResources(hrefs ...string) {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+
+	if c.private.readyToPublishResources == nil {
+		c.private.readyToPublishResources = make(map[string]struct{})
+	}
+	for _, href := range hrefs {
+		c.private.readyToPublishResources[href] = struct{}{}
+		delete(c.private.readyToUnpublishResources, href)
+	}
+	c.triggerRunner(false)
+}
+
+func (c *Manager) UnpublishResources(hrefs ...string) {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	if c.private.readyToUnpublishResources == nil {
+		c.private.readyToUnpublishResources = make(map[string]struct{})
+	}
+	for _, href := range hrefs {
+		c.private.readyToUnpublishResources[href] = struct{}{}
+		delete(c.private.readyToPublishResources, href)
+	}
+	c.triggerRunner(false)
+}
+
+func (c *Manager) popReadyToPublishResources() map[string]struct{} {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	res := c.private.readyToPublishResources
+	c.private.readyToPublishResources = nil
+	return res
+}
+
+func (c *Manager) popReadyToUnpublishResources(count int) []string {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	toUnpublish := make([]string, 0, count)
+	for href := range c.private.readyToUnpublishResources {
+		if count == 0 {
+			break
+		}
+		count--
+		toUnpublish = append(toUnpublish, href)
+		delete(c.private.readyToUnpublishResources, href)
+	}
+	if len(c.private.readyToUnpublishResources) == 0 {
+		c.private.readyToUnpublishResources = nil
+	}
+	return toUnpublish
 }
