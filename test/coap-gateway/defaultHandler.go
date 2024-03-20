@@ -133,6 +133,8 @@ type DefaultHandlerWithCounter struct {
 
 	signedInChan  chan int
 	signedOffChan chan int
+	publishChan   chan int
+	unpublishChan chan int
 }
 
 func NewCoapHandlerWithCounter(atLifetime int64) *DefaultHandlerWithCounter {
@@ -148,6 +150,8 @@ func NewCoapHandlerWithCounter(atLifetime int64) *DefaultHandlerWithCounter {
 
 		signedInChan:  make(chan int, 16),
 		signedOffChan: make(chan int, 16),
+		publishChan:   make(chan int, 16),
+		unpublishChan: make(chan int, 16),
 	}
 }
 
@@ -215,18 +219,34 @@ func (ch *DefaultHandlerWithCounter) SignOut(req cloud.CoapSignInRequest) error 
 	return err
 }
 
+func (ch *DefaultHandlerWithCounter) WaitForPublish(timeout time.Duration) int {
+	return waitForAction(ch.publishChan, timeout)
+}
+
 func (ch *DefaultHandlerWithCounter) PublishResources(req cloud.PublishResourcesRequest) error {
 	err := ch.DefaultHandler.PublishResources(req)
 	ch.CallCounter.Lock.Lock()
 	ch.CallCounter.Data[PublishKey]++
+	count, ok := ch.CallCounter.Data[PublishKey]
+	if ok {
+		sendToChan(ch.publishChan, count)
+	}
 	ch.CallCounter.Lock.Unlock()
 	return err
+}
+
+func (ch *DefaultHandlerWithCounter) WaitForUnpublish(timeout time.Duration) int {
+	return waitForAction(ch.unpublishChan, timeout)
 }
 
 func (ch *DefaultHandlerWithCounter) UnpublishResources(req cloud.UnpublishResourcesRequest) error {
 	err := ch.DefaultHandler.UnpublishResources(req)
 	ch.CallCounter.Lock.Lock()
 	ch.CallCounter.Data[UnpublishKey]++
+	count, ok := ch.CallCounter.Data[UnpublishKey]
+	if ok {
+		sendToChan(ch.unpublishChan, count)
+	}
 	ch.CallCounter.Lock.Unlock()
 	return err
 }

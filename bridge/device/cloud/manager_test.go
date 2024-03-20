@@ -19,21 +19,54 @@
 package cloud_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/net"
+	"github.com/plgd-dev/device/v2/bridge/resources"
 	bridgeTest "github.com/plgd-dev/device/v2/bridge/test"
+	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
+	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
 	testClient "github.com/plgd-dev/device/v2/test/client"
 	mockCoapGW "github.com/plgd-dev/device/v2/test/coap-gateway"
 	mockCoapGWService "github.com/plgd-dev/device/v2/test/coap-gateway/service"
+	"github.com/plgd-dev/go-coap/v3/message"
+	"github.com/plgd-dev/go-coap/v3/message/codes"
+	"github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/stretchr/testify/require"
 )
+
+type resourceData struct {
+	Name string `json:"name,omitempty"`
+}
+
+type resourceDataSync struct {
+	resourceData
+	lock sync.Mutex
+}
+
+func (r *resourceDataSync) setName(name string) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	r.Name = name
+}
+
+func (r *resourceDataSync) copy() resourceData {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+	return resourceData{
+		Name: r.Name,
+	}
+}
 
 // device is restarted with an imported configuration with valid cloud credentials
 func TestProvisioningOnDeviceRestart(t *testing.T) {
@@ -48,7 +81,8 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 		// d2 -> should use the stored credentials to skip signup and only do sign in + publish
 		require.Equal(t, 1, h.CallCounter.Data[mockCoapGW.SignUpKey])
 		require.Equal(t, 2, h.CallCounter.Data[mockCoapGW.SignInKey])
-		require.Equal(t, 2, h.CallCounter.Data[mockCoapGW.PublishKey])
+		require.Equal(t, 3, h.CallCounter.Data[mockCoapGW.PublishKey])
+		require.Equal(t, 1, h.CallCounter.Data[mockCoapGW.UnpublishKey])
 		require.Equal(t, 0, h.CallCounter.Data[mockCoapGW.RefreshTokenKey])
 	})
 	defer coapShutdown()
@@ -79,6 +113,9 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 	// wait for sign in
 	require.Equal(t, 1, ch.WaitForSignIn(time.Second*20))
 
+	// wait for publish
+	require.Equal(t, 1, ch.WaitForPublish(time.Second*20))
+
 	// stop service
 	err = s1Shutdown()
 	require.NoError(t, err)
@@ -98,12 +135,78 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 		require.NoError(t, errS)
 	}()
 	require.Equal(t, 2, ch.WaitForSignIn(time.Second*20))
+	// wait for publish
+	require.Equal(t, 2, ch.WaitForPublish(time.Second*20))
 
 	// check provisioning status
 	var cloudCfg cloud.Configuration
 	err = c.GetResource(ctx, deviceID, cloudSchema.ResourceURI, &cloudCfg)
 	require.NoError(t, err)
 	require.Equal(t, cloudCfg.ProvisioningStatus, cloudSchema.ProvisioningStatus_REGISTERED)
+
+	rds := resourceDataSync{
+		resourceData: resourceData{
+			Name: "test",
+		},
+	}
+
+	resHandler := func(req *net.Request) (*pool.Message, error) {
+		resp := pool.NewMessage(req.Context())
+		switch req.Code() {
+		case codes.GET:
+			resp.SetCode(codes.Content)
+		case codes.POST:
+			resp.SetCode(codes.Changed)
+		default:
+			return nil, fmt.Errorf("invalid method %v", req.Code())
+		}
+		resp.SetContentFormat(message.AppOcfCbor)
+		data, err := cbor.Encode(rds.copy())
+		if err != nil {
+			return nil, err
+		}
+		resp.SetBody(bytes.NewReader(data))
+		return resp, nil
+	}
+
+	res := resources.NewResource("/test", resHandler, func(req *net.Request) (*pool.Message, error) {
+		codec := codecOcf.VNDOCFCBORCodec{}
+		var newData resourceData
+		err := codec.Decode(req.Message, &newData)
+		if err != nil {
+			return nil, err
+		}
+		rds.setName(newData.Name)
+		return resHandler(req)
+	}, []string{"oic.d.virtual", "oic.d.test"}, []string{interfaces.OC_IF_BASELINE, interfaces.OC_IF_RW})
+	res.SetObserveHandler(d2.GetLoop(), func(req *net.Request, handler func(msg *pool.Message, err error)) (cancel func(), err error) {
+		ctx, cancel := context.WithCancel(context.Background())
+		go func() {
+			defer cancel()
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(time.Millisecond * 100):
+					resp, err := resHandler(req)
+					if err != nil {
+						handler(nil, err)
+						return
+					}
+					handler(resp, nil)
+				}
+			}
+		}()
+		return cancel, nil
+	})
+
+	d2.AddResources(res)
+	// wait for publish
+	require.Equal(t, 3, ch.WaitForPublish(time.Second*20))
+
+	require.True(t, d2.CloseAndDeleteResource(res.GetHref()))
+	// wait for unpublish
+	require.Equal(t, 1, ch.WaitForUnpublish(time.Second*20))
 
 	// sign off
 	cloudManager := d2.GetCloudManager()

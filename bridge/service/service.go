@@ -53,7 +53,7 @@ type Device interface {
 	HandleRequest(req *net.Request) (*pool.Message, error)
 
 	Range(f func(key string, resource device.Resource) bool)
-	AddResource(resource device.Resource)
+	AddResources(resources ...device.Resource)
 	LoadAndDeleteResource(resourceHref string) (device.Resource, bool)
 	CloseAndDeleteResource(resourceHref string) bool
 	GetResource(resourceHref string) (device.Resource, bool)

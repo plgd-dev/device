@@ -150,7 +150,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		d.credentialManager = credential.New(cfg.Credential.Config, func() {
 			d.onDeviceUpdated(d)
 		})
-		d.AddResource(credentialResource.New(credentialSchema.ResourceURI, d.credentialManager))
+		d.AddResources(credentialResource.New(credentialSchema.ResourceURI, d.credentialManager))
 		o.caPool = credential.MakeCAPool(o.caPool, d.credentialManager.GetCAPool)
 		cloudOpts = append(cloudOpts, cloud.WithRemoveCloudCAs(d.credentialManager.RemoveCredentialsBySubjects))
 	}
@@ -165,16 +165,16 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 			return nil, fmt.Errorf("cannot create cloud manager: %w", err)
 		}
 		d.cloudManager = cm
-		d.AddResource(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
+		d.AddResources(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
 	}
 
-	d.AddResource(resourcesDevice.New(plgdDevice.ResourceURI, d, o.getAdditionalProperties))
+	d.AddResources(resourcesDevice.New(plgdDevice.ResourceURI, d, o.getAdditionalProperties))
 	// oic/res is not discoverable
 	discoverResource := discovery.New(plgdResources.ResourceURI, d.GetLinks)
 	discoverResource.PolicyBitMask = schema.Discoverable
-	d.AddResource(discoverResource)
+	d.AddResources(discoverResource)
 
-	d.AddResource(maintenance.New(maintenanceSchema.ResourceURI, func() {
+	d.AddResources(maintenance.New(maintenanceSchema.ResourceURI, func() {
 		if d.cloudManager != nil {
 			d.cloudManager.Unregister()
 		}
@@ -183,8 +183,17 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 	return d, nil
 }
 
-func (d *Device) AddResource(resource Resource) {
-	d.resources.Store(resource.GetHref(), resource)
+func (d *Device) AddResources(resource ...Resource) {
+	publishResources := make([]string, 0, len(resource))
+	for _, r := range resource {
+		d.resources.Store(r.GetHref(), r)
+		if d.cloudManager != nil && r.GetPolicyBitMask()&resources.PublishToCloud != 0 {
+			publishResources = append(publishResources, r.GetHref())
+		}
+	}
+	if d.cloudManager != nil {
+		d.cloudManager.PublishResources(publishResources...)
+	}
 }
 
 func (d *Device) Init() {
@@ -251,16 +260,22 @@ func (d *Device) GetLinks(request *net.Request) (links schema.ResourceLinks) {
 	return d.GetLinksFilteredBy(request.Endpoints, request.DeviceID(), request.ResourceTypes(), 0)
 }
 
+// LoadAndDeleteResource resource need to be closed after usage and also unpublished from the cloud
 func (d *Device) LoadAndDeleteResource(resourceHref string) (Resource, bool) {
 	return d.resources.LoadAndDelete(resourceHref)
 }
 
+// CloseAndDeleteResource resource is closed and also unpublished from the cloud
 func (d *Device) CloseAndDeleteResource(resourceHref string) bool {
 	r, ok := d.LoadAndDeleteResource(resourceHref)
-	if ok {
-		r.Close()
+	if !ok {
+		return false
 	}
-	return ok
+	r.Close()
+	if d.cloudManager != nil && r.GetPolicyBitMask()&resources.PublishToCloud != 0 {
+		d.cloudManager.UnpublishResources(resourceHref)
+	}
+	return true
 }
 
 func createResponseNotFound(ctx context.Context, uri string, token message.Token) *pool.Message {

@@ -56,3 +56,12 @@ func newPostRequest(ctx context.Context, c *client.Conn, uri string, data interf
 	req.SetBody(bytes.NewReader(inputCbor))
 	return req, nil
 }
+
+func newDeleteRequest(ctx context.Context, c *client.Conn, uri string) (*pool.Message, error) {
+	req, err := newRequestWithToken(ctx, c, uri)
+	if err != nil {
+		return nil, err
+	}
+	req.SetCode(codes.DELETE)
+	return req, nil
+}
