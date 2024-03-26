@@ -23,6 +23,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync/atomic"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
@@ -69,6 +70,7 @@ type Device struct {
 	loop              *eventloop.Loop
 	runLoop           bool
 	done              chan struct{}
+	stopped           atomic.Bool
 }
 
 func NewLogger(id uuid.UUID, level pkgLog.Level) pkgLog.Logger {
@@ -296,6 +298,9 @@ func (d *Device) HandleRequest(req *net.Request) (*pool.Message, error) {
 }
 
 func (d *Device) Close() {
+	if !d.stopped.CompareAndSwap(false, true) {
+		return
+	}
 	if d.cloudManager != nil {
 		d.cloudManager.Close()
 	}
@@ -306,9 +311,6 @@ func (d *Device) Close() {
 		resource.Close()
 	}
 	if d.runLoop {
-		select {
-		case d.done <- struct{}{}:
-		default:
-		}
+		close(d.done)
 	}
 }

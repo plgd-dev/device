@@ -54,6 +54,8 @@ type Net struct {
 
 	servers coAPServers
 	serving atomic.Bool
+	stopped atomic.Bool
+	wg      sync.WaitGroup
 	done    chan struct{}
 	cache   *coapCache.Cache[int32, bool]
 }
@@ -357,7 +359,9 @@ func New(cfg Config, handler RequestHandler, logger log.Logger) (*Net, error) {
 		cache:   coapCache.NewCache[int32, bool](),
 	}
 	m.DefaultHandle(mux.HandlerFunc(n.ServeCOAP))
+	n.wg.Add(1)
 	go func() {
+		defer n.wg.Done()
 		for {
 			select {
 			case <-n.done:
@@ -417,10 +421,12 @@ func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endp
 }
 
 func (n *Net) Serve() error {
+	if n.stopped.Load() {
+		return fmt.Errorf("already stopped")
+	}
 	if !n.serving.CompareAndSwap(false, true) {
 		return fmt.Errorf("already serving")
 	}
-	defer close(n.done)
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(n.servers))
 	wg.Add(len(n.servers))
@@ -446,10 +452,14 @@ func (n *Net) Serve() error {
 }
 
 func (n *Net) Close() error {
+	if !n.stopped.CompareAndSwap(false, true) {
+		return nil
+	}
+	close(n.done)
+	n.wg.Wait()
 	if !n.serving.Load() {
 		return n.servers.Close()
 	}
 	n.servers.Stop()
-	<-n.done
 	return nil
 }

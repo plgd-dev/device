@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -96,6 +97,7 @@ type Manager struct {
 	signedIn           bool
 	resourcesPublished bool
 	done               chan struct{}
+	stopped            atomic.Bool
 	trigger            chan bool
 	loop               *eventloop.Loop
 }
@@ -529,7 +531,10 @@ func (c *Manager) connect(ctx context.Context) error {
 }
 
 func (c *Manager) Close() {
-	c.done <- struct{}{}
+	if !c.stopped.CompareAndSwap(false, true) {
+		return
+	}
+	close(c.done)
 }
 
 func (c *Manager) Unregister() {
