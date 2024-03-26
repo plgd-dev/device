@@ -71,7 +71,7 @@ func (c *Manager) signIn(ctx context.Context) error {
 		return err
 	}
 	if resp.Code() != codes.Changed {
-		if resp.Code() == codes.Unauthorized {
+		if resp.Code() == codes.Unauthorized && creds.RefreshToken == "" {
 			c.cleanup()
 		}
 		return errCannotSignIn(fmt.Errorf("unexpected status code %v", resp.Code()))

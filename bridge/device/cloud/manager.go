@@ -49,6 +49,8 @@ import (
 	"github.com/plgd-dev/go-coap/v3/tcp/client"
 )
 
+const tickInterval = time.Second * 10
+
 type (
 	GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
 	GetCertificates    func(deviceID string) []tls.Certificate
@@ -216,7 +218,7 @@ func (c *Manager) Init() {
 	if c.private.cfg.URL != "" {
 		c.triggerRunner(false)
 	}
-	t := time.NewTicker(time.Second * 10)
+	t := time.NewTicker(tickInterval)
 	handlers := []eventloop.Handler{
 		eventloop.NewReadHandler(reflect.ValueOf(c.trigger), c.handleTrigger),
 		eventloop.NewReadHandler(reflect.ValueOf(t.C), c.handleTimer),
@@ -352,10 +354,16 @@ func (c *Manager) getCreds() ocfCloud.CoapSignUpResponse {
 }
 
 func (c *Manager) isCredsExpiring() bool {
-	if !c.signedIn || c.creds.ValidUntil.IsZero() {
+	if c.creds.ValidUntil.IsZero() {
 		return false
 	}
-	return !time.Now().Before(c.creds.ValidUntil.Add(-time.Second * 10))
+	diff := time.Until(c.creds.ValidUntil)
+	if diff < tickInterval*2 {
+		// refresh token before it expires
+		return true
+	}
+	// refresh token when it is 1/3 before it expires
+	return time.Now().After(c.creds.ValidUntil.Add(-diff / 3))
 }
 
 func getResourceTypesFilter(request *mux.Message) []string {
