@@ -20,6 +20,7 @@ package service
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
@@ -66,7 +67,7 @@ type Service struct {
 	cfg                Config
 	net                *net.Net
 	devices            *coapSync.Map[uuid.UUID, Device]
-	done               chan struct{}
+	wg                 sync.WaitGroup
 	onDiscoveryDevices func(req *net.Request)
 }
 
@@ -143,7 +144,6 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 		cfg:                cfg,
 		devices:            coapSync.NewMap[uuid.UUID, Device](),
 		onDiscoveryDevices: o.onDiscoveryDevices,
-		done:               make(chan struct{}),
 	}
 	n, err := net.New(cfg.API.CoAP.Config, c.DefaultRequestHandler, o.logger)
 	if err != nil {
@@ -155,7 +155,8 @@ func New(cfg Config, opts ...Option) (*Service, error) {
 }
 
 func (c *Service) Serve() error {
-	defer close(c.done)
+	c.wg.Add(1)
+	defer c.wg.Done()
 	return c.net.Serve()
 }
 
@@ -164,7 +165,7 @@ func (c *Service) Shutdown() error {
 	if err != nil {
 		return err
 	}
-	<-c.done
+	c.wg.Wait()
 	devices := c.devices.LoadAndDeleteAll()
 	for _, d := range devices {
 		d.Close()
