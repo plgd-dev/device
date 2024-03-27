@@ -49,20 +49,21 @@ func errCannotSignOff(err error) error {
 }
 
 func (c *Manager) signOff(ctx context.Context) error {
-	if c.client == nil {
-		return nil
+	client := c.getClient()
+	if client == nil {
+		return errCannotSignOff(fmt.Errorf("no connection"))
 	}
 	// signIn / refresh token fails
 	if ctx.Err() != nil {
 		return errCannotSignOff(ctx.Err())
 	}
 
-	req, err := newSignOffReq(ctx, c.client, c.deviceID.String(), c.getCreds().UserID)
+	req, err := newSignOffReq(ctx, client, c.deviceID.String(), c.getCreds().UserID)
 	if err != nil {
 		return errCannotSignOff(err)
 	}
 	c.setProvisioningStatus(ProvisioningStatusDEREGISTERING)
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	defer c.setProvisioningStatus(cloud.ProvisioningStatus_UNINITIALIZED)
 	if err != nil {
 		return errCannotSignOff(err)

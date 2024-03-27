@@ -33,7 +33,7 @@ func refreshTokenPostHandler(req *mux.Message, client *Client) {
 		client.sendErrorResponse(fmt.Errorf("cannot handle refresh token: %w", err), code, req.Token())
 		if client.handler == nil || client.handler.CloseOnError() {
 			// to send the error response
-			time.Sleep(time.Millisecond * 10)
+			time.Sleep(time.Millisecond * 100)
 			if err := client.Close(); err != nil {
 				fmt.Printf("refresh token error: %v\n", err)
 			}

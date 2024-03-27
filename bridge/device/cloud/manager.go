@@ -91,11 +91,11 @@ type Manager struct {
 		readyToPublishResources   map[string]struct{}
 		readyToUnpublishResources map[string]struct{}
 		creds                     ocfCloud.CoapSignUpResponse
+		client                    *client.Conn
+		signedIn                  bool
 	}
 
 	logger             log.Logger
-	client             *client.Conn
-	signedIn           bool
 	resourcesPublished bool
 	forceRefreshToken  bool
 	done               chan struct{}
@@ -182,6 +182,12 @@ func (c *Manager) isInitialized() bool {
 	return cfg.URL != ""
 }
 
+func (c *Manager) isSignedIn() bool {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	return c.private.signedIn
+}
+
 func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
 	if closed {
 		return
@@ -203,7 +209,7 @@ func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
 		c.resetPublishing()
 		return
 	}
-	if !c.signedIn {
+	if !c.isSignedIn() {
 		// resources will be published after sign in
 		c.resetPublishing()
 	}
@@ -364,13 +370,7 @@ func (c *Manager) setCreds(creds ocfCloud.CoapSignUpResponse) {
 	c.private.mutex.Lock()
 	defer c.private.mutex.Unlock()
 	c.private.creds = creds
-	c.signedIn = false
-}
-
-func (c *Manager) updateCreds(f func(creds *ocfCloud.CoapSignUpResponse)) {
-	c.private.mutex.Lock()
-	defer c.private.mutex.Unlock()
-	f(&c.private.creds)
+	c.private.signedIn = false
 }
 
 func (c *Manager) getCreds() ocfCloud.CoapSignUpResponse {
@@ -473,18 +473,32 @@ func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
 	}
 }
 
+func (c *Manager) replaceClient(client *client.Conn) *client.Conn {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	c.private.signedIn = false
+	oldClient := c.private.client
+	c.private.client = client
+	return oldClient
+}
+
 func (c *Manager) close() error {
-	c.signedIn = false
-	if c.client == nil {
+	oldClient := c.replaceClient(nil)
+	if oldClient == nil {
 		return nil
 	}
-	client := c.client
-	c.client = nil
-	return client.Close()
+	return oldClient.Close()
+}
+
+func (c *Manager) getClient() *client.Conn {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	return c.private.client
 }
 
 func (c *Manager) dial(ctx context.Context) error {
-	if c.client != nil && c.client.Context().Err() == nil {
+	cc := c.getClient()
+	if cc != nil && cc.Context().Err() == nil {
 		return nil
 	}
 	_ = c.close()
@@ -535,7 +549,16 @@ func (c *Manager) dial(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("cannot dial to %v: %w", addr.String(), err)
 	}
-	c.client = conn
+	conn.AddOnClose(func() {
+		c.private.mutex.Lock()
+		defer c.private.mutex.Unlock()
+		if c.private.client == conn {
+			c.logger.Infof("cloud connection: closed")
+			c.private.client = nil
+			c.private.signedIn = false
+		}
+	})
+	c.replaceClient(conn)
 	return nil
 }
 
