@@ -96,6 +96,7 @@ type Manager struct {
 	client             *client.Conn
 	signedIn           bool
 	resourcesPublished bool
+	forceRefreshToken  bool
 	done               chan struct{}
 	stopped            atomic.Bool
 	trigger            chan bool
@@ -245,11 +246,13 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 	c.creds = ocfCloud.CoapSignUpResponse{}
 	c.signedIn = false
 	c.resourcesPublished = false
+	c.forceRefreshToken = false
 	if err := c.close(); err != nil {
 		c.logger.Warnf("cannot close connection: %w", err)
 	}
 	c.save()
 	c.removePreviousCloudIDs()
+	c.logger.Infof("reset credentials")
 }
 
 func (c *Manager) cleanup() {
@@ -502,8 +505,9 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 
 func (c *Manager) connect(ctx context.Context) error {
 	funcs := make([]func(ctx context.Context) error, 0, 5)
-	if c.isCredsExpiring() {
+	if c.isCredsExpiring() || c.forceRefreshToken {
 		funcs = append(funcs, c.refreshToken)
+		c.forceRefreshToken = false
 	}
 	funcs = append(funcs, []func(ctx context.Context) error{
 		c.signUp,
