@@ -27,6 +27,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
+	coapStatus "github.com/plgd-dev/go-coap/v3/message/status"
 	coapTcpClient "github.com/plgd-dev/go-coap/v3/tcp/client"
 	grpcCodes "google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -117,8 +118,13 @@ func (c *Client) sendResponse(code codes.Code, token message.Token, payload []by
 	}
 }
 
-func (c *Client) sendErrorResponse(err error, code codes.Code, token message.Token) {
+func (c *Client) sendErrorResponse(err error, defaultCode codes.Code, token message.Token) {
 	msg := pool.NewMessage(c.Context())
+	code := defaultCode
+	s, ok := coapStatus.FromError(err)
+	if ok {
+		code = s.Code()
+	}
 	msg.SetCode(code)
 	msg.SetToken(token)
 	// Don't set content format for diagnostic message: https://tools.ietf.org/html/rfc7252#section-5.5.2

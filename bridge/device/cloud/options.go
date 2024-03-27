@@ -19,6 +19,8 @@
 package cloud
 
 import (
+	"time"
+
 	"github.com/plgd-dev/device/v2/pkg/log"
 )
 
@@ -27,6 +29,7 @@ type OptionsCfg struct {
 	getCertificates GetCertificates
 	removeCloudCAs  RemoveCloudCAs
 	logger          log.Logger
+	tickInterval    time.Duration
 }
 
 type Option func(*OptionsCfg)
@@ -54,5 +57,11 @@ func WithRemoveCloudCAs(removeCloudCA RemoveCloudCAs) Option {
 func WithLogger(logger log.Logger) Option {
 	return func(o *OptionsCfg) {
 		o.logger = logger
+	}
+}
+
+func WithTickInterval(t time.Duration) Option {
+	return func(o *OptionsCfg) {
+		o.tickInterval = t
 	}
 }

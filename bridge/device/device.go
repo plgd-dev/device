@@ -160,6 +160,7 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		if o.getCertificates != nil {
 			cloudOpts = append(cloudOpts, cloud.WithGetCertificates(o.getCertificates))
 		}
+		cloudOpts = append(cloudOpts, o.cloudOptions...)
 		cm, err := cloud.New(cfg.Cloud.Config, d.cfg.ID, func() {
 			d.onDeviceUpdated(d)
 		}, d.HandleRequest, d.GetLinksFilteredBy, o.caPool, o.loop, cloudOpts...)

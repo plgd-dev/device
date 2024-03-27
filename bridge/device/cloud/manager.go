@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"reflect"
 	"sync"
@@ -41,6 +42,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/device/v2/schema/device"
 	plgdResources "github.com/plgd-dev/device/v2/schema/resources"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/plgd-dev/go-coap/v3/mux"
@@ -49,8 +51,6 @@ import (
 	"github.com/plgd-dev/go-coap/v3/tcp"
 	"github.com/plgd-dev/go-coap/v3/tcp/client"
 )
-
-const tickInterval = time.Second * 10
 
 type (
 	GetLinksFilteredBy func(endpoints schema.Endpoints, deviceIDfilter uuid.UUID, resourceTypesFitler []string, policyBitMaskFitler schema.BitMask) (links schema.ResourceLinks)
@@ -82,6 +82,7 @@ type Manager struct {
 	caPool          CAPoolGetter
 	getCertificates GetCertificates
 	removeCloudCAs  RemoveCloudCAs
+	tickInterval    time.Duration
 
 	private struct {
 		mutex                     sync.Mutex
@@ -89,15 +90,17 @@ type Manager struct {
 		previousCloudIDs          []string
 		readyToPublishResources   map[string]struct{}
 		readyToUnpublishResources map[string]struct{}
+		creds                     ocfCloud.CoapSignUpResponse
 	}
 
 	logger             log.Logger
-	creds              ocfCloud.CoapSignUpResponse
 	client             *client.Conn
 	signedIn           bool
 	resourcesPublished bool
+	forceRefreshToken  bool
 	done               chan struct{}
 	stopped            atomic.Bool
+	reconnect          atomic.Bool
 	trigger            chan bool
 	loop               *eventloop.Loop
 }
@@ -114,7 +117,8 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		removeCloudCAs: func(...string) {
 			// do nothing
 		},
-		logger: log.NewNilLogger(),
+		logger:       log.NewNilLogger(),
+		tickInterval: time.Second * 10,
 	}
 	for _, opt := range opts {
 		opt(&o)
@@ -133,6 +137,7 @@ func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler
 		removeCloudCAs:  o.removeCloudCAs,
 		logger:          o.logger,
 		loop:            loop,
+		tickInterval:    o.tickInterval,
 	}
 	c.private.cfg.ProvisioningStatus = cloud.ProvisioningStatus_UNINITIALIZED
 	c.importConfig(cfg)
@@ -186,6 +191,13 @@ func (c *Manager) handleTrigger(value reflect.Value, closed bool) {
 	if wantToReset {
 		c.resetCredentials(ctx, true)
 	}
+	if c.reconnect.CompareAndSwap(true, false) {
+		err := c.close()
+		if err != nil && !errors.Is(err, context.Canceled) {
+			c.logger.Errorf("cannot close connection for reconnect: %w", err)
+		}
+		return
+	}
 	if !c.isInitialized() {
 		// resources will be published after sign in
 		c.resetPublishing()
@@ -220,7 +232,7 @@ func (c *Manager) Init() {
 	if c.private.cfg.URL != "" {
 		c.triggerRunner(false)
 	}
-	t := time.NewTicker(tickInterval)
+	t := time.NewTicker(c.tickInterval)
 	handlers := []eventloop.Handler{
 		eventloop.NewReadHandler(reflect.ValueOf(c.trigger), c.handleTrigger),
 		eventloop.NewReadHandler(reflect.ValueOf(t.C), c.handleTimer),
@@ -242,14 +254,16 @@ func (c *Manager) resetCredentials(ctx context.Context, signOff bool) {
 			c.logger.Debugf("%w", err)
 		}
 	}
-	c.creds = ocfCloud.CoapSignUpResponse{}
-	c.signedIn = false
+	c.setCreds(ocfCloud.CoapSignUpResponse{})
 	c.resourcesPublished = false
+	c.forceRefreshToken = false
+	c.reconnect.Store(false)
 	if err := c.close(); err != nil {
 		c.logger.Warnf("cannot close connection: %w", err)
 	}
 	c.save()
 	c.removePreviousCloudIDs()
+	c.logger.Infof("reset credentials")
 }
 
 func (c *Manager) cleanup() {
@@ -347,29 +361,40 @@ func validUntil(expiresIn int64) time.Time {
 }
 
 func (c *Manager) setCreds(creds ocfCloud.CoapSignUpResponse) {
-	c.creds = creds
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	c.private.creds = creds
 	c.signedIn = false
 }
 
+func (c *Manager) updateCreds(f func(creds *ocfCloud.CoapSignUpResponse)) {
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	f(&c.private.creds)
+}
+
 func (c *Manager) getCreds() ocfCloud.CoapSignUpResponse {
-	return c.creds
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	return c.private.creds
 }
 
 func (c *Manager) isCredsExpiring() bool {
-	if c.creds.ValidUntil.IsZero() {
+	creds := c.getCreds()
+	if creds.ValidUntil.IsZero() {
 		return false
 	}
-	diff := time.Until(c.creds.ValidUntil)
-	if diff < tickInterval*2 {
+	diff := time.Until(creds.ValidUntil)
+	if diff < c.tickInterval*2 {
 		// refresh token before it expires
 		return true
 	}
 	// refresh token when it is 1/3 before it expires
-	return time.Now().After(c.creds.ValidUntil.Add(-diff / 3))
+	return time.Now().After(creds.ValidUntil.Add(-diff / 3))
 }
 
-func getResourceTypesFilter(request *mux.Message) []string {
-	queries, _ := request.Options().Queries()
+func getResourceTypesFilter(messageOptions message.Options) []string {
+	queries, _ := messageOptions.Queries()
 	resourceTypesFitler := []string{}
 	for _, q := range queries {
 		if len(q) > 3 && q[:3] == "rt=" {
@@ -379,37 +404,64 @@ func getResourceTypesFilter(request *mux.Message) []string {
 	return resourceTypesFitler
 }
 
+func inFilterSupportedCodes(request *mux.Message) bool {
+	switch request.Code() {
+	case codes.POST, codes.PUT, codes.DELETE, codes.GET:
+		return true
+	default:
+		return false
+	}
+}
+
+func (c *Manager) handleDeviceResource(r *net.Request) (*pool.Message, error) {
+	links := c.getLinks(schema.Endpoints{}, c.deviceID, nil, resources.PublishToCloud)
+	for _, link := range links {
+		if link.HasType(device.ResourceType) {
+			_ = r.SetPath(link.Href)
+			break
+		}
+	}
+	return c.handler(r)
+}
+
+func (c *Manager) handleDiscoveryResource(r *net.Request) (*pool.Message, error) {
+	links := c.getLinks(schema.Endpoints{}, c.deviceID, getResourceTypesFilter(r.Message.Options()), resources.PublishToCloud)
+	links = patchDeviceLink(links)
+	links = discovery.PatchLinks(links, c.deviceID.String())
+	return resources.CreateResponseContent(r.Context(), links, codes.Content)
+}
+
+func (c *Manager) getHandler(r *net.Request) func(r *net.Request) (*pool.Message, error) {
+	h := c.handler
+	p, err := r.Path()
+	if err == nil {
+		switch p {
+		case device.ResourceURI:
+			h = c.handleDeviceResource
+		case plgdResources.ResourceURI:
+			h = c.handleDiscoveryResource
+		}
+	}
+	return h
+}
+
 func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
+	if !inFilterSupportedCodes(request) {
+		// ignore unsupported request
+		if w.Conn().Context().Err() == nil {
+			// log only if connection is still open
+			c.logger.Debugf("unsupported request: %v\n", request)
+		}
+		return
+	}
 	request.Message.AddQuery("di=" + c.deviceID.String())
 	r := net.Request{
 		Message:   request.Message,
 		Endpoints: nil,
 		Conn:      w.Conn(),
 	}
-	var resp *pool.Message
-	p, err := r.Path()
-	if err == nil {
-		switch p {
-		case device.ResourceURI:
-			links := c.getLinks(schema.Endpoints{}, c.deviceID, nil, resources.PublishToCloud)
-			for _, link := range links {
-				if link.HasType(device.ResourceType) {
-					_ = r.SetPath(link.Href)
-					break
-				}
-			}
-			resp, err = c.handler(&r)
-		case plgdResources.ResourceURI:
-			links := c.getLinks(schema.Endpoints{}, c.deviceID, getResourceTypesFilter(request), resources.PublishToCloud)
-			links = patchDeviceLink(links)
-			links = discovery.PatchLinks(links, c.deviceID.String())
-			resp, err = resources.CreateResponseContent(request.Context(), links, codes.Content)
-		default:
-			resp, err = c.handler(&r)
-		}
-	} else {
-		resp, err = c.handler(&r)
-	}
+	h := c.getHandler(&r)
+	resp, err := h(&r)
 	if err != nil {
 		resp = net.CreateResponseError(request.Context(), err, request.Token())
 	}
@@ -502,8 +554,9 @@ func patchDeviceLink(links schema.ResourceLinks) schema.ResourceLinks {
 
 func (c *Manager) connect(ctx context.Context) error {
 	funcs := make([]func(ctx context.Context) error, 0, 5)
-	if c.isCredsExpiring() {
+	if c.isCredsExpiring() || c.forceRefreshToken {
 		funcs = append(funcs, c.refreshToken)
+		c.forceRefreshToken = false
 	}
 	funcs = append(funcs, []func(ctx context.Context) error{
 		c.signUp,
@@ -517,7 +570,7 @@ func (c *Manager) connect(ctx context.Context) error {
 	}
 	for _, f := range funcs {
 		r := func(ctx context.Context) error {
-			fctx, cancel := context.WithTimeout(ctx, time.Second*10)
+			fctx, cancel := context.WithTimeout(ctx, c.tickInterval)
 			defer cancel()
 			return f(fctx)
 		}
@@ -582,6 +635,11 @@ func (c *Manager) popReadyToPublishResources() map[string]struct{} {
 	res := c.private.readyToPublishResources
 	c.private.readyToPublishResources = nil
 	return res
+}
+
+func (c *Manager) Reconnect() {
+	c.reconnect.Store(true)
+	c.triggerRunner(false)
 }
 
 func (c *Manager) popReadyToUnpublishResources(count int) []string {

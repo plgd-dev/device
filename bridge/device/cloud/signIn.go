@@ -68,18 +68,22 @@ func (c *Manager) signIn(ctx context.Context) error {
 	c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERING)
 	resp, err := c.client.Do(req)
 	if err != nil {
-		return err
+		return errCannotSignIn(err)
 	}
 	if resp.Code() != codes.Changed {
-		if resp.Code() == codes.Unauthorized && creds.RefreshToken == "" {
-			c.cleanup()
+		if resp.Code() == codes.Unauthorized {
+			if creds.RefreshToken == "" {
+				c.cleanup()
+			} else {
+				c.forceRefreshToken = true
+			}
 		}
 		return errCannotSignIn(fmt.Errorf("unexpected status code %v", resp.Code()))
 	}
 	var signInResp ocfCloud.CoapSignInResponse
 	err = cbor.ReadFrom(resp.Body(), &signInResp)
 	if err != nil {
-		return err
+		return errCannotSignIn(err)
 	}
 	c.updateCredsBySignInResponse(signInResp)
 	c.logger.Infof("signed in")
@@ -88,7 +92,9 @@ func (c *Manager) signIn(ctx context.Context) error {
 }
 
 func (c *Manager) updateCredsBySignInResponse(resp ocfCloud.CoapSignInResponse) {
-	c.creds.ExpiresIn = resp.ExpiresIn
-	c.creds.ValidUntil = validUntil(resp.ExpiresIn)
+	c.updateCreds(func(creds *ocfCloud.CoapSignUpResponse) {
+		creds.ExpiresIn = resp.ExpiresIn
+		creds.ValidUntil = validUntil(resp.ExpiresIn)
+	})
 	c.signedIn = true
 }
