@@ -72,11 +72,15 @@ func (c *Manager) publishResources(ctx context.Context) error {
 		Links:      links,
 		TimeToLive: 0,
 	}
-	req, err := newPostRequest(ctx, c.client, ocfCloud.ResourceDirectory, wkRd)
+	client := c.getClient()
+	if client == nil {
+		return errCannotPublishResources(fmt.Errorf("no connection"))
+	}
+	req, err := newPostRequest(ctx, client, ocfCloud.ResourceDirectory, wkRd)
 	if err != nil {
 		return errCannotPublishResources(err)
 	}
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return errCannotPublishResources(err)
 	}
@@ -117,14 +121,18 @@ func (c *Manager) unpublishResources(ctx context.Context) error {
 			}
 			break
 		}
+		client := c.getClient()
+		if client == nil {
+			return errCannotUnpublishResources(fmt.Errorf("no connection"))
+		}
 		firstRun = false
-		req, err := newDeleteRequest(ctx, c.client, ocfCloud.ResourceDirectory)
+		req, err := newDeleteRequest(ctx, client, ocfCloud.ResourceDirectory)
 		if err != nil {
 			return errCannotUnpublishResources(err)
 		}
 		query := toQuery(c.deviceID.String(), readyResouces)
 		req.AddQuery(query)
-		resp, err := c.client.Do(req)
+		resp, err := client.Do(req)
 		if err != nil {
 			return errCannotUnpublishResources(err)
 		}

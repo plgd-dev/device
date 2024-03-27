@@ -39,7 +39,11 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 	if creds.RefreshToken == "" {
 		return nil
 	}
-	req, err := newPostRequest(ctx, c.client, ocfCloud.RefreshToken, ocfCloud.CoapRefreshTokenRequest{
+	client := c.getClient()
+	if client == nil {
+		return errCannotRefreshToken(fmt.Errorf("no connection"))
+	}
+	req, err := newPostRequest(ctx, client, ocfCloud.RefreshToken, ocfCloud.CoapRefreshTokenRequest{
 		DeviceID:     c.deviceID.String(),
 		UserID:       creds.UserID,
 		RefreshToken: creds.RefreshToken,
@@ -48,7 +52,7 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 		return errCannotRefreshToken(err)
 	}
 	c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERING)
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return errCannotRefreshToken(err)
 	}
@@ -69,10 +73,10 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 }
 
 func (c *Manager) updateCredsByRefreshTokenResponse(resp ocfCloud.CoapRefreshTokenResponse) {
-	c.updateCreds(func(creds *ocfCloud.CoapSignUpResponse) {
-		creds.AccessToken = resp.AccessToken
-		creds.RefreshToken = resp.RefreshToken
-		creds.ValidUntil = validUntil(resp.ExpiresIn)
-	})
-	c.signedIn = false
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	c.private.creds.AccessToken = resp.AccessToken
+	c.private.creds.RefreshToken = resp.RefreshToken
+	c.private.creds.ValidUntil = validUntil(resp.ExpiresIn)
+	c.private.signedIn = false
 }
