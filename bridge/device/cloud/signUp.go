@@ -80,9 +80,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 	if err != nil {
 		return errCannotSignUp(err)
 	}
-	if signUpResp.ExpiresIn != -1 {
-		c.creds.ValidUntil = validUntil(signUpResp.ExpiresIn)
-	}
+	signUpResp.ValidUntil = validUntil(signUpResp.ExpiresIn)
 	c.setCreds(signUpResp)
 	c.logger.Infof("signed up")
 	c.save()

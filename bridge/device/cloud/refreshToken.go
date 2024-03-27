@@ -69,8 +69,10 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 }
 
 func (c *Manager) updateCredsByRefreshTokenResponse(resp ocfCloud.CoapRefreshTokenResponse) {
-	c.creds.AccessToken = resp.AccessToken
-	c.creds.RefreshToken = resp.RefreshToken
-	c.creds.ValidUntil = validUntil(resp.ExpiresIn)
+	c.updateCreds(func(creds *ocfCloud.CoapSignUpResponse) {
+		creds.AccessToken = resp.AccessToken
+		creds.RefreshToken = resp.RefreshToken
+		creds.ValidUntil = validUntil(resp.ExpiresIn)
+	})
 	c.signedIn = false
 }

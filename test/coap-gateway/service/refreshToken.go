@@ -20,6 +20,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -31,6 +32,8 @@ func refreshTokenPostHandler(req *mux.Message, client *Client) {
 	logErrorAndCloseClient := func(err error, code coapCodes.Code) {
 		client.sendErrorResponse(fmt.Errorf("cannot handle refresh token: %w", err), code, req.Token())
 		if client.handler == nil || client.handler.CloseOnError() {
+			// to send the error response
+			time.Sleep(time.Millisecond * 10)
 			if err := client.Close(); err != nil {
 				fmt.Printf("refresh token error: %v\n", err)
 			}

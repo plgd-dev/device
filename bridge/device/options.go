@@ -42,6 +42,7 @@ type OptionsCfg struct {
 	logger                  log.Logger
 	loop                    *eventloop.Loop
 	runLoop                 bool
+	cloudOptions            []cloud.Option
 }
 
 type Option func(*OptionsCfg)
@@ -80,5 +81,11 @@ func WithEventLoop(loop *eventloop.Loop) Option {
 	return func(o *OptionsCfg) {
 		o.loop = loop
 		o.runLoop = false
+	}
+}
+
+func WithCloudOptions(cloudOptions ...cloud.Option) Option {
+	return func(o *OptionsCfg) {
+		o.cloudOptions = cloudOptions
 	}
 }

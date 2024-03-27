@@ -27,12 +27,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	bridgeTest "github.com/plgd-dev/device/v2/bridge/test"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
+	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
 	cloudSchema "github.com/plgd-dev/device/v2/schema/cloud"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
@@ -42,6 +44,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
+	"github.com/plgd-dev/go-coap/v3/message/status"
 	"github.com/stretchr/testify/require"
 )
 
@@ -68,7 +71,79 @@ func (r *resourceDataSync) copy() resourceData {
 	}
 }
 
-// device is restarted with an imported configuration with valid cloud credentials
+func getUnauthorizedError() status.Status {
+	msg := pool.NewMessage(context.Background())
+	msg.SetCode(codes.Unauthorized)
+	return status.Errorf(msg, "unauthorized")
+}
+
+func TestManagerDeviceBecomesUnauthorized(t *testing.T) {
+	ch := mockCoapGW.NewCoapHandlerWithCounter(3600)
+	customHandler := mockCoapGW.NewCustomHandler(ch)
+	makeHandler := func(*mockCoapGWService.Service, ...mockCoapGWService.Option) mockCoapGWService.ServiceHandler {
+		return customHandler
+	}
+	coapShutdown := mockCoapGW.New(t, makeHandler, func(mockCoapGWService.ServiceHandler) {
+		h := ch
+		fmt.Printf("%+v\n", h.CallCounter.Data)
+		// d1 -> signup + signin + publish
+		// d2 -> should use the stored credentials to skip signup and only do sign in + publish
+		require.Equal(t, 1, h.CallCounter.Data[mockCoapGW.SignUpKey])
+		require.Equal(t, 1, h.CallCounter.Data[mockCoapGW.SignInKey])
+		require.Equal(t, 1, h.CallCounter.Data[mockCoapGW.PublishKey])
+		require.Equal(t, 0, h.CallCounter.Data[mockCoapGW.UnpublishKey])
+		require.Equal(t, 0, h.CallCounter.Data[mockCoapGW.RefreshTokenKey])
+	})
+	defer coapShutdown()
+
+	s1 := bridgeTest.NewBridgeService(t)
+	t.Cleanup(func() {
+		_ = s1.Shutdown()
+	})
+	deviceID := uuid.New().String()
+	tickInterval := time.Second
+	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false, device.WithCloudOptions(cloud.WithTickInterval(tickInterval)))
+	s1Shutdown := bridgeTest.RunBridgeService(s1)
+	t.Cleanup(func() {
+		_ = s1Shutdown()
+	})
+
+	c, err := testClient.NewTestSecureClientWithBridgeSupport()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+	err = c.OnboardDevice(ctx, deviceID, "authorizationProvider", "coaps+tcp://"+mockCoapGW.COAP_GW_HOST, "authorizationCode", test.CloudSID())
+	require.NoError(t, err)
+
+	// wait for sign in
+	require.Equal(t, 1, ch.WaitForSignIn(time.Second*20))
+
+	// wait for publish
+	require.Equal(t, 1, ch.WaitForPublish(time.Second*20))
+
+	customHandler.SetSignIn(func(ocfCloud.CoapSignInRequest) (ocfCloud.CoapSignInResponse, error) {
+		return ocfCloud.CoapSignInResponse{}, getUnauthorizedError()
+	})
+	customHandler.SetRefreshToken(func(ocfCloud.CoapRefreshTokenRequest) (ocfCloud.CoapRefreshTokenResponse, error) {
+		return ocfCloud.CoapRefreshTokenResponse{}, getUnauthorizedError()
+	})
+
+	d1.GetCloudManager().Reconnect()
+	for i := 0; i < 5; i++ {
+		cfg := d1.GetCloudManager().ExportConfig()
+		if cfg.AccessToken == "" {
+			return
+		}
+		time.Sleep(tickInterval)
+	}
+	require.Fail(t, "cloud manager should be reset, but it is not")
+}
+
 func TestProvisioningOnDeviceRestart(t *testing.T) {
 	ch := mockCoapGW.NewCoapHandlerWithCounter(-1)
 	makeHandler := func(*mockCoapGWService.Service, ...mockCoapGWService.Option) mockCoapGWService.ServiceHandler {
