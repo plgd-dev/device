@@ -139,7 +139,7 @@ func TestManagerDeviceBecomesUnauthorized(t *testing.T) {
 		if cfg.AccessToken == "" {
 			return
 		}
-		time.Sleep(tickInterval)
+		time.Sleep(tickInterval * 2)
 	}
 	require.Fail(t, "cloud manager should be reset, but it is not")
 }

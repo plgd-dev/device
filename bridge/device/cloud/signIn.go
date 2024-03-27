@@ -50,10 +50,11 @@ func errCannotSignIn(err error) error {
 }
 
 func (c *Manager) signIn(ctx context.Context) error {
-	if c.client == nil {
+	client := c.getClient()
+	if client == nil {
 		return errCannotSignIn(fmt.Errorf("no connection"))
 	}
-	if c.signedIn {
+	if c.isSignedIn() {
 		return nil
 	}
 	creds := c.getCreds()
@@ -61,12 +62,12 @@ func (c *Manager) signIn(ctx context.Context) error {
 	if err != nil {
 		return errCannotSignIn(err)
 	}
-	req, err := newPostRequest(ctx, c.client, ocfCloud.SignIn, signInReq)
+	req, err := newPostRequest(ctx, client, ocfCloud.SignIn, signInReq)
 	if err != nil {
 		return errCannotSignIn(err)
 	}
 	c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERING)
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return errCannotSignIn(err)
 	}
@@ -92,9 +93,9 @@ func (c *Manager) signIn(ctx context.Context) error {
 }
 
 func (c *Manager) updateCredsBySignInResponse(resp ocfCloud.CoapSignInResponse) {
-	c.updateCreds(func(creds *ocfCloud.CoapSignUpResponse) {
-		creds.ExpiresIn = resp.ExpiresIn
-		creds.ValidUntil = validUntil(resp.ExpiresIn)
-	})
-	c.signedIn = true
+	c.private.mutex.Lock()
+	defer c.private.mutex.Unlock()
+	c.private.creds.ExpiresIn = resp.ExpiresIn
+	c.private.creds.ValidUntil = validUntil(resp.ExpiresIn)
+	c.private.signedIn = true
 }

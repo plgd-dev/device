@@ -63,12 +63,16 @@ func (c *Manager) signUp(ctx context.Context) error {
 	if err != nil {
 		return errCannotSignUp(err)
 	}
-	req, err := newPostRequest(ctx, c.client, ocfCloud.SignUp, signUpRequest)
+	client := c.getClient()
+	if client == nil {
+		return errCannotSignOff(fmt.Errorf("no connection"))
+	}
+	req, err := newPostRequest(ctx, client, ocfCloud.SignUp, signUpRequest)
 	if err != nil {
 		return errCannotSignUp(err)
 	}
 	c.setProvisioningStatus(cloud.ProvisioningStatus_REGISTERING)
-	resp, err := c.client.Do(req)
+	resp, err := client.Do(req)
 	if err != nil {
 		return errCannotSignUp(err)
 	}

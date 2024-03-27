@@ -20,6 +20,7 @@ package service
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	"github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -32,6 +33,8 @@ func signInPostHandler(req *mux.Message, client *Client, signIn cloud.CoapSignIn
 	logErrorAndCloseClient := func(err error, code coapCodes.Code) {
 		client.sendErrorResponse(fmt.Errorf("cannot handle sign in: %w", err), code, req.Token())
 		if client.handler == nil || client.handler.CloseOnError() {
+			// to send the error response
+			time.Sleep(time.Millisecond * 100)
 			if err := client.Close(); err != nil {
 				fmt.Printf("sign in error: %v\n", err)
 			}
@@ -59,6 +62,8 @@ func signOutPostHandler(req *mux.Message, client *Client, signOut cloud.CoapSign
 	logErrorAndCloseClient := func(err error, code coapCodes.Code) {
 		client.sendErrorResponse(fmt.Errorf("cannot handle sign out: %w", err), code, req.Token())
 		if client.handler == nil || client.handler.CloseOnError() {
+			// to send the error response
+			time.Sleep(time.Millisecond * 100)
 			if err := client.Close(); err != nil {
 				fmt.Printf("sign out error: %v\n", err)
 			}
