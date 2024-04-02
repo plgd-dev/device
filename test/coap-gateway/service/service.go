@@ -20,6 +20,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -136,7 +137,7 @@ func validateCommand(writer mux.ResponseWriter, request *mux.Message, server *Se
 			fnc(req, client)
 		case codes.Empty:
 			if !ok {
-				client.sendErrorResponse(fmt.Errorf("cannot handle command: client not found"), codes.InternalServerError, req.Token())
+				client.sendErrorResponse(errors.New("cannot handle command: client not found"), codes.InternalServerError, req.Token())
 				closeClient(client)
 				return
 			}

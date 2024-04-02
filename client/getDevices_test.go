@@ -50,16 +50,16 @@ func TestDeviceDiscovery(t *testing.T) {
 	require.NotEmpty(t, d)
 	dev, ok := d.Details.(*device.Device)
 	require.True(t, ok)
-	assert.Equal(t, test.DevsimName, dev.Name)
+	require.Equal(t, test.DevsimName, dev.Name)
 
 	d = devices[secureDeviceID]
 	fmt.Println(d)
 	require.NotNil(t, d)
 	dev, ok = d.Details.(*device.Device)
 	require.True(t, ok)
-	assert.Equal(t, test.DevsimName, dev.Name)
+	require.Equal(t, test.DevsimName, dev.Name)
 	require.NotNil(t, d.Ownership)
-	assert.Equal(t, d.Ownership.OwnerID, "00000000-0000-0000-0000-000000000000")
+	require.Equal(t, "00000000-0000-0000-0000-000000000000", d.Ownership.OwnerID)
 
 	ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -74,7 +74,7 @@ func TestDeviceDiscovery(t *testing.T) {
 	require.NotNil(t, d.Ownership)
 	sdkID, err := c.CoreClient().GetSdkOwnerID()
 	require.NoError(t, err)
-	assert.Equal(t, d.Ownership.OwnerID, sdkID)
+	require.Equal(t, d.Ownership.OwnerID, sdkID)
 
 	ctx, cancel = context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()

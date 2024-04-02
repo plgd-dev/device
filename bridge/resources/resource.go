@@ -22,6 +22,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/binary"
+	"errors"
 	"fmt"
 	"hash/crc64"
 	"io"
@@ -203,7 +204,7 @@ func calcCRC64(body io.ReadSeeker) uint64 {
 
 func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*pool.Message, error) {
 	if r.loop == nil {
-		return CreateErrorResponse(req.Context(), codes.InternalServerError, fmt.Errorf("event loop is not initialized"))
+		return CreateErrorResponse(req.Context(), codes.InternalServerError, errors.New("event loop is not initialized"))
 	}
 	if !createSubscription {
 		r.removeSubscription(req.Conn.RemoteAddr().String())

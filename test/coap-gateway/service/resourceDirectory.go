@@ -19,6 +19,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"regexp"
@@ -92,7 +93,7 @@ func parseUnpublishRequestFromQuery(queries []string) (cloud.UnpublishResourcesR
 	}
 
 	if req.DeviceID == "" {
-		return cloud.UnpublishResourcesRequest{}, fmt.Errorf("deviceID not found")
+		return cloud.UnpublishResourcesRequest{}, errors.New("deviceID not found")
 	}
 	return req, nil
 }

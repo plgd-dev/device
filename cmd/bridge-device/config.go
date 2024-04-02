@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/log"
@@ -16,10 +16,10 @@ type TLSConfig struct {
 
 func (c *TLSConfig) Validate() error {
 	if c.CAPoolPath == "" && !c.UseSystemCAPool {
-		return fmt.Errorf("caPool is required")
+		return errors.New("caPool is required")
 	}
 	if (c.KeyPath == "" && c.CertPath != "") || (c.KeyPath != "" && c.CertPath == "") {
-		return fmt.Errorf("keyFile and certFile must be set together")
+		return errors.New("keyFile and certFile must be set together")
 	}
 	return nil
 }
@@ -58,7 +58,7 @@ func (c *Config) Validate() error {
 		return err
 	}
 	if c.NumGeneratedBridgedDevices <= 0 {
-		return fmt.Errorf("numGeneratedBridgedDevices - must be > 0")
+		return errors.New("numGeneratedBridgedDevices - must be > 0")
 	}
 	return nil
 }

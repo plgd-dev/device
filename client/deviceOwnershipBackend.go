@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -52,7 +53,7 @@ func newDeviceOwnershipBackendFromConfig(app ApplicationCallback, dialTLS core.D
 	cfg *DeviceOwnershipBackendConfig,
 ) (*deviceOwnershipBackend, error) {
 	if cfg == nil {
-		return nil, fmt.Errorf("missing device ownership backend config")
+		return nil, errors.New("missing device ownership backend config")
 	}
 
 	if cfg.JWTClaimOwnerID == "" {
@@ -132,14 +133,14 @@ func (o *deviceOwnershipBackend) Initialization(ctx context.Context) error {
 
 func (o *deviceOwnershipBackend) GetIdentityCertificate() (tls.Certificate, error) {
 	if o.identityCertificate.PrivateKey == nil {
-		return tls.Certificate{}, fmt.Errorf("client is not initialized")
+		return tls.Certificate{}, errors.New("client is not initialized")
 	}
 	return o.identityCertificate, nil
 }
 
 func (o *deviceOwnershipBackend) GetIdentityCACerts() ([]*x509.Certificate, error) {
 	if o.identityCACert == nil {
-		return nil, fmt.Errorf("client is not initialized")
+		return nil, errors.New("client is not initialized")
 	}
 	return o.identityCACert, nil
 }

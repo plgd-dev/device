@@ -21,9 +21,11 @@ package net
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	gonet "net"
+	"strconv"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -250,7 +252,7 @@ func (s coAPServers) Close() error {
 func getPortFromAddress(addr gonet.Addr) (string, error) {
 	udpAddr, ok := addr.(*gonet.UDPAddr)
 	if ok {
-		return fmt.Sprintf("%d", udpAddr.Port), nil
+		return strconv.Itoa(udpAddr.Port), nil
 	}
 	addrStr := addr.String()
 	_, port, err := gonet.SplitHostPort(addrStr)
@@ -300,7 +302,7 @@ func newServers(cfg *Config, m *mux.Router, logger log.Logger) (coAPServers, boo
 		}
 	}
 	if len(servers) == 0 {
-		return nil, false, false, fmt.Errorf("cannot create any server")
+		return nil, false, false, errors.New("cannot create any server")
 	}
 	return servers, hasIPv4, hasIPv6, nil
 }
@@ -422,10 +424,10 @@ func (n *Net) GetEndpoints(cm *net.ControlMessage, localAddr string) schema.Endp
 
 func (n *Net) Serve() error {
 	if n.stopped.Load() {
-		return fmt.Errorf("already stopped")
+		return errors.New("already stopped")
 	}
 	if !n.serving.CompareAndSwap(false, true) {
-		return fmt.Errorf("already serving")
+		return errors.New("already serving")
 	}
 	var wg sync.WaitGroup
 	errCh := make(chan error, len(n.servers))

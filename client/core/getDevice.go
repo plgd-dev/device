@@ -18,6 +18,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -29,6 +30,8 @@ import (
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/go-coap/v3/udp/client"
 )
+
+var ErrCannotDetermineDeviceID = errors.New("cannot determine device ID")
 
 // GetDeviceByIP gets the device directly via IP address and multicast listen port 5683.
 func (c *Client) GetDeviceByIP(ctx context.Context, ip string) (*Device, error) {
@@ -202,7 +205,7 @@ func (h *deviceHandler) Handle(_ context.Context, conn *client.Conn, links schem
 	for _, link := range links {
 		deviceID := link.GetDeviceID()
 		if deviceID == "" {
-			errs = multierror.Append(errs, MakeUnavailable(fmt.Errorf("cannot determine deviceID")))
+			errs = multierror.Append(errs, MakeUnavailable(ErrCannotDetermineDeviceID))
 			continue
 		}
 		if deviceID != h.deviceID && h.deviceID != ANY_DEVICE {

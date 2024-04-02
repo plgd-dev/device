@@ -45,15 +45,15 @@ func TestX509KeyUsages(t *testing.T) {
 	cfg.KeyUsages = []string{"digitalSignature", "contentCommitment", "keyEncipherment", "dataEncipherment", "keyAgreement", "certSign", "crlSign", "encipherOnly", "decipherOnly"}
 	ku, err := cfg.X509KeyUsages()
 	require.NoError(t, err)
-	require.True(t, (ku&x509.KeyUsageDigitalSignature) != 0)
-	require.True(t, (ku&x509.KeyUsageContentCommitment) != 0)
-	require.True(t, (ku&x509.KeyUsageKeyEncipherment) != 0)
-	require.True(t, (ku&x509.KeyUsageDataEncipherment) != 0)
-	require.True(t, (ku&x509.KeyUsageKeyAgreement) != 0)
-	require.True(t, (ku&x509.KeyUsageCertSign) != 0)
-	require.True(t, (ku&x509.KeyUsageCRLSign) != 0)
-	require.True(t, (ku&x509.KeyUsageEncipherOnly) != 0)
-	require.True(t, (ku&x509.KeyUsageDecipherOnly) != 0)
+	require.NotEmpty(t, ku&x509.KeyUsageDigitalSignature)
+	require.NotEmpty(t, ku&x509.KeyUsageContentCommitment)
+	require.NotEmpty(t, ku&x509.KeyUsageKeyEncipherment)
+	require.NotEmpty(t, ku&x509.KeyUsageDataEncipherment)
+	require.NotEmpty(t, ku&x509.KeyUsageKeyAgreement)
+	require.NotEmpty(t, ku&x509.KeyUsageCertSign)
+	require.NotEmpty(t, ku&x509.KeyUsageCRLSign)
+	require.NotEmpty(t, ku&x509.KeyUsageEncipherOnly)
+	require.NotEmpty(t, ku&x509.KeyUsageDecipherOnly)
 }
 
 func TestX509ExtKeyUsages(t *testing.T) {

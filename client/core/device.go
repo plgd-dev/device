@@ -329,20 +329,20 @@ func (d *Device) connectToEndpoint(ctx context.Context, endpoint schema.Endpoint
 }
 
 func (d *Device) connectToEndpoints(ctx context.Context, endpoints schema.Endpoints) (net.Addr, *coap.ClientCloseHandler, error) {
-	var errors *multierror.Error
+	var errs *multierror.Error
 
 	for _, endpoint := range endpoints {
 		addr, conn, err := d.connectToEndpoint(ctx, endpoint)
 		if err != nil {
-			errors = multierror.Append(errors, err)
+			errs = multierror.Append(errs, err)
 			continue
 		}
 		return addr, conn, nil
 	}
-	if errors.ErrorOrNil() != nil {
-		return net.Addr{}, nil, errors
+	if errs.ErrorOrNil() != nil {
+		return net.Addr{}, nil, errs
 	}
-	return net.Addr{}, nil, MakeInternal(fmt.Errorf("cannot connect to empty endpoints"))
+	return net.Addr{}, nil, MakeInternal(errors.New("cannot connect to empty endpoints"))
 }
 
 func (d *Device) DeviceID() string {

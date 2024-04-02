@@ -26,6 +26,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -486,7 +487,7 @@ func NewSecureClient() (*local.Client, error) {
 	if len(MfgTrustedCA) > 0 {
 		mfgTrustedCABlock, _ := pem.Decode(MfgTrustedCA)
 		if mfgTrustedCABlock == nil {
-			return nil, fmt.Errorf("mfgTrustedCABlock is empty")
+			return nil, errors.New("mfgTrustedCABlock is empty")
 		}
 		mfgCA, err := x509.ParseCertificates(mfgTrustedCABlock.Bytes)
 		if err != nil {
@@ -506,7 +507,7 @@ func NewSecureClient() (*local.Client, error) {
 	if len(IdentityTrustedCA) > 0 {
 		identityTrustedCABlock, _ := pem.Decode(IdentityTrustedCA)
 		if identityTrustedCABlock == nil {
-			return nil, fmt.Errorf("identityTrustedCABlock is empty")
+			return nil, errors.New("identityTrustedCABlock is empty")
 		}
 		identityTrustedCACert, err := x509.ParseCertificates(identityTrustedCABlock.Bytes)
 		if err != nil {

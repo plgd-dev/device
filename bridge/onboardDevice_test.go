@@ -150,7 +150,7 @@ func TestOnboardDevice(t *testing.T) {
 				var res schemaCredential.CredentialResponse
 				err = c.GetResource(ctx, tt.args.deviceID, schemaCredential.ResourceURI, &res)
 				require.NoError(t, err)
-				require.Len(t, res.Credentials, 0)
+				require.Empty(t, res.Credentials)
 			}
 		})
 	}

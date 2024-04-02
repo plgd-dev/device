@@ -19,6 +19,7 @@
 package net
 
 import (
+	"errors"
 	"fmt"
 	gonet "net"
 	"strconv"
@@ -32,7 +33,7 @@ const (
 	UDP6 = "udp6"
 )
 
-var ErrInvalidExternalAddress = fmt.Errorf("invalid externalAddress")
+var ErrInvalidExternalAddress = errors.New("invalid externalAddress")
 
 type externalAddressPort struct {
 	host    string
@@ -81,7 +82,7 @@ func validateExternalAddress(addr string) (externalAddressPort, error) {
 		return externalAddressPort{}, errInvalidExternalAddress(err)
 	}
 	if host == "" {
-		return externalAddressPort{}, errInvalidExternalAddress(fmt.Errorf("host cannot be empty"))
+		return externalAddressPort{}, errInvalidExternalAddress(errors.New("host cannot be empty"))
 	}
 	_, err = strconv.ParseUint(portStr, 10, 16)
 	if err != nil {

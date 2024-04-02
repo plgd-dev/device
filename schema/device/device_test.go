@@ -89,7 +89,7 @@ func TestDeviceGetManufacturerName(t *testing.T) {
 			d := device.Device{
 				ManufacturerName: tt.fields.ManufacturerName,
 			}
-			require.Equal(t, d.GetManufacturerName(), tt.want)
+			require.Equal(t, tt.want, d.GetManufacturerName())
 		})
 	}
 }

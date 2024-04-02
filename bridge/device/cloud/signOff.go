@@ -20,6 +20,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	ocfCloud "github.com/plgd-dev/device/v2/pkg/ocf/cloud"
@@ -31,7 +32,7 @@ import (
 
 const ProvisioningStatusDEREGISTERING cloud.ProvisioningStatus = "deregistering"
 
-var ErrCannotSignOff = fmt.Errorf("cannot sign off")
+var ErrCannotSignOff = errors.New("cannot sign off")
 
 func newSignOffReq(ctx context.Context, c *client.Conn, deviceID, userID string) (*pool.Message, error) {
 	req, err := newRequestWithToken(ctx, c, ocfCloud.SignUp)
@@ -51,7 +52,7 @@ func errCannotSignOff(err error) error {
 func (c *Manager) signOff(ctx context.Context) error {
 	client := c.getClient()
 	if client == nil {
-		return errCannotSignOff(fmt.Errorf("no connection"))
+		return errCannotSignOff(errors.New("no connection"))
 	}
 	// signIn / refresh token fails
 	if ctx.Err() != nil {

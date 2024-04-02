@@ -19,6 +19,7 @@ package otm
 import (
 	"context"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -71,18 +72,18 @@ func WithSetupCertificates(deviceID string, sign SignFunc) SetupCertificatesOpti
 
 func validateProvisionOwnerCredentials(ownerID string, psk []byte, opts provisionOwnerCredentialstOptions) error {
 	if ownerID == "" {
-		return fmt.Errorf("invalid ownerID")
+		return errors.New("invalid ownerID")
 	}
 	if opts.setupCertificates != nil {
 		if opts.setupCertificates.deviceID == "" {
-			return fmt.Errorf("invalid deviceID")
+			return errors.New("invalid deviceID")
 		}
 		if opts.setupCertificates.sign == nil {
-			return fmt.Errorf("invalid sign")
+			return errors.New("invalid sign")
 		}
 	}
 	if len(psk) == 0 {
-		return fmt.Errorf("invalid preshared key")
+		return errors.New("invalid preshared key")
 	}
 	if len(psk) != 16 {
 		return fmt.Errorf("size of preshared key('%v') must be 16bytes", len(psk))

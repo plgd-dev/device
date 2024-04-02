@@ -18,7 +18,7 @@ package client
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -42,7 +42,7 @@ func setCloudResource(ctx context.Context, links schema.ResourceLinks, d *core.D
 		return d.UpdateResource(ctx, l, ob, nil, options...)
 	}
 
-	return fmt.Errorf("cloud resource not found")
+	return errors.New("cloud resource not found")
 }
 
 func setACLForCloud(ctx context.Context, p *core.ProvisioningClient, cloudID string, links schema.ResourceLinks, opts []func(message.Options) message.Options) error {

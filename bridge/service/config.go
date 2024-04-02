@@ -19,6 +19,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/bridge/net"
@@ -31,7 +32,7 @@ type CoAPConfig struct {
 
 func (c *CoAPConfig) Validate() error {
 	if c.ID == "" {
-		return fmt.Errorf("id is required")
+		return errors.New("id is required")
 	}
 	if err := c.Config.Validate(); err != nil {
 		return err
