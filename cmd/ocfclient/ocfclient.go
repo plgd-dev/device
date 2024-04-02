@@ -22,7 +22,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	enjson "encoding/json"
-	"fmt"
+	"errors"
 	"time"
 
 	local "github.com/plgd-dev/device/v2/client"
@@ -48,21 +48,21 @@ type SetupSecureClient struct {
 
 func (c *SetupSecureClient) GetManufacturerCertificate() (tls.Certificate, error) {
 	if c.mfgCert.PrivateKey == nil {
-		return c.mfgCert, fmt.Errorf("private key not set")
+		return c.mfgCert, errors.New("private key not set")
 	}
 	return c.mfgCert, nil
 }
 
 func (c *SetupSecureClient) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.mfgCA) == 0 {
-		return nil, fmt.Errorf("certificate authority not set")
+		return nil, errors.New("certificate authority not set")
 	}
 	return c.mfgCA, nil
 }
 
 func (c *SetupSecureClient) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(c.ca) == 0 {
-		return nil, fmt.Errorf("certificate authorities not set")
+		return nil, errors.New("certificate authorities not set")
 	}
 	return c.ca, nil
 }

@@ -17,6 +17,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
@@ -73,7 +74,7 @@ func (c DiscoverDeviceCodec) Decode(msg *pool.Message, v interface{}) error {
 	}
 	mt, err := msg.Options().ContentFormat()
 	if err != nil {
-		return MakeUnimplemented(fmt.Errorf("content format not found"))
+		return MakeUnimplemented(errors.New("content format not found"))
 	}
 	switch mt {
 	case message.AppOcfCbor:

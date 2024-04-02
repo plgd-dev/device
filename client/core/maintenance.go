@@ -18,6 +18,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -74,7 +75,7 @@ func (d *Device) updateMaintenanceResource(
 				ret = fmt.Errorf("returns HTTP code %v", resp.LastHTTPError)
 			}
 		}()
-		return fmt.Errorf(str)
+		return errors.New(str)
 	}
 	return nil
 }

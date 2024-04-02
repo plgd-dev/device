@@ -104,7 +104,7 @@ func TestEndpointsGetAddr(t *testing.T) {
 
 func TestResourceLinkGetSecureEndpoints(t *testing.T) {
 	eps := schema.Endpoints{}
-	require.Len(t, eps.FilterSecureEndpoints(), 0)
+	require.Empty(t, eps.FilterSecureEndpoints())
 
 	rls := schema.ResourceLink{
 		Endpoints: schema.Endpoints{
@@ -123,7 +123,7 @@ func TestResourceLinkGetSecureEndpoints(t *testing.T) {
 
 func TestResourceLinkGetUnsecureEndpoints(t *testing.T) {
 	eps := schema.Endpoints{}
-	require.Len(t, eps.FilterUnsecureEndpoints(), 0)
+	require.Empty(t, eps.FilterUnsecureEndpoints())
 
 	rls := schema.ResourceLink{
 		Endpoints: schema.Endpoints{
@@ -431,7 +431,7 @@ func TestResourceLinkGetDeviceID(t *testing.T) {
 func TestResourceLinksEndpointsSort(t *testing.T) {
 	endpoints := schema.Endpoints{}
 	sortedEndpoints := endpoints.Sort()
-	require.Equal(t, 0, len(sortedEndpoints))
+	require.Empty(t, sortedEndpoints)
 
 	endpoints = schema.Endpoints{
 		schema.Endpoint{URI: "tcp://example.com:12345", Priority: 2},
@@ -440,7 +440,7 @@ func TestResourceLinksEndpointsSort(t *testing.T) {
 	}
 
 	sortedEndpoints = endpoints.Sort()
-	require.Equal(t, 3, len(sortedEndpoints))
+	require.Len(t, sortedEndpoints, 3)
 	require.Equal(t, "udp://example.com:54321", sortedEndpoints[0].URI)
 	require.Equal(t, "tcp://example.com:12345", sortedEndpoints[1].URI)
 	require.Equal(t, "coap://example.com:5683", sortedEndpoints[2].URI)

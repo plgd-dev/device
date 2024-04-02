@@ -18,6 +18,7 @@ package core
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -115,10 +116,10 @@ func getHopLimit(addr string, desiredHopLimit int) int {
 }
 
 // DialDiscoveryAddresses connects to discovery endpoints.
-func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errors func(error)) ([]*DiscoveryClient, error) {
+func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, errFn func(error)) ([]*DiscoveryClient, error) {
 	v, ok := ctx.Deadline()
 	if !ok {
-		return nil, fmt.Errorf("context has not set deadline")
+		return nil, errors.New("context has not set deadline")
 	}
 	timeout := time.Until(v)
 	var out []*DiscoveryClient
@@ -134,9 +135,9 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 			net.WithMulticastHoplimit(getHopLimit(address, cfg.MulticastHopLimit)),
 		}
 		multicastOptions = append(multicastOptions, cfg.MulticastOptions...)
-		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errors, multicastOptions)
+		c, err := newDiscoveryClient("udp4", address, msgIDudp4, timeout, errFn, multicastOptions)
 		if err != nil {
-			errors(err)
+			errFn(err)
 			continue
 		}
 		out = append(out, c)
@@ -146,9 +147,9 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 			net.WithMulticastHoplimit(getHopLimit(address, cfg.MulticastHopLimit)),
 		}
 		multicastOptions = append(multicastOptions, cfg.MulticastOptions...)
-		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errors, multicastOptions)
+		c, err := newDiscoveryClient("udp6", address, msgIDudp6, timeout, errFn, multicastOptions)
 		if err != nil {
-			errors(err)
+			errFn(err)
 			continue
 		}
 		out = append(out, c)

@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -275,10 +276,10 @@ func NewClient(
 	opt ...ClientOptionFunc,
 ) (*Client, error) {
 	if app == nil {
-		return nil, fmt.Errorf("missing application callback")
+		return nil, errors.New("missing application callback")
 	}
 	if deviceOwner == nil {
-		return nil, fmt.Errorf("missing device owner callback")
+		return nil, errors.New("missing device owner callback")
 	}
 	clientCfg := ClientConfig{
 		CacheExpiration: time.Hour,

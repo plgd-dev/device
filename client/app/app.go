@@ -19,6 +19,7 @@ package app
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
@@ -73,21 +74,21 @@ func NewApp(cfg *AppConfig) (*App, error) {
 
 func (a *App) GetRootCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(a.rootCA) == 0 {
-		return nil, fmt.Errorf("missing Root CA")
+		return nil, errors.New("missing Root CA")
 	}
 	return a.rootCA, nil
 }
 
 func (a *App) GetManufacturerCertificateAuthorities() ([]*x509.Certificate, error) {
 	if len(a.manufacturerCA) == 0 {
-		return nil, fmt.Errorf("missing Manufacturer's CA")
+		return nil, errors.New("missing Manufacturer's CA")
 	}
 	return a.manufacturerCA, nil
 }
 
 func (a *App) GetManufacturerCertificate() (r tls.Certificate, _ error) {
 	if a.manufacturerCert == nil {
-		return r, fmt.Errorf("missing Manufacturer's certificate")
+		return r, errors.New("missing Manufacturer's certificate")
 	}
 	return *a.manufacturerCert, nil
 }

@@ -29,119 +29,119 @@ var err = errors.New("test")
 
 func TestMakeCanceled(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeCanceled(err), &sdkErr))
+	require.ErrorAs(t, core.MakeCanceled(err), &sdkErr)
 	require.Equal(t, codes.Canceled, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeUnknown(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeUnknown(err), &sdkErr))
+	require.ErrorAs(t, core.MakeUnknown(err), &sdkErr)
 	require.Equal(t, codes.Unknown, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeInvalidArgument(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeInvalidArgument(err), &sdkErr))
+	require.ErrorAs(t, core.MakeInvalidArgument(err), &sdkErr)
 	require.Equal(t, codes.InvalidArgument, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeDeadlineExceeded(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeDeadlineExceeded(err), &sdkErr))
+	require.ErrorAs(t, core.MakeDeadlineExceeded(err), &sdkErr)
 	require.Equal(t, codes.DeadlineExceeded, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeNotFound(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeNotFound(err), &sdkErr))
+	require.ErrorAs(t, core.MakeNotFound(err), &sdkErr)
 	require.Equal(t, codes.NotFound, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeAlreadyExists(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeAlreadyExists(err), &sdkErr))
+	require.ErrorAs(t, core.MakeAlreadyExists(err), &sdkErr)
 	require.Equal(t, codes.AlreadyExists, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakePermissionDenied(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakePermissionDenied(err), &sdkErr))
+	require.ErrorAs(t, core.MakePermissionDenied(err), &sdkErr)
 	require.Equal(t, codes.PermissionDenied, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeResourceExhausted(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeResourceExhausted(err), &sdkErr))
+	require.ErrorAs(t, core.MakeResourceExhausted(err), &sdkErr)
 	require.Equal(t, codes.ResourceExhausted, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeFailedPrecondition(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeFailedPrecondition(err), &sdkErr))
+	require.ErrorAs(t, core.MakeFailedPrecondition(err), &sdkErr)
 	require.Equal(t, codes.FailedPrecondition, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeAborted(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeAborted(err), &sdkErr))
+	require.ErrorAs(t, core.MakeAborted(err), &sdkErr)
 	require.Equal(t, codes.Aborted, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeOutOfRange(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeOutOfRange(err), &sdkErr))
+	require.ErrorAs(t, core.MakeOutOfRange(err), &sdkErr)
 	require.Equal(t, codes.OutOfRange, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeUnimplemented(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeUnimplemented(err), &sdkErr))
+	require.ErrorAs(t, core.MakeUnimplemented(err), &sdkErr)
 	require.Equal(t, codes.Unimplemented, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeInternal(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeInternal(err), &sdkErr))
+	require.ErrorAs(t, core.MakeInternal(err), &sdkErr)
 	require.Equal(t, codes.Internal, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeInternalStr(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeInternalStr("test:%v", err), &sdkErr))
+	require.ErrorAs(t, core.MakeInternalStr("test:%v", err), &sdkErr)
 	require.Equal(t, codes.Internal, sdkErr.GetCode())
 	require.Contains(t, sdkErr.Error(), "test:"+err.Error())
 }
 
 func TestMakeUnavailable(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeUnavailable(err), &sdkErr))
+	require.ErrorAs(t, core.MakeUnavailable(err), &sdkErr)
 	require.Equal(t, codes.Unavailable, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeDataLoss(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeDataLoss(err), &sdkErr))
+	require.ErrorAs(t, core.MakeDataLoss(err), &sdkErr)
 	require.Equal(t, codes.DataLoss, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }
 
 func TestMakeUnauthenticated(t *testing.T) {
 	sdkErr := core.SdkError{}
-	require.True(t, errors.As(core.MakeUnauthenticated(err), &sdkErr))
+	require.ErrorAs(t, core.MakeUnauthenticated(err), &sdkErr)
 	require.Equal(t, codes.Unauthenticated, sdkErr.GetCode())
 	require.Equal(t, err, sdkErr.Unwrap())
 }

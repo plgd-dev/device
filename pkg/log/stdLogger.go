@@ -125,25 +125,25 @@ func (l *StdLogger) Error(msg string) {
 	l.LogWithLevel(LevelError, msg)
 }
 
-// LogfWithLevel uses fmt.Errorf to construct and log.Printf to log a message.
-func (l *StdLogger) LogfWithLevel(level Level, format string, args ...interface{}) {
+// LogWithLevelf uses fmt.Errorf to construct and log.Printf to log a message.
+func (l *StdLogger) LogWithLevelf(level Level, format string, args ...interface{}) {
 	if l.checkLevel(level) {
 		l.Printf("%s\n", fmt.Errorf(format, args...))
 	}
 }
 
 func (l *StdLogger) Debugf(format string, args ...interface{}) {
-	l.LogfWithLevel(LevelDebug, format, args...)
+	l.LogWithLevelf(LevelDebug, format, args...)
 }
 
 func (l *StdLogger) Infof(format string, args ...interface{}) {
-	l.LogfWithLevel(LevelInfo, format, args...)
+	l.LogWithLevelf(LevelInfo, format, args...)
 }
 
 func (l *StdLogger) Warnf(format string, args ...interface{}) {
-	l.LogfWithLevel(LevelWarn, format, args...)
+	l.LogWithLevelf(LevelWarn, format, args...)
 }
 
 func (l *StdLogger) Errorf(format string, args ...interface{}) {
-	l.LogfWithLevel(LevelError, format, args...)
+	l.LogWithLevelf(LevelError, format, args...)
 }

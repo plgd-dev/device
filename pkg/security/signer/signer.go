@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"time"
@@ -66,7 +67,7 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr 
 
 	csrBlock, _ := pem.Decode(csr)
 	if csrBlock == nil {
-		err = fmt.Errorf("pem not found")
+		err = errors.New("pem not found")
 		return
 	}
 
@@ -99,7 +100,7 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr 
 		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 	if len(s.caCert) == 0 {
-		return nil, fmt.Errorf("cannot sign with empty signer CA certificates")
+		return nil, errors.New("cannot sign with empty signer CA certificates")
 	}
 	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.caCert[0], certificateRequest.PublicKey, s.caKey)
 	if err != nil {

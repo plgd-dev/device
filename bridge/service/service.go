@@ -19,6 +19,7 @@
 package service
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 
@@ -112,7 +113,7 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 		return c.handleDiscoverAllLinks(req)
 	}
 	if deviceID == uuid.Nil {
-		return nil, fmt.Errorf("invalid queries: di query is not set")
+		return nil, errors.New("invalid queries: di query is not set")
 	}
 	d, err := c.LoadDevice(deviceID) // check if device exists et
 	if err != nil {

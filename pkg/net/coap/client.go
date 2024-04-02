@@ -21,6 +21,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -403,7 +404,7 @@ func DialTCP(ctx context.Context, addr string, opts ...tcp.Option) (*ClientClose
 func NewVerifyPeerCertificate(rootCAs *x509.CertPool, verifyPeerCertificate func(verifyPeerCertificate *x509.Certificate) error) func(rawCerts [][]byte, verifiedChains [][]*x509.Certificate) error {
 	return func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
 		if len(rawCerts) == 0 {
-			return fmt.Errorf("empty certificates chain")
+			return errors.New("empty certificates chain")
 		}
 		intermediateCAPool := x509.NewCertPool()
 		certs := make([]*x509.Certificate, 0, len(rawCerts))

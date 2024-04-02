@@ -20,6 +20,7 @@ import (
 	"context"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -124,11 +125,11 @@ func (c *ProvisioningClient) AddCertificateAuthority(ctx context.Context, subjec
 func (c *ProvisioningClient) SetCloudResource(ctx context.Context, r cloud.ConfigurationUpdateRequest) error {
 	switch {
 	case r.AuthorizationProvider == "":
-		return fmt.Errorf("invalid AuthorizationProvider")
+		return errors.New("invalid AuthorizationProvider")
 	case r.AuthorizationCode == "":
-		return fmt.Errorf("invalid AuthorizationCode")
+		return errors.New("invalid AuthorizationCode")
 	case r.URL == "":
-		return fmt.Errorf("invalid URL")
+		return errors.New("invalid URL")
 	}
 	var link schema.ResourceLink
 

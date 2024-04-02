@@ -18,6 +18,7 @@ package client_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"runtime/debug"
 	"testing"
@@ -39,7 +40,7 @@ LOOP:
 				break LOOP
 			}
 		case <-ctx.Done():
-			require.NoError(t, fmt.Errorf("timeout"))
+			require.NoError(t, errors.New("timeout"))
 			break LOOP
 		}
 	}
@@ -96,7 +97,7 @@ LOOP:
 	require.True(t, ok)
 	select {
 	case <-h.devs:
-		require.NoError(t, fmt.Errorf("unexpected event"))
+		require.NoError(t, errors.New("unexpected event"))
 	default:
 	}
 }
@@ -147,7 +148,7 @@ LOOP:
 	require.True(t, ok)
 	select {
 	case <-h.devs:
-		require.NoError(t, fmt.Errorf("unexpected event"))
+		require.NoError(t, errors.New("unexpected event"))
 	default:
 	}
 }

@@ -20,8 +20,10 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"hash/crc32"
+	"strconv"
 	"strings"
 
 	"github.com/plgd-dev/device/v2/bridge/resources"
@@ -31,8 +33,8 @@ import (
 )
 
 var (
-	ErrCannotPublishResources   = fmt.Errorf("cannot publish resources")
-	ErrCannotUnpublishResources = fmt.Errorf("cannot unpublish resources")
+	ErrCannotPublishResources   = errors.New("cannot publish resources")
+	ErrCannotUnpublishResources = errors.New("cannot unpublish resources")
 )
 
 func errCannotPublishResources(err error) error {
@@ -74,7 +76,7 @@ func (c *Manager) publishResources(ctx context.Context) error {
 	}
 	client := c.getClient()
 	if client == nil {
-		return errCannotPublishResources(fmt.Errorf("no connection"))
+		return errCannotPublishResources(errors.New("no connection"))
 	}
 	req, err := newPostRequest(ctx, client, ocfCloud.ResourceDirectory, wkRd)
 	if err != nil {
@@ -104,7 +106,7 @@ func toQuery(deviceID string, hrefs []string) string {
 	buf.WriteString(deviceID)
 	for _, href := range hrefs {
 		buf.WriteString("&ins=")
-		buf.WriteString(fmt.Sprintf("%v", getInstanceID(href)))
+		buf.WriteString(strconv.FormatInt(getInstanceID(href), 10))
 	}
 	return buf.String()
 }
@@ -123,7 +125,7 @@ func (c *Manager) unpublishResources(ctx context.Context) error {
 		}
 		client := c.getClient()
 		if client == nil {
-			return errCannotUnpublishResources(fmt.Errorf("no connection"))
+			return errCannotUnpublishResources(errors.New("no connection"))
 		}
 		firstRun = false
 		req, err := newDeleteRequest(ctx, client, ocfCloud.ResourceDirectory)

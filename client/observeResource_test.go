@@ -135,7 +135,7 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 	err = c.UpdateResource(ctx, deviceID, test.TestResourceLightInstanceHref("1"), map[string]interface{}{
 		"power": uint64(0),
 	}, nil)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	res, err = h.WaitForNotification(ctx)
 	require.NoError(t, err)
@@ -205,7 +205,7 @@ func TestObservingDiscoveryResource(t *testing.T) {
 			require.NotEqual(t, d.ETag, d1.ETag)
 		}
 		d1.Body.Sort()
-		require.Equal(t, numResources+1, len(d1.Body))
+		require.Len(t, d1.Body, numResources+1)
 		var j int
 		for i := range d1.Body {
 			if j < len(d.Body) && d.Body[j].Href == d1.Body[i].Href {
@@ -273,7 +273,7 @@ func TestObservingDiscoveryResourceWithBaselineInterface(t *testing.T) {
 		}
 		require.NotEmpty(t, d1.Body)
 		d1.Body[0].Links.Sort()
-		require.Equal(t, numResources+1, len(d1.Body[0].Links))
+		require.Len(t, d1.Body[0].Links, numResources+1)
 		var j int
 		for i := range d1.Body {
 			if j < len(d.Body) && d.Body[0].Links[j].Href == d1.Body[0].Links[i].Href {
@@ -522,7 +522,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 		require.NoError(t, err)
 
 		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
@@ -538,7 +538,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnUpdate(t *testing.T) {
 
 		// every resource except the updated switch should match original etags, thus only the updated switch should be in the payload
 		queries = coap.EncodeETagsForIncrementalChanges(etags)
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		defer func(observationID string) {
@@ -615,7 +615,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 		require.NoError(t, err)
 
 		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
@@ -631,7 +631,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnCreate(t *testing.T) {
 
 		// every resource except the updated /switches resources should match original etags
 		queries = coap.EncodeETagsForIncrementalChanges(etags)
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		defer func(observationID string) {
@@ -719,7 +719,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 		require.NoError(t, err)
 
 		queries := coap.EncodeETagsForIncrementalChanges([][]byte{d1.ETag})
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		d2 := coap.DetailedResponse[resources.BatchResourceDiscovery]{}
@@ -735,7 +735,7 @@ func TestObserveDiscoveryResourceWithIncrementalChangesOnDelete(t *testing.T) {
 
 		// every resource except the updated /switches resources should match original etags
 		queries = coap.EncodeETagsForIncrementalChanges(etags)
-		require.Equal(t, 1, len(queries))
+		require.Len(t, queries, 1)
 		obsID, err = c.ObserveResource(ctx, deviceID, resources.ResourceURI, h, client.WithInterface(interfaces.OC_IF_B), client.WithQuery(queries[0]))
 		require.NoError(t, err)
 		defer func(observationID string) {

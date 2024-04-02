@@ -19,7 +19,7 @@
 package device
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
@@ -48,7 +48,7 @@ type Config struct {
 
 func (cfg *Config) Validate() error {
 	if cfg.ProtocolIndependentID == uuid.Nil {
-		return fmt.Errorf("protocolIndependentID is required")
+		return errors.New("protocolIndependentID is required")
 	}
 	if cfg.ID == uuid.Nil {
 		cfg.ID = uuid.New()

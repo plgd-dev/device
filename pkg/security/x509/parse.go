@@ -23,7 +23,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
+	"errors"
 	"os"
 	"path/filepath"
 )
@@ -35,7 +35,7 @@ func ParsePemCertificates(pemBlock []byte) ([]*x509.Certificate, error) {
 	for {
 		certDERBlock, tmp := pem.Decode(data)
 		if certDERBlock == nil {
-			return nil, fmt.Errorf("cannot decode pem block")
+			return nil, errors.New("cannot decode pem block")
 		}
 		certs, err := x509.ParseCertificates(certDERBlock.Bytes)
 		if err != nil {
@@ -63,7 +63,7 @@ func ReadPemCertificates(path string) ([]*x509.Certificate, error) {
 func ParsePemEcdsaPrivateKey(pemBlock []byte) (*ecdsa.PrivateKey, error) {
 	derBlock, _ := pem.Decode(pemBlock)
 	if derBlock == nil {
-		return nil, fmt.Errorf("cannot decode pem block")
+		return nil, errors.New("cannot decode pem block")
 	}
 
 	if key, err := x509.ParsePKCS8PrivateKey(derBlock.Bytes); err == nil {
@@ -71,7 +71,7 @@ func ParsePemEcdsaPrivateKey(pemBlock []byte) (*ecdsa.PrivateKey, error) {
 		case *ecdsa.PrivateKey:
 			return key, nil
 		default:
-			return nil, fmt.Errorf("found unknown private key type in PKCS#8 wrapping")
+			return nil, errors.New("found unknown private key type in PKCS#8 wrapping")
 		}
 	}
 
@@ -79,7 +79,7 @@ func ParsePemEcdsaPrivateKey(pemBlock []byte) (*ecdsa.PrivateKey, error) {
 		return key, nil
 	}
 
-	return nil, fmt.Errorf("failed to parse private key")
+	return nil, errors.New("failed to parse private key")
 }
 
 // ReadPemEcdsaPrivateKey loads private key from file in PEM format
@@ -102,7 +102,7 @@ func ParseCertificates(cert *tls.Certificate) ([]*x509.Certificate, error) {
 		caChain = append(caChain, ca...)
 	}
 	if len(caChain) == 0 {
-		return nil, fmt.Errorf("no certificates")
+		return nil, errors.New("no certificates")
 	}
 	return caChain, nil
 }

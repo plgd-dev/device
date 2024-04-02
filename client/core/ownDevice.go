@@ -19,6 +19,7 @@ package core
 import (
 	"context"
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"time"
 
@@ -281,27 +282,27 @@ func (d *Device) setDoxmDeviceID(ctx context.Context, cc *coap.ClientCloseHandle
 }
 
 func getTLSClient(ctx context.Context, links schema.ResourceLinks, otmClient otm.Client) (*coap.ClientCloseHandler, kitNet.Addr, error) {
-	var errors *multierror.Error
+	var errs *multierror.Error
 	for _, link := range links {
 		if addr, err := link.GetUDPSecureAddr(); err == nil {
 			tlsClient, err := otmClient.Dial(ctx, addr)
 			if err == nil {
 				return tlsClient, addr, nil
 			}
-			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errs = multierror.Append(errs, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 		if addr, err := link.GetTCPSecureAddr(); err == nil {
 			tlsClient, err := otmClient.Dial(ctx, addr)
 			if err == nil {
 				return tlsClient, addr, nil
 			}
-			errors = multierror.Append(errors, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
+			errs = multierror.Append(errs, fmt.Errorf("cannot connect to %v: %w", addr.URL(), err))
 		}
 	}
-	if errors.ErrorOrNil() != nil {
-		return nil, kitNet.Addr{}, errors
+	if errs.ErrorOrNil() != nil {
+		return nil, kitNet.Addr{}, errs
 	}
-	return nil, kitNet.Addr{}, fmt.Errorf("not found")
+	return nil, kitNet.Addr{}, errors.New("not found")
 }
 
 func disown(ctx context.Context, conn connUpdateResourcer) error {
@@ -357,7 +358,7 @@ func provisionOwner(ctx context.Context, cfg ownCfg, deviceID, sdkID string, cc 
 
 	/*setup credentials */
 	if len(cfg.psk) == 0 && cfg.sign == nil {
-		return nil, MakeInvalidArgument(errorf(fmt.Errorf("both preshared and signer are empty")))
+		return nil, MakeInvalidArgument(errorf(errors.New("both preshared and signer are empty")))
 	}
 
 	psk := make([]byte, 16)

@@ -20,6 +20,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
@@ -29,9 +30,9 @@ import (
 )
 
 var (
-	ErrMissingAuthorizationCode     = fmt.Errorf("authorization code missing")
-	ErrMissingAuthorizationProvider = fmt.Errorf("authorization provider missing")
-	ErrCannotSignUp                 = fmt.Errorf("cannot sign up")
+	ErrMissingAuthorizationCode     = errors.New("authorization code missing")
+	ErrMissingAuthorizationProvider = errors.New("authorization provider missing")
+	ErrCannotSignUp                 = errors.New("cannot sign up")
 )
 
 func MakeSignUpRequest(deviceID, code, provider string) (ocfCloud.CoapSignUpRequest, error) {
@@ -65,7 +66,7 @@ func (c *Manager) signUp(ctx context.Context) error {
 	}
 	client := c.getClient()
 	if client == nil {
-		return errCannotSignOff(fmt.Errorf("no connection"))
+		return errCannotSignOff(errors.New("no connection"))
 	}
 	req, err := newPostRequest(ctx, client, ocfCloud.SignUp, signUpRequest)
 	if err != nil {

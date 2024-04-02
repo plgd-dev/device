@@ -20,6 +20,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
@@ -28,7 +29,7 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 )
 
-var ErrCannotRefreshToken = fmt.Errorf("cannot refresh token")
+var ErrCannotRefreshToken = errors.New("cannot refresh token")
 
 func errCannotRefreshToken(err error) error {
 	return fmt.Errorf("%w: %w", ErrCannotRefreshToken, err)
@@ -41,7 +42,7 @@ func (c *Manager) refreshToken(ctx context.Context) error {
 	}
 	client := c.getClient()
 	if client == nil {
-		return errCannotRefreshToken(fmt.Errorf("no connection"))
+		return errCannotRefreshToken(errors.New("no connection"))
 	}
 	req, err := newPostRequest(ctx, client, ocfCloud.RefreshToken, ocfCloud.CoapRefreshTokenRequest{
 		DeviceID:     c.deviceID.String(),

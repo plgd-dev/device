@@ -217,7 +217,7 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 	var cloudCfg cloud.Configuration
 	err = c.GetResource(ctx, deviceID, cloudSchema.ResourceURI, &cloudCfg)
 	require.NoError(t, err)
-	require.Equal(t, cloudCfg.ProvisioningStatus, cloudSchema.ProvisioningStatus_REGISTERED)
+	require.Equal(t, cloudSchema.ProvisioningStatus_REGISTERED, cloudCfg.ProvisioningStatus)
 
 	rds := resourceDataSync{
 		resourceData: resourceData{

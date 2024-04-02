@@ -20,6 +20,7 @@ package cloud
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
@@ -29,8 +30,8 @@ import (
 )
 
 var (
-	ErrMissingAccessToken = fmt.Errorf("access token missing")
-	ErrCannotSignIn       = fmt.Errorf("cannot sign in")
+	ErrMissingAccessToken = errors.New("access token missing")
+	ErrCannotSignIn       = errors.New("cannot sign in")
 )
 
 func MakeSignInRequest(deviceID, userID, accessToken string) (ocfCloud.CoapSignInRequest, error) {
@@ -52,7 +53,7 @@ func errCannotSignIn(err error) error {
 func (c *Manager) signIn(ctx context.Context) error {
 	client := c.getClient()
 	if client == nil {
-		return errCannotSignIn(fmt.Errorf("no connection"))
+		return errCannotSignIn(errors.New("no connection"))
 	}
 	if c.isSignedIn() {
 		return nil

@@ -17,7 +17,7 @@
 package plgdtime
 
 import (
-	"fmt"
+	"errors"
 	"time"
 )
 
@@ -48,7 +48,7 @@ type PlgdTimeUpdate struct {
 
 func (t PlgdTime) GetTime() (time.Time, error) {
 	if t.Time == "" {
-		return time.Time{}, fmt.Errorf("time is empty")
+		return time.Time{}, errors.New("time is empty")
 	}
 	return time.Parse(time.RFC3339Nano, t.Time)
 }

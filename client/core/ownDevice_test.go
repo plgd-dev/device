@@ -18,6 +18,7 @@ package core_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -41,7 +42,7 @@ func (InvalidOtmClient) Type() doxm.OwnerTransferMethod {
 }
 
 func (InvalidOtmClient) Dial(context.Context, kitNet.Addr) (*coap.ClientCloseHandler, error) {
-	return nil, fmt.Errorf("invalid client")
+	return nil, errors.New("invalid client")
 }
 
 func TestClientOwnDeviceMfg(t *testing.T) {
@@ -196,7 +197,7 @@ func TestClientOwnDeviceWithFailSetupCertificates(t *testing.T) {
 	links, err := dev.GetResourceLinks(ctx, dev.GetEndpoints())
 	require.NoError(t, err)
 	err = dev.Own(ctx, links, []otm.Client{justworks.NewClient()}, core.WithSetupCertificates(func(context.Context, []byte) ([]byte, error) {
-		return nil, fmt.Errorf("invalid")
+		return nil, errors.New("invalid")
 	}))
 	require.Error(t, err)
 	deviceID2 := test.MustFindDeviceByName(test.DevsimName)

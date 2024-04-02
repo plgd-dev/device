@@ -21,6 +21,7 @@ import (
 	"crypto"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"time"
 
@@ -93,13 +94,13 @@ func newDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 
 	signerCAs, err := pkgX509.ParseCertificates(signerCert)
 	if err != nil {
-		return nil, fmt.Errorf("could not parse signer certificates")
+		return nil, errors.New("could not parse signer certificates")
 	}
 	return &deviceOwnershipSDK{
 		sdkDeviceID: sdkDeviceID,
 		createIdentitySigner: func() (core.CertificateSigner, error) {
 			if createSigner == nil {
-				return nil, fmt.Errorf("create signer is not set")
+				return nil, errors.New("create signer is not set")
 			}
 			notBefore, err := tparse.ParseNow(time.RFC3339, validFrom)
 			if err != nil {
@@ -174,14 +175,14 @@ func (o *deviceOwnershipSDK) Initialization(ctx context.Context) error {
 
 func (o *deviceOwnershipSDK) GetIdentityCertificate() (tls.Certificate, error) {
 	if o.identityCertificate.PrivateKey == nil {
-		return tls.Certificate{}, fmt.Errorf("client is not initialized")
+		return tls.Certificate{}, errors.New("client is not initialized")
 	}
 	return o.identityCertificate, nil
 }
 
 func (o *deviceOwnershipSDK) GetIdentityCACerts() ([]*x509.Certificate, error) {
 	if o.identityCACert == nil {
-		return nil, fmt.Errorf("client is not initialized")
+		return nil, errors.New("client is not initialized")
 	}
 	return o.identityCACert, nil
 }

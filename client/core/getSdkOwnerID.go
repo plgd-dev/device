@@ -18,6 +18,7 @@ package core
 
 import (
 	"crypto/x509"
+	"errors"
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
@@ -30,7 +31,7 @@ func getSdkError(err error) error {
 
 func getSdkOwnerID(getCertificate GetCertificateFunc) (string, error) {
 	if getCertificate == nil {
-		return "", MakeUnimplemented(fmt.Errorf("getCertificate is not set"))
+		return "", MakeUnimplemented(errors.New("getCertificate is not set"))
 	}
 	cert, err := getCertificate()
 	if err != nil {

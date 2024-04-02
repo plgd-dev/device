@@ -19,6 +19,7 @@ package coap
 import (
 	"crypto/x509"
 	"encoding/asn1"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -36,7 +37,7 @@ func verifyOcfEKU(cert *x509.Certificate) error {
 		}
 	}
 	if !hasOcfID {
-		return fmt.Errorf("certificate does not contain ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
+		return errors.New("certificate does not contain ExtKeyUsage with OCF ID(1.3.6.1.4.1.44924.1.6")
 	}
 	return nil
 }
@@ -55,10 +56,10 @@ func verifyEKU(cert *x509.Certificate, requireClient, requireServer, requireOcfI
 		}
 	}
 	if requireClient && !hasClient {
-		return fmt.Errorf("certificate does not contain ExtKeyUsageClientAuth")
+		return errors.New("certificate does not contain ExtKeyUsageClientAuth")
 	}
 	if requireServer && !hasServer {
-		return fmt.Errorf("certificate does not contain ExtKeyUsageServerAuth")
+		return errors.New("certificate does not contain ExtKeyUsageServerAuth")
 	}
 
 	if !requireOcfId {

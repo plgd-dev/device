@@ -18,6 +18,7 @@ package cipher
 
 import (
 	"crypto/sha256"
+	"errors"
 	"fmt"
 	"hash"
 	"sync/atomic"
@@ -28,6 +29,8 @@ import (
 	"github.com/pion/dtls/v2/pkg/crypto/prf"
 	"github.com/pion/dtls/v2/pkg/protocol/recordlayer"
 )
+
+var ErrCipherSuiteNotReady = errors.New("CipherSuite is not ready")
 
 // TLSAecdhAes128Sha256 implements the TLS_ADH_AES128_SHA256 CipherSuite
 type TLSAecdhAes128Sha256 struct {
@@ -116,7 +119,7 @@ func (c *TLSAecdhAes128Sha256) Init(masterSecret, clientRandom, serverRandom []b
 func (c *TLSAecdhAes128Sha256) Encrypt(pkt *recordlayer.RecordLayer, raw []byte) ([]byte, error) {
 	cbc := c.cbc.Load()
 	if cbc == nil {
-		return nil, fmt.Errorf("CipherSuite is not ready, unable to encrypt")
+		return nil, fmt.Errorf("unable to encrypt: %w", ErrCipherSuiteNotReady)
 	}
 
 	return cbc.(*ciphersuite.CBC).Encrypt(pkt, raw) //nolint:forcetypeassert
@@ -126,7 +129,7 @@ func (c *TLSAecdhAes128Sha256) Encrypt(pkt *recordlayer.RecordLayer, raw []byte)
 func (c *TLSAecdhAes128Sha256) Decrypt(h recordlayer.Header, raw []byte) ([]byte, error) {
 	cbc := c.cbc.Load()
 	if cbc == nil {
-		return nil, fmt.Errorf("CipherSuite is not ready, unable to decrypt")
+		return nil, fmt.Errorf("unable to decrypt: %w", ErrCipherSuiteNotReady)
 	}
 
 	return cbc.(*ciphersuite.CBC).Decrypt(h, raw) //nolint:forcetypeassert

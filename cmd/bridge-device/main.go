@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -154,7 +155,7 @@ func getCloudTLS(cfg CloudConfig, credentialEnabled bool) (cloud.CAPool, *tls.Ce
 	var ca []*x509.Certificate
 	var err error
 	if cfg.TLS.CAPoolPath == "" && !credentialEnabled {
-		return cloud.CAPool{}, nil, fmt.Errorf("cannot load ca: caPoolPath is empty")
+		return cloud.CAPool{}, nil, errors.New("cannot load ca: caPoolPath is empty")
 	}
 	if cfg.TLS.CAPoolPath != "" {
 		ca, err = pkgX509.ReadPemCertificates(cfg.TLS.CAPoolPath)

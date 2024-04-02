@@ -107,7 +107,7 @@ type Manager struct {
 
 func New(cfg Config, deviceID uuid.UUID, save func(), handler net.RequestHandler, getLinks GetLinksFilteredBy, caPool CAPoolGetter, loop *eventloop.Loop, opts ...Option) (*Manager, error) {
 	if !caPool.IsValid() {
-		return nil, fmt.Errorf("invalid ca pool")
+		return nil, errors.New("invalid ca pool")
 	}
 	o := OptionsCfg{
 		maxMessageSize: net.DefaultMaxMessageSize,
@@ -287,13 +287,13 @@ func (c *Manager) triggerRunner(reset bool) {
 
 func validateConfigurationUpdate(cfg cloud.ConfigurationUpdateRequest) error {
 	if cfg.CloudID == "" {
-		return fmt.Errorf("cloud ID cannot be empty")
+		return errors.New("cloud ID cannot be empty")
 	}
 	if cfg.AuthorizationProvider == "" {
-		return fmt.Errorf("authorization provider cannot be empty")
+		return errors.New("authorization provider cannot be empty")
 	}
 	if cfg.URL == "" {
-		return fmt.Errorf("URL cannot be empty")
+		return errors.New("URL cannot be empty")
 	}
 	return nil
 }

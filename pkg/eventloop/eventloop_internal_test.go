@@ -89,7 +89,7 @@ func TestEventLoopAddThreadSafety(t *testing.T) {
 	wg.Wait() // Wait for all goroutines to finish
 
 	// Verify that the event loop processed all tasks
-	require.Equal(t, 0, len(*loop.handlers.Load()), "All tasks should be processed")
+	require.Empty(t, *loop.handlers.Load(), "All tasks should be processed")
 }
 
 func TestEventLoopRemoveThreadSafety(t *testing.T) {
@@ -130,5 +130,5 @@ func TestEventLoopRemoveThreadSafety(t *testing.T) {
 	wg.Wait() // Wait for all goroutines to finish
 
 	// Verify that the event loop removed all tasks
-	require.Equal(t, 0, len(*loop.handlers.Load()), "All tasks should be removed")
+	require.Empty(t, *loop.handlers.Load(), "All tasks should be removed")
 }

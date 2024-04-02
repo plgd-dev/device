@@ -16,8 +16,8 @@
 
 package error
 
-import "fmt"
+import "errors"
 
 func NotSupported() error {
-	return fmt.Errorf("not supported")
+	return errors.New("not supported")
 }

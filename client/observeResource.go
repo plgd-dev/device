@@ -18,6 +18,7 @@ package client
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -54,7 +55,7 @@ func (c observerCodec) Decode(m *pool.Message, v interface{}) error {
 		return nil
 	}
 	if m.Code() != codes.Valid && m.Body() == nil {
-		return fmt.Errorf("unexpected empty body")
+		return errors.New("unexpected empty body")
 	}
 	p, ok := v.(**pool.Message)
 	if !ok {
@@ -168,7 +169,7 @@ func getObservationID(resourceCacheID, resourceObservationID string) string {
 func parseIDs(id string) (string, string, error) {
 	v := strings.Split(id, "/")
 	if len(v) != 2 {
-		return "", "", fmt.Errorf("invalid ID")
+		return "", "", errors.New("invalid ID")
 	}
 	return v[0], v[1], nil
 }

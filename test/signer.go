@@ -3,7 +3,7 @@ package test
 import (
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
+	"errors"
 	"time"
 
 	"github.com/plgd-dev/device/v2/client/core"
@@ -17,7 +17,7 @@ func NewTestSigner() (core.CertificateSigner, error) {
 	}
 	identityIntermediateCAKeyBlock, _ := pem.Decode(IdentityIntermediateCAKey)
 	if identityIntermediateCAKeyBlock == nil {
-		return nil, fmt.Errorf("identityIntermediateCAKeyBlock is empty")
+		return nil, errors.New("identityIntermediateCAKeyBlock is empty")
 	}
 	identityIntermediateCAKey, err := x509.ParseECPrivateKey(identityIntermediateCAKeyBlock.Bytes)
 	if err != nil {

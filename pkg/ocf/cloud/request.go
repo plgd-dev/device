@@ -36,7 +36,7 @@ type CoapSignUpResponse struct {
 	RefreshToken string    `yaml:"refreshToken" json:"refreshtoken"`
 	RedirectURI  string    `yaml:"-" json:"redirecturi"`
 	ExpiresIn    int64     `yaml:"-" json:"expiresin"`
-	ValidUntil   time.Time `yaml:"-" jsom:"-"`
+	ValidUntil   time.Time `yaml:"-" json:"-"`
 }
 
 type CoapSignInRequest struct {

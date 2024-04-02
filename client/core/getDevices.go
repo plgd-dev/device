@@ -86,7 +86,7 @@ func (h *discoveryHandler) Handle(ctx context.Context, conn *client.Conn, links 
 	for _, link := range links {
 		deviceID := link.GetDeviceID()
 		if deviceID == "" {
-			h.handler.Error(fmt.Errorf("cannot determine deviceID"))
+			h.handler.Error(ErrCannotDetermineDeviceID)
 			continue
 		}
 		deviceLinks[deviceID] = append(deviceLinks[deviceID], link)
