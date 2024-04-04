@@ -43,7 +43,7 @@ func NewOCFIdentityCertificate(caCert []*x509.Certificate, caKey crypto.PrivateK
 	return &OCFIdentityCertificate{caCert: caCert, caKey: caKey, validNotBefore: validNotBefore, validNotAfter: validNotAfter}
 }
 
-func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr []byte, err error) {
+func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) ([]byte, error) {
 	now := time.Now()
 	notBefore := s.validNotBefore
 	notAfter := s.validNotAfter
@@ -67,24 +67,23 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr 
 
 	csrBlock, _ := pem.Decode(csr)
 	if csrBlock == nil {
-		err = errors.New("pem not found")
-		return
+		return nil, errors.New("pem not found")
 	}
 
 	certificateRequest, err := x509.ParseCertificateRequest(csrBlock.Bytes)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	err = certificateRequest.CheckSignature()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	template := x509.Certificate{
@@ -102,9 +101,9 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) (signedCsr 
 	if len(s.caCert) == 0 {
 		return nil, errors.New("cannot sign with empty signer CA certificates")
 	}
-	signedCsr, err = x509.CreateCertificate(rand.Reader, &template, s.caCert[0], certificateRequest.PublicKey, s.caKey)
+	signedCsr, err := x509.CreateCertificate(rand.Reader, &template, s.caCert[0], certificateRequest.PublicKey, s.caKey)
 	if err != nil {
-		return
+		return nil, err
 	}
 	return pkgX509.CreatePemChain(s.caCert, signedCsr)
 }
