@@ -293,7 +293,7 @@ func (cfg Configuration) AsnExtensionKeyUsages() ([]asn1.ObjectIdentifier, error
 }
 
 func (cfg Configuration) ToIPAddresses() ([]net.IP, error) {
-	var ips []net.IP
+	ips := make([]net.IP, 0, len(cfg.SubjectAlternativeName.IPAddresses))
 	for _, ip := range cfg.SubjectAlternativeName.IPAddresses {
 		v := net.ParseIP(ip)
 		if v == nil {

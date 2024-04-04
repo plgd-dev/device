@@ -122,7 +122,8 @@ func DialDiscoveryAddresses(ctx context.Context, cfg DiscoveryConfiguration, err
 		return nil, errors.New("context has not set deadline")
 	}
 	timeout := time.Until(v)
-	var out []*DiscoveryClient
+
+	out := make([]*DiscoveryClient, 0, len(cfg.MulticastAddressUDP4)+len(cfg.MulticastAddressUDP6))
 
 	// We need to separate messageIDs for upd4 and udp6, because if any docker container has isolated network
 	// iotivity-lite gets error EINVAL(22) for sendmsg with UDP6 for some interfaces. If it happens, the device is

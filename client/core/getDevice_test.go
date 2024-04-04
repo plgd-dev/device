@@ -26,6 +26,7 @@ import (
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	"github.com/plgd-dev/device/v2/schema/platform"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -75,15 +76,15 @@ func TestClientGetDeviceParallel(t *testing.T) {
 			go func() {
 				defer wg.Done()
 				got, err := c.GetDeviceByIP(ctx, ip)
-				require.NoError(t, err)
-				require.NotEmpty(t, got)
+				assert.NoError(t, err)
+				assert.NotEmpty(t, got)
 				links, err := got.GetResourceLinks(ctx, got.GetEndpoints())
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				link, ok := links.GetResourceLink(platform.ResourceURI)
-				require.True(t, ok)
+				assert.True(t, ok)
 				var v interface{}
 				err = got.GetResource(ctx, link, &v)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 			}()
 		}
 		wg.Wait()

@@ -119,7 +119,7 @@ func (c *Client) getDeviceByIPWithUpdateCache(ctx context.Context, ip string, ex
 	if err != nil {
 		return nil, err
 	}
-	var devs []*core.Device
+	devs := make([]*core.Device, 0, len(newDevices))
 	oldDevs := make(map[string]*core.Device)
 	if expectedDeviceID != "" {
 		d, ok := c.deviceCache.GetDevice(expectedDeviceID)

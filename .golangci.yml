@@ -20,9 +20,6 @@ linters-settings:
     # STxxxx checks in https://staticcheck.io/docs/configuration/options/#checks
     # Default: ["*"]
     checks: ["all", "-ST1000", "-ST1003"]
-  testifylint:
-    disable:
-      - go-require
 
 linters:
   enable:
@@ -31,12 +28,13 @@ linters:
     - bidichk          # Checks for dangerous unicode character sequences
     - bodyclose        # Checks whether HTTP response body is closed successfully
     # - copyloopvar      # Detects places where loop variables are copied
-    - decorder         # check declaration order and count of types, constants, variables and functions
+    - decorder         # Check declaration order and count of types, constants, variables and functions
     - dogsled          # Checks assignments with too many blank identifiers (e.g. x, _, _, _, := f())
     - dupl             # Tool for code clone detection
-    - durationcheck    # check for two durations multiplied together
+    - dupword          # A linter that checks for duplicate words in the source code (usually miswritten)
+    - durationcheck    # Check for two durations multiplied together
     - errcheck         # Errcheck is a program for checking for unchecked errors in go programs. These unchecked errors can be critical bugs in some cases
-    - errchkjson       # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occations, where the check for the returned error can be omitted.
+    - errchkjson       # Checks types passed to the json encoding functions. Reports unsupported types and optionally reports occasions, where the check for the returned error can be omitted.
     - errname          # Checks that sentinel errors are prefixed with the `Err` and error types are suffixed with the `Error`.
     - errorlint        # errorlint is a linter for that can be used to find code that will cause problems with the error wrapping scheme introduced in Go 1.13.
     - execinquery      # Execinquery is a linter about query string checker in Query function which reads your Go src files and warning it finds.
@@ -68,12 +66,15 @@ linters:
     - loggercheck      # Checks key value pairs for common logger libraries (kitlog,klog,logr,zap).
     - mirror           # Reports wrong mirror patterns of bytes/strings usage
     - misspell         # Finds commonly misspelled English words in comments
+    - nakedret         # Finds naked returns in functions greater than a specified function length
+    - nestif           # Reports deeply nested if statements
     - nilerr           # Finds the code that returns nil even if it checks that the error is not nil.
     - nilnil           # Checks that there is no simultaneous return of `nil` error and an invalid value.
     - noctx            # noctx finds sending http request without context.Context
     - nolintlint       # Reports ill-formed or insufficient nolint directives
     - nosprintfhostport # Checks for misuse of Sprintf to construct a host with port in a URL
     - perfsprint       # Checks that fmt.Sprintf can be replaced with a faster alternative.
+    - prealloc         # Finds slice declarations that could potentially be preallocated
     - predeclared      # find code that shadows one of Go's predeclared identifiers
     - protogetter      # Reports direct reads from proto message fields when getters should be used.
     - revive           # golint replacement, finds style mistakes
@@ -114,18 +115,15 @@ linters:
     - maintidx         # maintidx measures the maintainability index of each function.
     - makezero         # Finds slice declarations with non-zero initial length
     - maligned         # Tool to detect Go structs that would take less memory if their fields were sorted
-    - nakedret         # Finds naked returns in functions greater than a specified function length
-    - nestif           # Reports deeply nested if statements
     - nlreturn         # nlreturn checks for a new line before return and branch statements to increase code clarity
     - nonamedreturns   # Reports all named returns
     - paralleltest     # paralleltest detects missing usage of t.Parallel() method in your Go test
-    - prealloc         # Finds slice declarations that could potentially be preallocated
     - promlinter       # Check Prometheus metrics naming via promlint
     - rowserrcheck     # checks whether Err of rows is checked successfully
     - sqlclosecheck    # Checks that sql.Rows and sql.Stmt are closed.
-    - structcheck      # Finds unused struct fields
     - tagalign         # Check that struct tags are well aligned.
     - tagliatelle      # Checks the struct tags.
+    - testableexamples # linter checks if examples are testable (have an expected output)
     - testpackage      # linter that makes you use a separate _test package
     - thelper          # thelper detects golang test helpers without t.Helper() call and checks the consistency of test helpers
     - varnamelen       # checks that the length of a variable's name matches its scope
@@ -138,9 +136,10 @@ issues:
     # Allow complex tests, better to be self contained
     - path: _test\.go
       linters:
+        - dupword
         - forcetypeassert
         - gocognit
-        - gocyclo
+        - gocyclo        
 
     # Allow complex main function and lower security in examples
     - path: cmd/ocfclient/main\.go
@@ -149,6 +148,7 @@ issues:
         - goconst
         - gocyclo
         - gosec
+        - nestif
 
     - path: pkg/error
       text: "package name error has same name as predeclared identifier"
@@ -161,3 +161,6 @@ issues:
 
   # Fix found issues (if it's supported by the linter).
   # fix: true
+
+run:
+  go: "1.20"

@@ -272,7 +272,7 @@ func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*
 }
 
 func (r *Resource) HandleRequest(req *net.Request) (*pool.Message, error) {
-	if req.Code() == codes.GET && r.getHandler != nil {
+	if req.Code() == codes.GET && r.getHandler != nil { //nolint:nestif
 		var resp *pool.Message
 		var err error
 		if obs, errObs := req.Observe(); errObs == nil && r.createSubscription != nil && r.PolicyBitMask&schema.Observable != 0 {

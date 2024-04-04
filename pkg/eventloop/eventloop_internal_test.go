@@ -5,6 +5,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -67,7 +68,7 @@ func TestEventLoopAddThreadSafety(t *testing.T) {
 	startedCh := make(chan struct{})
 	wg.Add(1)
 	loop.Add(NewReadHandler(reflect.ValueOf(startedCh), func(_ reflect.Value, closed bool) {
-		require.True(t, closed, "Channel should be closed")
+		assert.True(t, closed, "Channel should be closed")
 		wg.Done()
 	}))
 	close(startedCh)
@@ -79,7 +80,7 @@ func TestEventLoopAddThreadSafety(t *testing.T) {
 			ch := make(chan struct{})
 			loop.Add(NewReadHandler(reflect.ValueOf(ch), func(_ reflect.Value, closed bool) {
 				// Simulate task processing
-				require.True(t, closed, "Channel should be closed")
+				assert.True(t, closed, "Channel should be closed")
 				wg.Done()
 			}))
 			close(ch)
@@ -105,7 +106,7 @@ func TestEventLoopRemoveThreadSafety(t *testing.T) {
 	startedCh := make(chan struct{})
 	wg.Add(1)
 	loop.Add(NewReadHandler(reflect.ValueOf(startedCh), func(_ reflect.Value, closed bool) {
-		require.True(t, closed, "Channel should be closed")
+		assert.True(t, closed, "Channel should be closed")
 		wg.Done()
 	}))
 	close(startedCh)
@@ -118,7 +119,7 @@ func TestEventLoopRemoveThreadSafety(t *testing.T) {
 			// Simulate adding a task
 			ch := make(chan struct{})
 			loop.Add(NewReadHandler(reflect.ValueOf(ch), func(reflect.Value, bool) {
-				require.Fail(t, "Task should not be processed")
+				assert.Fail(t, "Task should not be processed")
 			}))
 			go func() {
 				defer wg.Done()
