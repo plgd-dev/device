@@ -58,9 +58,10 @@ func (v BatchResourceDiscovery) Sort() {
 }
 
 type BatchRepresentation struct {
-	HrefRaw string          `json:"href"`
-	ETag    []byte          `json:"etag"`
-	Content cbor.RawMessage `json:"rep"`
+	HrefRaw       string          `json:"href"`
+	ETag          []byte          `json:"etag"`
+	Content       cbor.RawMessage `json:"rep"`
+	ResourceTypes []string        `json:"rt,omitempty"`
 }
 
 func (v BatchRepresentation) DeviceID() string {
