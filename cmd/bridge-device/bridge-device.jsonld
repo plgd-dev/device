@@ -1,0 +1,117 @@
+{
+    "@context": "https://www.w3.org/2019/wot/td/v1",
+    "@type": [
+        "Thing"
+    ],
+    "id": "urn:uuid:bridge",
+    "properties": {
+        "/oic/d": {
+            "title": "Device Information",
+            "type": "object",
+            "properties": {
+                "piid": {
+                    "title": "Protocol Interface ID",
+                    "type": "string",
+                    "readOnly": true,
+                    "format": "uuid"
+                },
+                "my-property": {
+                    "title": "My Property",
+                    "type": "string",
+                    "readOnly": false
+                },
+                "n": {
+                    "title": "Device Name",
+                    "type": "string",
+                    "readOnly": true
+                },
+                "di": {
+                    "title": "Device ID",
+                    "type": "string",
+                    "readOnly": true,
+                    "format": "uuid"
+                }
+            }
+        },
+        "/oic/mnt": {
+            "title": "Maintenance",
+            "type": "object",
+            "properties": {
+                "fr": {
+                    "title": "Factory Reset",
+                    "type": "boolean"
+                }
+            }
+        },
+        "/CoapCloudConfResURI": {
+            "title": "CoapCloudConfResURI",
+            "type": "object",
+            "properties": {
+                "apn": {
+                    "title": "Authorization provider name",
+                    "type": "string"
+                },
+                "cis": {
+                    "title": "Cloud interface server",
+                    "type": "string",
+                    "format": "uri"
+                },
+                "sid": {
+                    "title": "Cloud ID",
+                    "type": "string",
+                    "format": "uuid"
+                },
+                "at": {
+                    "title": "Access token",
+                    "type": "string",
+                    "writeOnly": true
+                },
+                "cps": {
+                    "title": "Provisioning status",
+                    "type": "string",
+                    "enum": [
+                        "uninitialized",
+                        "readytoregister",
+                        "registering",
+                        "registered",
+                        "failed"
+                    ]
+                },
+                "clec": {
+                    "title": "Last error code",
+                    "type": "integer"
+                }
+            }
+        },
+        "/test/0": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        },
+        "/test/1": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        },
+        "/test/2": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

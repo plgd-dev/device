@@ -12,5 +12,8 @@ cloud:
   enabled: true
 credential:
   enabled: true
+thingDescription:
+  enabled: true
+  file: "bridge-device.jsonld"
 numGeneratedBridgedDevices: 3
 numResourcesPerDevice: 16

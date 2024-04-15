@@ -54,7 +54,6 @@ type subscription struct {
 
 type Resource struct {
 	Href                string
-	ResourceTypes       []string
 	ResourceInterfaces  []string
 	PolicyBitMask       schema.BitMask
 	getHandler          GetHandlerFunc
@@ -64,6 +63,7 @@ type Resource struct {
 	createdSubscription *sync.Map[string, *subscription]
 	etag                atomic.Uint64
 	loop                *eventloop.Loop
+	resourceTypes       atomic.Pointer[[]string]
 }
 
 func (r *Resource) GetPolicyBitMask() schema.BitMask {
@@ -74,8 +74,43 @@ func (r *Resource) GetHref() string {
 	return r.Href
 }
 
+type SupportedOperation int
+
+const (
+	SupportedOperationRead SupportedOperation = 0x1 << iota
+	SupportedOperationWrite
+	SupportedOperationObserve
+)
+
+func (o SupportedOperation) HasOperation(operation SupportedOperation) bool {
+	return o&operation != 0
+}
+
+func (r *Resource) SupportsOperations() SupportedOperation {
+	var operations SupportedOperation
+	if r.getHandler != nil {
+		operations |= SupportedOperationRead
+	}
+	if r.postHandler != nil {
+		operations |= SupportedOperationWrite
+	}
+	if r.PolicyBitMask&schema.Observable != 0 {
+		operations |= SupportedOperationObserve
+	}
+	return operations
+}
+
+func (r *Resource) SetResourceTypes(resourceTypes []string) {
+	resourceTypes = Unique(resourceTypes)
+	r.resourceTypes.Store(&resourceTypes)
+}
+
 func (r *Resource) GetResourceTypes() []string {
-	return r.ResourceTypes
+	resourceTypes := r.resourceTypes.Load()
+	if resourceTypes == nil {
+		return nil
+	}
+	return *resourceTypes
 }
 
 func (r *Resource) GetResourceInterfaces() []string {
@@ -97,13 +132,13 @@ func Unique(strSlice []string) []string {
 func NewResource(href string, getHandler GetHandlerFunc, postHandler PostHandlerFunc, resourceTypes, resourceInterfaces []string) *Resource {
 	r := &Resource{
 		Href:                href,
-		ResourceTypes:       Unique(resourceTypes),
 		ResourceInterfaces:  Unique(resourceInterfaces),
 		PolicyBitMask:       schema.Discoverable | PublishToCloud,
 		getHandler:          getHandler,
 		postHandler:         postHandler,
 		createdSubscription: sync.NewMap[string, *subscription](),
 	}
+	r.SetResourceTypes(resourceTypes)
 	r.etag.Store(GetETag())
 	return r
 }

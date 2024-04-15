@@ -36,8 +36,9 @@ type Resource struct {
 }
 
 func (r *Resource) Get(request *net.Request) (*pool.Message, error) {
-	return resources.CreateResponseContent(request.Context(), maintenance.Maintenance{
-		FactoryReset: false,
+	factoryReset := false
+	return resources.CreateResponseContent(request.Context(), maintenance.MaintenanceV1{
+		FactoryReset: &factoryReset,
 	}, codes.Content)
 }
 

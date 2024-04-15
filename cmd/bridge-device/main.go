@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -18,6 +19,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/service"
@@ -25,11 +27,13 @@ import (
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
+	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 	"gopkg.in/yaml.v3"
 )
 
@@ -224,6 +228,31 @@ func main() {
 				return []tls.Certificate{*cert}
 			}))
 		}
+	}
+	if cfg.ThingDescription.Enabled {
+		tdJson, errD := os.ReadFile(cfg.ThingDescription.File)
+		if errD != nil {
+			panic(errD)
+		}
+		td, errD := wotTD.UnmarshalThingDescription(tdJson)
+		if errD != nil {
+			panic(errD)
+		}
+		opts = append(opts, device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+			endpoint := ""
+			if len(endpoints) > 0 {
+				endpoint = endpoints[0].URI
+			}
+			newTD := thingDescription.PatchThingDescription(td, device, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+				propElement, ok := td.Properties[resourceHref]
+				if !ok {
+					return wotTD.PropertyElement{}, false
+				}
+				propElement = thingDescription.PatchPropertyElement(propElement, device.GetID(), resource, endpoint != "")
+				return propElement, true
+			})
+			return &newTD
+		}))
 	}
 
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {

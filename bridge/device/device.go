@@ -28,6 +28,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/device/credential"
+	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	cloudResource "github.com/plgd-dev/device/v2/bridge/resources/cloud"
@@ -35,6 +36,7 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
 	"github.com/plgd-dev/device/v2/bridge/resources/maintenance"
 	credentialResource "github.com/plgd-dev/device/v2/bridge/resources/secure/credential"
+	thingDescriptionResource "github.com/plgd-dev/device/v2/bridge/resources/thingDescription"
 	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	pkgLog "github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/schema"
@@ -47,9 +49,10 @@ import (
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	"github.com/plgd-dev/go-coap/v3/pkg/sync"
+	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
-type Resource interface {
+type Resource = interface {
 	Close()
 	ETag() []byte
 	GetHref() string
@@ -59,18 +62,20 @@ type Resource interface {
 	GetPolicyBitMask() schema.BitMask
 	SetObserveHandler(loop *eventloop.Loop, createSubscription resources.CreateSubscriptionFunc)
 	UpdateETag()
+	SupportsOperations() resources.SupportedOperation
 }
 
 type Device struct {
-	cfg               Config
-	resources         *sync.Map[string, Resource]
-	cloudManager      *cloud.Manager
-	credentialManager *credential.Manager
-	onDeviceUpdated   func(d *Device)
-	loop              *eventloop.Loop
-	runLoop           bool
-	done              chan struct{}
-	stopped           atomic.Bool
+	cfg                     Config
+	resources               *sync.Map[string, Resource]
+	cloudManager            *cloud.Manager
+	credentialManager       *credential.Manager
+	thingDescriptionManager *thingDescription.Manager
+	onDeviceUpdated         func(d *Device)
+	loop                    *eventloop.Loop
+	runLoop                 bool
+	done                    chan struct{}
+	stopped                 atomic.Bool
 }
 
 func NewLogger(id uuid.UUID, level pkgLog.Level) pkgLog.Logger {
@@ -170,6 +175,15 @@ func New(cfg Config, opts ...Option) (*Device, error) {
 		d.cloudManager = cm
 		d.AddResources(cloudResource.New(cloudSchema.ResourceURI, d.cloudManager))
 	}
+	if o.getThingDescription != nil {
+		td := thingDescription.New(d, o.loop)
+		tdRes := thingDescriptionResource.New(thingDescriptionResource.ResourceURI, func(ctx context.Context, endpoints schema.Endpoints) *wotTD.ThingDescription {
+			return o.getThingDescription(ctx, d, endpoints)
+		}, td.RegisterSubscription)
+		tdRes.SetObserveHandler(o.loop, tdRes.CreateSubscription)
+		d.AddResources(tdRes)
+		d.thingDescriptionManager = td
+	}
 
 	d.AddResources(resourcesDevice.New(plgdDevice.ResourceURI, d, o.getAdditionalProperties))
 	// oic/res is not discoverable
@@ -210,6 +224,11 @@ func (d *Device) Init() {
 
 func (d *Device) GetCloudManager() *cloud.Manager {
 	return d.cloudManager
+}
+
+// GetThingDescriptionManager returns thing description manager of the device.
+func (d *Device) GetThingDescriptionManager() *thingDescription.Manager {
+	return d.thingDescriptionManager
 }
 
 func (d *Device) Range(f func(resourceHref string, resource Resource) bool) {
@@ -307,6 +326,9 @@ func (d *Device) Close() {
 	}
 	if d.credentialManager != nil {
 		d.credentialManager.Close()
+	}
+	if d.thingDescriptionManager != nil {
+		d.thingDescriptionManager.Close()
 	}
 	for _, resource := range d.resources.LoadAndDeleteAll() {
 		resource.Close()
