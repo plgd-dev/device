@@ -59,7 +59,7 @@ func (r *Resource) createMessage(request *net.Request, thingDescription *thingDe
 	}
 	mediaType, err := request.Accept()
 	if err != nil {
-		mediaType = MessageTypeTDJson
+		mediaType = message.AppJSON
 	}
 	switch mediaType {
 	case message.AppJSON, MessageTypeTDJson:
