@@ -19,6 +19,7 @@
 package test
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"testing"
@@ -26,10 +27,13 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/log"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/test"
 	"github.com/stretchr/testify/require"
+	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
 const (
@@ -103,9 +107,229 @@ func makeDeviceConfig(id uuid.UUID, cloudEnabled bool, credentialEnabled bool) d
 	return cfg
 }
 
-func NewBridgedDevice(t *testing.T, s *service.Service, id string, cloudEnabled bool, credentialEnabled bool, opts ...device.Option) service.Device {
+func GetPropertyElement(td wotTD.ThingDescription, device thingDescription.Device, endpoint string, resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+	propElement, ok := td.Properties[resourceHref]
+	if !ok {
+		return wotTD.PropertyElement{}, false
+	}
+	propElement = thingDescription.PatchPropertyElement(propElement, device.GetID(), resource, endpoint != "")
+	return propElement, true
+}
+
+func NewBridgedDevice(t *testing.T, s *service.Service, id string, cloudEnabled, credentialEnabled, thingDescriptionEnabled bool, opts ...device.Option) service.Device {
 	u, err := uuid.Parse(id)
 	require.NoError(t, err)
 	cfg := makeDeviceConfig(u, cloudEnabled, credentialEnabled)
+	if thingDescriptionEnabled {
+		td, err := ThingDescription(cloudEnabled, credentialEnabled)
+		require.NoError(t, err)
+		opts = append(opts, device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+			endpoint := ""
+			if len(endpoints) > 0 {
+				endpoint = endpoints[0].URI
+			}
+			newTD := thingDescription.PatchThingDescription(td, device, endpoint,
+				func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+					return GetPropertyElement(td, device, endpoint, resourceHref, resource)
+				})
+			return &newTD
+		}))
+	}
 	return NewBridgedDeviceWithConfig(t, s, cfg, opts...)
+}
+
+func ThingDescription(cloudEnabled, credentialEnabled bool) (wotTD.ThingDescription, error) {
+	tdJson := `{
+		"@context": "https://www.w3.org/2019/wot/td/v1",
+		"@type": [
+			"Thing"
+		],
+		"id": "urn:uuid:bridge",
+		"properties": {
+			"/oic/d": {
+				"title": "Device Information",
+				"type": "object",
+				"properties": {
+					"piid": {
+						"title": "Protocol Interface ID",
+						"type": "string",
+						"readOnly": true,
+						"format": "uuid"
+					},
+					"n": {
+						"title": "Device Name",
+						"type": "string",
+						"readOnly": true
+					},
+					"di": {
+						"title": "Device ID",
+						"type": "string",
+						"readOnly": true,
+						"format": "uuid"
+					}
+				}
+			},
+			"/oic/mnt": {
+				"title": "Maintenance",
+				"type": "object",
+				"properties": {
+					"fr": {
+						"title": "Factory Reset",
+						"type": "boolean"
+					}
+				}
+			}`
+	if cloudEnabled {
+		tdJson += `,
+			"/CoapCloudConfResURI": {
+					"title": "CoapCloudConfResURI",
+					"type": "object",
+					"properties": {
+						"apn": {
+							"title": "Authorization provider name",
+							"type": "string"
+						},
+						"cis": {
+							"title": "Cloud interface server",
+							"type": "string",
+							"format": "uri"
+						},
+						"sid": {
+							"title": "Cloud ID",
+							"type": "string",
+							"format": "uuid"
+						},
+						"at": {
+							"title": "Access token",
+							"type": "string"
+						},
+						"cps": {
+							"title": "Provisioning status",
+							"type": "string",
+							"enum": [
+								"uninitialized",
+								"readytoregister",
+								"registering",
+								"registered",
+								"failed"
+							]
+						},
+						"clec": {
+							"title": "Last error code",
+							"type": "integer"
+						}
+					}
+				}`
+	}
+
+	if credentialEnabled {
+		tdJson += `,
+			"/oic/sec/cred": {
+				"title": "Credential",
+				"type": "object",
+				"properties": {
+					"credid": {
+						"title": "Credential ID",
+						"type": "integer"
+					},
+					"credtype": {
+						"title": "Credential Type",
+						"type": "integer",
+						"enum": [
+							0,
+							1,
+							2,
+							4,
+							8,
+							16,
+							32
+						]
+					},
+					"subjectuuid": {
+						"title": "Subject UUID",
+						"type": "string"
+					},
+					"credusage": {
+						"title": "Credential Usage",
+						"type": "string",
+						"enum": [
+							"oic.sec.cred.trustca",
+							"oic.sec.cred.cert",
+							"oic.sec.cred.rolecert",
+							"oic.sec.cred.mfgtrustca",
+							"oic.sec.cred.mfgcert"
+						]
+					},
+					"privatedata": {
+						"title": "Private Data",
+						"type": "object",
+						"properties": {
+							"data": {
+								"title": "Data",
+								"type": "string"
+							},
+							"encoding": {
+								"title": "Encoding",
+								"type": "string",
+								"enum": [
+									"oic.sec.encoding.jwt",
+									"oic.sec.encoding.cwt",
+									"oic.sec.encoding.base64",
+									"oic.sec.encoding.uri",
+									"oic.sec.encoding.handle",
+									"oic.sec.encoding.raw"
+								]
+							}
+						}
+					},
+					"publicdata": {
+						"title": "Public Data",
+						"type": "object",
+						"properties": {
+							"data": {
+								"title": "Data",
+								"type": "string"
+							},
+							"encoding": {
+								"title": "Encoding",
+								"type": "string",
+								"enum": [
+									"oic.sec.encoding.jwt",
+									"oic.sec.encoding.cwt",
+									"oic.sec.encoding.base64",
+									"oic.sec.encoding.uri",
+									"oic.sec.encoding.pem",
+									"oic.sec.encoding.der",
+									"oic.sec.encoding.raw"
+								]
+							}
+						}
+					},
+					"roleid": {
+						"title": "Role ID",
+						"type": "object",
+						"properties": {
+							"authority": {
+								"title": "Authority",
+								"type": "string"
+							},
+							"role": {
+								"title": "Role",
+								"type": "string"
+							}
+						}
+					},
+					"tag": {
+						"title": "Tag",
+						"type": "string"
+					}
+				}
+			}`
+	}
+
+	tdJson += `
+		}
+	}`
+
+	return wotTD.UnmarshalThingDescription([]byte(tdJson))
 }

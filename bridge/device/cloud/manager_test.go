@@ -102,7 +102,7 @@ func TestManagerDeviceBecomesUnauthorized(t *testing.T) {
 	})
 	deviceID := uuid.New().String()
 	tickInterval := time.Second
-	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false, device.WithCloudOptions(cloud.WithTickInterval(tickInterval)))
+	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false, true, device.WithCloudOptions(cloud.WithTickInterval(tickInterval)))
 	s1Shutdown := bridgeTest.RunBridgeService(s1)
 	t.Cleanup(func() {
 		_ = s1Shutdown()
@@ -167,7 +167,7 @@ func TestProvisioningOnDeviceRestart(t *testing.T) {
 		_ = s1.Shutdown()
 	})
 	deviceID := uuid.New().String()
-	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false)
+	d1 := bridgeTest.NewBridgedDevice(t, s1, deviceID, true, false, true)
 	s1Shutdown := bridgeTest.RunBridgeService(s1)
 	t.Cleanup(func() {
 		_ = s1Shutdown()
