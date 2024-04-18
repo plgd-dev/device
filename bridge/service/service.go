@@ -26,6 +26,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/bridge/resources/discovery"
@@ -62,6 +63,7 @@ type Device interface {
 
 	GetCloudManager() *cloud.Manager
 	GetLoop() *eventloop.Loop
+	GetThingDescriptionManager() *thingDescription.Manager
 }
 
 type Service struct {
