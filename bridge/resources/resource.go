@@ -29,8 +29,9 @@ import (
 	"reflect"
 
 	"github.com/plgd-dev/device/v2/bridge/net"
-	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/eventloop"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -143,40 +144,42 @@ func NewResource(href string, getHandler GetHandlerFunc, postHandler PostHandler
 	return r
 }
 
-func CreateResponseMethodNotAllowed(ctx context.Context, token message.Token) *pool.Message {
+func createTextPlainResponse(ctx context.Context, token message.Token, code codes.Code, body []byte) *pool.Message {
 	msg := pool.NewMessage(ctx)
-	msg.SetCode(codes.MethodNotAllowed)
-	msg.SetToken(token)
+	msg.SetCode(code)
+	if token != nil {
+		msg.SetToken(token)
+	}
 	msg.SetContentFormat(message.TextPlain)
-	msg.SetBody(bytes.NewReader([]byte(fmt.Sprintf("unsupported method %v", codes.MethodNotAllowed))))
+	msg.SetBody(bytes.NewReader(body))
 	return msg
 }
 
-func CreateResponseContent(ctx context.Context, data interface{}, code codes.Code) (*pool.Message, error) {
-	if str, ok := data.(string); ok {
-		res := pool.NewMessage(ctx)
-		res.SetCode(code)
-		res.SetContentFormat(message.TextPlain)
-		res.SetBody(bytes.NewReader([]byte(str)))
-		return res, nil
-	}
-	d, err := cbor.Encode(data)
+func CreateResponseMethodNotAllowed(ctx context.Context, token message.Token) *pool.Message {
+	return createTextPlainResponse(ctx, token, codes.MethodNotAllowed, []byte(fmt.Sprintf("unsupported method %v", codes.MethodNotAllowed)))
+}
+
+func CreateResponseContentWithCodec(ctx context.Context, codec coap.Codec, data interface{}, code codes.Code) (*pool.Message, error) {
+	d, err := codec.Encode(data)
 	if err != nil {
 		return nil, err
 	}
 	res := pool.NewMessage(ctx)
 	res.SetCode(code)
-	res.SetContentFormat(message.AppOcfCbor)
+	res.SetContentFormat(codec.ContentFormat())
 	res.SetBody(bytes.NewReader(d))
 	return res, nil
 }
 
+func CreateResponseContent(ctx context.Context, data interface{}, code codes.Code) (*pool.Message, error) {
+	if str, ok := data.(string); ok {
+		return createTextPlainResponse(ctx, nil, code, []byte(str)), nil
+	}
+	return CreateResponseContentWithCodec(ctx, ocf.VNDOCFCBORCodec{}, data, code)
+}
+
 func CreateErrorResponse(ctx context.Context, code codes.Code, err error) (*pool.Message, error) {
-	res := pool.NewMessage(ctx)
-	res.SetCode(code)
-	res.SetContentFormat(message.TextPlain)
-	res.SetBody(bytes.NewReader([]byte(err.Error())))
-	return res, nil
+	return createTextPlainResponse(ctx, nil, code, []byte(err.Error())), nil
 }
 
 func CreateResponseBadRequest(ctx context.Context, err error) (*pool.Message, error) {

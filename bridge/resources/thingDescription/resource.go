@@ -70,6 +70,8 @@ func (r *Resource) createMessage(request *net.Request, thingDescription *thingDe
 		return res, nil
 	case message.AppCBOR, message.AppOcfCbor:
 		var v interface{}
+		// non-JSON marshalling the thingdescription-go library doesn't work correctly right now, so we need to marshal it to JSON first
+		// and then unmarshal it to an unnannotated map[string]interface{} which then marshals correctly to CBOR
 		err := json.Unmarshal(dataJson, &v)
 		if err != nil {
 			return resources.CreateErrorResponse(request.Context(), codes.InternalServerError, err)
