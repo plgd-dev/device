@@ -198,18 +198,7 @@ func handleSignals(s *service.Service) {
 	}
 }
 
-func main() {
-	configFile := flag.String("config", "config.yaml", "path to config file")
-	flag.Parse()
-	cfg, err := loadConfig(*configFile)
-	if err != nil {
-		panic(err)
-	}
-	s, err := service.New(cfg.Config, service.WithLogger(log.NewStdLogger(cfg.Log.Level)))
-	if err != nil {
-		panic(err)
-	}
-
+func getOpts(cfg Config) ([]device.Option, error) {
 	opts := []device.Option{
 		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
 			return map[string]interface{}{
@@ -218,9 +207,9 @@ func main() {
 		}),
 	}
 	if cfg.Cloud.Enabled {
-		caPool, cert, errC := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
-		if errC != nil {
-			panic(errC)
+		caPool, cert, err := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
+		if err != nil {
+			return nil, err
 		}
 		opts = append(opts, device.WithCAPool(caPool))
 		if cert != nil {
@@ -230,13 +219,13 @@ func main() {
 		}
 	}
 	if cfg.ThingDescription.Enabled {
-		tdJson, errD := os.ReadFile(cfg.ThingDescription.File)
-		if errD != nil {
-			panic(errD)
+		tdJson, err := os.ReadFile(cfg.ThingDescription.File)
+		if err != nil {
+			return nil, err
 		}
-		td, errD := wotTD.UnmarshalThingDescription(tdJson)
-		if errD != nil {
-			panic(errD)
+		td, err := wotTD.UnmarshalThingDescription(tdJson)
+		if err != nil {
+			return nil, err
 		}
 		opts = append(opts, device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
 			endpoint := ""
@@ -253,6 +242,25 @@ func main() {
 			})
 			return &newTD
 		}))
+	}
+	return opts, nil
+}
+
+func main() {
+	configFile := flag.String("config", "config.yaml", "path to config file")
+	flag.Parse()
+	cfg, err := loadConfig(*configFile)
+	if err != nil {
+		panic(err)
+	}
+	s, err := service.New(cfg.Config, service.WithLogger(log.NewStdLogger(cfg.Log.Level)))
+	if err != nil {
+		panic(err)
+	}
+
+	opts, err := getOpts(cfg)
+	if err != nil {
+		panic(err)
 	}
 
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {
