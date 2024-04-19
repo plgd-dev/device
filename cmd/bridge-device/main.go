@@ -198,6 +198,46 @@ func handleSignals(s *service.Service) {
 	}
 }
 
+func getCloudOpts(cfg Config) ([]device.Option, error) {
+	caPool, cert, err := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
+	if err != nil {
+		return nil, err
+	}
+	opts := []device.Option{device.WithCAPool(caPool)}
+	if cert != nil {
+		opts = append(opts, device.WithGetCertificates(func(string) []tls.Certificate {
+			return []tls.Certificate{*cert}
+		}))
+	}
+	return opts, nil
+}
+
+func getTDOpts(cfg Config) ([]device.Option, error) {
+	tdJson, err := os.ReadFile(cfg.ThingDescription.File)
+	if err != nil {
+		return nil, err
+	}
+	td, err := wotTD.UnmarshalThingDescription(tdJson)
+	if err != nil {
+		return nil, err
+	}
+	return []device.Option{device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+		endpoint := ""
+		if len(endpoints) > 0 {
+			endpoint = endpoints[0].URI
+		}
+		newTD := thingDescription.PatchThingDescription(td, device, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+			propElement, ok := td.Properties[resourceHref]
+			if !ok {
+				return wotTD.PropertyElement{}, false
+			}
+			propElement = thingDescription.PatchPropertyElement(propElement, device.GetID(), resource, endpoint != "")
+			return propElement, true
+		})
+		return &newTD
+	})}, nil
+}
+
 func getOpts(cfg Config) ([]device.Option, error) {
 	opts := []device.Option{
 		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
@@ -207,41 +247,18 @@ func getOpts(cfg Config) ([]device.Option, error) {
 		}),
 	}
 	if cfg.Cloud.Enabled {
-		caPool, cert, err := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
+		cloudOpts, err := getCloudOpts(cfg)
 		if err != nil {
 			return nil, err
 		}
-		opts = append(opts, device.WithCAPool(caPool))
-		if cert != nil {
-			opts = append(opts, device.WithGetCertificates(func(string) []tls.Certificate {
-				return []tls.Certificate{*cert}
-			}))
-		}
+		opts = append(opts, cloudOpts...)
 	}
 	if cfg.ThingDescription.Enabled {
-		tdJson, err := os.ReadFile(cfg.ThingDescription.File)
+		tdOpts, err := getTDOpts(cfg)
 		if err != nil {
 			return nil, err
 		}
-		td, err := wotTD.UnmarshalThingDescription(tdJson)
-		if err != nil {
-			return nil, err
-		}
-		opts = append(opts, device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
-			endpoint := ""
-			if len(endpoints) > 0 {
-				endpoint = endpoints[0].URI
-			}
-			newTD := thingDescription.PatchThingDescription(td, device, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
-				propElement, ok := td.Properties[resourceHref]
-				if !ok {
-					return wotTD.PropertyElement{}, false
-				}
-				propElement = thingDescription.PatchPropertyElement(propElement, device.GetID(), resource, endpoint != "")
-				return propElement, true
-			})
-			return &newTD
-		}))
+		opts = append(opts, tdOpts...)
 	}
 	return opts, nil
 }
