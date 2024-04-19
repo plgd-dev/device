@@ -69,7 +69,7 @@ func (d *Resource) Get(request *net.Request) (*pool.Message, error) {
 		// SpecificationVersion:  "ocf.2.0.5",
 	}
 	if request.Interface() == interfaces.OC_IF_BASELINE {
-		deviceProperties.ResourceTypes = d.Resource.ResourceTypes
+		deviceProperties.ResourceTypes = d.Resource.GetResourceTypes()
 		deviceProperties.Interfaces = d.Resource.ResourceInterfaces
 	}
 	properties := resources.MergeCBORStructs(additionalProperties, deviceProperties)

@@ -37,6 +37,11 @@ type CredentialConfig struct {
 	Enabled bool `yaml:"enabled" json:"enabled" description:"enable credential manager"`
 }
 
+type ThingDescriptionConfig struct {
+	Enabled bool   `yaml:"enabled" json:"enabled" description:"enable thing description"`
+	File    string `yaml:"file" json:"file" description:"file path to the thing description"`
+}
+
 func (c *CloudConfig) Validate() error {
 	if c.Enabled {
 		return c.TLS.Validate()
@@ -46,11 +51,12 @@ func (c *CloudConfig) Validate() error {
 
 type Config struct {
 	service.Config             `yaml:",inline"`
-	Log                        LogConfig        `yaml:"log" json:"log"`
-	Cloud                      CloudConfig      `yaml:"cloud" json:"cloud"`
-	Credential                 CredentialConfig `yaml:"credential" json:"credential"`
-	NumGeneratedBridgedDevices int              `yaml:"numGeneratedBridgedDevices"`
-	NumResourcesPerDevice      int              `yaml:"numResourcesPerDevice"`
+	Log                        LogConfig              `yaml:"log" json:"log"`
+	Cloud                      CloudConfig            `yaml:"cloud" json:"cloud"`
+	Credential                 CredentialConfig       `yaml:"credential" json:"credential"`
+	ThingDescription           ThingDescriptionConfig `yaml:"thingDescription" json:"thingDescription"`
+	NumGeneratedBridgedDevices int                    `yaml:"numGeneratedBridgedDevices"`
+	NumResourcesPerDevice      int                    `yaml:"numResourcesPerDevice"`
 }
 
 func (c *Config) Validate() error {

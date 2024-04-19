@@ -1,0 +1,39 @@
+{
+    "@context": "https://www.w3.org/2019/wot/td/v1",
+    "@type": [
+        "Thing"
+    ],
+    "id": "urn:uuid:bridge",
+    "properties": {
+        "/test/0": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        },
+        "/test/1": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        },
+        "/test/2": {
+            "title": "Test Resource",
+            "type": "object",
+            "properties": {
+                "Name": {
+                    "title": "Name",
+                    "type": "string"
+                }
+            }
+        }
+    }
+}

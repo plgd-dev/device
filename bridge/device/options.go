@@ -19,15 +19,21 @@
 package device
 
 import (
+	"context"
 	"crypto/x509"
 
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
 	"github.com/plgd-dev/device/v2/bridge/resources/device"
 	"github.com/plgd-dev/device/v2/pkg/eventloop"
 	"github.com/plgd-dev/device/v2/pkg/log"
+	"github.com/plgd-dev/device/v2/schema"
+	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
-type OnDeviceUpdated func(d *Device)
+type (
+	OnDeviceUpdated     func(d *Device)
+	GetThingDescription func(ctx context.Context, d *Device, endpoints schema.Endpoints) *wotTD.ThingDescription
+)
 
 type CAPoolGetter interface {
 	IsValid() bool
@@ -43,6 +49,7 @@ type OptionsCfg struct {
 	loop                    *eventloop.Loop
 	runLoop                 bool
 	cloudOptions            []cloud.Option
+	getThingDescription     GetThingDescription
 }
 
 type Option func(*OptionsCfg)
@@ -87,5 +94,11 @@ func WithEventLoop(loop *eventloop.Loop) Option {
 func WithCloudOptions(cloudOptions ...cloud.Option) Option {
 	return func(o *OptionsCfg) {
 		o.cloudOptions = cloudOptions
+	}
+}
+
+func WithThingDescription(getThingDescription GetThingDescription) Option {
+	return func(o *OptionsCfg) {
+		o.getThingDescription = getThingDescription
 	}
 }

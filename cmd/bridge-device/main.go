@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -18,20 +19,27 @@ import (
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/device"
 	"github.com/plgd-dev/device/v2/bridge/device/cloud"
+	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
+	thingDescriptionResource "github.com/plgd-dev/device/v2/bridge/resources/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
+	"github.com/plgd-dev/device/v2/schema"
+	deviceResource "github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/plgd-dev/go-coap/v3/message/pool"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
+	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 	"gopkg.in/yaml.v3"
 )
+
+const myPropertyKey = "my-property"
 
 func loadConfig(configFile string) (Config, error) {
 	// Sanitize the configFile variable to ensure it only contains a valid file path
@@ -194,6 +202,82 @@ func handleSignals(s *service.Service) {
 	}
 }
 
+func getCloudOpts(cfg Config) ([]device.Option, error) {
+	caPool, cert, err := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
+	if err != nil {
+		return nil, err
+	}
+	opts := []device.Option{device.WithCAPool(caPool)}
+	if cert != nil {
+		opts = append(opts, device.WithGetCertificates(func(string) []tls.Certificate {
+			return []tls.Certificate{*cert}
+		}))
+	}
+	return opts, nil
+}
+
+func getTDOpts(cfg Config) ([]device.Option, error) {
+	tdJson, err := os.ReadFile(cfg.ThingDescription.File)
+	if err != nil {
+		return nil, err
+	}
+	td, err := wotTD.UnmarshalThingDescription(tdJson)
+	if err != nil {
+		return nil, err
+	}
+	return []device.Option{device.WithThingDescription(func(_ context.Context, dev *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+		endpoint := ""
+		if len(endpoints) > 0 {
+			endpoint = endpoints[0].URI
+		}
+		newTD := thingDescription.PatchThingDescription(td, dev, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+			propElement, ok := td.Properties[resourceHref]
+			if !ok {
+				propElement, ok = thingDescriptionResource.GetOCFResourcePropertyElement(resourceHref)
+				if ok && resourceHref == deviceResource.ResourceURI && propElement.Properties != nil && propElement.Properties.DataSchemaMap != nil {
+					stringType := wotTD.String
+					readOnly := true
+					propElement.Properties.DataSchemaMap[myPropertyKey] = wotTD.DataSchema{
+						DataSchemaType: &stringType,
+						ReadOnly:       &readOnly,
+					}
+				}
+			}
+			if !ok {
+				return wotTD.PropertyElement{}, false
+			}
+			propElement = thingDescription.PatchPropertyElement(propElement, dev.GetID(), resource, endpoint != "")
+			return propElement, true
+		})
+		return &newTD
+	})}, nil
+}
+
+func getOpts(cfg Config) ([]device.Option, error) {
+	opts := []device.Option{
+		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
+			return map[string]interface{}{
+				myPropertyKey: "my-value",
+			}
+		}),
+	}
+	if cfg.Cloud.Enabled {
+		cloudOpts, err := getCloudOpts(cfg)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, cloudOpts...)
+	}
+	if cfg.ThingDescription.Enabled {
+		tdOpts, err := getTDOpts(cfg)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, tdOpts...)
+	}
+	return opts, nil
+}
+
 func main() {
 	configFile := flag.String("config", "config.yaml", "path to config file")
 	flag.Parse()
@@ -206,24 +290,9 @@ func main() {
 		panic(err)
 	}
 
-	opts := []device.Option{
-		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
-			return map[string]interface{}{
-				"my-property": "my-value",
-			}
-		}),
-	}
-	if cfg.Cloud.Enabled {
-		caPool, cert, errC := getCloudTLS(cfg.Cloud, cfg.Credential.Enabled)
-		if errC != nil {
-			panic(errC)
-		}
-		opts = append(opts, device.WithCAPool(caPool))
-		if cert != nil {
-			opts = append(opts, device.WithGetCertificates(func(string) []tls.Certificate {
-				return []tls.Certificate{*cert}
-			}))
-		}
+	opts, err := getOpts(cfg)
+	if err != nil {
+		panic(err)
 	}
 
 	for i := 0; i < cfg.NumGeneratedBridgedDevices; i++ {

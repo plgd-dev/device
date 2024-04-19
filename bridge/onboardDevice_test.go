@@ -40,12 +40,12 @@ func TestOnboardDevice(t *testing.T) {
 		_ = s.Shutdown()
 	})
 	deviceID := uuid.New().String()
-	d := bridgeTest.NewBridgedDevice(t, s, deviceID, true, false)
+	d := bridgeTest.NewBridgedDevice(t, s, deviceID, true, false, true)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()
 	deviceIDwithoutCAPool := uuid.New().String()
-	deviceWithoutCAPool := bridgeTest.NewBridgedDevice(t, s, deviceIDwithoutCAPool, true, true, device.WithCAPool(cloud.MakeCAPool(func() []*x509.Certificate {
+	deviceWithoutCAPool := bridgeTest.NewBridgedDevice(t, s, deviceIDwithoutCAPool, true, true, true, device.WithCAPool(cloud.MakeCAPool(func() []*x509.Certificate {
 		return nil
 	}, false)))
 	defer func() {

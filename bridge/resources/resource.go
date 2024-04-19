@@ -29,8 +29,9 @@ import (
 	"reflect"
 
 	"github.com/plgd-dev/device/v2/bridge/net"
-	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
+	"github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/eventloop"
+	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -54,7 +55,6 @@ type subscription struct {
 
 type Resource struct {
 	Href                string
-	ResourceTypes       []string
 	ResourceInterfaces  []string
 	PolicyBitMask       schema.BitMask
 	getHandler          GetHandlerFunc
@@ -64,6 +64,7 @@ type Resource struct {
 	createdSubscription *sync.Map[string, *subscription]
 	etag                atomic.Uint64
 	loop                *eventloop.Loop
+	resourceTypes       atomic.Pointer[[]string]
 }
 
 func (r *Resource) GetPolicyBitMask() schema.BitMask {
@@ -74,8 +75,43 @@ func (r *Resource) GetHref() string {
 	return r.Href
 }
 
+type SupportedOperation int
+
+const (
+	SupportedOperationRead SupportedOperation = 0x1 << iota
+	SupportedOperationWrite
+	SupportedOperationObserve
+)
+
+func (o SupportedOperation) HasOperation(operation SupportedOperation) bool {
+	return o&operation != 0
+}
+
+func (r *Resource) SupportsOperations() SupportedOperation {
+	var operations SupportedOperation
+	if r.getHandler != nil {
+		operations |= SupportedOperationRead
+	}
+	if r.postHandler != nil {
+		operations |= SupportedOperationWrite
+	}
+	if r.PolicyBitMask&schema.Observable != 0 {
+		operations |= SupportedOperationObserve
+	}
+	return operations
+}
+
+func (r *Resource) SetResourceTypes(resourceTypes []string) {
+	resourceTypes = Unique(resourceTypes)
+	r.resourceTypes.Store(&resourceTypes)
+}
+
 func (r *Resource) GetResourceTypes() []string {
-	return r.ResourceTypes
+	resourceTypes := r.resourceTypes.Load()
+	if resourceTypes == nil {
+		return nil
+	}
+	return *resourceTypes
 }
 
 func (r *Resource) GetResourceInterfaces() []string {
@@ -97,51 +133,53 @@ func Unique(strSlice []string) []string {
 func NewResource(href string, getHandler GetHandlerFunc, postHandler PostHandlerFunc, resourceTypes, resourceInterfaces []string) *Resource {
 	r := &Resource{
 		Href:                href,
-		ResourceTypes:       Unique(resourceTypes),
 		ResourceInterfaces:  Unique(resourceInterfaces),
 		PolicyBitMask:       schema.Discoverable | PublishToCloud,
 		getHandler:          getHandler,
 		postHandler:         postHandler,
 		createdSubscription: sync.NewMap[string, *subscription](),
 	}
+	r.SetResourceTypes(resourceTypes)
 	r.etag.Store(GetETag())
 	return r
 }
 
-func CreateResponseMethodNotAllowed(ctx context.Context, token message.Token) *pool.Message {
+func createTextPlainResponse(ctx context.Context, token message.Token, code codes.Code, body []byte) *pool.Message {
 	msg := pool.NewMessage(ctx)
-	msg.SetCode(codes.MethodNotAllowed)
-	msg.SetToken(token)
+	msg.SetCode(code)
+	if token != nil {
+		msg.SetToken(token)
+	}
 	msg.SetContentFormat(message.TextPlain)
-	msg.SetBody(bytes.NewReader([]byte(fmt.Sprintf("unsupported method %v", codes.MethodNotAllowed))))
+	msg.SetBody(bytes.NewReader(body))
 	return msg
 }
 
-func CreateResponseContent(ctx context.Context, data interface{}, code codes.Code) (*pool.Message, error) {
-	if str, ok := data.(string); ok {
-		res := pool.NewMessage(ctx)
-		res.SetCode(code)
-		res.SetContentFormat(message.TextPlain)
-		res.SetBody(bytes.NewReader([]byte(str)))
-		return res, nil
-	}
-	d, err := cbor.Encode(data)
+func CreateResponseMethodNotAllowed(ctx context.Context, token message.Token) *pool.Message {
+	return createTextPlainResponse(ctx, token, codes.MethodNotAllowed, []byte(fmt.Sprintf("unsupported method %v", codes.MethodNotAllowed)))
+}
+
+func CreateResponseContentWithCodec(ctx context.Context, codec coap.Codec, data interface{}, code codes.Code) (*pool.Message, error) {
+	d, err := codec.Encode(data)
 	if err != nil {
 		return nil, err
 	}
 	res := pool.NewMessage(ctx)
 	res.SetCode(code)
-	res.SetContentFormat(message.AppOcfCbor)
+	res.SetContentFormat(codec.ContentFormat())
 	res.SetBody(bytes.NewReader(d))
 	return res, nil
 }
 
+func CreateResponseContent(ctx context.Context, data interface{}, code codes.Code) (*pool.Message, error) {
+	if str, ok := data.(string); ok {
+		return createTextPlainResponse(ctx, nil, code, []byte(str)), nil
+	}
+	return CreateResponseContentWithCodec(ctx, ocf.VNDOCFCBORCodec{}, data, code)
+}
+
 func CreateErrorResponse(ctx context.Context, code codes.Code, err error) (*pool.Message, error) {
-	res := pool.NewMessage(ctx)
-	res.SetCode(code)
-	res.SetContentFormat(message.TextPlain)
-	res.SetBody(bytes.NewReader([]byte(err.Error())))
-	return res, nil
+	return createTextPlainResponse(ctx, nil, code, []byte(err.Error())), nil
 }
 
 func CreateResponseBadRequest(ctx context.Context, err error) (*pool.Message, error) {

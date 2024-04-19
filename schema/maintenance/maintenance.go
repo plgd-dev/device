@@ -33,6 +33,15 @@ type Maintenance struct {
 	LastHTTPError int      `json:"err,omitempty"`
 }
 
+type MaintenanceV1 struct {
+	ResourceTypes []string `json:"rt,omitempty"`
+	Interfaces    []string `json:"if,omitempty"`
+	Name          string   `json:"n,omitempty"`
+	FactoryReset  *bool    `json:"fr,omitempty"`
+	Reboot        *bool    `json:"rb,omitempty"`
+	LastHTTPError *int     `json:"err,omitempty"`
+}
+
 type MaintenanceUpdateRequest struct {
 	FactoryReset bool `json:"fr,omitempty"`
 	Reboot       bool `json:"rb,omitempty"`

@@ -56,7 +56,7 @@ func TestUpdateResource(t *testing.T) {
 	t.Cleanup(func() {
 		_ = s.Shutdown()
 	})
-	d := bridgeTest.NewBridgedDevice(t, s, uuid.New().String(), false, false)
+	d := bridgeTest.NewBridgedDevice(t, s, uuid.New().String(), false, false, false)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()
