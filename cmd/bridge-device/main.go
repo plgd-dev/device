@@ -22,12 +22,14 @@ import (
 	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
+	thingDescriptionResource "github.com/plgd-dev/device/v2/bridge/resources/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/codec/cbor"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 	"github.com/plgd-dev/device/v2/schema"
+	deviceResource "github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
@@ -36,6 +38,8 @@ import (
 	wotTD "github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 	"gopkg.in/yaml.v3"
 )
+
+const myPropertyKey = "my-property"
 
 func loadConfig(configFile string) (Config, error) {
 	// Sanitize the configFile variable to ensure it only contains a valid file path
@@ -221,17 +225,28 @@ func getTDOpts(cfg Config) ([]device.Option, error) {
 	if err != nil {
 		return nil, err
 	}
-	return []device.Option{device.WithThingDescription(func(_ context.Context, device *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+	return []device.Option{device.WithThingDescription(func(_ context.Context, dev *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
 		endpoint := ""
 		if len(endpoints) > 0 {
 			endpoint = endpoints[0].URI
 		}
-		newTD := thingDescription.PatchThingDescription(td, device, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+		newTD := thingDescription.PatchThingDescription(td, dev, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
 			propElement, ok := td.Properties[resourceHref]
+			if !ok {
+				propElement, ok = thingDescriptionResource.GetOCFResourcePropertyElement(resourceHref)
+				if ok && resourceHref == deviceResource.ResourceURI && propElement.Properties != nil && propElement.Properties.DataSchemaMap != nil {
+					stringType := wotTD.String
+					readOnly := true
+					propElement.Properties.DataSchemaMap[myPropertyKey] = wotTD.DataSchema{
+						DataSchemaType: &stringType,
+						ReadOnly:       &readOnly,
+					}
+				}
+			}
 			if !ok {
 				return wotTD.PropertyElement{}, false
 			}
-			propElement = thingDescription.PatchPropertyElement(propElement, device.GetID(), resource, endpoint != "")
+			propElement = thingDescription.PatchPropertyElement(propElement, dev.GetID(), resource, endpoint != "")
 			return propElement, true
 		})
 		return &newTD
@@ -242,7 +257,7 @@ func getOpts(cfg Config) ([]device.Option, error) {
 	opts := []device.Option{
 		device.WithGetAdditionalPropertiesForResponse(func() map[string]interface{} {
 			return map[string]interface{}{
-				"my-property": "my-value",
+				myPropertyKey: "my-value",
 			}
 		}),
 	}
