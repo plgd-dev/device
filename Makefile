@@ -14,7 +14,8 @@ CERT_TOOL_SIGN_ALG ?= ECDSA-SHA256
 # supported values: P256, P384, P521
 CERT_TOOL_ELLIPTIC_CURVE ?= P256
 DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
-HUB_TEST_DEVICE_IMAGE = ghcr.io/plgd-dev/hub/test-cloud-server:main
+# HUB_TEST_DEVICE_IMAGE = ghcr.io/plgd-dev/hub/test-cloud-server:main
+HUB_TEST_DEVICE_IMAGE = ghcr.io/plgd-dev/hub/test-cloud-server:vnext-pr1274
 
 default: build
 
@@ -123,7 +124,34 @@ test: env build-testcontainer
 		-v $(TMP_PATH):/tmp \
 		$(SERVICE_NAME):$(VERSION_TAG) -test.parallel 1 -test.v -test.coverprofile=/tmp/coverage.txt
 
-test-bridge:
+test-bridge/clean:
+	pkill -KILL bridge-device || :
+	rm -rf $(TMP_PATH)/bridge || :
+
+define SET-BRIDGE-DEVICE-CONFIG
+	yq -i '.apis.coap.externalAddresses=["127.0.0.1:15683","[::1]:15683"]' $(1)
+	yq -i '.cloud.enabled=true' $(1)
+	yq -i '.cloud.cloudID="$(CLOUD_SID)"' $(1)
+	yq -i '.cloud.tls.caPoolPath="$(2)/data/certs/root_ca.crt"' $(1)
+	yq -i '.cloud.tls.keyPath="$(2)/data/certs/external/coap-gateway.key"' $(1)
+	yq -i '.cloud.tls.certPath="$(2)/data/certs/external/coap-gateway.crt"' $(1)
+	yq -i '.numGeneratedBridgedDevices=3' $(1)
+	yq -i '.numResourcesPerDevice=0' $(1)
+	yq -i '.thingDescription.enabled=true' $(1)
+	yq -i '.thingDescription.file="$(2)/bridge/bridge-device.jsonld"' $(1)
+endef
+
+# config-docker.yaml -> copy of configuration with paths valid inside docker container
+# config-test.yaml -> copy of configuration with paths valid on host machine
+test-bridge/env: test-bridge/clean
+	mkdir -p $(TMP_PATH)/bridge
+	cp ./cmd/bridge-device/bridge-device.jsonld $(TMP_PATH)/bridge
+	cp ./cmd/bridge-device/config.yaml $(TMP_PATH)/bridge/config-docker.yaml
+	$(call SET-BRIDGE-DEVICE-CONFIG,$(TMP_PATH)/bridge/config-docker.yaml,)
+	cp $(TMP_PATH)/bridge/config-docker.yaml $(TMP_PATH)/bridge/config-test.yaml
+	$(call SET-BRIDGE-DEVICE-CONFIG,$(TMP_PATH)/bridge/config-test.yaml,$(TMP_PATH))
+
+test-bridge: test-bridge/env
 	sudo rm -rf $(TMP_PATH)/data || :
 	mkdir -p $(TMP_PATH)/data
 	# pull image
@@ -141,15 +169,10 @@ test-bridge:
 		$(HUB_TEST_DEVICE_IMAGE)
 
 	# start device
-	rm -rf $(TMP_PATH)/bridge || :
-	mkdir -p $(TMP_PATH)/bridge
-	go build -C ./test/bridge-device -cover -o ./bridge-device
+	go build -C ./cmd/bridge-device -cover -o ./bridge-device
 	pkill -KILL bridge-device || :
-	CLOUD_SID=$(CLOUD_SID) CA_POOL=$(TMP_PATH)/data/certs/root_ca.crt \
-	CERT_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.crt \
-	KEY_FILE=$(TMP_PATH)/data/certs/external/coap-gateway.key \
 	GOCOVERDIR=$(TMP_PATH)/bridge \
-		./test/bridge-device/bridge-device &
+		./cmd/bridge-device/bridge-device -config $(TMP_PATH)/bridge/config-test.yaml &
 
 	# run tests
 	docker run \
@@ -161,9 +184,11 @@ test-bridge:
 		--env COAP_GATEWAY_CLOUD_ID="$(CLOUD_SID)" \
 		--env TEST_DEVICE_NAME="bridged-device-0" \
 		--env TEST_DEVICE_TYPE="bridged" \
+		--env TEST_BRIDGE_DEVICE_CONFIG="/bridge/config-docker.yaml" \
 		--env GRPC_GATEWAY_TEST_DISABLED=1 \
 		--env IOTIVITY_LITE_TEST_RUN="(TestOffboard|TestOffboardWithoutSignIn|TestOffboardWithRepeat|TestRepublishAfterRefresh)$$" \
 		-v $(TMP_PATH):/tmp \
+		-v $(TMP_PATH)/bridge:/bridge \
 		-v $(TMP_PATH)/data:/data \
 		$(HUB_TEST_DEVICE_IMAGE)
 
@@ -175,11 +200,10 @@ test-bridge:
 	done
 	go tool covdata textfmt -i=$(TMP_PATH)/bridge -o $(TMP_PATH)/bridge.coverage.txt
 
-clean:
+clean: test-bridge/clean
 	docker rm -f devsim-net-host || :
 	docker rm -f hub-device-tests-environment || :
 	docker rm -f hub-device-tests || :
-	pkill -KILL bridge-device || :
 	sudo rm -rf .tmp/*
 
 .PHONY: build-testcontainer build certificates clean env test unit-test

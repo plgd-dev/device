@@ -1,10 +1,14 @@
-package main
+package device
 
 import (
 	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/plgd-dev/device/v2/bridge/service"
 	"github.com/plgd-dev/device/v2/pkg/log"
+	"gopkg.in/yaml.v3"
 )
 
 type TLSConfig struct {
@@ -30,6 +34,7 @@ type LogConfig struct {
 
 type CloudConfig struct {
 	Enabled bool      `yaml:"enabled" json:"enabled" description:"enable cloud connection"`
+	CloudID string    `yaml:"cloudID" json:"cloudID" description:"cloud id"`
 	TLS     TLSConfig `yaml:"tls" json:"tls"`
 }
 
@@ -67,4 +72,25 @@ func (c *Config) Validate() error {
 		return errors.New("numGeneratedBridgedDevices - must be > 0")
 	}
 	return nil
+}
+
+func LoadConfig(configFile string) (Config, error) {
+	// Sanitize the configFile variable to ensure it only contains a valid file path
+	configFile = filepath.Clean(configFile)
+	f, err := os.Open(configFile)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to load config from %s: %w", configFile, err)
+	}
+	defer func() {
+		_ = f.Close()
+	}()
+	var cfg Config
+	err = yaml.NewDecoder(f).Decode(&cfg)
+	if err != nil {
+		return Config{}, fmt.Errorf("failed to decode config: %w", err)
+	}
+	if err = cfg.Validate(); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
 }
