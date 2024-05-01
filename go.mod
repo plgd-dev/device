@@ -19,7 +19,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240417084639-a2aca7547975
 	go.uber.org/atomic v1.11.0
-	golang.org/x/sync v0.6.0
+	golang.org/x/sync v0.7.0
 	google.golang.org/grpc v1.63.0
 	gopkg.in/yaml.v3 v3.0.1
 )
