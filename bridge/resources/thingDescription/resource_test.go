@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	v2json "github.com/go-json-experiment/json"
 	"github.com/google/uuid"
 	bridgeDeviceTD "github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	thingDescriptionResource "github.com/plgd-dev/device/v2/bridge/resources/thingDescription"
@@ -77,10 +78,10 @@ func (JSONCodec) Decode(m *pool.Message, v interface{}) error {
 func getThingDescription(t *testing.T, data interface{}) wotTD.ThingDescription {
 	tdMap, ok := data.(map[interface{}]interface{})
 	require.True(t, ok)
-	jsonData, err := json.Encode(tdMap)
+	jsonData, err := v2json.Marshal(tdMap)
 	require.NoError(t, err)
 	td := wotTD.ThingDescription{}
-	err = json.Decode(jsonData, &td)
+	err = v2json.Unmarshal(jsonData, &td)
 	require.NoError(t, err)
 	return td
 }
@@ -246,8 +247,9 @@ func TestObserveThingDescription(t *testing.T) {
 	id, err := bridgeDeviceTD.GetThingDescriptionID(deviceID.String())
 	require.NoError(t, err)
 	td2 := wotTD.ThingDescription{
-		Base: *base,
-		ID:   id,
+		Base:                *base,
+		ID:                  id,
+		SecurityDefinitions: map[string]wotTD.SecurityScheme{},
 	}
 	d.GetThingDescriptionManager().NotifySubscriptions(td2)
 	n, err = h.WaitForNotification(ctx)
