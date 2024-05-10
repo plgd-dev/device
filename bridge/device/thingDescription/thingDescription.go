@@ -1,6 +1,7 @@
 package thingDescription
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 
@@ -99,9 +100,20 @@ func (p PropertyElementOperations) ToSupportedOperations() resources.SupportedOp
 	return ops | resources.SupportedOperationRead | resources.SupportedOperationWrite
 }
 
-func createForm(hrefUri *url.URL, covMethod string, op thingDescription.StickyDescription, contentType message.MediaType) thingDescription.FormElementProperty {
+type CreateFormFunc func(hrefUri *url.URL, op thingDescription.StickyDescription, contentType message.MediaType) (thingDescription.FormElementProperty, bool)
+
+func CreateCOAPForm(hrefUri *url.URL, op thingDescription.StickyDescription, contentType message.MediaType) (thingDescription.FormElementProperty, bool) {
+	methods := map[thingDescription.StickyDescription]string{
+		thingDescription.Readproperty:    http.MethodGet,
+		thingDescription.Writeproperty:   http.MethodPost,
+		thingDescription.Observeproperty: http.MethodGet,
+	}
+	method, ok := methods[op]
+	if !ok {
+		return thingDescription.FormElementProperty{}, false
+	}
 	additionalFields := map[string]interface{}{
-		"cov:method": covMethod,
+		"cov:method": method,
 		"cov:accept": float64(contentType),
 	}
 	ops := []string{string(op)}
@@ -117,24 +129,46 @@ func createForm(hrefUri *url.URL, covMethod string, op thingDescription.StickyDe
 			StringArray: ops,
 		},
 		AdditionalFields: additionalFields,
-	}
+	}, true
 }
 
-func SetForms(hrefUri *url.URL, ops resources.SupportedOperation, contentType message.MediaType) []thingDescription.FormElementProperty {
+type CreateFormsFunc func(hrefUri *url.URL, ops resources.SupportedOperation, contentType message.MediaType) []thingDescription.FormElementProperty
+
+func CreateCOAPForms(hrefUri *url.URL, ops resources.SupportedOperation, contentType message.MediaType) []thingDescription.FormElementProperty {
 	forms := make([]thingDescription.FormElementProperty, 0, 3)
 	if ops.HasOperation(resources.SupportedOperationWrite) {
-		forms = append(forms, createForm(hrefUri, http.MethodPost, thingDescription.Writeproperty, contentType))
+		form, ok := CreateCOAPForm(hrefUri, thingDescription.Writeproperty, contentType)
+		if ok {
+			forms = append(forms, form)
+		}
 	}
 	if ops.HasOperation(resources.SupportedOperationRead) {
-		forms = append(forms, createForm(hrefUri, http.MethodGet, thingDescription.Readproperty, contentType))
+		form, ok := CreateCOAPForm(hrefUri, thingDescription.Readproperty, contentType)
+		if ok {
+			forms = append(forms, form)
+		}
 	}
 	if ops.HasOperation(resources.SupportedOperationObserve) {
-		forms = append(forms, createForm(hrefUri, http.MethodGet, thingDescription.Observeproperty, contentType))
+		form, ok := CreateCOAPForm(hrefUri, thingDescription.Observeproperty, contentType)
+		if ok {
+			forms = append(forms, form)
+		}
 	}
 	return forms
 }
 
-func PatchPropertyElement(prop thingDescription.PropertyElement, types []string, setForm bool, deviceID uuid.UUID, href string, ops resources.SupportedOperation, contentType message.MediaType) (thingDescription.PropertyElement, error) {
+func GetPropertyHref(deviceID uuid.UUID, href string) (*url.URL, error) {
+	if len(href) == 0 {
+		return nil, errors.New("href is empty")
+	}
+	hrefStr := href
+	if deviceID != uuid.Nil {
+		hrefStr += "?di=" + deviceID.String()
+	}
+	return url.Parse(hrefStr)
+}
+
+func PatchPropertyElement(prop thingDescription.PropertyElement, types []string, deviceID uuid.UUID, href string, ops resources.SupportedOperation, contentType message.MediaType, createForms CreateFormsFunc) (thingDescription.PropertyElement, error) {
 	if len(types) > 0 {
 		prop.Type = &thingDescription.TypeDeclaration{
 			StringArray: types,
@@ -144,26 +178,18 @@ func PatchPropertyElement(prop thingDescription.PropertyElement, types []string,
 	prop.Observable = BoolToPtr(propOps.Observable)
 	prop.ReadOnly = BoolToPtr(propOps.ReadOnly)
 	prop.WriteOnly = BoolToPtr(propOps.WriteOnly)
-	if !setForm {
+	if createForms == nil {
 		return prop, nil
 	}
 	opsStrs := SupportedOperationToTDOperations(ops)
 	if len(opsStrs) == 0 {
 		return prop, nil
 	}
-	var hrefUri *url.URL
-	if len(href) > 0 {
-		hrefStr := href
-		if deviceID != uuid.Nil {
-			hrefStr += "?di=" + deviceID.String()
-		}
-		var err error
-		hrefUri, err = url.Parse(hrefStr)
-		if err != nil {
-			return thingDescription.PropertyElement{}, err
-		}
+	hrefUri, err := GetPropertyHref(deviceID, href)
+	if err != nil {
+		return thingDescription.PropertyElement{}, err
 	}
-	prop.Forms = SetForms(hrefUri, ops, contentType)
+	prop.Forms = createForms(hrefUri, ops, contentType)
 	return prop, nil
 }
 

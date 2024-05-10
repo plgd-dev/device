@@ -53,7 +53,10 @@ type Resource struct {
 }
 
 func (r *Resource) createMessage(request *net.Request, thingDescription *thingDescription.ThingDescription) (*pool.Message, error) {
-	dataJson, err := json.Marshal(thingDescription)
+	if thingDescription == nil {
+		return resources.CreateErrorResponse(request.Context(), codes.NotFound, errors.New("thing description not found"))
+	}
+	dataJson, err := thingDescription.MarshalJSON()
 	if err != nil {
 		return resources.CreateErrorResponse(request.Context(), codes.InternalServerError, err)
 	}

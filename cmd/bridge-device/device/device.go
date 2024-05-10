@@ -42,10 +42,10 @@ func GetPropertyDescriptionForTestResource() thingDescription.PropertyElement {
 	}
 }
 
-func PatchTestResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, href string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
+func PatchTestResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, href string, contentType message.MediaType, createForms bridgeTD.CreateFormsFunc) (thingDescription.PropertyElement, error) {
 	propOps := bridgeTD.GetPropertyElementOperations(pe)
-	return bridgeTD.PatchPropertyElement(pe, []string{TestResourceType}, true, deviceID, href,
-		propOps.ToSupportedOperations(), contentType)
+	return bridgeTD.PatchPropertyElement(pe, []string{TestResourceType}, deviceID, href,
+		propOps.ToSupportedOperations(), contentType, createForms)
 }
 
 func GetAdditionalProperties() map[string]interface{} {

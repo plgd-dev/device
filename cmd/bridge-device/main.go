@@ -97,7 +97,11 @@ func patchPropertyElement(td wotTD.ThingDescription, dev *device.Device, endpoin
 	if !ok {
 		return wotTD.PropertyElement{}, false
 	}
-	propElement, err := thingDescription.PatchPropertyElement(propElement, resource.GetResourceTypes(), endpoint != "", dev.GetID(), resource.GetHref(), resource.SupportsOperations(), message.AppCBOR)
+	var f thingDescription.CreateFormsFunc
+	if endpoint != "" {
+		f = thingDescription.CreateCOAPForms
+	}
+	propElement, err := thingDescription.PatchPropertyElement(propElement, resource.GetResourceTypes(), dev.GetID(), resource.GetHref(), resource.SupportsOperations(), message.AppCBOR, f)
 	return propElement, err == nil
 }
 
