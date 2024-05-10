@@ -21,9 +21,9 @@ package thingDescription
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 
+	"github.com/go-json-experiment/json"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/schema"
