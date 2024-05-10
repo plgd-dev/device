@@ -115,7 +115,7 @@ func makeDeviceConfig(id uuid.UUID, cloudEnabled bool, credentialEnabled bool) d
 	return cfg
 }
 
-func GetPropertyElement(td wotTD.ThingDescription, device bridgeDeviceTD.Device, endpoint string, resourceHref string, resource bridgeDeviceTD.Resource, contentType string) (wotTD.PropertyElement, bool) {
+func GetPropertyElement(td wotTD.ThingDescription, device bridgeDeviceTD.Device, endpoint string, resourceHref string, resource bridgeDeviceTD.Resource, contentType message.MediaType) (wotTD.PropertyElement, bool) {
 	propElement, ok := td.Properties[resourceHref]
 	if !ok {
 		return wotTD.PropertyElement{}, false
@@ -149,7 +149,7 @@ func NewBridgedDeviceWithThingDescription(t *testing.T, s *service.Service, id s
 			}
 			newTD := bridgeDeviceTD.PatchThingDescription(*td, device, endpoint,
 				func(resourceHref string, resource bridgeDeviceTD.Resource) (wotTD.PropertyElement, bool) {
-					return GetPropertyElement(*td, device, endpoint, resourceHref, resource, message.AppCBOR.String())
+					return GetPropertyElement(*td, device, endpoint, resourceHref, resource, message.AppCBOR)
 				})
 			return &newTD
 		}))
@@ -163,7 +163,7 @@ func getOCFResourcesProperties(deviceID uuid.UUID, baseURL string, cloudEnabled,
 	if !ok {
 		return nil, errors.New("device resource not found")
 	}
-	deviceResource, err := thingDescriptionResource.PatchDeviceResourcePropertyElement(deviceResource, deviceID, baseURL, message.AppCBOR.String(), "")
+	deviceResource, err := thingDescriptionResource.PatchDeviceResourcePropertyElement(deviceResource, deviceID, baseURL, message.AppCBOR, "")
 	if err != nil {
 		return nil, err
 	}
@@ -174,7 +174,7 @@ func getOCFResourcesProperties(deviceID uuid.UUID, baseURL string, cloudEnabled,
 		return nil, errors.New("maintenance resource not found")
 	}
 	properties[schemaMaintenance.ResourceURI] = maintenanceResource
-	maintenanceResource, err = thingDescriptionResource.PatchMaintenanceResourcePropertyElement(maintenanceResource, deviceID, baseURL, message.AppCBOR.String())
+	maintenanceResource, err = thingDescriptionResource.PatchMaintenanceResourcePropertyElement(maintenanceResource, deviceID, baseURL, message.AppCBOR)
 	if err != nil {
 		return nil, err
 	}
@@ -185,7 +185,7 @@ func getOCFResourcesProperties(deviceID uuid.UUID, baseURL string, cloudEnabled,
 		if !ok {
 			return nil, errors.New("cloud resource not found")
 		}
-		cloudResource, err = thingDescriptionResource.PatchCloudResourcePropertyElement(cloudResource, deviceID, baseURL, message.AppCBOR.String())
+		cloudResource, err = thingDescriptionResource.PatchCloudResourcePropertyElement(cloudResource, deviceID, baseURL, message.AppCBOR)
 		if err != nil {
 			return nil, err
 		}
@@ -197,7 +197,7 @@ func getOCFResourcesProperties(deviceID uuid.UUID, baseURL string, cloudEnabled,
 		if !ok {
 			return nil, errors.New("credential resource not found")
 		}
-		credentialResource, err = thingDescriptionResource.PatchCredentialResourcePropertyElement(credentialResource, deviceID, baseURL, message.AppCBOR.String())
+		credentialResource, err = thingDescriptionResource.PatchCredentialResourcePropertyElement(credentialResource, deviceID, baseURL, message.AppCBOR)
 		if err != nil {
 			return nil, err
 		}

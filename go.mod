@@ -20,7 +20,7 @@ require (
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.9.0
 	github.com/ugorji/go/codec v1.2.12
-	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240510090525-772cd4ad3459
+	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240510130416-741fef736e1e
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.7.0
 	google.golang.org/grpc v1.63.2

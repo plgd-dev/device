@@ -97,7 +97,7 @@ func patchPropertyElement(td wotTD.ThingDescription, dev *device.Device, endpoin
 	if !ok {
 		return wotTD.PropertyElement{}, false
 	}
-	propElement, err := thingDescription.PatchPropertyElement(propElement, resource.GetResourceTypes(), endpoint != "", dev.GetID(), resource.GetHref(), resource.SupportsOperations(), message.AppCBOR.String())
+	propElement, err := thingDescription.PatchPropertyElement(propElement, resource.GetResourceTypes(), endpoint != "", dev.GetID(), resource.GetHref(), resource.SupportsOperations(), message.AppCBOR)
 	return propElement, err == nil
 }
 

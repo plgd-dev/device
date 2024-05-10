@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	bridgeTD "github.com/plgd-dev/device/v2/bridge/device/thingDescription"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
@@ -41,7 +42,7 @@ func GetPropertyDescriptionForTestResource() thingDescription.PropertyElement {
 	}
 }
 
-func PatchTestResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, href, contentType string) (thingDescription.PropertyElement, error) {
+func PatchTestResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, href string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	propOps := bridgeTD.GetPropertyElementOperations(pe)
 	return bridgeTD.PatchPropertyElement(pe, []string{TestResourceType}, true, deviceID, href,
 		propOps.ToSupportedOperations(), contentType)

@@ -1,11 +1,13 @@
 package thingDescription
 
 import (
+	"net/http"
 	"net/url"
 
 	"github.com/fredbi/uri"
 	"github.com/google/uuid"
 	"github.com/plgd-dev/device/v2/bridge/resources"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
@@ -97,7 +99,42 @@ func (p PropertyElementOperations) ToSupportedOperations() resources.SupportedOp
 	return ops | resources.SupportedOperationRead | resources.SupportedOperationWrite
 }
 
-func PatchPropertyElement(prop thingDescription.PropertyElement, types []string, setForm bool, deviceID uuid.UUID, href string, ops resources.SupportedOperation, contentType string) (thingDescription.PropertyElement, error) {
+func createForm(hrefUri *url.URL, covMethod string, op thingDescription.StickyDescription, contentType message.MediaType) thingDescription.FormElementProperty {
+	additionalFields := map[string]interface{}{
+		"cov:method": covMethod,
+		"cov:accept": float64(contentType),
+	}
+	ops := []string{string(op)}
+	if op == thingDescription.Observeproperty {
+		additionalFields["subprotocol"] = "cov:observe"
+		ops = append(ops, string(thingDescription.Unobserveproperty))
+	}
+
+	return thingDescription.FormElementProperty{
+		ContentType: StringToPtr(contentType.String()),
+		Href:        *hrefUri,
+		Op: &thingDescription.FormElementPropertyOp{
+			StringArray: ops,
+		},
+		AdditionalFields: additionalFields,
+	}
+}
+
+func SetForms(hrefUri *url.URL, ops resources.SupportedOperation, contentType message.MediaType) []thingDescription.FormElementProperty {
+	forms := make([]thingDescription.FormElementProperty, 0, 3)
+	if ops.HasOperation(resources.SupportedOperationWrite) {
+		forms = append(forms, createForm(hrefUri, http.MethodPost, thingDescription.Writeproperty, contentType))
+	}
+	if ops.HasOperation(resources.SupportedOperationRead) {
+		forms = append(forms, createForm(hrefUri, http.MethodGet, thingDescription.Readproperty, contentType))
+	}
+	if ops.HasOperation(resources.SupportedOperationObserve) {
+		forms = append(forms, createForm(hrefUri, http.MethodGet, thingDescription.Observeproperty, contentType))
+	}
+	return forms
+}
+
+func PatchPropertyElement(prop thingDescription.PropertyElement, types []string, setForm bool, deviceID uuid.UUID, href string, ops resources.SupportedOperation, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	if len(types) > 0 {
 		prop.Type = &thingDescription.TypeDeclaration{
 			StringArray: types,
@@ -126,16 +163,7 @@ func PatchPropertyElement(prop thingDescription.PropertyElement, types []string,
 			return thingDescription.PropertyElement{}, err
 		}
 	}
-	form := thingDescription.FormElementProperty{
-		ContentType: StringToPtr(contentType),
-		Op: &thingDescription.FormElementPropertyOp{
-			StringArray: opsStrs,
-		},
-	}
-	if hrefUri != nil {
-		form.Href = *hrefUri
-	}
-	prop.Forms = []thingDescription.FormElementProperty{form}
+	prop.Forms = SetForms(hrefUri, ops, contentType)
 	return prop, nil
 }
 

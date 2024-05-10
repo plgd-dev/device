@@ -99,7 +99,7 @@ func getEndpoint(t *testing.T, c *client.Client, deviceID string) string {
 
 func getPatchedTD(td wotTD.ThingDescription, d service.Device, epURI string) wotTD.ThingDescription {
 	return bridgeDeviceTD.PatchThingDescription(td, d, epURI, func(resourceHref string, resource bridgeDeviceTD.Resource) (wotTD.PropertyElement, bool) {
-		return bridgeTest.GetPropertyElement(td, d, epURI, resourceHref, resource, message.AppCBOR.String())
+		return bridgeTest.GetPropertyElement(td, d, epURI, resourceHref, resource, message.AppCBOR)
 	})
 }
 

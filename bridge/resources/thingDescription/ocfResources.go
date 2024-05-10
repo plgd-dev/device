@@ -9,6 +9,7 @@ import (
 	schemaCredential "github.com/plgd-dev/device/v2/schema/credential"
 	schemaDevice "github.com/plgd-dev/device/v2/schema/device"
 	schemaMaintenance "github.com/plgd-dev/device/v2/schema/maintenance"
+	"github.com/plgd-dev/go-coap/v3/message"
 	"github.com/web-of-things-open-source/thingdescription-go/thingDescription"
 )
 
@@ -39,12 +40,12 @@ func GetOCFResourcePropertyElement(resourceHref string) (thingDescription.Proper
 	return prop, true
 }
 
-func patchResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, resourceTypes []string, resourceHref, contentType string) (thingDescription.PropertyElement, error) {
+func patchResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, resourceTypes []string, resourceHref string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	propOps := bridgeTD.GetPropertyElementOperations(pe)
 	return bridgeTD.PatchPropertyElement(pe, resourceTypes, true, deviceID, resourceHref, propOps.ToSupportedOperations(), contentType)
 }
 
-func PatchDeviceResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL, contentType string, deviceType string) (thingDescription.PropertyElement, error) {
+func PatchDeviceResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL string, contentType message.MediaType, deviceType string) (thingDescription.PropertyElement, error) {
 	var types []string
 	if deviceType != "" {
 		types = []string{schemaDevice.ResourceType, deviceType}
@@ -52,14 +53,14 @@ func PatchDeviceResourcePropertyElement(pe thingDescription.PropertyElement, dev
 	return patchResourcePropertyElement(pe, deviceID, types, baseURL+schemaDevice.ResourceURI, contentType)
 }
 
-func PatchMaintenanceResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL, contentType string) (thingDescription.PropertyElement, error) {
+func PatchMaintenanceResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	return patchResourcePropertyElement(pe, deviceID, []string{schemaMaintenance.ResourceType}, baseURL+schemaMaintenance.ResourceURI, contentType)
 }
 
-func PatchCloudResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL, contentType string) (thingDescription.PropertyElement, error) {
+func PatchCloudResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	return patchResourcePropertyElement(pe, deviceID, []string{schemaCloud.ResourceType}, baseURL+schemaCloud.ResourceURI, contentType)
 }
 
-func PatchCredentialResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL, contentType string) (thingDescription.PropertyElement, error) {
+func PatchCredentialResourcePropertyElement(pe thingDescription.PropertyElement, deviceID uuid.UUID, baseURL string, contentType message.MediaType) (thingDescription.PropertyElement, error) {
 	return patchResourcePropertyElement(pe, deviceID, []string{schemaCredential.ResourceType}, baseURL+schemaCredential.ResourceURI, contentType)
 }
