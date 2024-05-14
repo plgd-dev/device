@@ -1,10 +1,13 @@
 module github.com/plgd-dev/device/v2
 
-go 1.20
+go 1.22
+
+toolchain go1.22.0
 
 require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.6.0
+	github.com/go-json-experiment/json v0.0.0-20240418180308-af2d5061e6c2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
@@ -17,7 +20,7 @@ require (
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.9.0
 	github.com/ugorji/go/codec v1.2.12
-	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240417084639-a2aca7547975
+	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240513190706-79b5f39190eb
 	go.uber.org/atomic v1.11.0
 	golang.org/x/sync v0.7.0
 	google.golang.org/grpc v1.63.2

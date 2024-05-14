@@ -7,6 +7,7 @@
     "properties": {
         "/oic/d": {
             "title": "Device Information",
+            "readOnly": true,
             "type": "object",
             "properties": {
                 "piid": {
@@ -26,7 +27,10 @@
                     "readOnly": true,
                     "format": "uuid"
                 }
-            }
+            },
+            "@type": [
+                "oic.wk.d"
+            ]
         },
         "/oic/mnt": {
             "title": "Maintenance",
@@ -36,7 +40,10 @@
                     "title": "Factory Reset",
                     "type": "boolean"
                 }
-            }
+            },
+            "@type": [
+                "oic.wk.mnt"
+            ]
         },
         "/CoapCloudConfResURI": {
             "title": "CoapCloudConfResURI",
@@ -76,7 +83,177 @@
                     "title": "Last error code",
                     "type": "integer"
                 }
-            }
+            },
+            "@type": [
+                "oic.r.coapcloudconf"
+            ]
+        },
+        "/oic/sec/cred": {
+            "title": "Credentials",
+            "type": "object",
+            "properties": {
+                "creds": {
+                    "title": "Credentials",
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "credid": {
+                                "title": "Credential ID",
+                                "type": "integer",
+                                "minimum": 0,
+                                "maximum": 65535
+                            },
+                            "subjectuuid": {
+                                "title": "Subject UUID",
+                                "type": "string",
+                                "format": "uuid"
+                            },
+                            "roleid": {
+                                "title": "Role ID",
+                                "type": "object",
+                                "properties": {
+                                    "role": {
+                                        "title": "Role",
+                                        "type": "string",
+                                        "readOnly": true
+                                    },
+                                    "authority": {
+                                        "title": "Authority",
+                                        "type": "string",
+                                        "readOnly": true
+                                    }
+                                },
+                                "required": [
+                                    "role"
+                                ]
+                            },
+                            "credtype": {
+                                "title": "Credential Type",
+                                "type": "integer",
+                                "enum": [
+                                    "0",
+                                    "1",
+                                    "2",
+                                    "4",
+                                    "8",
+                                    "16",
+                                    "32",
+                                    "64",
+                                    "128",
+                                    "256"
+                                ]
+                            },
+                            "credusage": {
+                                "title": "Credential Usage",
+                                "type": "string",
+                                "enum": [
+                                    "oic.sec.cred.trustca",
+                                    "oic.sec.cred.cert",
+                                    "oic.sec.cred.rolecert",
+                                    "oic.sec.cred.mfgtrustca",
+                                    "oic.sec.cred.mfgtrustanchor"
+                                ]
+                            },
+                            "publicdata": {
+                                "title": "Public Data",
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "title": "Data",
+                                        "type": "string"
+                                    },
+                                    "encoding": {
+                                        "title": "Encoding format",
+                                        "type": "string",
+                                        "enum": [
+                                            "oic.sec.encoding.jwt",
+                                            "oic.sec.encoding.cwt",
+                                            "oic.sec.encoding.base64",
+                                            "oic.sec.encoding.uri",
+                                            "oic.sec.encoding.pem",
+                                            "oic.sec.encoding.der",
+                                            "oic.sec.encoding.raw"
+                                        ]
+                                    }
+                                }
+                            },
+                            "privatedata": {
+                                "title": "Private Data",
+                                "type": "object",
+                                "properties": {
+                                    "data": {
+                                        "title": "Data",
+                                        "type": "string",
+                                        "writeOnly": true
+                                    },
+                                    "encoding": {
+                                        "title": "Encoding format",
+                                        "type": "string",
+                                        "enum": [
+                                            "oic.sec.encoding.jwt",
+                                            "oic.sec.encoding.cwt",
+                                            "oic.sec.encoding.base64",
+                                            "oic.sec.encoding.uri",
+                                            "oic.sec.encoding.handle",
+                                            "oic.sec.encoding.raw"
+                                        ]
+                                    },
+                                    "handle": {
+                                        "title": "Handle",
+                                        "type": "integer",
+                                        "minimum": 0,
+                                        "maximum": 65535
+                                    }
+                                },
+                                "required": [
+                                    "encoding"
+                                ]
+                            },
+                            "oscore": {
+                                "title": "OSCORE Configuration",
+                                "type": "object",
+                                "properties": {
+                                    "senderid": {
+                                        "title": "Sender ID",
+                                        "type": "string"
+                                    },
+                                    "recipientid": {
+                                        "title": "Recipient ID",
+                                        "type": "string"
+                                    },
+                                    "ssn": {
+                                        "title": "Sender Sequence Number",
+                                        "type": "integer",
+                                        "readOnly": true
+                                    },
+                                    "desc": {
+                                        "title": "Security Context Description",
+                                        "type": "string"
+                                    }
+                                }
+                            }
+                        },
+                        "required": [
+                            "credid",
+                            "subjectuuid",
+                            "credtype"
+                        ]
+                    }
+                },
+                "rowneruuid": {
+                    "title": "Resource Owner ID",
+                    "type": "string",
+                    "format": "uuid"
+                }
+            },
+            "required": [
+                "creds",
+                "rowneruuid"
+            ],
+            "@type": [
+                "oic.r.cred"
+            ]
         }
     }
 }

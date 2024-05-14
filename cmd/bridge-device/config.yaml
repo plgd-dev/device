@@ -3,8 +3,8 @@ apis:
     id: 8f596b43-29c0-4147-8b40-e99268ab30f7
     name: "my-bridge-example"
     externalAddresses:
-      - "127.0.0.1:15683"
-      - "[::1]:15683"
+      - "127.0.0.1:35683"
+      - "[::1]:35683"
     maxMessageSize: 2097152
 log:
   level: "info"

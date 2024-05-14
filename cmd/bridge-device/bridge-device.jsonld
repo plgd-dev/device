@@ -4,36 +4,5 @@
         "Thing"
     ],
     "id": "urn:uuid:bridge",
-    "properties": {
-        "/test/0": {
-            "title": "Test Resource",
-            "type": "object",
-            "properties": {
-                "Name": {
-                    "title": "Name",
-                    "type": "string"
-                }
-            }
-        },
-        "/test/1": {
-            "title": "Test Resource",
-            "type": "object",
-            "properties": {
-                "Name": {
-                    "title": "Name",
-                    "type": "string"
-                }
-            }
-        },
-        "/test/2": {
-            "title": "Test Resource",
-            "type": "object",
-            "properties": {
-                "Name": {
-                    "title": "Name",
-                    "type": "string"
-                }
-            }
-        }
-    }
+    "properties": {}
 }

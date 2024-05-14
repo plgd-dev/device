@@ -25,9 +25,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/fredbi/uri"
+	v2json "github.com/go-json-experiment/json"
 	"github.com/google/uuid"
-	"github.com/plgd-dev/device/v2/bridge/device/thingDescription"
+	bridgeDeviceTD "github.com/plgd-dev/device/v2/bridge/device/thingDescription"
 	thingDescriptionResource "github.com/plgd-dev/device/v2/bridge/resources/thingDescription"
 	"github.com/plgd-dev/device/v2/bridge/service"
 	bridgeTest "github.com/plgd-dev/device/v2/bridge/test"
@@ -78,10 +78,10 @@ func (JSONCodec) Decode(m *pool.Message, v interface{}) error {
 func getThingDescription(t *testing.T, data interface{}) wotTD.ThingDescription {
 	tdMap, ok := data.(map[interface{}]interface{})
 	require.True(t, ok)
-	jsonData, err := json.Encode(tdMap)
+	jsonData, err := v2json.Marshal(tdMap)
 	require.NoError(t, err)
 	td := wotTD.ThingDescription{}
-	err = json.Decode(jsonData, &td)
+	err = v2json.Unmarshal(jsonData, &td)
 	require.NoError(t, err)
 	return td
 }
@@ -98,8 +98,8 @@ func getEndpoint(t *testing.T, c *client.Client, deviceID string) string {
 }
 
 func getPatchedTD(td wotTD.ThingDescription, d service.Device, epURI string) wotTD.ThingDescription {
-	return thingDescription.PatchThingDescription(td, d, epURI, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
-		return bridgeTest.GetPropertyElement(td, d, epURI, resourceHref, resource)
+	return bridgeDeviceTD.PatchThingDescription(td, d, epURI, func(resourceHref string, resource bridgeDeviceTD.Resource) (wotTD.PropertyElement, bool) {
+		return bridgeTest.GetPropertyElement(td, d, epURI, resourceHref, resource, message.AppCBOR)
 	})
 }
 
@@ -108,8 +108,8 @@ func TestGetThingDescription(t *testing.T) {
 	t.Cleanup(func() {
 		_ = s.Shutdown()
 	})
-	deviceID := uuid.New().String()
-	d := bridgeTest.NewBridgedDevice(t, s, deviceID, true, true, true)
+	deviceID := uuid.New()
+	d := bridgeTest.NewBridgedDevice(t, s, deviceID.String(), true, true, true)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()
@@ -127,7 +127,7 @@ func TestGetThingDescription(t *testing.T) {
 		require.NoError(t, errC)
 	}()
 
-	td, err := bridgeTest.ThingDescription(true, true)
+	td, err := bridgeTest.ThingDescription(deviceID, "", true, true)
 	require.NoError(t, err)
 	epURI := getEndpoint(t, c, d.GetID().String())
 	td = getPatchedTD(td, d, epURI)
@@ -201,10 +201,10 @@ func TestObserveThingDescription(t *testing.T) {
 		_ = s.Shutdown()
 	})
 
-	deviceID := uuid.New().String()
-	td, err := bridgeTest.ThingDescription(true, true)
+	deviceID := uuid.New()
+	td, err := bridgeTest.ThingDescription(deviceID, "", true, true)
 	require.NoError(t, err)
-	d := bridgeTest.NewBridgedDeviceWithThingDescription(t, s, deviceID, true, true, &td)
+	d := bridgeTest.NewBridgedDeviceWithThingDescription(t, s, deviceID.String(), true, true, &td)
 	defer func() {
 		s.DeleteAndCloseDevice(d.GetID())
 	}()
@@ -244,11 +244,12 @@ func TestObserveThingDescription(t *testing.T) {
 
 	base, err := url.Parse("http://localhost:8080")
 	require.NoError(t, err)
-	id, err := uri.Parse("urn:uuid:" + deviceID)
+	id, err := bridgeDeviceTD.GetThingDescriptionID(deviceID.String())
 	require.NoError(t, err)
 	td2 := wotTD.ThingDescription{
-		Base: *base,
-		ID:   id,
+		Base:                *base,
+		ID:                  id,
+		SecurityDefinitions: map[string]wotTD.SecurityScheme{},
 	}
 	d.GetThingDescriptionManager().NotifySubscriptions(td2)
 	n, err = h.WaitForNotification(ctx)

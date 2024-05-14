@@ -21,9 +21,9 @@ package thingDescription
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 
+	"github.com/go-json-experiment/json"
 	"github.com/plgd-dev/device/v2/bridge/net"
 	"github.com/plgd-dev/device/v2/bridge/resources"
 	"github.com/plgd-dev/device/v2/schema"
@@ -53,7 +53,10 @@ type Resource struct {
 }
 
 func (r *Resource) createMessage(request *net.Request, thingDescription *thingDescription.ThingDescription) (*pool.Message, error) {
-	dataJson, err := json.Marshal(thingDescription)
+	if thingDescription == nil {
+		return resources.CreateErrorResponse(request.Context(), codes.NotFound, errors.New("thing description not found"))
+	}
+	dataJson, err := thingDescription.MarshalJSON()
 	if err != nil {
 		return resources.CreateErrorResponse(request.Context(), codes.InternalServerError, err)
 	}
