@@ -106,17 +106,27 @@ func patchPropertyElement(td wotTD.ThingDescription, dev *device.Device, endpoin
 }
 
 func getTDOpts(cfg bridgeDevice.Config) ([]device.Option, error) {
-	td, err := bridgeDevice.GetThingDescription(cfg.ThingDescription.File, cfg.NumResourcesPerDevice)
+	// validate TD
+	tdLoaded, err := bridgeDevice.GetThingDescription(cfg.ThingDescription.File, cfg.NumResourcesPerDevice)
+	if err != nil {
+		return nil, err
+	}
+	tdRaw, err := tdLoaded.MarshalJSON()
 	if err != nil {
 		return nil, err
 	}
 	return []device.Option{device.WithThingDescription(func(_ context.Context, dev *device.Device, endpoints schema.Endpoints) *wotTD.ThingDescription {
+		// we need to create TD always for concurrency reasons
+		var deviceTD wotTD.ThingDescription
+		if err := deviceTD.UnmarshalJSON(tdRaw); err != nil {
+			return nil
+		}
 		endpoint := ""
 		if len(endpoints) > 0 {
 			endpoint = endpoints[0].URI
 		}
-		newTD := thingDescription.PatchThingDescription(td, dev, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
-			return patchPropertyElement(td, dev, endpoint, resourceHref, resource)
+		newTD := thingDescription.PatchThingDescription(deviceTD, dev, endpoint, func(resourceHref string, resource thingDescription.Resource) (wotTD.PropertyElement, bool) {
+			return patchPropertyElement(deviceTD, dev, endpoint, resourceHref, resource)
 		})
 		return &newTD
 	})}, nil
