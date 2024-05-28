@@ -32,7 +32,7 @@ func GetPropertyDescriptionForTestResource() thingDescription.PropertyElement {
 		PropertyElementType: &objectType,
 		Properties: &thingDescription.Properties{
 			DataSchemaMap: map[string]thingDescription.DataSchema{
-				"Name": {
+				"name": {
 					Title:          bridgeTD.StringToPtr("Name"),
 					DataSchemaType: &stringType,
 				},
