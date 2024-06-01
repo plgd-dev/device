@@ -7,7 +7,7 @@ toolchain go1.22.0
 require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.6.0
-	github.com/go-json-experiment/json v0.0.0-20240418180308-af2d5061e6c2
+	github.com/go-json-experiment/json v0.0.0-20240524174822-2d9f40f7385b
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
