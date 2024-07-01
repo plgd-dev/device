@@ -2,7 +2,7 @@ module github.com/plgd-dev/device/v2
 
 go 1.22
 
-toolchain go1.22.0
+toolchain go1.22.4
 
 require (
 	github.com/fredbi/uri v1.1.0
