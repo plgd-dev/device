@@ -119,7 +119,7 @@ func (c *Service) DefaultRequestHandler(req *net.Request) (*pool.Message, error)
 	}
 	d, err := c.LoadDevice(deviceID) // check if device exists et
 	if err != nil {
-		if req.ControlMessage().Dst.IsMulticast() {
+		if req.ControlMessage() != nil && req.ControlMessage().Dst.IsMulticast() {
 			return nil, nil //nolint:nilnil
 		}
 		return nil, err
