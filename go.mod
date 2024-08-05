@@ -16,14 +16,14 @@ require (
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47
 	github.com/pion/logging v0.2.2
-	github.com/plgd-dev/go-coap/v3 v3.3.5-0.20240702113249-de76143e11ea
+	github.com/plgd-dev/go-coap/v3 v3.3.5-0.20240805141850-12858340a4f3
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.9.0
 	github.com/ugorji/go/codec v1.2.12
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240513190706-79b5f39190eb
 	go.uber.org/atomic v1.11.0
-	golang.org/x/sync v0.7.0
-	google.golang.org/grpc v1.64.0
+	golang.org/x/sync v0.8.0
+	google.golang.org/grpc v1.65.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -32,14 +32,14 @@ require (
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/pion/transport/v3 v3.0.2 // indirect
+	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8 // indirect
-	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sys v0.21.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240701130421-f6361c86f094 // indirect
+	golang.org/x/crypto v0.25.0 // indirect
+	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56 // indirect
+	golang.org/x/net v0.27.0 // indirect
+	golang.org/x/sys v0.23.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 
