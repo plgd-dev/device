@@ -14,9 +14,9 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47
+	github.com/pion/dtls/v3 v3.0.1
 	github.com/pion/logging v0.2.2
-	github.com/plgd-dev/go-coap/v3 v3.3.5-0.20240805141850-12858340a4f3
+	github.com/plgd-dev/go-coap/v3 v3.3.5-0.20240807094318-a54178c911b0
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
 	github.com/stretchr/testify v1.9.0
 	github.com/ugorji/go/codec v1.2.12
@@ -42,7 +42,3 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240730163845-b1a4ccb954bf // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
-
-// note: github.com/pion/dtls/v2/pkg/net package is not yet available in release branches,
-// so we force to the use of the pinned master branch
-replace github.com/pion/dtls/v2 => github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47
