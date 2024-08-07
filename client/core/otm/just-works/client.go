@@ -20,7 +20,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 	"github.com/plgd-dev/device/v2/client/core/otm/just-works/cipher"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
@@ -67,9 +67,6 @@ func (c *Client) Dial(ctx context.Context, addr kitNet.Addr) (*coap.ClientCloseH
 				return []dtls.CipherSuite{cipher.NewTLSAecdhAes128Sha256(dtls.CipherSuiteID(0xff00))}
 			},
 			CipherSuites: []dtls.CipherSuiteID{},
-			ConnectContextMaker: func() (context.Context, func()) {
-				return context.WithCancel(ctx)
-			},
 		}
 		return c.dialDTLS(ctx, addr.String(), &tlsConfig)
 	}
