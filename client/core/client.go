@@ -22,7 +22,7 @@ import (
 	"crypto/x509"
 	"net"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 	"github.com/pion/logging"
 	pkgError "github.com/plgd-dev/device/v2/pkg/error"
 	"github.com/plgd-dev/device/v2/pkg/log"

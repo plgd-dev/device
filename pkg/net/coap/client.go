@@ -28,7 +28,7 @@ import (
 	"sync"
 	"time"
 
-	piondtls "github.com/pion/dtls/v2"
+	piondtls "github.com/pion/dtls/v3"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/go-coap/v3/dtls"
 	"github.com/plgd-dev/go-coap/v3/message"
@@ -486,13 +486,6 @@ func getDefaultUDPOptions(ctx context.Context) []udp.Option {
 func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, opts ...udp.Option) (*ClientCloseHandler, error) {
 	h := NewOnCloseHandler()
 
-	if dtlsCfg.ConnectContextMaker == nil {
-		dtlsCfg.ConnectContextMaker = func() (context.Context, func()) {
-			return ctx, func() {
-				// no-op
-			}
-		}
-	}
 	dopts := make([]udp.Option, 0, len(opts)+4)
 	dopts = append(dopts, getDefaultUDPOptions(ctx)...)
 	dopts = append(dopts, opts...)

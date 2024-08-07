@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47
+	github.com/pion/dtls/v3 v3.0.2
 	github.com/pion/logging v0.2.2
 	github.com/plgd-dev/go-coap/v3 v3.3.5-0.20240904100911-1afdeb72cb92
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
@@ -33,6 +33,7 @@ require (
 	github.com/dsnet/golib/memfile v1.0.0 // indirect
 	github.com/hashicorp/errwrap v1.1.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47 // indirect
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
@@ -43,10 +44,5 @@ require (
 	google.golang.org/protobuf v1.34.2 // indirect
 )
 
-replace (
-	// last version for Go 1.22
-	github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
-	// note: github.com/pion/dtls/v2/pkg/net package is not yet available in release branches,
-	// so we force to the use of the pinned master branch
-	github.com/pion/dtls/v2 => github.com/pion/dtls/v2 v2.2.8-0.20240701035148-45e16a098c47
-)
+// last version for Go 1.22
+replace github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2

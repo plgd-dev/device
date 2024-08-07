@@ -316,19 +316,18 @@ func TestClientGetDeviceByIPOwnedByOther(t *testing.T) {
 		require.NoError(t, errClose)
 	}()
 
+	_, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer func() {
+		err = c.DisownDevice(ctx, deviceID)
+		require.NoError(t, err)
+	}()
+
 	c1, err := testClient.NewTestSecureClientWithGeneratedCertificate()
 	require.NoError(t, err)
 	defer func() {
 		errClose := c1.Close(context.Background())
 		require.NoError(t, errClose)
-	}()
-
-	_, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-
-	defer func() {
-		err = c.DisownDevice(ctx, deviceID)
-		require.NoError(t, err)
 	}()
 
 	device, err := c1.GetDeviceDetailsByIP(ctx, ip4)
