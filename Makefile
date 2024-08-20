@@ -15,12 +15,19 @@ CERT_TOOL_SIGN_ALG ?= ECDSA-SHA256
 CERT_TOOL_ELLIPTIC_CURVE ?= P256
 DEVSIM_IMAGE ?= ghcr.io/iotivity/iotivity-lite/cloud-server-discovery-resource-observable-debug:vnext
 HUB_TEST_DEVICE_IMAGE = ghcr.io/plgd-dev/hub/test-cloud-server:main
+TEST_CHECK_RACE ?= 1
+ifeq ($(TEST_CHECK_RACE),1)
+GO_TEST_ARGS := -race
+else
+GO_TEST_ARGS :=
+endif
 
 default: build
 
 define build-docker-image
 	docker build \
 		--network=host \
+		--build-arg="GO_TEST_ARGS=$(GO_TEST_ARGS)" \
 		--tag $(SERVICE_NAME):$(VERSION_TAG) \
 		--target $(1) \
 		-f test/cloud-server/Dockerfile \
