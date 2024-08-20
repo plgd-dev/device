@@ -111,7 +111,7 @@ func TokenFromOutgoingMD(ctx context.Context) (string, error) {
 	expectedScheme := "bearer"
 	val := metadata.ExtractOutgoing(ctx).Get(headerAuthorize)
 	if val == "" {
-		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with "+expectedScheme)
+		return "", status.Errorf(codes.Unauthenticated, "Request unauthenticated with %s", expectedScheme)
 	}
 	splits := strings.SplitN(val, " ", 2)
 	if len(splits) < 2 {
