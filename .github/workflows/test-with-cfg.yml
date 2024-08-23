@@ -78,6 +78,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.coverage.outputs.directory }}
+          # match bridge.coverage.txt,  bridge.unit.coverage.txt, coverage.txt, pkg.unit.coverage.txt and schema.unit.coverage.txt
           path: .tmp/*coverage.txt
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 1
