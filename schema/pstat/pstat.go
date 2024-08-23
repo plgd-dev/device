@@ -115,7 +115,7 @@ func (m OperationalMode) String() string {
 		m &^= OperationalMode_CLIENT_DIRECTED
 	}
 	if m != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(m)))
+		res = append(res, fmt.Sprintf("unknown(%v)", uint8(m)))
 	}
 	return strings.Join(res, "|")
 }
@@ -145,7 +145,7 @@ func (m ProvisioningMode) String() string {
 		m &^= ProvisioningMode_INIT_SEC_SOFT_UPDATE
 	}
 	if m != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(m)))
+		res = append(res, fmt.Sprintf("unknown(%v)", uint16(m)))
 	}
 	return strings.Join(res, "|")
 }

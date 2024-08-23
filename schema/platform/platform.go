@@ -18,7 +18,11 @@
 // https://github.com/openconnectivityfoundation/core/blob/master/swagger2.0/oic.wk.p.swagger.json
 package platform
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/plgd-dev/device/v2/internal/math"
+)
 
 const (
 	ResourceType = "oic.wk.p"
@@ -42,10 +46,10 @@ type Platform struct {
 }
 
 func (p Platform) GetVersion() (uint8, uint8, uint8, uint8) {
-	major := uint8((p.Version >> 24) & 0xFF)
-	minor := uint8((p.Version >> 16) & 0xFF)
-	patch := uint8((p.Version >> 8) & 0xFF)
-	bugfix := uint8(p.Version & 0xFF)
+	major := math.CastTo[uint8]((p.Version >> 24) & 0xFF)
+	minor := math.CastTo[uint8]((p.Version >> 16) & 0xFF)
+	patch := math.CastTo[uint8]((p.Version >> 8) & 0xFF)
+	bugfix := math.CastTo[uint8](p.Version & 0xFF)
 	return major, minor, patch, bugfix
 }
 

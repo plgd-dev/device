@@ -28,6 +28,7 @@ import (
 	"github.com/pion/dtls/v2"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
+	"github.com/plgd-dev/device/v2/internal/math"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
@@ -51,7 +52,7 @@ type subscription = interface {
 }
 
 type Config struct {
-	DeviceCacheExpirationSeconds   int64
+	DeviceCacheExpirationSeconds   uint64
 	ObserverPollingIntervalSeconds uint64 // 0 means 3 seconds
 	ObserverFailureThreshold       uint8  // 0 means 3
 
@@ -67,16 +68,27 @@ type Config struct {
 	DeviceOwnershipBackend *DeviceOwnershipBackendConfig `yaml:",omitempty"`
 }
 
+func toDuration(seconds uint64, def time.Duration) (time.Duration, error) {
+	if seconds == 0 {
+		return def, nil
+	}
+	const maxDurationSeconds uint64 = (1<<63 - 1) / uint64(time.Second)
+	if seconds > maxDurationSeconds {
+		return 0, errors.New("invalid value: interval overflows maximal duration")
+	}
+	return math.CastTo[time.Duration](seconds * uint64(time.Second)), nil
+}
+
 // NewClientFromConfig constructs a new local client from the proto configuration.
 func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logger) (*Client, error) {
-	var cacheExpiration time.Duration
-	if cfg.DeviceCacheExpirationSeconds > 0 {
-		cacheExpiration = time.Second * time.Duration(cfg.DeviceCacheExpirationSeconds)
+	cacheExpiration, err := toDuration(cfg.DeviceCacheExpirationSeconds, 0)
+	if err != nil {
+		return nil, errors.New("invalid DeviceCacheExpirationSeconds value")
 	}
 
-	observerPollingInterval := time.Second * 3
-	if cfg.ObserverPollingIntervalSeconds > 0 {
-		observerPollingInterval = time.Second * time.Duration(cfg.ObserverPollingIntervalSeconds)
+	observerPollingInterval, err := toDuration(cfg.ObserverPollingIntervalSeconds, time.Second*3)
+	if err != nil {
+		return nil, errors.New("invalid ObserverPollingIntervalSeconds value")
 	}
 
 	tcpDialOpts := make([]tcp.Option, 0, 5)
@@ -93,20 +105,20 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 	tcpDialOpts = append(tcpDialOpts, options.WithErrors(errFn))
 	udpDialOpts = append(udpDialOpts, options.WithErrors(errFn))
 
-	keepAliveConnectionTimeout := time.Second * 60
-	if cfg.KeepAliveConnectionTimeoutSeconds > 0 {
-		keepAliveConnectionTimeout = time.Second * time.Duration(cfg.KeepAliveConnectionTimeoutSeconds)
+	keepAliveConnectionTimeout, err := toDuration(cfg.KeepAliveConnectionTimeoutSeconds, time.Second*60)
+	if err != nil {
+		return nil, errors.New("invalid KeepAliveConnectionTimeoutSeconds value")
 	}
 	tcpDialOpts = append(tcpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *tcpClient.Conn) {
-		errFn(fmt.Errorf("keepalive failed for tcp: %v", cc.RemoteAddr()))
-		if err := cc.Close(); err != nil {
-			errFn(fmt.Errorf("failed to close tcp connection: %v", cc.RemoteAddr()))
+		errFn(fmt.Errorf("keepalive failed for tcp %v", cc.RemoteAddr()))
+		if errC := cc.Close(); errC != nil {
+			errFn(fmt.Errorf("failed to close tcp connection %v: %w", cc.RemoteAddr(), errC))
 		}
 	}))
 	udpDialOpts = append(udpDialOpts, options.WithKeepAlive(3, keepAliveConnectionTimeout/3, func(cc *udpClient.Conn) {
-		errFn(fmt.Errorf("keepalive failed for udp: %v", cc.RemoteAddr()))
-		if err := cc.Close(); err != nil {
-			errFn(fmt.Errorf("failed to close udp connection: %v", cc.RemoteAddr()))
+		errFn(fmt.Errorf("keepalive failed for udp %v", cc.RemoteAddr()))
+		if errC := cc.Close(); errC != nil {
+			errFn(fmt.Errorf("failed to close udp connection %v: %w", cc.RemoteAddr(), errC))
 		}
 	}))
 
@@ -121,10 +133,11 @@ func NewClientFromConfig(cfg *Config, app ApplicationCallback, logger core.Logge
 		tcpDialOpts = append(tcpDialOpts, options.WithDisablePeerTCPSignalMessageCSMs())
 	}
 
-	defaultTransferDuration := time.Second * 15
-	if cfg.DefaultTransferDurationSeconds > 0 {
-		defaultTransferDuration = time.Second * time.Duration(cfg.DefaultTransferDurationSeconds)
+	defaultTransferDuration, err := toDuration(cfg.DefaultTransferDurationSeconds, time.Second*15)
+	if err != nil {
+		return nil, errors.New("invalid DefaultTransferDurationSeconds value")
 	}
+
 	tcpDialOpts = append(tcpDialOpts, options.WithBlockwise(true, blockwise.SZX1024, defaultTransferDuration))
 	udpDialOpts = append(udpDialOpts, options.WithBlockwise(true, blockwise.SZX1024, defaultTransferDuration))
 
