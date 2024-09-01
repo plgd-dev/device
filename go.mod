@@ -1,13 +1,13 @@
 module github.com/plgd-dev/device/v2
 
-go 1.22
+go 1.23
 
-toolchain go1.22.0
+toolchain go1.23.0
 
 require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.7.0
-	github.com/go-json-experiment/json v0.0.0-20240524174822-2d9f40f7385b
+	github.com/go-json-experiment/json v0.0.0-20240815175050-ebd3a8989ca1
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
