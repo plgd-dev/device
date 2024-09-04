@@ -11,6 +11,7 @@ linters-settings:
               - errors
   gomoddirectives:
     replace-allow-list:
+      - github.com/go-json-experiment/json
       - github.com/pion/dtls/v2
   govet:
     enable:
