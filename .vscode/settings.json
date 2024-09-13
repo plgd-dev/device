@@ -17,6 +17,8 @@
 		"COAP_CRT": "${workspaceFolder}/.tmp/pki_certs/coapcrt.pem",
 		"COAP_KEY": "${workspaceFolder}/.tmp/pki_certs/coapkey.pem",
 		"CLOUD_SID": "adebc667-1f2b-41e3-bf5c-6d6eabc68cc6",
+		// "PION_LOG_TRACE": "all",
+		// "GOFLAGS": "-mod=vendor"
 	},
 	"files.watcherExclude": {
 		"**/plgd-dev/device/v2/**": true

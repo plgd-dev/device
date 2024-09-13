@@ -28,6 +28,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hashicorp/go-multierror"
 	piondtls "github.com/pion/dtls/v3"
 	codecOcf "github.com/plgd-dev/device/v2/pkg/codec/ocf"
 	"github.com/plgd-dev/go-coap/v3/dtls"
@@ -492,6 +493,17 @@ func DialUDPSecure(ctx context.Context, addr string, dtlsCfg *piondtls.Config, o
 	c, err := dtls.Dial(addr, dtlsCfg, dopts...)
 	if err != nil {
 		return nil, err
+	}
+	if dtlsConn, ok := c.NetConn().(*piondtls.Conn); ok {
+		var errors *multierror.Error
+		err = dtlsConn.HandshakeContext(ctx)
+		if err != nil {
+			errors = multierror.Append(errors, err)
+			if errC := c.Close(); errC != nil {
+				errors = multierror.Append(errors, errC)
+			}
+			return nil, errors
+		}
 	}
 	c.AddOnClose(func() {
 		h.OnClose(nil)
