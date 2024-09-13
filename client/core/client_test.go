@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/client/core/otm"
 	justworks "github.com/plgd-dev/device/v2/client/core/otm/just-works"

@@ -4,8 +4,9 @@ WORKDIR $GOPATH/src/github.com/plgd-dev/device
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
-RUN go test -c -coverpkg=./... -covermode=atomic ./client -o /go/bin/device.client.test
-RUN go test -c -coverpkg=./... -covermode=atomic ./client/core -o /go/bin/device.client.core.test
+ARG GO_TEST_ARGS=
+RUN go test -c ${GO_TEST_ARGS} -coverpkg=./... -covermode=atomic ./client -o /go/bin/device.client.test && \
+    go test -c ${GO_TEST_ARGS} -coverpkg=./... -covermode=atomic ./client/core -o /go/bin/device.client.core.test
 
 FROM alpine:3.20 AS service
 RUN apk add --no-cache bash

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM golang:1.22.3-alpine AS build
-RUN apk add --no-cache curl git build-base
+RUN apk add --no-cache build-base curl git
 WORKDIR $GOPATH/src/github.com/plgd-dev/device
 COPY go.mod go.sum ./
 RUN go mod download

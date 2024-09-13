@@ -22,7 +22,7 @@ import (
 	"crypto/x509"
 	"fmt"
 
-	"github.com/pion/dtls/v2"
+	"github.com/pion/dtls/v3"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
 	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/doxm"
