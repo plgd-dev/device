@@ -16,7 +16,7 @@ The **client** enables interaction with devices in a local network:
 
 ## Requirements
 
-- Go 1.23 or higher
+- Go 1.22 or higher
 
 ## Installation OCF Client
 
