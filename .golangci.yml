@@ -11,7 +11,8 @@ linters-settings:
               - errors
   gomoddirectives:
     replace-allow-list:
-      - github.com/pion/dtls/v2
+      - github.com/go-json-experiment/json
+      - golang.org/x/exp
   govet:
     enable:
       - nilness
@@ -158,4 +159,4 @@ issues:
   # fix: true
 
 run:
-  go: "1.23"
+  go: "1.22"
