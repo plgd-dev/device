@@ -44,7 +44,7 @@ type Credential struct {
 	Tag                     string                    `json:"tag,omitempty" yaml:"tag,omitempty"`
 }
 
-type CredentialType uint8
+type CredentialType uint16
 
 const (
 	CredentialType_EMPTY                               CredentialType = 0

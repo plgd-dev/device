@@ -64,7 +64,7 @@ func (VNDOCFCBORCodec) Decode(m *pool.Message, v interface{}) error {
 	}
 	if err := cbor.ReadFrom(m.Body(), v); err != nil {
 		p, _ := m.Options().Path()
-		return fmt.Errorf("decoding failed for the message %v on %v", m.Token(), p)
+		return fmt.Errorf("decoding failed for the message %v on %v with error: %w", m.Token(), p, err)
 	}
 	return nil
 }
