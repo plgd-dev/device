@@ -86,7 +86,7 @@ func (c CredentialType) String() string {
 		c &^= CredentialType_ASYMMETRIC_ENCRYPTION_KEY
 	}
 	if c != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", uint8(c)))
+		res = append(res, fmt.Sprintf("unknown(%v)", uint16(c)))
 	}
 	return strings.Join(res, "|")
 }
