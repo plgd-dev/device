@@ -44,7 +44,7 @@ type Credential struct {
 	Tag                     string                    `json:"tag,omitempty"`
 }
 
-type CredentialType uint8
+type CredentialType uint16
 
 const (
 	CredentialType_EMPTY                               CredentialType = 0
@@ -86,7 +86,7 @@ func (c CredentialType) String() string {
 		c &^= CredentialType_ASYMMETRIC_ENCRYPTION_KEY
 	}
 	if c != 0 {
-		res = append(res, fmt.Sprintf("unknown(%v)", int(c)))
+		res = append(res, fmt.Sprintf("unknown(%v)", uint16(c)))
 	}
 	return strings.Join(res, "|")
 }
