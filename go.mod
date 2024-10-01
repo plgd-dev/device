@@ -1,13 +1,13 @@
 module github.com/plgd-dev/device/v2
 
-go 1.22
+go 1.23
 
-toolchain go1.22.0
+toolchain go1.23.1
 
 require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.7.0
-	github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
+	github.com/go-json-experiment/json v0.0.0-20240815175050-ebd3a8989ca1
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
@@ -45,6 +45,6 @@ require (
 
 // last versions for Go 1.22.0
 replace (
-	github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
+	github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815175050-ebd3a8989ca1
 	golang.org/x/exp => golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
 )
