@@ -22,7 +22,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"encoding/asn1"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"math/big"
@@ -33,14 +32,24 @@ import (
 )
 
 type OCFIdentityCertificate struct {
-	caCert         []*x509.Certificate
-	caKey          crypto.PrivateKey
-	validNotBefore time.Time
-	validNotAfter  time.Time
+	caCert                []*x509.Certificate
+	caKey                 crypto.PrivateKey
+	validNotBefore        time.Time
+	validNotAfter         time.Time
+	crlDistributionPoints []string
 }
 
-func NewOCFIdentityCertificate(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) *OCFIdentityCertificate {
-	return &OCFIdentityCertificate{caCert: caCert, caKey: caKey, validNotBefore: validNotBefore, validNotAfter: validNotAfter}
+func NewOCFIdentityCertificate(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore, validNotAfter time.Time, crlDistributionPoints []string) (*OCFIdentityCertificate, error) {
+	if err := pkgX509.ValidateCRLDistributionPoints(crlDistributionPoints); err != nil {
+		return nil, err
+	}
+	return &OCFIdentityCertificate{
+		caCert:                caCert,
+		caKey:                 caKey,
+		validNotBefore:        validNotBefore,
+		validNotAfter:         validNotAfter,
+		crlDistributionPoints: crlDistributionPoints,
+	}, nil
 }
 
 func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) ([]byte, error) {
@@ -65,41 +74,31 @@ func (s *OCFIdentityCertificate) Sign(_ context.Context, csr []byte) ([]byte, er
 		return nil, fmt.Errorf("expired: current time %v is out of time range: %v <-> %v", now, notBefore.Format(time.RFC3339), notAfter.Format(time.RFC3339))
 	}
 
-	csrBlock, _ := pem.Decode(csr)
-	if csrBlock == nil {
-		return nil, errors.New("pem not found")
-	}
-
-	certificateRequest, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	certificateRequest, err := pkgX509.ParseAndCheckCertificateRequest(csr)
 	if err != nil {
 		return nil, err
 	}
 
-	err = certificateRequest.CheckSignature()
-	if err != nil {
-		return nil, err
+	if len(s.caCert) == 0 {
+		return nil, errors.New("cannot sign with empty signer CA certificates")
 	}
-
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
 		return nil, err
 	}
-
 	template := x509.Certificate{
-		SerialNumber:       serialNumber,
-		NotBefore:          notBefore,
-		NotAfter:           notAfter,
-		Subject:            certificateRequest.Subject,
-		PublicKeyAlgorithm: certificateRequest.PublicKeyAlgorithm,
-		PublicKey:          certificateRequest.PublicKey,
-		SignatureAlgorithm: s.caCert[0].SignatureAlgorithm,
-		KeyUsage:           x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
-		UnknownExtKeyUsage: []asn1.ObjectIdentifier{coap.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
-		ExtKeyUsage:        []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-	}
-	if len(s.caCert) == 0 {
-		return nil, errors.New("cannot sign with empty signer CA certificates")
+		SerialNumber:          serialNumber,
+		NotBefore:             notBefore,
+		NotAfter:              notAfter,
+		Subject:               certificateRequest.Subject,
+		PublicKeyAlgorithm:    certificateRequest.PublicKeyAlgorithm,
+		PublicKey:             certificateRequest.PublicKey,
+		SignatureAlgorithm:    s.caCert[0].SignatureAlgorithm,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageKeyAgreement,
+		UnknownExtKeyUsage:    []asn1.ObjectIdentifier{coap.ExtendedKeyUsage_IDENTITY_CERTIFICATE},
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		CRLDistributionPoints: s.crlDistributionPoints,
 	}
 	signedCsr, err := x509.CreateCertificate(rand.Reader, &template, s.caCert[0], certificateRequest.PublicKey, s.caKey)
 	if err != nil {

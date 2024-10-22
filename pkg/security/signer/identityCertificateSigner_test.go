@@ -18,12 +18,65 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestNewOCFIdentityCertificate(t *testing.T) {
+	type args struct {
+		caCert         []*x509.Certificate
+		caKey          crypto.PrivateKey
+		validNotBefore time.Time
+		validNotAfter  time.Time
+		crlPoints      []string
+	}
+	caCert, err := pkgX509.ReadPemCertificates(os.Getenv("ROOT_CA_CRT"))
+	require.NoError(t, err)
+	caKey, err := pkgX509.ReadPemEcdsaPrivateKey(os.Getenv("ROOT_CA_KEY"))
+	require.NoError(t, err)
+
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		{
+			name: "valid",
+			args: args{
+				caCert:         caCert,
+				caKey:          caKey,
+				validNotBefore: time.Now().Add(-time.Second),
+				validNotAfter:  time.Now().Add(time.Hour),
+			},
+		},
+		{
+			name: "invalid CRL address",
+			args: args{
+				caCert:         caCert,
+				caKey:          caKey,
+				validNotBefore: time.Now().Add(-time.Second),
+				validNotAfter:  time.Now().Add(time.Hour),
+				crlPoints:      []string{"invalid-crl-address"},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := signer.NewOCFIdentityCertificate(tt.args.caCert, tt.args.caKey, tt.args.validNotBefore, tt.args.validNotAfter, tt.args.crlPoints)
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
 func TestOCFIdentityCertificateSign(t *testing.T) {
 	type fields struct {
 		caCert         []*x509.Certificate
 		caKey          crypto.PrivateKey
 		validNotBefore time.Time
 		validNotAfter  time.Time
+		crlPoints      []string
 	}
 	type args struct {
 		csr []byte
@@ -107,10 +160,24 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid with CRL points",
+			fields: fields{
+				caCert:         caCert,
+				caKey:          caKey,
+				validNotBefore: time.Now().Add(-time.Second),
+				validNotAfter:  time.Now().Add(time.Hour),
+				crlPoints:      []string{"http://example.com/crl"},
+			},
+			args: args{
+				csr: csr,
+			},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter)
+			s, err := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter, tt.fields.crlPoints)
+			require.NoError(t, err)
 			gotSignedCsr, err := s.Sign(context.Background(), tt.args.csr)
 			if tt.wantErr {
 				require.Error(t, err)

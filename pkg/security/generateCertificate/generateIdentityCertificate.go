@@ -13,7 +13,7 @@ import (
 	ocfSigner "github.com/plgd-dev/device/v2/pkg/security/signer"
 )
 
-type basicConstraints struct {
+type BasicConstraints struct {
 	CA bool
 }
 
@@ -27,7 +27,7 @@ func NewIdentityCSRTemplate(deviceID string) (*x509.CertificateRequest, error) {
 		return nil, err
 	}
 
-	bcVal, err := asn1.Marshal(basicConstraints{false})
+	bcVal, err := asn1.Marshal(BasicConstraints{false})
 	if err != nil {
 		return nil, err
 	}
@@ -41,17 +41,17 @@ func NewIdentityCSRTemplate(deviceID string) (*x509.CertificateRequest, error) {
 		Subject: subj,
 		ExtraExtensions: []pkix.Extension{
 			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 19}, // basic constraints
+				Id:       ASN1BasicConstraints,
 				Value:    bcVal,
 				Critical: false,
 			},
 			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 15}, // key usage
+				Id:       ASN1KeyUsage,
 				Value:    kuVal,
 				Critical: false,
 			},
 			{
-				Id:       asn1.ObjectIdentifier{2, 5, 29, 37}, // EKU
+				Id:       ASN1ExtKeyUsage,
 				Value:    val,
 				Critical: false,
 			},
@@ -93,7 +93,13 @@ func GenerateIdentityCert(cfg Configuration, deviceID string, privateKey *ecdsa.
 		return nil, err
 	}
 	notAfter := notBefore.Add(cfg.ValidFor)
-
-	s := ocfSigner.NewOCFIdentityCertificate(signerCA, signerCAKey, notBefore, notAfter)
+	crlDistributionPoints, err := cfg.ToCRLDistributionPoints()
+	if err != nil {
+		return nil, err
+	}
+	s, err := ocfSigner.NewOCFIdentityCertificate(signerCA, signerCAKey, notBefore, notAfter, crlDistributionPoints)
+	if err != nil {
+		return nil, err
+	}
 	return s.Sign(context.Background(), csr)
 }

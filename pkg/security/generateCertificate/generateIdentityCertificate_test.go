@@ -1,15 +1,16 @@
-package generateCertificate
+package generateCertificate_test
 
 import (
 	"testing"
 	"time"
 
+	"github.com/plgd-dev/device/v2/pkg/security/generateCertificate"
 	"github.com/stretchr/testify/require"
 )
 
 func TestGenerateIdentityCertificate(t *testing.T) {
 	type args struct {
-		cfg Configuration
+		cfg generateCertificate.Configuration
 	}
 	tests := []struct {
 		name    string
@@ -19,7 +20,7 @@ func TestGenerateIdentityCertificate(t *testing.T) {
 		{
 			name: "valid - default",
 			args: args{
-				cfg: Configuration{
+				cfg: generateCertificate.Configuration{
 					ValidFor: time.Minute,
 				},
 			},
@@ -27,36 +28,36 @@ func TestGenerateIdentityCertificate(t *testing.T) {
 		{
 			name: "valid - sha384",
 			args: args{
-				cfg: Configuration{
+				cfg: generateCertificate.Configuration{
 					ValidFor:           time.Minute,
-					SignatureAlgorithm: SignatureAlgorithmECDSAWithSHA384,
+					SignatureAlgorithm: generateCertificate.SignatureAlgorithmECDSAWithSHA384,
 				},
 			},
 		},
 		{
 			name: "valid - sha512",
 			args: args{
-				cfg: Configuration{
+				cfg: generateCertificate.Configuration{
 					ValidFor:           time.Minute,
-					SignatureAlgorithm: SignatureAlgorithmECDSAWithSHA512,
+					SignatureAlgorithm: generateCertificate.SignatureAlgorithmECDSAWithSHA512,
 				},
 			},
 		},
 		{
 			name: "valid - p384",
 			args: args{
-				cfg: Configuration{
+				cfg: generateCertificate.Configuration{
 					ValidFor:      time.Minute,
-					EllipticCurve: EllipticCurveP384,
+					EllipticCurve: generateCertificate.EllipticCurveP384,
 				},
 			},
 		},
 		{
 			name: "valid - p521",
 			args: args{
-				cfg: Configuration{
+				cfg: generateCertificate.Configuration{
 					ValidFor:      time.Minute,
-					EllipticCurve: EllipticCurveP521,
+					EllipticCurve: generateCertificate.EllipticCurveP521,
 				},
 			},
 		},
@@ -66,7 +67,7 @@ func TestGenerateIdentityCertificate(t *testing.T) {
 			caCrt, caKey := generateRootCA(t, tt.args.cfg)
 			privateKey, err := tt.args.cfg.GenerateKey()
 			require.NoError(t, err)
-			got, err := GenerateIdentityCert(tt.args.cfg, "deviceID", privateKey, caCrt, caKey)
+			got, err := generateCertificate.GenerateIdentityCert(tt.args.cfg, "deviceID", privateKey, caCrt, caKey)
 			if tt.wantErr {
 				require.Error(t, err)
 				return

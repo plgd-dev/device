@@ -26,5 +26,5 @@ func NewTestSigner() (core.CertificateSigner, error) {
 
 	notBefore := time.Now()
 	notAfter := notBefore.Add(time.Hour * 86400)
-	return NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter), nil
+	return NewIdentityCertificateSigner(identityIntermediateCA, identityIntermediateCAKey, notBefore, notAfter, nil)
 }

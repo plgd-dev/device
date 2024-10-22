@@ -122,8 +122,8 @@ func FindDeviceByName(ctx context.Context, name string) (deviceID string, _ erro
 	return id, nil
 }
 
-func NewIdentityCertificateSigner(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner {
-	return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter)
+func NewIdentityCertificateSigner(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore, validNotAfter time.Time, crlDistributionPoints []string) (core.CertificateSigner, error) {
+	return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter, crlDistributionPoints)
 }
 
 type IPType int

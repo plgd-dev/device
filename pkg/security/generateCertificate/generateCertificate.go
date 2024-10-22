@@ -9,7 +9,13 @@ import (
 	"encoding/asn1"
 	"encoding/pem"
 
-	ocfSigner "github.com/plgd-dev/kit/v2/security/signer"
+	ocfSigner "github.com/plgd-dev/device/v2/pkg/security/signer"
+)
+
+var (
+	ASN1KeyUsage         = asn1.ObjectIdentifier{2, 5, 29, 15}
+	ASN1BasicConstraints = asn1.ObjectIdentifier{2, 5, 29, 19}
+	ASN1ExtKeyUsage      = asn1.ObjectIdentifier{2, 5, 29, 37}
 )
 
 // GenerateCSR creates CSR according to configuration.
@@ -28,12 +34,12 @@ func GenerateCSR(cfg Configuration, privateKey *ecdsa.PrivateKey) ([]byte, error
 
 	extraExtensions := make([]pkix.Extension, 0, 3)
 	if !cfg.BasicConstraints.Ignore {
-		bcVal, errM := asn1.Marshal(basicConstraints{false})
+		bcVal, errM := asn1.Marshal(BasicConstraints{false})
 		if errM != nil {
 			return nil, errM
 		}
 		extraExtensions = append(extraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19}, // basic constraints
+			Id:       ASN1BasicConstraints,
 			Value:    bcVal,
 			Critical: false,
 		})
@@ -49,7 +55,7 @@ func GenerateCSR(cfg Configuration, privateKey *ecdsa.PrivateKey) ([]byte, error
 			return nil, errM
 		}
 		extraExtensions = append(extraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 15}, // key usage
+			Id:       ASN1KeyUsage,
 			Value:    val,
 			Critical: false,
 		})
@@ -65,7 +71,7 @@ func GenerateCSR(cfg Configuration, privateKey *ecdsa.PrivateKey) ([]byte, error
 			return nil, errM
 		}
 		extraExtensions = append(extraExtensions, pkix.Extension{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 37}, // EKU
+			Id:       ASN1ExtKeyUsage,
 			Value:    val,
 			Critical: false,
 		})
@@ -100,8 +106,14 @@ func GenerateCert(cfg Configuration, privateKey *ecdsa.PrivateKey, signerCA []*x
 	if err != nil {
 		return nil, err
 	}
-
 	notAfter := notBefore.Add(cfg.ValidFor)
-	s := ocfSigner.NewBasicCertificateSigner(signerCA, signerCAKey, notBefore, notAfter)
+	crlDistributionPoints, err := cfg.ToCRLDistributionPoints()
+	if err != nil {
+		return nil, err
+	}
+	s, err := ocfSigner.NewBasicCertificateSigner(signerCA, signerCAKey, notBefore, notAfter, crlDistributionPoints)
+	if err != nil {
+		return nil, err
+	}
 	return s.Sign(context.Background(), csr)
 }
