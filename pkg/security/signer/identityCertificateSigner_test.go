@@ -24,6 +24,7 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 		caKey          crypto.PrivateKey
 		validNotBefore time.Time
 		validNotAfter  time.Time
+		crlPoints      []string
 	}
 	type args struct {
 		csr []byte
@@ -107,10 +108,37 @@ func TestOCFIdentityCertificateSign(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid with CRL points",
+			fields: fields{
+				caCert:         caCert,
+				caKey:          caKey,
+				validNotBefore: time.Now().Add(-time.Second),
+				validNotAfter:  time.Now().Add(time.Hour),
+				crlPoints:      []string{"http://example.com/crl"},
+			},
+			args: args{
+				csr: csr,
+			},
+		},
+		{
+			name: "invalid CRL point format",
+			fields: fields{
+				caCert:         caCert,
+				caKey:          caKey,
+				validNotBefore: time.Now().Add(-time.Second),
+				validNotAfter:  time.Now().Add(time.Hour),
+				crlPoints:      []string{"invalid-url"},
+			},
+			args: args{
+				csr: csr,
+			},
+			wantErr: true,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter)
+			s := signer.NewOCFIdentityCertificate(tt.fields.caCert, tt.fields.caKey, tt.fields.validNotBefore, tt.fields.validNotAfter, tt.fields.crlPoints)
 			gotSignedCsr, err := s.Sign(context.Background(), tt.args.csr)
 			if tt.wantErr {
 				require.Error(t, err)

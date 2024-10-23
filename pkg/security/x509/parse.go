@@ -106,3 +106,20 @@ func ParseCertificates(cert *tls.Certificate) ([]*x509.Certificate, error) {
 	}
 	return caChain, nil
 }
+
+func ParseAndCheckCertificateRequest(csr []byte) (*x509.CertificateRequest, error) {
+	csrBlock, _ := pem.Decode(csr)
+	if csrBlock == nil {
+		return nil, errors.New("pem not found")
+	}
+
+	certificateRequest, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	err = certificateRequest.CheckSignature()
+	if err != nil {
+		return nil, err
+	}
+	return certificateRequest, nil
+}

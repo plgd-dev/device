@@ -9,9 +9,12 @@ import (
 	"encoding/asn1"
 	"fmt"
 	"net"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
 type (
@@ -56,9 +59,10 @@ type Configuration struct {
 	//nolint:staticcheck
 	KeyUsages []string `yaml:"keyUsages" long:"ku" default:"digitalSignature" default:"keyAgreement" description:"to set more values repeat option with parameter"`
 	//nolint:staticcheck
-	ExtensionKeyUsages []string           `yaml:"extensionKeyUsages" long:"eku" default:"client" default:"server" description:"to set more values repeat option with parameter"`
-	EllipticCurve      EllipticCurve      `yaml:"ellipticCurve" long:"ellipticCurve" default:"P256" description:"supported values:P256, P384, P521"`
-	SignatureAlgorithm SignatureAlgorithm `yaml:"signatureAlgorithm" long:"signatureAlgorithm" default:"ECDSA-SHA256" description:"supported values:ECDSA-SHA256, ECDSA-SHA384, ECDSA-SHA512"`
+	ExtensionKeyUsages    []string           `yaml:"extensionKeyUsages" long:"eku" default:"client" default:"server" description:"to set more values repeat option with parameter"`
+	EllipticCurve         EllipticCurve      `yaml:"ellipticCurve" long:"ellipticCurve" default:"P256" description:"supported values:P256, P384, P521"`
+	SignatureAlgorithm    SignatureAlgorithm `yaml:"signatureAlgorithm" long:"signatureAlgorithm" default:"ECDSA-SHA256" description:"supported values:ECDSA-SHA256, ECDSA-SHA384, ECDSA-SHA512"`
+	CRLDistributionPoints []string           `yaml:"crlDistributionPoints" long:"crl" description:"to set more values repeat option with parameter"`
 }
 
 func (cfg Configuration) ToPkixName() pkix.Name {
@@ -302,4 +306,13 @@ func (cfg Configuration) ToIPAddresses() ([]net.IP, error) {
 		ips = append(ips, v)
 	}
 	return ips, nil
+}
+
+func (cfg Configuration) ToCRLDistributionPoints() ([]string, error) {
+	if err := pkgX509.ValidateCRLDistributionPoints(cfg.CRLDistributionPoints); err != nil {
+		return nil, err
+	}
+	cdp := slices.Clone(cfg.CRLDistributionPoints)
+	slices.Sort(cdp)
+	return slices.Compact(cdp), nil
 }

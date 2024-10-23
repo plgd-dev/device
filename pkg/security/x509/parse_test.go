@@ -166,3 +166,72 @@ func TestParseCertificates_Fail(t *testing.T) {
 	_, err := pkgX509.ParseCertificates(&tls.Certificate{})
 	require.Error(t, err)
 }
+
+func generateValidCSR(t *testing.T) []byte {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err, "failed to generate private key")
+
+	template := &x509.CertificateRequest{
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
+	}
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, template, priv)
+	require.NoError(t, err, "failed to create certificate request")
+
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+}
+
+func generateCSRWithInvalidSignature(t *testing.T) []byte {
+	priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	require.NoError(t, err, "failed to generate private key")
+
+	template := &x509.CertificateRequest{
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
+	}
+	csrBytes, err := x509.CreateCertificateRequest(rand.Reader, template, priv)
+	require.NoError(t, err, "failed to create certificate request")
+
+	// Tamper with the CSR bytes to invalidate the signature
+	csrBytes[len(csrBytes)-1] ^= 0xFF
+
+	return pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
+}
+
+func TestParseAndCheckCertificateRequest(t *testing.T) {
+	tests := []struct {
+		name    string
+		csr     []byte
+		wantErr bool
+	}{
+		{
+			name: "Valid CSR",
+			csr:  generateValidCSR(t),
+		},
+		{
+			name:    "Invalid PEM",
+			csr:     []byte("invalid-pem-data"),
+			wantErr: true,
+		},
+		{
+			name:    "Invalid CSR",
+			csr:     pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: []byte("invalid-csr-data")}),
+			wantErr: true,
+		},
+		{
+			name:    "Invalid Signature",
+			csr:     generateCSRWithInvalidSignature(t),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := pkgX509.ParseAndCheckCertificateRequest(tt.csr)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+		})
+	}
+}
