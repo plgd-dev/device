@@ -120,6 +120,7 @@ unit-test: certificates
 		go test -race -parallel 1 -v ./bridge/... -coverpkg=./... -covermode=atomic -coverprofile=$(TMP_PATH)/bridge.unit.coverage.txt
 	go test -race -v ./schema/... -covermode=atomic -coverprofile=$(TMP_PATH)/schema.unit.coverage.txt
 	ROOT_CA_CRT="$(ROOT_CA_CRT)" ROOT_CA_KEY="$(ROOT_CA_KEY)" \
+	INTERMEDIATE_CA_CRT="$(INTERMEDIATE_CA_CRT)" INTERMEDIATE_CA_KEY=$(INTERMEDIATE_CA_KEY) \
 		go test -race -v ./pkg/... -covermode=atomic -coverprofile=$(TMP_PATH)/pkg.unit.coverage.txt
 
 test: env build-testcontainer

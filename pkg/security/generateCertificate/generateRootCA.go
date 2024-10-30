@@ -8,7 +8,7 @@ import (
 )
 
 func GenerateRootCA(cfg Configuration, privateKey *ecdsa.PrivateKey) ([]byte, error) {
-	cacert, err := newCert(cfg)
+	cacert, err := newCert(cfg, true)
 	if err != nil {
 		return nil, err
 	}

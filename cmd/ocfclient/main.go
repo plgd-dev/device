@@ -523,8 +523,8 @@ func NewSecureClient() (*local.Client, error) {
 				ID:      CertIdentity,
 				Cert:    string(IdentityIntermediateCA),
 				CertKey: string(IdentityIntermediateCAKey),
-				CreateSignerFunc: func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner {
-					return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter)
+				CreateSignerFunc: func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore, validNotAfter time.Time, crlDistributionPoints []string) (core.CertificateSigner, error) {
+					return signer.NewOCFIdentityCertificate(caCert, caKey, validNotBefore, validNotAfter, crlDistributionPoints)
 				},
 			},
 		}

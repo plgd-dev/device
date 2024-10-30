@@ -39,13 +39,14 @@ type Signer = interface {
 }
 
 type DeviceOwnershipSDKConfig struct {
-	ID         string
-	Cert       string
-	CertKey    string
-	ValidFrom  string // RFC3339, or now-1m, empty means now-1m
-	CertExpiry *string
+	ID                    string
+	Cert                  string
+	CertKey               string
+	ValidFrom             string // RFC3339, or now-1m, empty means now-1m
+	CertExpiry            *string
+	CRLDistributionPoints []string
 
-	CreateSignerFunc func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner
+	CreateSignerFunc func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore, validNotAfter time.Time, crlDistributionPoints []string) (core.CertificateSigner, error)
 }
 
 type deviceOwnershipSDK struct {
@@ -78,11 +79,11 @@ func newDeviceOwnershipSDKFromConfig(app ApplicationCallback, dialTLS core.DialT
 		return nil, fmt.Errorf("invalid ID for device ownership SDK: %w", err)
 	}
 
-	return newDeviceOwnershipSDK(app, uid.String(), dialTLS, dialDLTS, &signerCert, cfg.ValidFrom, certExpiry, cfg.CreateSignerFunc)
+	return newDeviceOwnershipSDK(app, uid.String(), dialTLS, dialDLTS, &signerCert, cfg.ValidFrom, certExpiry, cfg.CRLDistributionPoints, cfg.CreateSignerFunc)
 }
 
 func newDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS core.DialTLS,
-	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore time.Time, validNotAfter time.Time) core.CertificateSigner,
+	dialDTLS core.DialDTLS, signerCert *tls.Certificate, validFrom string, certExpiry time.Duration, crlDistributionPoints []string, createSigner func(caCert []*x509.Certificate, caKey crypto.PrivateKey, validNotBefore, validNotAfter time.Time, crlDistributionPoints []string) (core.CertificateSigner, error),
 ) (*deviceOwnershipSDK, error) {
 	if validFrom == "" {
 		validFrom = "now-1m"
@@ -107,7 +108,7 @@ func newDeviceOwnershipSDK(app ApplicationCallback, sdkDeviceID string, dialTLS 
 				return nil, fmt.Errorf("invalid validFrom(%v): %w", validFrom, err)
 			}
 			notAfter := notBefore.Add(certExpiry)
-			return createSigner(signerCAs, signerCert.PrivateKey, notBefore, notAfter), nil
+			return createSigner(signerCAs, signerCert.PrivateKey, notBefore, notAfter, crlDistributionPoints)
 		},
 		app:      app,
 		dialTLS:  dialTLS,

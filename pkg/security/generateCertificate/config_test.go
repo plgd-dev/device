@@ -112,3 +112,60 @@ func TestToIPAddresses(t *testing.T) {
 	expected := []net.IP{net.ParseIP("192.168.0.1"), net.ParseIP("2001:0db8:85a3:0000:0000:8a2e:0370:7334")}
 	require.Equal(t, expected, ips)
 }
+
+func TestToCRLDistributionPoints(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     generateCertificate.Configuration
+		want    []string
+		wantErr bool
+	}{
+		{
+			name: "Valid CRL URLs",
+			cfg: generateCertificate.Configuration{
+				CRLDistributionPoints: []string{
+					"http://example.com/crl1",
+					"http://example.com/crl2",
+				},
+			},
+			want: []string{"http://example.com/crl1", "http://example.com/crl2"},
+		},
+		{
+			name: "Duplicate CRL URLs",
+			cfg: generateCertificate.Configuration{
+				CRLDistributionPoints: []string{
+					"http://example.com/crl1",
+					"http://example.com/crl1", // duplicate
+				},
+			},
+			want: []string{"http://example.com/crl1"},
+		},
+		{
+			name: "Invalid CRL URL",
+			cfg: generateCertificate.Configuration{
+				CRLDistributionPoints: []string{
+					"invalid-url",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Empty CRL list",
+			cfg: generateCertificate.Configuration{
+				CRLDistributionPoints: []string{},
+			},
+			want: []string{},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			crls, err := tt.cfg.ToCRLDistributionPoints()
+			if tt.wantErr {
+				require.Error(t, err)
+				return
+			}
+			require.ElementsMatch(t, tt.want, crls)
+		})
+	}
+}

@@ -10,7 +10,7 @@ import (
 	pkgX509 "github.com/plgd-dev/device/v2/pkg/security/x509"
 )
 
-func newCert(cfg Configuration) (*x509.Certificate, error) {
+func newCert(cfg Configuration, isRootCA bool) (*x509.Certificate, error) {
 	notBefore, err := cfg.ToValidFrom()
 	if err != nil {
 		return nil, err
@@ -36,7 +36,13 @@ func newCert(cfg Configuration) (*x509.Certificate, error) {
 		IsCA:                  true,
 		SignatureAlgorithm:    signatureAlgorithm,
 	}
-
+	if !isRootCA {
+		crlDistributionPoints, err := cfg.ToCRLDistributionPoints()
+		if err != nil {
+			return nil, err
+		}
+		template.CRLDistributionPoints = crlDistributionPoints
+	}
 	if cfg.BasicConstraints.MaxPathLen >= 0 {
 		if cfg.BasicConstraints.MaxPathLen == 0 {
 			template.MaxPathLenZero = true
@@ -48,7 +54,7 @@ func newCert(cfg Configuration) (*x509.Certificate, error) {
 }
 
 func GenerateIntermediateCA(cfg Configuration, privateKey *ecdsa.PrivateKey, signerCA []*x509.Certificate, signerCAKey *ecdsa.PrivateKey) ([]byte, error) {
-	cacert, err := newCert(cfg)
+	cacert, err := newCert(cfg, false)
 	if err != nil {
 		return nil, err
 	}
