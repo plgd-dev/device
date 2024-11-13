@@ -23,6 +23,7 @@ import (
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
@@ -77,6 +78,30 @@ func TestClientUpdateResource(t *testing.T) {
 				Code: codes.Changed,
 				Body: map[interface{}]interface{}{
 					"n": t.Name() + "-valid with interface",
+				},
+			},
+		},
+		{
+			name: "valid with link not found",
+			args: args{
+				deviceID: deviceID,
+				href:     "/link/not/found",
+				data: map[string]interface{}{
+					"n": t.Name() + "-valid with link not found",
+				},
+				opts: []client.UpdateOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// test the LinkNotFoundCallback by providing wrong href and returning a valid link for expected resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						return resourceLink, nil
+					}),
+				},
+			},
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Changed,
+				Body: map[interface{}]interface{}{
+					"n": t.Name() + "-valid with link not found",
 				},
 			},
 		},

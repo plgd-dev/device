@@ -47,7 +47,14 @@ func (c *Client) GetResource(
 
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
-		return err
+		if cfg.linkNotFoundCallback != nil {
+			link, err = cfg.linkNotFoundCallback(links, href)
+			if err != nil {
+				return err
+			}
+		} else {
+			return err
+		}
 	}
 
 	if c.useDeviceIDInQuery {

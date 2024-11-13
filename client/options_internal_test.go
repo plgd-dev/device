@@ -81,6 +81,9 @@ func TestApplyOnGet(t *testing.T) {
 	}
 	etag := "123"
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []GetOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithETag([]byte(etag)),
@@ -88,6 +91,7 @@ func TestApplyOnGet(t *testing.T) {
 		WithQuery(testQuery),
 		WithResourceTypes(testRt),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o getOptions
@@ -99,6 +103,12 @@ func TestApplyOnGet(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	require.NotNil(t, o.linkNotFoundCallback)
+	notFoundTestLink := "/get/notfound"
+	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -125,11 +135,16 @@ func TestApplyOnObserve(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
+
 	opts := []ObserveOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o observeOptions
@@ -141,6 +156,12 @@ func TestApplyOnObserve(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	require.NotNil(t, o.linkNotFoundCallback)
+	notFoundTestLink := "/observe/notfound"
+	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -160,11 +181,15 @@ func TestApplyOnUpdate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []UpdateOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o updateOptions
@@ -176,6 +201,12 @@ func TestApplyOnUpdate(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	require.NotNil(t, o.linkNotFoundCallback)
+	notFoundTestLink := "/update/notfound"
+	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -227,11 +258,15 @@ func TestApplyOnDelete(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []DeleteOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o deleteOptions
@@ -243,6 +278,12 @@ func TestApplyOnDelete(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	require.NotNil(t, o.linkNotFoundCallback)
+	notFoundTestLink := "/delete/notfound"
+	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {

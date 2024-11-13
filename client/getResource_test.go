@@ -87,6 +87,27 @@ func TestClientGetResource(t *testing.T) {
 			},
 		},
 		{
+			name: "link not found callback",
+			args: args{
+				deviceID: deviceID,
+				href:     "/link/not/found",
+				opts: []client.GetOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// test the LinkNotFoundCallback by providing wrong href and returning a valid link for expected resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						return resourceLink, nil
+					}),
+				},
+			},
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"n": test.DevsimName,
+				},
+			},
+		},
+		{
 			name: "invalid href",
 			args: args{
 				deviceID: deviceID,

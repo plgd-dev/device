@@ -52,7 +52,10 @@ func createSwitches(ctx context.Context, t *testing.T, c *client.Client, deviceI
 
 func TestClientDeleteResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	const switchID = "1"
+	const (
+		switchID_1 = "1"
+		switchID_2 = "2"
+	)
 	type args struct {
 		deviceID string
 		href     string
@@ -67,8 +70,23 @@ func TestClientDeleteResource(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
-				href:     test.TestResourceSwitchesInstanceHref(switchID),
+				href:     test.TestResourceSwitchesInstanceHref(switchID_1),
 				opts:     []client.DeleteOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
+			},
+		},
+		{
+			name: "link not found",
+			args: args{
+				deviceID: deviceID,
+				href:     "/link/not/found",
+				opts: []client.DeleteOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// test the LinkNotFoundCallback by providing wrong href and returning a valid link for expected resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, _ := links.GetResourceLink(test.TestResourceSwitchesInstanceHref(switchID_2))
+						return resourceLink, nil
+					}),
+				},
 			},
 		},
 		{
@@ -101,7 +119,7 @@ func TestClientDeleteResource(t *testing.T) {
 	require.NoError(t, err)
 	defer disown(t, c, deviceID)
 
-	createSwitches(ctx, t, c, deviceID, 1)
+	createSwitches(ctx, t, c, deviceID, 2)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
