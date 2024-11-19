@@ -226,10 +226,14 @@ func TestApplyOnCreate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []CreateOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o createOptions
@@ -241,6 +245,12 @@ func TestApplyOnCreate(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	require.NotNil(t, o.linkNotFoundCallback)
+	notFoundTestLink := "/update/notfound"
+	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {

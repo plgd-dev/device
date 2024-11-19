@@ -35,6 +35,24 @@ import (
 
 func TestClientUpdateResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
+	defer cancel()
+
+	c, err := testClient.NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	var nonDiscoverableResource map[string]interface{}
+	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &nonDiscoverableResource)
+	require.NoError(t, err)
+
 	type args struct {
 		deviceID string
 		href     string
@@ -82,18 +100,21 @@ func TestClientUpdateResource(t *testing.T) {
 			},
 		},
 		{
-			name: "valid with link not found",
+			name: "update non-discoverable resource",
 			args: args{
 				deviceID: deviceID,
-				href:     "/link/not/found",
+				href:     nonDiscoverableResource["href"].(string),
 				data: map[string]interface{}{
-					"n": t.Name() + "-valid with link not found",
+					"value": true,
 				},
 				opts: []client.UpdateOption{
 					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
-					// test the LinkNotFoundCallback by providing wrong href and returning a valid link for expected resource
+					// create the link for non-discoverable resource by utilizing the linkNotFoundCallback
+					// as the only thing that we need in the link is the href and endpoints we will reuse
+					// some known discoverable resource
 					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						resourceLink.Href = href
 						return resourceLink, nil
 					}),
 				},
@@ -101,7 +122,7 @@ func TestClientUpdateResource(t *testing.T) {
 			want: coap.DetailedResponse[interface{}]{
 				Code: codes.Changed,
 				Body: map[interface{}]interface{}{
-					"n": t.Name() + "-valid with link not found",
+					"value": true,
 				},
 			},
 		},
@@ -141,19 +162,6 @@ func TestClientUpdateResource(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
-	defer cancel()
-
-	c, err := testClient.NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		errC := c.Close(context.Background())
-		require.NoError(t, errC)
-	}()
-
-	deviceID, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-	defer disown(t, c, deviceID)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

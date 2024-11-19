@@ -299,6 +299,11 @@ type LinkNotFoundCallback struct {
 	linkNotFoundCallback func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
+func (r LinkNotFoundCallback) applyOnCreate(opts createOptions) createOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
 func (r LinkNotFoundCallback) applyOnGet(opts getOptions) getOptions {
 	opts.linkNotFoundCallback = r.linkNotFoundCallback
 	return opts
@@ -353,6 +358,7 @@ type createOptions struct {
 	opts                   []coap.OptionFunc
 	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 type deleteOptions struct {

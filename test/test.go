@@ -267,6 +267,17 @@ func MakeSwitchResourceData(overrides map[string]interface{}) map[string]interfa
 	return data
 }
 
+func MakeNonDiscoverableSwitchData() map[string]interface{} {
+	// create a non-discoverable switch resource
+	overrideParameters := map[string]interface{}{
+		"if": []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
+		"p": map[interface{}]interface{}{
+			"bm": uint64(schema.Observable), // let's make the resource only observable
+		},
+	}
+	return MakeSwitchResourceData(overrideParameters)
+}
+
 func DefaultDevsimResourceLinks() schema.ResourceLinks {
 	res := TestDevsimResources
 	res = append(res, TestDevsimSecResources...)

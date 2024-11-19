@@ -179,16 +179,8 @@ func TestObservingNonDiscoverableResource(t *testing.T) {
 		}
 
 		// create a non-discoverable switch resource
-		overrideParameters := map[string]interface{}{
-			"if": []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
-			"p": map[interface{}]interface{}{
-				"bm": uint64(schema.Observable), // let's make the resource only observable
-			},
-		}
-		switchResourceData := test.MakeSwitchResourceData(overrideParameters)
-
 		var got map[string]interface{}
-		err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, switchResourceData, &got)
+		err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &got)
 		require.NoError(t, err)
 		// remove the instance parameter as the number is assigned by the device and we can't predict its value
 		delete(got, "ins")
