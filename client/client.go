@@ -437,7 +437,6 @@ func (c *Client) GetDeviceLinkForHref(
 	discoveryCfg core.DiscoveryConfiguration,
 	callback LinkNotFoundCallback,
 ) (*core.Device, schema.ResourceLink, error) {
-
 	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryCfg))
 	if err != nil {
 		return nil, schema.ResourceLink{}, err
