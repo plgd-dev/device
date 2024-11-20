@@ -82,6 +82,20 @@ func checkLinkNotFoundCallback(t *testing.T, callback LinkNotFoundCallback, notF
 	require.Equal(t, notFoundTestLink, foundLink.Href)
 }
 
+func checkMessageOptions(t *testing.T, opts []func(message.Options) message.Options) {
+	mopts := message.Options{}
+	for _, mopt := range opts {
+		mopts = mopt(mopts)
+	}
+
+	queries, err := mopts.Queries()
+	require.NoError(t, err)
+	// WithInterface
+	require.Contains(t, queries, ifquery())
+	// WithQuery
+	require.Contains(t, queries, testQuery)
+}
+
 func TestApplyOnGet(t *testing.T) {
 	discoveryCfg := core.DiscoveryConfiguration{
 		MulticastHopLimit: 42,
@@ -161,18 +175,8 @@ func TestApplyOnObserve(t *testing.T) {
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
 	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/observe/notfound")
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnUpdate(t *testing.T) {
@@ -202,18 +206,8 @@ func TestApplyOnUpdate(t *testing.T) {
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
 	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/update/notfound")
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnCreate(t *testing.T) {
@@ -281,18 +275,8 @@ func TestApplyOnDelete(t *testing.T) {
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
 	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/delete/notfound")
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnOwn(t *testing.T) {
