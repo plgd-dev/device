@@ -71,7 +71,10 @@ func TestClientCreateResource(t *testing.T) {
 				opts: []client.CreateOption{
 					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
 					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
-						resourceLink, _ := links.GetResourceLink(test.TestResourceSwitchesHref)
+						_, linkFound := links.GetResourceLink(href)
+						require.False(t, linkFound)
+						resourceLink, linkFound := links.GetResourceLink(test.TestResourceSwitchesHref)
+						require.True(t, linkFound)
 						return resourceLink, nil
 					}),
 				},

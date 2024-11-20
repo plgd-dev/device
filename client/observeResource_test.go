@@ -168,7 +168,6 @@ func TestObservingResource(t *testing.T) {
 
 func TestObservingNonDiscoverableResource(t *testing.T) {
 	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
-
 		// link not found callback
 		linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 			// as the resource in not discoverable, we need to provide the link with the correct href
@@ -182,6 +181,10 @@ func TestObservingNonDiscoverableResource(t *testing.T) {
 		var got map[string]interface{}
 		err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &got)
 		require.NoError(t, err)
+		defer func() {
+			errCleanup := c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil, client.WithLinkNotFoundCallback(linkNotFoundCallback))
+			require.NoError(t, errCleanup)
+		}()
 		// remove the instance parameter as the number is assigned by the device and we can't predict its value
 		delete(got, "ins")
 		require.Equal(t, test.MakeSwitchResourceData(map[string]interface{}{
@@ -211,7 +214,7 @@ func TestObservingNonDiscoverableResource(t *testing.T) {
 		response := coap.DetailedResponse[map[string]interface{}]{}
 		err = responseDecoder(&response)
 		require.NoError(t, err)
-		require.Equal(t, false, response.Body["value"].(bool))
+		require.False(t, response.Body["value"].(bool))
 
 		// change the value of the switch and wait for the observation notification
 		err = c.UpdateResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), map[string]interface{}{
@@ -221,10 +224,10 @@ func TestObservingNonDiscoverableResource(t *testing.T) {
 
 		defer func() {
 			// restore to original value
-			err := c.UpdateResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), map[string]interface{}{
+			errRestore := c.UpdateResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), map[string]interface{}{
 				"value": false,
 			}, nil, client.WithLinkNotFoundCallback(linkNotFoundCallback))
-			require.NoError(t, err)
+			require.NoError(t, errRestore)
 		}()
 
 		// second notification contains the new value
@@ -232,7 +235,7 @@ func TestObservingNonDiscoverableResource(t *testing.T) {
 		require.NoError(t, err)
 		err = responseDecoder(&response)
 		require.NoError(t, err)
-		require.Equal(t, true, response.Body["value"].(bool))
+		require.True(t, response.Body["value"].(bool))
 	})
 }
 

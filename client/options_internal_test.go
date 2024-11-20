@@ -81,7 +81,7 @@ func TestApplyOnGet(t *testing.T) {
 	}
 	etag := "123"
 	codec := ocf.VNDOCFCBORCodec{}
-	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 		return schema.ResourceLink{Href: href}, nil
 	}
 	opts := []GetOption{
@@ -135,7 +135,7 @@ func TestApplyOnObserve(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
-	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 		return schema.ResourceLink{Href: href}, nil
 	}
 
@@ -181,7 +181,7 @@ func TestApplyOnUpdate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
-	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 		return schema.ResourceLink{Href: href}, nil
 	}
 	opts := []UpdateOption{
@@ -226,7 +226,7 @@ func TestApplyOnCreate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
-	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 		return schema.ResourceLink{Href: href}, nil
 	}
 	opts := []CreateOption{
@@ -268,7 +268,7 @@ func TestApplyOnDelete(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
-	linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 		return schema.ResourceLink{Href: href}, nil
 	}
 	opts := []DeleteOption{

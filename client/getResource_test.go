@@ -113,7 +113,10 @@ func TestClientGetResource(t *testing.T) {
 					// as the only thing that we need in the link is the href and endpoints we will reuse
 					// some known discoverable resource
 					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
-						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						resourceLink, ok := links.GetResourceLink(configuration.ResourceURI)
+						if !ok {
+							return schema.ResourceLink{}, fmt.Errorf("failed to get resource link: %w", err)
+						}
 						resourceLink.Href = href
 						return resourceLink, nil
 					}),
