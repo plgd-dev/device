@@ -31,6 +31,7 @@ import (
 	"github.com/plgd-dev/device/v2/internal/math"
 	"github.com/plgd-dev/device/v2/pkg/log"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/go-coap/v3/net/blockwise"
 	"github.com/plgd-dev/go-coap/v3/options"
 	coapSync "github.com/plgd-dev/go-coap/v3/pkg/sync"
@@ -427,4 +428,31 @@ func NewDeviceOwnerFromConfig(cfg *Config, dialTLS core.DialTLS, dialDTLS core.D
 		return c, nil
 	}
 	return newDeviceOwnershipNone(), nil
+}
+
+func (c *Client) GetDeviceLinkForHref(
+	ctx context.Context,
+	deviceID string,
+	href string,
+	discoveryCfg core.DiscoveryConfiguration,
+	callback LinkNotFoundCallback,
+) (*core.Device, schema.ResourceLink, error) {
+
+	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(discoveryCfg))
+	if err != nil {
+		return nil, schema.ResourceLink{}, err
+	}
+
+	link, err := core.GetResourceLink(links, href)
+	if err != nil {
+		if callback.linkNotFoundCallback != nil {
+			link, err = callback.linkNotFoundCallback(links, href)
+			if err != nil {
+				return nil, schema.ResourceLink{}, err
+			}
+		} else {
+			return nil, schema.ResourceLink{}, err
+		}
+	}
+	return d, link, nil
 }
