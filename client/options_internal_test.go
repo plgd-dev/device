@@ -75,6 +75,13 @@ func TestApplyOnCommonCommand(t *testing.T) {
 	require.Contains(t, queries, "di="+deviceID)
 }
 
+func checkLinkNotFoundCallback(t *testing.T, callback LinkNotFoundCallback, notFoundTestLink string) {
+	require.NotNil(t, callback.linkNotFoundCallback)
+	foundLink, err := callback.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
+}
+
 func TestApplyOnGet(t *testing.T) {
 	discoveryCfg := core.DiscoveryConfiguration{
 		MulticastHopLimit: 42,
@@ -104,11 +111,7 @@ func TestApplyOnGet(t *testing.T) {
 	// WithCodec
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
-	require.NotNil(t, o.linkNotFoundCallback)
-	notFoundTestLink := "/get/notfound"
-	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
-	require.NoError(t, err)
-	require.Equal(t, notFoundTestLink, foundLink.Href)
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/get/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -157,11 +160,7 @@ func TestApplyOnObserve(t *testing.T) {
 	// WithCodec
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
-	require.NotNil(t, o.linkNotFoundCallback)
-	notFoundTestLink := "/observe/notfound"
-	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
-	require.NoError(t, err)
-	require.Equal(t, notFoundTestLink, foundLink.Href)
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/observe/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -202,11 +201,7 @@ func TestApplyOnUpdate(t *testing.T) {
 	// WithCodec
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
-	require.NotNil(t, o.linkNotFoundCallback)
-	notFoundTestLink := "/update/notfound"
-	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
-	require.NoError(t, err)
-	require.Equal(t, notFoundTestLink, foundLink.Href)
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/update/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -246,11 +241,7 @@ func TestApplyOnCreate(t *testing.T) {
 	// WithCodec
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
-	require.NotNil(t, o.linkNotFoundCallback)
-	notFoundTestLink := "/update/notfound"
-	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
-	require.NoError(t, err)
-	require.Equal(t, notFoundTestLink, foundLink.Href)
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/create/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -289,11 +280,7 @@ func TestApplyOnDelete(t *testing.T) {
 	// WithCodec
 	require.Equal(t, codec, o.codec)
 	// WithLinkNotFoundCallback
-	require.NotNil(t, o.linkNotFoundCallback)
-	notFoundTestLink := "/delete/notfound"
-	foundLink, err := o.linkNotFoundCallback(nil, notFoundTestLink)
-	require.NoError(t, err)
-	require.Equal(t, notFoundTestLink, foundLink.Href)
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/delete/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
