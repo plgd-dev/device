@@ -37,6 +37,7 @@ import (
 	"github.com/plgd-dev/device/v2/schema/resources"
 	"github.com/plgd-dev/device/v2/schema/softwareupdate"
 	"github.com/plgd-dev/device/v2/test"
+	"github.com/plgd-dev/device/v2/test/resource/types"
 	"github.com/plgd-dev/go-coap/v3/message/codes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -205,6 +206,79 @@ func runObservingResourceTest(ctx context.Context, t *testing.T, c *client.Clien
 
 func TestObservingResource(t *testing.T) {
 	testDevice(t, test.DevsimName, runObservingResourceTest)
+}
+
+func TestObservingNonDiscoverableResource(t *testing.T) {
+	testDevice(t, test.DevsimName, func(ctx context.Context, t *testing.T, c *client.Client, deviceID string) {
+		// link not found callback
+		linkNotFoundCallback := func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+			// as the resource in not discoverable, we need to provide the link with the correct href
+			// and endpoints. We will done it by using some known discoverable resource and patching the href
+			resourceLink, _ := links.GetResourceLink(test.TestResourceLightInstanceHref("1"))
+			resourceLink.Href = href
+			return resourceLink, nil
+		}
+
+		// create a non-discoverable switch resource
+		var got map[string]interface{}
+		err := c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &got)
+		require.NoError(t, err)
+		defer func() {
+			errCleanup := c.DeleteResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), nil, client.WithLinkNotFoundCallback(linkNotFoundCallback))
+			require.NoError(t, errCleanup)
+		}()
+		// remove the instance parameter as the number is assigned by the device and we can't predict its value
+		delete(got, "ins")
+		require.Equal(t, test.MakeSwitchResourceData(map[string]interface{}{
+			"href": test.TestResourceSwitchesInstanceHref("1"),
+			"rep": map[interface{}]interface{}{
+				"if":    []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
+				"rt":    []interface{}{types.BINARY_SWITCH},
+				"value": false,
+			},
+			"p": map[interface{}]interface{}{
+				"bm": uint64(schema.Observable), // resource is only observable
+			},
+		}), got)
+
+		// start observing the non-discoverable switch resource
+		observation := makeObservationHandler()
+		id, err := c.ObserveResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), observation, client.WithLinkNotFoundCallback(linkNotFoundCallback))
+		require.NoError(t, err)
+		defer func(observationID string) {
+			_, errC := c.StopObservingResource(ctx, observationID)
+			require.NoError(t, errC)
+		}(id)
+
+		// first notification contains the current value
+		responseDecoder, err := observation.waitForNotification(ctx)
+		require.NoError(t, err)
+		response := coap.DetailedResponse[map[string]interface{}]{}
+		err = responseDecoder(&response)
+		require.NoError(t, err)
+		require.False(t, response.Body["value"].(bool))
+
+		// change the value of the switch and wait for the observation notification
+		err = c.UpdateResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), map[string]interface{}{
+			"value": true,
+		}, nil, client.WithLinkNotFoundCallback(linkNotFoundCallback))
+		require.NoError(t, err)
+
+		defer func() {
+			// restore to original value
+			errRestore := c.UpdateResource(ctx, deviceID, test.TestResourceSwitchesInstanceHref("1"), map[string]interface{}{
+				"value": false,
+			}, nil, client.WithLinkNotFoundCallback(linkNotFoundCallback))
+			require.NoError(t, errRestore)
+		}()
+
+		// second notification contains the new value
+		responseDecoder, err = observation.waitForNotification(ctx)
+		require.NoError(t, err)
+		err = responseDecoder(&response)
+		require.NoError(t, err)
+		require.True(t, response.Body["value"].(bool))
+	})
 }
 
 func TestObservingDiscoveryResource(t *testing.T) {
