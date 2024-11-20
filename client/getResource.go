@@ -39,15 +39,11 @@ func (c *Client) GetResource(
 	for _, o := range opts {
 		cfg = o.applyOnGet(cfg)
 	}
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+
+	device, link, err := c.GetDeviceLinkForHref(ctx, deviceID, href, cfg.discoveryConfiguration, LinkNotFoundCallback{linkNotFoundCallback: cfg.linkNotFoundCallback})
 	if err != nil {
 		return err
 	}
 
-	link, err := core.GetResourceLink(links, href)
-	if err != nil {
-		return err
-	}
-
-	return d.GetResourceWithCodec(ctx, link, cfg.codec, response, cfg.opts...)
+	return device.GetResourceWithCodec(ctx, link, cfg.codec, response, cfg.opts...)
 }

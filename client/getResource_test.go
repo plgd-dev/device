@@ -43,6 +43,22 @@ import (
 
 func TestClientGetResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	var nonDiscoverableResource map[string]interface{}
+	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &nonDiscoverableResource)
+	require.NoError(t, err)
+
 	type args struct {
 		deviceID string
 		href     string
@@ -86,6 +102,33 @@ func TestClientGetResource(t *testing.T) {
 			},
 		},
 		{
+			name: "get non-discoverable resource",
+			args: args{
+				deviceID: deviceID,
+				href:     nonDiscoverableResource["href"].(string),
+				opts: []client.GetOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// create the link for non-discoverable resource by utilizing the linkNotFoundCallback
+					// as the only thing that we need in the link is the href and endpoints we will reuse
+					// some known discoverable resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, ok := links.GetResourceLink(configuration.ResourceURI)
+						if !ok {
+							return schema.ResourceLink{}, fmt.Errorf("failed to get resource link: %w", err)
+						}
+						resourceLink.Href = href
+						return resourceLink, nil
+					}),
+				},
+			},
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Content,
+				Body: map[interface{}]interface{}{
+					"value": false,
+				},
+			},
+		},
+		{
 			name: "invalid href",
 			args: args{
 				deviceID: deviceID,
@@ -103,17 +146,6 @@ func TestClientGetResource(t *testing.T) {
 		},
 	}
 
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		errC := c.Close(context.Background())
-		require.NoError(t, errC)
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
-	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-	defer disown(t, c, deviceID)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var got coap.DetailedResponse[interface{}]

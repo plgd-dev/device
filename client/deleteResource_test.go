@@ -24,6 +24,7 @@ import (
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/schema"
+	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/schema/resources"
@@ -51,7 +52,28 @@ func createSwitches(ctx context.Context, t *testing.T, c *client.Client, deviceI
 
 func TestClientDeleteResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
-	const switchID = "1"
+	const (
+		switchID_1 = "1"
+		switchID_2 = "2"
+	)
+
+	c, err := NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
+	defer cancel()
+	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	createSwitches(ctx, t, c, deviceID, 2)
+	var nonDiscoverableResource map[string]interface{}
+	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &nonDiscoverableResource)
+	require.NoError(t, err)
+
 	type args struct {
 		deviceID string
 		href     string
@@ -66,8 +88,26 @@ func TestClientDeleteResource(t *testing.T) {
 			name: "valid",
 			args: args{
 				deviceID: deviceID,
-				href:     test.TestResourceSwitchesInstanceHref(switchID),
+				href:     test.TestResourceSwitchesInstanceHref(switchID_1),
 				opts:     []client.DeleteOption{client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration())},
+			},
+		},
+		{
+			name: "delete non-discoverable resource",
+			args: args{
+				deviceID: deviceID,
+				href:     nonDiscoverableResource["href"].(string),
+				opts: []client.DeleteOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// create the link for non-discoverable resource by utilizing the linkNotFoundCallback
+					// as the only thing that we need in the link is the href and endpoints we will reuse
+					// some known discoverable resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						resourceLink.Href = href
+						return resourceLink, nil
+					}),
+				},
 			},
 		},
 		{
@@ -87,20 +127,6 @@ func TestClientDeleteResource(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
-	c, err := NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		errC := c.Close(context.Background())
-		require.NoError(t, errC)
-	}()
-	ctx, cancel := context.WithTimeout(context.Background(), TestTimeout)
-	defer cancel()
-	deviceID, err = c.OwnDevice(ctx, deviceID, client.WithOTMs([]client.OTMType{client.OTMType_JustWorks}))
-	require.NoError(t, err)
-	defer disown(t, c, deviceID)
-
-	createSwitches(ctx, t, c, deviceID, 1)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
