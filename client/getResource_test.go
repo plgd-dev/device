@@ -115,7 +115,10 @@ func TestClientGetResource(t *testing.T) {
 					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
 						resourceLink, ok := links.GetResourceLink(configuration.ResourceURI)
 						if !ok {
-							return schema.ResourceLink{}, fmt.Errorf("failed to get resource link: %w", err)
+							return schema.ResourceLink{}, fmt.Errorf("resource link not found: %s", configuration.ResourceURI)
+						}
+						if len(resourceLink.Endpoints) == 0 {
+							return schema.ResourceLink{}, fmt.Errorf("resource link has no endpoints")
 						}
 						resourceLink.Href = href
 						return resourceLink, nil
