@@ -43,18 +43,14 @@ func (c *Client) UpdateResource(
 		cfg = o.applyOnUpdate(cfg)
 	}
 
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
+	device, link, err := c.GetDeviceLinkForHref(ctx, deviceID, href, cfg.discoveryConfiguration, LinkNotFoundCallback{linkNotFoundCallback: cfg.linkNotFoundCallback})
 	if err != nil {
 		return err
 	}
 
-	link, err := core.GetResourceLink(links, href)
-	if err != nil {
-		return err
-	}
 	if c.useDeviceIDInQuery {
 		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
-	return d.UpdateResourceWithCodec(ctx, link, cfg.codec, request, response, cfg.opts...)
+	return device.UpdateResourceWithCodec(ctx, link, cfg.codec, request, response, cfg.opts...)
 }

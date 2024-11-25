@@ -226,12 +226,7 @@ func (c *Client) ObserveResource(
 		return getObservationID(key, resourceObservationID.String()), nil
 	}
 
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
-	if err != nil {
-		return "", err
-	}
-
-	link, err := core.GetResourceLink(links, href)
+	device, link, err := c.GetDeviceLinkForHref(ctx, deviceID, href, cfg.discoveryConfiguration, LinkNotFoundCallback{linkNotFoundCallback: cfg.linkNotFoundCallback})
 	if err != nil {
 		return "", err
 	}
@@ -240,12 +235,12 @@ func (c *Client) ObserveResource(
 		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
-	observationID, err = d.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h, cfg.opts...)
+	observationID, err = device.ObserveResourceWithCodec(ctx, link, observerCodec{contentFormat: cfg.codec.ContentFormat()}, h, cfg.opts...)
 	if err != nil {
 		return "", err
 	}
 
-	dev, _ := c.deviceCache.UpdateOrStoreDevice(d)
+	dev, _ := c.deviceCache.UpdateOrStoreDevice(device)
 	h.observationID = observationID
 	h.device = dev
 

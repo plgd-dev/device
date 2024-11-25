@@ -75,12 +75,36 @@ func TestApplyOnCommonCommand(t *testing.T) {
 	require.Contains(t, queries, "di="+deviceID)
 }
 
+func checkLinkNotFoundCallback(t *testing.T, callback LinkNotFoundCallback, notFoundTestLink string) {
+	require.NotNil(t, callback.linkNotFoundCallback)
+	foundLink, err := callback.linkNotFoundCallback(nil, notFoundTestLink)
+	require.NoError(t, err)
+	require.Equal(t, notFoundTestLink, foundLink.Href)
+}
+
+func checkMessageOptions(t *testing.T, opts []func(message.Options) message.Options) {
+	mopts := message.Options{}
+	for _, mopt := range opts {
+		mopts = mopt(mopts)
+	}
+
+	queries, err := mopts.Queries()
+	require.NoError(t, err)
+	// WithInterface
+	require.Contains(t, queries, ifquery())
+	// WithQuery
+	require.Contains(t, queries, testQuery)
+}
+
 func TestApplyOnGet(t *testing.T) {
 	discoveryCfg := core.DiscoveryConfiguration{
 		MulticastHopLimit: 42,
 	}
 	etag := "123"
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []GetOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithETag([]byte(etag)),
@@ -88,6 +112,7 @@ func TestApplyOnGet(t *testing.T) {
 		WithQuery(testQuery),
 		WithResourceTypes(testRt),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o getOptions
@@ -99,6 +124,8 @@ func TestApplyOnGet(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/get/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -125,11 +152,16 @@ func TestApplyOnObserve(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
+
 	opts := []ObserveOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o observeOptions
@@ -141,18 +173,10 @@ func TestApplyOnObserve(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// WithLinkNotFoundCallback
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/observe/notfound")
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnUpdate(t *testing.T) {
@@ -160,11 +184,15 @@ func TestApplyOnUpdate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []UpdateOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o updateOptions
@@ -176,18 +204,10 @@ func TestApplyOnUpdate(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// WithLinkNotFoundCallback
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/update/notfound")
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnCreate(t *testing.T) {
@@ -195,10 +215,14 @@ func TestApplyOnCreate(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []CreateOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o createOptions
@@ -210,6 +234,8 @@ func TestApplyOnCreate(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
+	// WithLinkNotFoundCallback
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/create/notfound")
 
 	mopts := message.Options{}
 	for _, mopt := range o.opts {
@@ -227,11 +253,15 @@ func TestApplyOnDelete(t *testing.T) {
 		MulticastHopLimit: 42,
 	}
 	codec := ocf.VNDOCFCBORCodec{}
+	linkNotFoundCallback := func(_ schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+		return schema.ResourceLink{Href: href}, nil
+	}
 	opts := []DeleteOption{
 		WithDiscoveryConfiguration(discoveryCfg),
 		WithInterface(testIface),
 		WithQuery(testQuery),
 		WithCodec(codec),
+		WithLinkNotFoundCallback(linkNotFoundCallback),
 	}
 
 	var o deleteOptions
@@ -243,18 +273,10 @@ func TestApplyOnDelete(t *testing.T) {
 	require.Equal(t, discoveryCfg, o.discoveryConfiguration)
 	// WithCodec
 	require.Equal(t, codec, o.codec)
-
-	mopts := message.Options{}
-	for _, mopt := range o.opts {
-		mopts = mopt(mopts)
-	}
-
-	queries, err := mopts.Queries()
-	require.NoError(t, err)
-	// WithInterface
-	require.Contains(t, queries, ifquery())
-	// WithQuery
-	require.Contains(t, queries, testQuery)
+	// WithLinkNotFoundCallback
+	checkLinkNotFoundCallback(t, LinkNotFoundCallback{linkNotFoundCallback: o.linkNotFoundCallback}, "/delete/notfound")
+	// check message options
+	checkMessageOptions(t, o.opts)
 }
 
 func TestApplyOnOwn(t *testing.T) {

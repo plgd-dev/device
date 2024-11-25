@@ -22,6 +22,7 @@ import (
 
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
 	"github.com/plgd-dev/device/v2/test"
@@ -54,6 +55,32 @@ func TestClientCreateResource(t *testing.T) {
 			},
 			want: test.MakeSwitchResourceData(map[string]interface{}{
 				"href": test.TestResourceSwitchesInstanceHref("1"),
+				"rep": map[interface{}]interface{}{
+					"if":    []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
+					"rt":    []interface{}{types.BINARY_SWITCH},
+					"value": false,
+				},
+			}),
+		},
+		{
+			name: "test link not found callback",
+			args: args{
+				deviceID: deviceID,
+				href:     "/link/not/found",
+				body:     test.MakeSwitchResourceDefaultData(),
+				opts: []client.CreateOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						_, linkFound := links.GetResourceLink(href)
+						require.False(t, linkFound)
+						resourceLink, linkFound := links.GetResourceLink(test.TestResourceSwitchesHref)
+						require.True(t, linkFound)
+						return resourceLink, nil
+					}),
+				},
+			},
+			want: test.MakeSwitchResourceData(map[string]interface{}{
+				"href": test.TestResourceSwitchesInstanceHref("2"),
 				"rep": map[interface{}]interface{}{
 					"if":    []interface{}{interfaces.OC_IF_A, interfaces.OC_IF_BASELINE},
 					"rt":    []interface{}{types.BINARY_SWITCH},

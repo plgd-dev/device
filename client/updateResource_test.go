@@ -23,6 +23,7 @@ import (
 	"github.com/plgd-dev/device/v2/client"
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
+	"github.com/plgd-dev/device/v2/schema"
 	"github.com/plgd-dev/device/v2/schema/configuration"
 	"github.com/plgd-dev/device/v2/schema/device"
 	"github.com/plgd-dev/device/v2/schema/interfaces"
@@ -34,6 +35,24 @@ import (
 
 func TestClientUpdateResource(t *testing.T) {
 	deviceID := test.MustFindDeviceByName(test.DevsimName)
+	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
+	defer cancel()
+
+	c, err := testClient.NewTestSecureClient()
+	require.NoError(t, err)
+	defer func() {
+		errC := c.Close(context.Background())
+		require.NoError(t, errC)
+	}()
+
+	deviceID, err = c.OwnDevice(ctx, deviceID)
+	require.NoError(t, err)
+	defer disown(t, c, deviceID)
+
+	var nonDiscoverableResource map[string]interface{}
+	err = c.CreateResource(ctx, deviceID, test.TestResourceSwitchesHref, test.MakeNonDiscoverableSwitchData(), &nonDiscoverableResource)
+	require.NoError(t, err)
+
 	type args struct {
 		deviceID string
 		href     string
@@ -81,6 +100,33 @@ func TestClientUpdateResource(t *testing.T) {
 			},
 		},
 		{
+			name: "update non-discoverable resource",
+			args: args{
+				deviceID: deviceID,
+				href:     nonDiscoverableResource["href"].(string),
+				data: map[string]interface{}{
+					"value": true,
+				},
+				opts: []client.UpdateOption{
+					client.WithDiscoveryConfiguration(core.DefaultDiscoveryConfiguration()),
+					// create the link for non-discoverable resource by utilizing the linkNotFoundCallback
+					// as the only thing that we need in the link is the href and endpoints we will reuse
+					// some known discoverable resource
+					client.WithLinkNotFoundCallback(func(links schema.ResourceLinks, href string) (schema.ResourceLink, error) {
+						resourceLink, _ := links.GetResourceLink(configuration.ResourceURI)
+						resourceLink.Href = href
+						return resourceLink, nil
+					}),
+				},
+			},
+			want: coap.DetailedResponse[interface{}]{
+				Code: codes.Changed,
+				Body: map[interface{}]interface{}{
+					"value": true,
+				},
+			},
+		},
+		{
 			name: "valid - revert update",
 			args: args{
 				deviceID: deviceID,
@@ -116,19 +162,6 @@ func TestClientUpdateResource(t *testing.T) {
 			wantErr: true,
 		},
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), test.TestTimeout)
-	defer cancel()
-
-	c, err := testClient.NewTestSecureClient()
-	require.NoError(t, err)
-	defer func() {
-		errC := c.Close(context.Background())
-		require.NoError(t, errC)
-	}()
-
-	deviceID, err = c.OwnDevice(ctx, deviceID)
-	require.NoError(t, err)
-	defer disown(t, c, deviceID)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

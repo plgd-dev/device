@@ -295,6 +295,46 @@ func WithDiscoveryConfiguration(cfg core.DiscoveryConfiguration) DiscoveryConfig
 	}
 }
 
+type LinkNotFoundCallback struct {
+	linkNotFoundCallback func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
+}
+
+func (r LinkNotFoundCallback) applyOnCreate(opts createOptions) createOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
+func (r LinkNotFoundCallback) applyOnGet(opts getOptions) getOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
+func (r LinkNotFoundCallback) applyOnUpdate(opts updateOptions) updateOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
+func (r LinkNotFoundCallback) applyOnObserve(opts observeOptions) observeOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
+func (r LinkNotFoundCallback) applyOnDelete(opts deleteOptions) deleteOptions {
+	opts.linkNotFoundCallback = r.linkNotFoundCallback
+	return opts
+}
+
+// WithLinkNotFoundCallback is used if the target of the link is not known e.g. the resource is not present on the device
+// or the resource is non-discoverable.
+// linkNotFoundCallback is a function which is called with links and href of the resource.
+// It returns a link and an error. If the error is not nil, then the link is skipped.
+// Otherwise the link is replaced with the returned link.
+func WithLinkNotFoundCallback(linkNotFoundCallback func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)) LinkNotFoundCallback {
+	return LinkNotFoundCallback{
+		linkNotFoundCallback: linkNotFoundCallback,
+	}
+}
+
 // GetOption option definition.
 type GetOption = interface {
 	applyOnGet(opts getOptions) getOptions
@@ -304,24 +344,28 @@ type getOptions struct {
 	opts                   []coap.OptionFunc
 	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 type updateOptions struct {
 	opts                   []coap.OptionFunc
 	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 type createOptions struct {
 	opts                   []coap.OptionFunc
 	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 type deleteOptions struct {
 	opts                   []coap.OptionFunc
 	codec                  coap.Codec
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 // CreateOption option definition.
@@ -459,6 +503,7 @@ type observeOptions struct {
 	opts                   []coap.OptionFunc
 	resourceInterface      string
 	discoveryConfiguration core.DiscoveryConfiguration
+	linkNotFoundCallback   func(links schema.ResourceLinks, href string) (schema.ResourceLink, error)
 }
 
 // ObserveOption option definition.

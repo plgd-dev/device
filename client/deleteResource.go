@@ -41,12 +41,7 @@ func (c *Client) DeleteResource(
 		cfg = o.applyOnDelete(cfg)
 	}
 
-	d, links, err := c.GetDevice(ctx, deviceID, WithDiscoveryConfiguration(cfg.discoveryConfiguration))
-	if err != nil {
-		return err
-	}
-
-	link, err := core.GetResourceLink(links, href)
+	device, link, err := c.GetDeviceLinkForHref(ctx, deviceID, href, cfg.discoveryConfiguration, LinkNotFoundCallback{linkNotFoundCallback: cfg.linkNotFoundCallback})
 	if err != nil {
 		return err
 	}
@@ -55,5 +50,5 @@ func (c *Client) DeleteResource(
 		cfg.opts = append(cfg.opts, coap.WithDeviceID(deviceID))
 	}
 
-	return d.DeleteResourceWithCodec(ctx, link, cfg.codec, response, cfg.opts...)
+	return device.DeleteResourceWithCodec(ctx, link, cfg.codec, response, cfg.opts...)
 }
