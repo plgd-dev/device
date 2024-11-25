@@ -444,12 +444,11 @@ func (c *Client) GetDeviceLinkForHref(
 
 	link, err := core.GetResourceLink(links, href)
 	if err != nil {
-		if callback.linkNotFoundCallback != nil {
-			link, err = callback.linkNotFoundCallback(links, href)
-			if err != nil {
-				return nil, schema.ResourceLink{}, err
-			}
-		} else {
+		if callback.linkNotFoundCallback == nil {
+			return nil, schema.ResourceLink{}, err
+		}
+		link, err = callback.linkNotFoundCallback(links, href)
+		if err != nil {
 			return nil, schema.ResourceLink{}, err
 		}
 	}
