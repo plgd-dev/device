@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v3 v3.0.2
+	github.com/pion/dtls/v3 v3.0.4
 	github.com/pion/logging v0.2.2
 	github.com/plgd-dev/go-coap/v3 v3.3.5
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
@@ -36,9 +36,9 @@ require (
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.27.0 // indirect
-	golang.org/x/net v0.29.0 // indirect
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/crypto v0.28.0 // indirect
+	golang.org/x/net v0.30.0 // indirect
+	golang.org/x/sys v0.26.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240903143218-8af14fe29dc1 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
 )
