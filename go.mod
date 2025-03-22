@@ -8,7 +8,7 @@ require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.7.0
 	github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.1.0
 	github.com/hashicorp/go-multierror v1.1.1
