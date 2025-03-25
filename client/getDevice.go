@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/schema"
@@ -81,7 +82,7 @@ func (c *Client) GetDeviceByMulticast(ctx context.Context, deviceID string, opts
 }
 
 func (c *Client) getDeviceByIP(ctx context.Context, ip string, expectedDeviceID string) (*core.Device, schema.ResourceLinks, error) {
-	dev, err := c.getDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
+	dev, err := c.getDeviceByIPWithUpdateCache(ctx, strings.Trim(ip, "[]"), expectedDeviceID)
 	if err != nil {
 		return nil, nil, err
 	}
