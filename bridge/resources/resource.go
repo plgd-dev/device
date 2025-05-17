@@ -248,7 +248,7 @@ func (r *Resource) observerHandler(req *net.Request, createSubscription bool) (*
 		r.removeSubscription(req.Conn.RemoteAddr().String())
 		return r.getHandler(req)
 	}
-	req.Message.Hijack()
+	req.Hijack()
 	sequence := atomic.NewUint32(1)
 	var cancel func()
 	var err error

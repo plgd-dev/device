@@ -76,10 +76,7 @@ func newDevicesObserver(c *Client, observerConfiguration ObserverConfig, discove
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		for {
-			if !obs.poll(ctx) {
-				break
-			}
+		for obs.poll(ctx) {
 		}
 	}()
 	return obs

@@ -286,7 +286,7 @@ func DefaultDevsimResourceLinks() schema.ResourceLinks {
 }
 
 func CheckResourceLinks(t *testing.T, expected, actual schema.ResourceLinks) {
-	require.Equal(t, len(expected), len(actual))
+	require.Len(t, actual, len(expected))
 	expLinks := make(map[string]bool)
 	for _, l := range expected {
 		expLinks[l.Href] = true

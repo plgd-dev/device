@@ -415,7 +415,7 @@ func TestGetUDPSecureAddr(t *testing.T) {
 
 func TestResourceLinkGetDeviceID(t *testing.T) {
 	rl := schema.ResourceLink{}
-	require.Equal(t, "", rl.GetDeviceID())
+	require.Empty(t, rl.GetDeviceID())
 
 	rl = schema.ResourceLink{
 		DeviceID: "device-id",

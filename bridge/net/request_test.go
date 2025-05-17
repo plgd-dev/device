@@ -73,7 +73,7 @@ func TestURIPath(t *testing.T) {
 	reqNoPath := &net.Request{
 		Message: pool.NewMessage(context.Background()),
 	}
-	require.Equal(t, "", reqNoPath.URIPath())
+	require.Empty(t, reqNoPath.URIPath())
 }
 
 func TestInterface(t *testing.T) {
@@ -89,12 +89,12 @@ func TestInterface(t *testing.T) {
 		Message: pool.NewMessage(context.Background()),
 	}
 	reqNoInterface.AddQuery("q1=v1")
-	require.Equal(t, "", reqNoInterface.Interface())
+	require.Empty(t, reqNoInterface.Interface())
 
 	reqNoQuery := &net.Request{
 		Message: pool.NewMessage(context.Background()),
 	}
-	require.Equal(t, "", reqNoQuery.Interface())
+	require.Empty(t, reqNoQuery.Interface())
 }
 
 func TestDeviceID(t *testing.T) {

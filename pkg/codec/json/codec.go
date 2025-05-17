@@ -28,7 +28,7 @@ import (
 // WriteTo writes v to writer.
 func WriteTo(w io.Writer, v interface{}) error {
 	var h codec.JsonHandle
-	h.BasicHandle.Canonical = true
+	h.Canonical = true
 	err := codec.NewEncoder(w, &h).Encode(v)
 	if err != nil {
 		return fmt.Errorf("JSON encoder failed: %w", err)
