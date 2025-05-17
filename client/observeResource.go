@@ -97,14 +97,14 @@ func createDecodeFunc(message *pool.Message) decodeFunc {
 		if err != nil {
 			return err
 		}
-		switch code := message.Code(); {
-		case code == codes.Content:
+		switch code := message.Code(); code {
+		case codes.Content:
 			_, err := message.Body().Seek(0, io.SeekStart)
 			if err != nil {
 				return err
 			}
 			return codec.Decode(message, v)
-		case code == codes.Valid:
+		case codes.Valid:
 			return nil
 		}
 		return fmt.Errorf("request failed: %s", codecOcf.Dump(message))

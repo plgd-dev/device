@@ -425,7 +425,7 @@ func (c *Manager) handleDeviceResource(r *net.Request) (*pool.Message, error) {
 }
 
 func (c *Manager) handleDiscoveryResource(r *net.Request) (*pool.Message, error) {
-	links := c.getLinks(schema.Endpoints{}, c.deviceID, getResourceTypesFilter(r.Message.Options()), resources.PublishToCloud)
+	links := c.getLinks(schema.Endpoints{}, c.deviceID, getResourceTypesFilter(r.Options()), resources.PublishToCloud)
 	links = patchDeviceLink(links)
 	links = discovery.PatchLinks(links, c.deviceID.String())
 	return resources.CreateResponseContent(r.Context(), links, codes.Content)
@@ -454,7 +454,7 @@ func (c *Manager) serveCOAP(w mux.ResponseWriter, request *mux.Message) {
 		}
 		return
 	}
-	request.Message.AddQuery("di=" + c.deviceID.String())
+	request.AddQuery("di=" + c.deviceID.String())
 	r := net.Request{
 		Message:   request.Message,
 		Endpoints: nil,

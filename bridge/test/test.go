@@ -53,7 +53,7 @@ const (
 func MakeConfig(t *testing.T) service.Config {
 	var cfg service.Config
 	cfg.API.CoAP.ID = BRIDGE_SERVICE_PIID
-	cfg.API.CoAP.Config.ExternalAddresses = []string{BRIDGE_DEVICE_HOST, BRIDGE_DEVICE_HOST_IPv6}
+	cfg.API.CoAP.ExternalAddresses = []string{BRIDGE_DEVICE_HOST, BRIDGE_DEVICE_HOST_IPv6}
 	require.NoError(t, cfg.API.Validate())
 	return cfg
 }

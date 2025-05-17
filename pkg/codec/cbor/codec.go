@@ -64,7 +64,7 @@ func ToJSON(cbor []byte) (string, error) {
 	}
 	b := bytes.NewBuffer(make([]byte, 0, 1024))
 	h := codec.JsonHandle{}
-	h.BasicHandle.Canonical = true
+	h.Canonical = true
 	enc := codec.NewEncoder(b, &h)
 	if err := enc.Encode(m); err != nil {
 		return "", err

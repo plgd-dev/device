@@ -83,7 +83,7 @@ func (c *Service) LoadDevice(di uuid.UUID) (Device, error) {
 }
 
 func (c *Service) handleDiscoverAllLinks(req *net.Request) (*pool.Message, error) {
-	if req.Message.Type() != message.Acknowledgement && req.Message.Type() != message.Reset {
+	if req.Type() != message.Acknowledgement && req.Type() != message.Reset {
 		// discovery is only allowed for CON, NON, UNSET messages
 		c.onDiscoveryDevices(req)
 	}

@@ -177,7 +177,7 @@ func main() {
 				ResourceTypes:         []string{bridgeDevice.DeviceResourceType},
 				ID:                    id,
 				ProtocolIndependentID: piid,
-				MaxMessageSize:        cfg.Config.API.CoAP.MaxMessageSize,
+				MaxMessageSize:        cfg.API.CoAP.MaxMessageSize,
 				Cloud: device.CloudConfig{
 					Enabled: cfg.Cloud.Enabled,
 					Config: cloud.Config{
