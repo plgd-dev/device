@@ -8,7 +8,7 @@ ARG GO_TEST_ARGS=
 RUN go test -c ${GO_TEST_ARGS} -coverpkg=./... -covermode=atomic ./client -o /go/bin/device.client.test && \
     go test -c ${GO_TEST_ARGS} -coverpkg=./... -covermode=atomic ./client/core -o /go/bin/device.client.core.test
 
-FROM alpine:3.20 AS service
+FROM alpine:3.22 AS service
 RUN apk add --no-cache bash
 COPY --from=build /go/bin/device.client.test /usr/local/bin/device.client.test
 COPY --from=build /go/bin/device.client.core.test /usr/local/bin/device.client.core.test

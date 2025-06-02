@@ -10,7 +10,7 @@ RUN patch -p1 < "${GOPATH}/src/github.com/plgd-dev/device/tools/docker/patches/s
 WORKDIR $GOPATH/src/github.com/plgd-dev/device
 RUN CGO_ENABLED=0 go build -o /go/bin/bridge-device ./cmd/bridge-device
 
-FROM alpine:3.20 AS security-provider
+FROM alpine:3.22 AS security-provider
 RUN apk add -U --no-cache ca-certificates \
     && addgroup -S nonroot \
     && adduser -S nonroot -G nonroot
