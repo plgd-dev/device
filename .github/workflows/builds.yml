@@ -17,8 +17,8 @@ jobs:
       matrix:
         include:
           # test build of oldest supported go version
-          - name: go1.22
-            go-version: "~1.22"
+          - name: go1.23
+            go-version: "~1.23"
     uses: ./.github/workflows/build-with-cfg.yml
     with:
       go-version: ${{ matrix.go-version }}
