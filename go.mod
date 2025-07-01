@@ -15,10 +15,10 @@ require (
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
 	github.com/pion/dtls/v3 v3.0.2
-	github.com/pion/logging v0.2.2
+	github.com/pion/logging v0.2.4
 	github.com/plgd-dev/go-coap/v3 v3.3.5
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
-	github.com/stretchr/testify v1.9.0
+	github.com/stretchr/testify v1.10.0
 	github.com/ugorji/go/codec v1.2.12
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240513190706-79b5f39190eb
 	go.uber.org/atomic v1.11.0
