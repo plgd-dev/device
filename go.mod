@@ -22,7 +22,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20240513190706-79b5f39190eb
 	go.uber.org/atomic v1.11.0
-	golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
+	golang.org/x/exp b7579e27df2b
 	golang.org/x/sync v0.8.0
 	google.golang.org/grpc v1.66.2
 	gopkg.in/yaml.v3 v3.0.1
@@ -46,5 +46,5 @@ require (
 // last versions for Go 1.22.0
 replace (
 	github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
-	golang.org/x/exp => golang.org/x/exp v0.0.0-20240823005443-9b4947da3948
+	golang.org/x/exp => golang.org/x/exp b7579e27df2b
 )
