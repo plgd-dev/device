@@ -47,7 +47,7 @@ type UpdateRequest struct {
 
 // AccessControl defines permissions for one or more resources.
 type AccessControl struct {
-	ID         int           `json:"id,omitempty"`
+	ID         int           `json:"aceid,omitempty"`
 	Permission Permission    `json:"permission"`
 	Resources  []Resource    `json:"resources"`
 	Subject    Subject       `json:"subject"`
