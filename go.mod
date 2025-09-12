@@ -15,11 +15,11 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/jessevdk/go-flags v1.6.1
 	github.com/karrick/tparse/v2 v2.8.2
-	github.com/pion/dtls/v3 v3.0.6
-	github.com/pion/logging v0.2.3
-	github.com/plgd-dev/go-coap/v3 v3.3.7-0.20250702164925-f431046ea1ce
+	github.com/pion/dtls/v3 v3.0.7
+	github.com/pion/logging v0.2.4
+	github.com/plgd-dev/go-coap/v3 v3.4.1-0.20250912074156-3562ee25ca12
 	github.com/plgd-dev/kit/v2 v2.0.0-20211006190727-057b33161b90
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/ugorji/go/codec v1.2.14
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20250521114616-3895cda67f5d
 	go.uber.org/atomic v1.11.0
