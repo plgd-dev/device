@@ -6,7 +6,7 @@ go 1.23.0
 // the toolchain directive with your local go version
 
 require (
-	github.com/fredbi/uri v1.1.0
+	github.com/fredbi/uri v1.1.1
 	github.com/fxamacker/cbor/v2 v2.8.0
 	github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
 	github.com/golang-jwt/jwt/v5 v5.2.2
