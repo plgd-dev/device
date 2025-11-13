@@ -21,6 +21,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/plgd-dev/device/v2/client/core"
 	"github.com/plgd-dev/device/v2/pkg/net/coap"
@@ -92,7 +93,7 @@ type DeviceWithLinks struct {
 }
 
 func (c *Client) getDevicesByIP(ctx context.Context, ip string, expectedDeviceID string) ([]DeviceWithLinks, error) {
-	devs, err := c.getDeviceByIPWithUpdateCache(ctx, ip, expectedDeviceID)
+	devs, err := c.getDeviceByIPWithUpdateCache(ctx, strings.Trim(ip, "[]"), expectedDeviceID)
 	if err != nil {
 		return nil, err
 	}

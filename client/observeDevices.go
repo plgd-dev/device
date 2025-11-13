@@ -20,6 +20,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/google/uuid"
@@ -217,7 +218,7 @@ func (o *devicesObserver) observe(ctx context.Context) (map[string]uint8, error)
 	for deviceID, ip := range devicesByIP {
 		go func(deviceID string, ip string) {
 			defer wg.Done()
-			if _, e := o.c.getDeviceByIPWithUpdateCache(ctx, ip, deviceID); e == nil {
+			if _, e := o.c.getDeviceByIPWithUpdateCache(ctx, strings.Trim(ip, "[]"), deviceID); e == nil {
 				newDevices.devices.LoadOrStore(deviceID, struct{}{})
 			}
 		}(deviceID, ip)
