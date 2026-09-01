@@ -1,6 +1,6 @@
 module github.com/plgd-dev/device/v2
 
-go 1.23.0
+go 1.26
 
 // use export GOTOOLCHAIN=go1.23.0 before calling go mod tidy to avoid tidy adding
 // the toolchain directive with your local go version
@@ -8,7 +8,7 @@ go 1.23.0
 require (
 	github.com/fredbi/uri v1.1.0
 	github.com/fxamacker/cbor/v2 v2.8.0
-	github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
+	github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
 	github.com/grpc-ecosystem/go-grpc-middleware/v2 v2.3.2
@@ -45,4 +45,4 @@ require (
 )
 
 // last versions for Go 1.23
-replace github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20240815175050-ebd3a8989ca1
+replace github.com/go-json-experiment/json => github.com/go-json-experiment/json v0.0.0-20260820222146-c27c302e5fc3
