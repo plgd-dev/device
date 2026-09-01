@@ -1,6 +1,6 @@
 module github.com/plgd-dev/device/v2
 
-go 1.23.0
+go 1.26.0
 
 // use export GOTOOLCHAIN=go1.23.0 before calling go mod tidy to avoid tidy adding
 // the toolchain directive with your local go version
@@ -23,8 +23,8 @@ require (
 	github.com/ugorji/go/codec v1.2.14
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20250521114616-3895cda67f5d
 	go.uber.org/atomic v1.11.0
-	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b
-	golang.org/x/sync v0.14.0
+	golang.org/x/exp v0.0.0-20260824195058-e88cd73687aa
+	golang.org/x/sync v0.22.0
 	google.golang.org/grpc v1.72.2
 	gopkg.in/yaml.v3 v3.0.1
 )
