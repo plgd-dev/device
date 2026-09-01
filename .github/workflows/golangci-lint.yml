@@ -28,5 +28,5 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.1.6 # switch to latest if development is unfreezed
+          version: v2.13.2 # switch to latest if development is unfreezed
           args: --timeout=5m
