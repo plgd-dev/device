@@ -1,6 +1,6 @@
 module github.com/plgd-dev/device/v2
 
-go 1.23.0
+go 1.25.0
 
 // use export GOTOOLCHAIN=go1.23.0 before calling go mod tidy to avoid tidy adding
 // the toolchain directive with your local go version
@@ -24,8 +24,8 @@ require (
 	github.com/web-of-things-open-source/thingdescription-go v0.0.0-20250521114616-3895cda67f5d
 	go.uber.org/atomic v1.11.0
 	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b
-	golang.org/x/sync v0.14.0
-	google.golang.org/grpc v1.72.2
+	golang.org/x/sync v0.20.0
+	google.golang.org/grpc v1.83.1
 	gopkg.in/yaml.v3 v3.0.1
 )
 
@@ -37,11 +37,11 @@ require (
 	github.com/pion/transport/v3 v3.0.7 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
-	golang.org/x/crypto v0.38.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250528174236-200df99c418a // indirect
-	google.golang.org/protobuf v1.36.6 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
 
 // last versions for Go 1.23
