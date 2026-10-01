@@ -7,7 +7,7 @@ go 1.23.0
 
 require (
 	github.com/fredbi/uri v1.1.0
-	github.com/fxamacker/cbor/v2 v2.8.0
+	github.com/fxamacker/cbor/v2 v2.9.4
 	github.com/go-json-experiment/json v0.0.0-20240815174924-0599f16bf0e2
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/google/uuid v1.6.0
